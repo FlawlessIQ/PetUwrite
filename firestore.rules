@@ -1,0 +1,256 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper function to check if user is accessing their own document
+    function isOwnDocument() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    // Helper function to check if user is an admin (userRole == 2)
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userRole == 2;
+    }
+    
+    // Users collection - users can only read/write their own data
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+    
+    // Pets collection - users can only access their own pets
+    match /pets/{petId} {
+      allow read: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.ownerId == request.auth.uid
+      );
+      allow update: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid
+      );
+    }
+    
+    // Quotes collection - users can access their own quotes, admins can access all
+    match /quotes/{quoteId} {
+      allow read: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.ownerId == request.auth.uid
+      );
+      allow update: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid || 
+        (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'humanOverride', 
+          'eligibility.status',
+          'eligibility.overriddenAt',
+          'eligibility.overriddenBy',
+          'eligibility.reviewRequestedAt',
+          'eligibility.reviewRequestedBy',
+          'riskScore.totalScore',
+          'riskScore.overridden',
+          'riskScore.originalScore',
+          'status'
+        ]))
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid
+      );
+      
+      // Risk score subcollection
+      match /risk_score/{riskScoreId} {
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/quotes/$(quoteId)).data.ownerId == request.auth.uid || isAdmin()
+        );
+        allow write: if false; // Only written by backend service
+      }
+      
+      // Explainability subcollection
+      match /explainability/{explainabilityId} {
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/quotes/$(quoteId)).data.ownerId == request.auth.uid || isAdmin()
+        );
+        allow write: if false; // Only written by backend service
+      }
+    }
+    
+    // Policies collection - users can only access their own policies
+    match /policies/{policyId} {
+      allow read: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid
+      );
+      // Only allow creation with proper owner ID
+      allow create: if isAuthenticated() && (
+        request.resource.data.ownerId == request.auth.uid
+      );
+      // Allow update only by owner
+      allow update: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid
+      );
+      // Prevent deletion of policies
+      allow delete: if false;
+      
+      // Claims subcollection
+      match /claims/{claimId} {
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/policies/$(policyId)).data.ownerId == request.auth.uid
+        );
+        allow create: if isAuthenticated() && (
+          get(/databases/$(database)/documents/policies/$(policyId)).data.ownerId == request.auth.uid
+        );
+        allow update: if isAuthenticated() && (
+          get(/databases/$(database)/documents/policies/$(policyId)).data.ownerId == request.auth.uid
+        );
+        allow delete: if false;
+      }
+    }
+    
+    // Risk scores collection (read-only for users, write by cloud functions)
+    match /riskScores/{scoreId} {
+      allow read: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid
+      );
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Payments collection (read-only for users, write by Stripe extension)
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid
+      );
+      allow write: if false; // Only Stripe extension can write
+    }
+    
+    // Admin Settings - Read: all authenticated, Write: admins only
+    match /admin_settings/underwriting_rules {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // Audit Logs - Read: admins only, Write: admins only, Delete: never
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false; // Audit logs are immutable
+    }
+    
+    // Admin-only access for analytics and reporting
+    match /analytics/{document=**} {
+      allow read: if isAdmin();
+      allow write: if false; // Only server-side access
+    }
+    
+    // Claims collection - admins can read/write, users can create for their policies
+    match /claims/{claimId} {
+      // Admins can read all claims, users can read their own
+      allow read: if isAdmin() || (
+        isAuthenticated() && resource.data.ownerId == request.auth.uid
+      );
+      // Users can create claims for their own policies
+      allow create: if isAuthenticated() && (
+        exists(/databases/$(database)/documents/policies/$(request.resource.data.policyId)) &&
+        get(/databases/$(database)/documents/policies/$(request.resource.data.policyId)).data.ownerId == request.auth.uid
+      );
+      // Only admins can update claims
+      allow update: if isAdmin();
+      // Never allow deletion of claims
+      allow delete: if false;
+      
+      // Payout records - owner can read their own, only system can write
+      match /payout/{payoutId} {
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/claims/$(claimId)).data.ownerId == request.auth.uid
+          || isAdmin()
+        );
+        allow write: if false; // Only server-side (Cloud Functions / Backend)
+      }
+      
+      // AI audit trails - admin only
+      match /ai_audit_trail/{logId} {
+        allow read: if isAdmin();
+        allow write: if false; // Only server-side
+      }
+      
+      // Payout audit trails - admin only
+      match /payout_audit_trail/{logId} {
+        allow read: if isAdmin();
+        allow write: if false; // Only server-side
+      }
+      
+      // Document analysis metadata - owner can read, system writes
+      match /documents/{docId} {
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/claims/$(claimId)).data.ownerId == request.auth.uid
+          || isAdmin()
+        );
+        allow write: if false; // Only server-side
+      }
+    }
+    
+    // Model Training Data collection - admins only, system writes
+    match /model_training_data/{trainingDataId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin(); // Auto-generated by ClaimsService
+      allow update, delete: if false; // Training data is immutable
+    }
+    
+    // Payout Audit Trail collection - top-level audit logs for reconciliation
+    match /payout_audit_trail/{auditId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Payouts collection - for tracking all payout operations
+    match /payouts/{payoutId} {
+      allow read: if isAdmin() || (
+        isAuthenticated() && resource.data.ownerId == request.auth.uid
+      );
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Reconciliation Runs collection - system health monitoring
+    match /reconciliation_runs/{runId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // AI Training Data collections - for continuous model improvement
+    match /ai_training_batches/{batchId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    match /ai_training_data/{batchId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write
+      
+      // Training records subcollection
+      match /records/{recordId} {
+        allow read: if isAdmin();
+        allow write: if false; // Only Cloud Functions can write
+      }
+    }
+    
+    match /ai_training_exports/{exportId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write
+    }
+  }
+}

@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get user role
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userRole;
+    }
+    
+    // Helper function to check if user is underwriter
+    function isUnderwriter() {
+      return isAuthenticated() && getUserRole() == 2;
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && getUserRole() >= 3;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Users can update their own data (but not userRole)
+      allow update: if isAuthenticated() && 
+                       request.auth.uid == userId &&
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userRole']);
+      
+      // Only admins can create users with roles
+      allow create: if isAdmin();
+      
+      // User's policies subcollection
+      match /policies/{policyId} {
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        allow write: if isAuthenticated() && request.auth.uid == userId;
+      }
+    }
+    
+    // Quotes collection
+    match /quotes/{quoteId} {
+      // Regular users can read/write their own quotes
+      allow read: if isAuthenticated() && 
+                     resource.data.ownerId == request.auth.uid;
+      
+      allow create: if isAuthenticated() &&
+                       request.resource.data.ownerId == request.auth.uid;
+      
+      allow update: if isAuthenticated() &&
+                       resource.data.ownerId == request.auth.uid;
+      
+      // Underwriters can read high-risk quotes (score > 80)
+      allow read: if isUnderwriter() && 
+                     resource.data.riskScore.totalScore > 80;
+      
+      // Underwriters can update quotes to add humanOverride
+      allow update: if isUnderwriter() && 
+                       resource.data.riskScore.totalScore > 80 &&
+                       // Only allow updating humanOverride and status fields
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['humanOverride', 'status', 'updatedAt']) &&
+                       // Ensure humanOverride has required fields
+                       request.resource.data.humanOverride.keys().hasAll(['decision', 'justification', 'underwriterId', 'underwriterName', 'timestamp']) &&
+                       // Verify underwriter ID matches authenticated user
+                       request.resource.data.humanOverride.underwriterId == request.auth.uid;
+      
+      // Admins have full access
+      allow read, write: if isAdmin();
+    }
+    
+    // Policies collection (main)
+    match /policies/{policyId} {
+      // Policy owners can read their policies
+      allow read: if isAuthenticated() && 
+                     resource.data.ownerId == request.auth.uid;
+      
+      // Policies can be created by authenticated users
+      allow create: if isAuthenticated() &&
+                       request.resource.data.ownerId == request.auth.uid;
+      
+      // Policy owners can update their own policies (limited fields)
+      allow update: if isAuthenticated() &&
+                       resource.data.ownerId == request.auth.uid &&
+                       // Only allow updating specific fields
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      
+      // Underwriters can read all policies
+      allow read: if isUnderwriter();
+      
+      // Admins have full access
+      allow read, write: if isAdmin();
+    }
+    
+    // Audit Logs collection
+    match /audit_logs/{logId} {
+      // Underwriters can create audit logs (write-only)
+      allow create: if isUnderwriter() &&
+                       // Ensure log has required fields
+                       request.resource.data.keys().hasAll(['type', 'underwriterId', 'timestamp']) &&
+                       // Verify underwriter ID matches authenticated user
+                       request.resource.data.underwriterId == request.auth.uid &&
+                       // Verify timestamp is current
+                       request.resource.data.timestamp == request.time;
+      
+      // Underwriters and admins can read audit logs
+      allow read: if isUnderwriter() || isAdmin();
+      
+      // No updates or deletes allowed (immutable logs)
+      allow update, delete: if false;
+    }
+    
+    // Email logs collection (created by Cloud Functions)
+    match /email_logs/{logId} {
+      // Only Cloud Functions can write
+      allow write: if false;
+      
+      // Admins can read email logs
+      allow read: if isAdmin();
+    }
+    
+    // Admin statistics collection
+    match /admin_stats/{statId} {
+      // Only Cloud Functions can write
+      allow write: if false;
+      
+      // Underwriters and admins can read stats
+      allow read: if isUnderwriter() || isAdmin();
+    }
+    
+    // Pet profiles collection
+    match /pets/{petId} {
+      // Pet owners can read/write their pets
+      allow read, write: if isAuthenticated() && 
+                            resource.data.ownerId == request.auth.uid;
+      
+      // Underwriters can read pets (for quote review)
+      allow read: if isUnderwriter();
+    }
+    
+    // Vet records collection
+    match /vet_records/{recordId} {
+      // Record owners can read/write their records
+      allow read, write: if isAuthenticated() && 
+                            resource.data.ownerId == request.auth.uid;
+      
+      // Underwriters can read records (for quote review)
+      allow read: if isUnderwriter();
+    }
+  }
+}

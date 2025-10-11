@@ -1,0 +1,20 @@
+<!-- Placeholder SVG for PetUwrite Navy Background Logo -->
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Navy background -->
+  <rect width="512" height="512" fill="#0A2647"/>
+  
+  <!-- Teal circle -->
+  <circle cx="256" cy="200" r="80" fill="#00C2CB" opacity="0.3"/>
+  
+  <!-- Text: PetUwrite -->
+  <text x="256" y="280" font-family="Arial, sans-serif" font-size="48" font-weight="bold" 
+        fill="#00C2CB" text-anchor="middle">PetUwrite</text>
+  
+  <!-- Tagline -->
+  <text x="256" y="320" font-family="Arial, sans-serif" font-size="16" 
+        fill="#A8E6E8" text-anchor="middle">Trust powered by intelligence</text>
+  
+  <!-- Decorative elements -->
+  <circle cx="256" cy="200" r="60" fill="none" stroke="#00C2CB" stroke-width="2"/>
+  <circle cx="256" cy="200" r="40" fill="none" stroke="#A8E6E8" stroke-width="1"/>
+</svg>
