@@ -138,8 +138,14 @@ service cloud.firestore {
       allow write: if false; // Only Stripe extension can write
     }
     
-    // Admin Settings - Read: all authenticated, Write: admins only
+    // Admin Settings - Read: public (needed for quote flow), Write: admins only
     match /admin_settings/underwriting_rules {
+      allow read: if true; // Public read access for quote eligibility checks
+      allow write: if isAdmin();
+    }
+    
+    // Other admin settings require authentication
+    match /admin_settings/{document} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
@@ -163,13 +169,17 @@ service cloud.firestore {
       allow read: if isAdmin() || (
         isAuthenticated() && resource.data.ownerId == request.auth.uid
       );
-      // Users can create claims for their own policies
+      // Users can create claims - allow creation with proper ownerId
       allow create: if isAuthenticated() && (
-        exists(/databases/$(database)/documents/policies/$(request.resource.data.policyId)) &&
-        get(/databases/$(database)/documents/policies/$(request.resource.data.policyId)).data.ownerId == request.auth.uid
+        request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['policyId', 'ownerId', 'petId', 'incidentDate', 'claimType', 'status', 'createdAt', 'updatedAt'])
       );
-      // Only admins can update claims
-      allow update: if isAdmin();
+      // Admins can update claims, users can update their own drafts
+      allow update: if isAdmin() || (
+        isAuthenticated() && 
+        resource.data.ownerId == request.auth.uid &&
+        (resource.data.status == 'draft' || resource.data.status == 'pending')
+      );
       // Never allow deletion of claims
       allow delete: if false;
       

@@ -17,7 +17,7 @@ import '../services/underwriting_rules_engine.dart';
 /// - Last updated timestamp display
 /// - Role-based access control
 class AdminRulesEditorPage extends StatefulWidget {
-  const AdminRulesEditorPage({Key? key}) : super(key: key);
+  const AdminRulesEditorPage({super.key});
 
   @override
   State<AdminRulesEditorPage> createState() => _AdminRulesEditorPageState();

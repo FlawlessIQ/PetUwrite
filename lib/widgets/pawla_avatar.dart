@@ -8,32 +8,50 @@ import 'dart:math' as math;
 /// animations based on context.
 class PawlaAvatar extends StatefulWidget {
   final PawlaExpression expression;
+  final PawlaState state;
   final double size;
   final String? message;
   final bool animated;
+  final bool showGlow;
   
   const PawlaAvatar({
     super.key,
     this.expression = PawlaExpression.happy,
+    this.state = PawlaState.idle,
     this.size = 120,
     this.message,
     this.animated = true,
+    this.showGlow = false,
   });
 
   @override
   State<PawlaAvatar> createState() => _PawlaAvatarState();
 }
 
+/// Pawla's animation states
+enum PawlaState {
+  idle,      // Default resting state
+  typing,    // When generating a response
+  listening, // When waiting for user input
+  blinking,  // Subtle blink animation
+  nodding,   // Acknowledgment animation
+}
+
 class _PawlaAvatarState extends State<PawlaAvatar>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
+  late AnimationController _glowController;
+  late AnimationController _blinkController;
   late Animation<double> _floatAnimation;
   late Animation<double> _pulseAnimation;
+  late Animation<double> _glowAnimation;
+  late Animation<double> _blinkAnimation;
 
   @override
   void initState() {
     super.initState();
     
+    // Main animation controller for floating/pulsing
     _controller = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -55,14 +73,77 @@ class _PawlaAvatarState extends State<PawlaAvatar>
       curve: Curves.easeInOut,
     ));
 
+    // Glow animation for typing state
+    _glowController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    
+    _glowAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _glowController,
+      curve: Curves.easeInOut,
+    ));
+    
+    // Blink animation
+    _blinkController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    
+    _blinkAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.1,
+    ).animate(CurvedAnimation(
+      parent: _blinkController,
+      curve: Curves.easeInOut,
+    ));
+
     if (widget.animated) {
       _controller.repeat(reverse: true);
+    }
+    
+    if (widget.showGlow || widget.state == PawlaState.typing) {
+      _glowController.repeat(reverse: true);
+    }
+    
+    // Trigger periodic blinks
+    _startBlinking();
+  }
+  
+  void _startBlinking() {
+    Future.delayed(Duration(seconds: 3 + math.Random().nextInt(3)), () {
+      if (mounted) {
+        _blinkController.forward().then((_) {
+          _blinkController.reverse().then((_) {
+            _startBlinking();
+          });
+        });
+      }
+    });
+  }
+  
+  @override
+  void didUpdateWidget(PawlaAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // Update glow based on state
+    if (widget.state == PawlaState.typing || widget.showGlow) {
+      if (!_glowController.isAnimating) {
+        _glowController.repeat(reverse: true);
+      }
+    } else {
+      _glowController.stop();
     }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _glowController.dispose();
+    _blinkController.dispose();
     super.dispose();
   }
 
@@ -72,44 +153,90 @@ class _PawlaAvatarState extends State<PawlaAvatar>
       mainAxisSize: MainAxisSize.min,
       children: [
         AnimatedBuilder(
-          animation: _controller,
+          animation: Listenable.merge([_controller, _glowController, _blinkController]),
           builder: (context, child) {
+            // Calculate glow intensity
+            final glowIntensity = (widget.state == PawlaState.typing || widget.showGlow)
+                ? _glowAnimation.value
+                : 0.0;
+            
             return Transform.translate(
               offset: Offset(0, widget.animated ? _floatAnimation.value : 0),
               child: Transform.scale(
                 scale: widget.animated ? _pulseAnimation.value : 1.0,
-                child: child,
+                child: Container(
+                  width: widget.size,
+                  height: widget.size,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: _getGradientColors(),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _getGradientColors()[0].withOpacity(0.3 + (glowIntensity * 0.3)),
+                        blurRadius: 20 + (glowIntensity * 10),
+                        offset: const Offset(0, 10),
+                        spreadRadius: glowIntensity * 5,
+                      ),
+                    ],
+                  ),
+                  child: CustomPaint(
+                    painter: _PawlaPainter(
+                      expression: widget.expression,
+                      blinkAmount: _blinkAnimation.value,
+                    ),
+                  ),
+                ),
               ),
             );
           },
-          child: Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: _getGradientColors(),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _getGradientColors()[0].withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: CustomPaint(
-              painter: _PawlaPainter(expression: widget.expression),
-            ),
-          ),
         ),
         if (widget.message != null) ...[
           const SizedBox(height: 16),
           _buildMessageBubble(),
         ],
+        // Show typing indicator for typing state
+        if (widget.state == PawlaState.typing) ...[
+          const SizedBox(height: 8),
+          _buildTypingIndicator(),
+        ],
       ],
+    );
+  }
+  
+  Widget _buildTypingIndicator() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildTypingDot(0),
+        const SizedBox(width: 4),
+        _buildTypingDot(1),
+        const SizedBox(width: 4),
+        _buildTypingDot(2),
+      ],
+    );
+  }
+  
+  Widget _buildTypingDot(int index) {
+    return AnimatedBuilder(
+      animation: _glowController,
+      builder: (context, child) {
+        final delay = index * 0.2;
+        final animValue = ((_glowAnimation.value + delay) % 1.0);
+        final opacity = 0.3 + (animValue * 0.7);
+        
+        return Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: _getGradientColors()[0].withOpacity(opacity),
+            shape: BoxShape.circle,
+          ),
+        );
+      },
     );
   }
 
@@ -161,8 +288,12 @@ class _PawlaAvatarState extends State<PawlaAvatar>
 /// Custom painter for Pawla's face
 class _PawlaPainter extends CustomPainter {
   final PawlaExpression expression;
+  final double blinkAmount;
 
-  _PawlaPainter({required this.expression});
+  _PawlaPainter({
+    required this.expression,
+    this.blinkAmount = 1.0,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -631,7 +762,7 @@ class _PawlaPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PawlaPainter oldDelegate) {
-    return oldDelegate.expression != expression;
+    return oldDelegate.expression != expression || oldDelegate.blinkAmount != blinkAmount;
   }
 }
 

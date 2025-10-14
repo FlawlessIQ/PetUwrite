@@ -5,7 +5,7 @@ import '../services/reconciliation_service.dart';
 /// System Health Dashboard Widget
 /// Displays reconciliation statistics, failed operations, and system health score
 class SystemHealthWidget extends StatefulWidget {
-  const SystemHealthWidget({Key? key}) : super(key: key);
+  const SystemHealthWidget({super.key});
 
   @override
   State<SystemHealthWidget> createState() => _SystemHealthWidgetState();

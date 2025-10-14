@@ -1,7 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/petuwrite_theme.dart';
+
+/// Phone number input formatter
+class PhoneNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    
+    if (text.length <= 3) {
+      return TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    } else if (text.length <= 6) {
+      final formatted = '(${text.substring(0, 3)}) ${text.substring(3)}';
+      return TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    } else if (text.length <= 10) {
+      final formatted = '(${text.substring(0, 3)}) ${text.substring(3, 6)}-${text.substring(6)}';
+      return TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    } else {
+      final formatted = '(${text.substring(0, 3)}) ${text.substring(3, 6)}-${text.substring(6, 10)}';
+      return TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+  }
+}
 
 /// PetUwrite branded login screen with prominent logo
 class LoginScreen extends StatefulWidget {
@@ -15,6 +50,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _phoneController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
@@ -29,14 +67,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       setState(() {
         _isSignUp = _tabController.index == 1;
         _errorMessage = null;
+        _clearFormFields();
       });
     });
+  }
+
+  void _clearFormFields() {
+    _emailController.clear();
+    _passwordController.clear();
+    _firstNameController.clear();
+    _lastNameController.clear();
+    _phoneController.clear();
   }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -99,14 +149,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
       print('User created successfully: ${credential.user!.uid}');
       
-      // Create user document with userRole 0 (customer)
+      // Create comprehensive user document
       await FirebaseFirestore.instance
           .collection('users')
           .doc(credential.user!.uid)
           .set({
         'email': _emailController.text.trim(),
-        'userRole': 0,
+        'firstName': _firstNameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'userRole': 0, // Customer role
         'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'isEmailVerified': false,
+        'isPhoneVerified': false,
       });
       
       print('User document created in Firestore');
@@ -314,6 +370,127 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     const SizedBox(height: 20),
                   ],
                   
+                  // Sign Up Fields (First Name, Last Name, Phone)
+                  if (_isSignUp) ...[
+                    // First Name Field
+                    TextFormField(
+                      controller: _firstNameController,
+                      keyboardType: TextInputType.name,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        labelText: 'First Name',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: PetUwriteColors.kSecondaryTeal,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      validator: _isSignUp ? (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your first name';
+                        }
+                        if (value.length < 2) {
+                          return 'First name must be at least 2 characters';
+                        }
+                        return null;
+                      } : null,
+                      enabled: !_isLoading,
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Last Name Field
+                    TextFormField(
+                      controller: _lastNameController,
+                      keyboardType: TextInputType.name,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        labelText: 'Last Name',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: PetUwriteColors.kSecondaryTeal,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      validator: _isSignUp ? (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your last name';
+                        }
+                        if (value.length < 2) {
+                          return 'Last name must be at least 2 characters';
+                        }
+                        return null;
+                      } : null,
+                      enabled: !_isLoading,
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Phone Number Field
+                    TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: const TextStyle(fontSize: 16),
+                      inputFormatters: [
+                        PhoneNumberFormatter(),
+                        LengthLimitingTextInputFormatter(14), // (123) 456-7890
+                      ],
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        prefixIcon: const Icon(Icons.phone_outlined),
+                        hintText: '(555) 123-4567',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: PetUwriteColors.kSecondaryTeal,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      validator: _isSignUp ? (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your phone number';
+                        }
+                        // Basic phone validation - at least 10 digits
+                        final digitsOnly = value.replaceAll(RegExp(r'[^\d]'), '');
+                        if (digitsOnly.length < 10) {
+                          return 'Please enter a valid phone number';
+                        }
+                        return null;
+                      } : null,
+                      enabled: !_isLoading,
+                    ),
+                    
+                    const SizedBox(height: 16),
+                  ],
+                  
                   // Email Field
                   TextFormField(
                     controller: _emailController,
@@ -388,8 +565,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       if (value == null || value.isEmpty) {
                         return 'Please enter your password';
                       }
-                      if (_isSignUp && value.length < 6) {
-                        return 'Password must be at least 6 characters';
+                      if (_isSignUp) {
+                        if (value.length < 8) {
+                          return 'Password must be at least 8 characters';
+                        }
+                        if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(value)) {
+                          return 'Password must contain uppercase, lowercase, and numbers';
+                        }
+                      } else if (value.length < 6) {
+                        return 'Please enter your password';
                       }
                       return null;
                     },

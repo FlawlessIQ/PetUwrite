@@ -30,34 +30,79 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.initState();
     // Initialize checkout provider with pet and plan
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Convert dynamic pet to Pet object if needed
-      Pet petObject;
-      if (widget.pet is Pet) {
-        petObject = widget.pet as Pet;
-      } else if (widget.pet is Map<String, dynamic>) {
-        petObject = Pet.fromJson(widget.pet as Map<String, dynamic>);
-      } else {
-        // Handle invalid type
-        print('ERROR: Invalid pet type: ${widget.pet.runtimeType}');
-        return;
+      try {
+        // Convert dynamic pet to Pet object if needed
+        Pet petObject;
+        if (widget.pet is Pet) {
+          petObject = widget.pet as Pet;
+        } else if (widget.pet is Map<String, dynamic>) {
+          petObject = Pet.fromJson(widget.pet as Map<String, dynamic>);
+        } else {
+          // Handle invalid type
+          print('ERROR: Invalid pet type: ${widget.pet.runtimeType}');
+          print('Pet data: ${widget.pet}');
+          return;
+        }
+        
+        // Convert dynamic plan to Plan object if needed
+        Plan planObject;
+        if (widget.selectedPlan is Plan) {
+          planObject = widget.selectedPlan as Plan;
+        } else if (widget.selectedPlan is Map<String, dynamic>) {
+          planObject = Plan.fromJson(widget.selectedPlan as Map<String, dynamic>);
+        } else {
+          // Check if it's a PlanData object (from static plans in plan_selection_screen)
+          try {
+            final planData = widget.selectedPlan;
+            // Convert PlanData to Plan
+            final monthlyPrice = planData.monthlyPrice ?? planData.monthlyPremium ?? 0.0;
+            final reimbursement = planData.reimbursement ?? 80;
+            planObject = Plan(
+              type: _getPlanTypeFromName(planData.name ?? 'Basic'),
+              name: planData.name ?? 'Unknown Plan',
+              description: 'Pet insurance coverage',
+              monthlyPremium: monthlyPrice is num ? monthlyPrice.toDouble() : 0.0,
+              annualDeductible: (planData.annualDeductible ?? 500).toDouble(),
+              coPayPercentage: (100 - reimbursement).toDouble(),
+              maxAnnualCoverage: (planData.annualLimit ?? planData.maxAnnualCoverage ?? 10000).toDouble(),
+              maxLifetimeCoverage: null,
+              numberOfPets: 1,
+              multiPetDiscount: 0.0,
+              features: List<String>.from(planData.features ?? []),
+              exclusions: [],
+            );
+          } catch (e) {
+            print('ERROR: Invalid plan type: ${widget.selectedPlan.runtimeType}');
+            print('Plan data: ${widget.selectedPlan}');
+            print('Error: $e');
+            return;
+          }
+        }
+        
+        context.read<CheckoutProvider>().initialize(
+              pet: petObject,
+              plan: planObject,
+            );
+      } catch (e, stackTrace) {
+        print('ERROR initializing checkout: $e');
+        print('Stack trace: $stackTrace');
       }
-      
-      // Convert dynamic plan to Plan object if needed
-      Plan planObject;
-      if (widget.selectedPlan is Plan) {
-        planObject = widget.selectedPlan as Plan;
-      } else if (widget.selectedPlan is Map<String, dynamic>) {
-        planObject = Plan.fromJson(widget.selectedPlan as Map<String, dynamic>);
-      } else {
-        print('ERROR: Invalid plan type: ${widget.selectedPlan.runtimeType}');
-        return;
-      }
-      
-      context.read<CheckoutProvider>().initialize(
-            pet: petObject,
-            plan: planObject,
-          );
     });
+  }
+  
+  PlanType _getPlanTypeFromName(String name) {
+    switch (name.toLowerCase()) {
+      case 'basic':
+        return PlanType.basic;
+      case 'plus':
+      case 'standard':
+        return PlanType.plus;
+      case 'elite':
+      case 'premium':
+        return PlanType.elite;
+      default:
+        return PlanType.plus;
+    }
   }
 
   @override

@@ -229,7 +229,7 @@ class AIExplainabilityWidget extends StatelessWidget {
               entry.value,
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -329,7 +329,7 @@ class AIExplainabilityWidget extends StatelessWidget {
               ],
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -387,7 +387,7 @@ class AIExplainabilityWidget extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12),
             child: _buildFactorBar(context, entry.key, entry.value),
           );
-        }).toList(),
+        }),
       ],
     );
   }

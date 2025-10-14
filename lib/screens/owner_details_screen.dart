@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/checkout_state.dart';
+import '../services/user_session_service.dart';
 
 /// Step 2: Owner details form with e-sign consent
 class OwnerDetailsScreen extends StatefulWidget {
@@ -24,6 +26,81 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
   
   bool _hasESignConsent = false;
   bool _hasPrivacyConsent = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+  
+  /// Load user profile and pre-populate form fields
+  Future<void> _loadUserProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
+    try {
+      // Get user profile from Firestore
+      final userProfile = await UserSessionService().getUserProfile();
+      
+      setState(() {
+        // Pre-populate email from Firebase Auth
+        _emailController.text = user.email ?? '';
+        
+        // Pre-populate name fields from profile
+        final firstName = userProfile['firstName'] as String?;
+        final lastName = userProfile['lastName'] as String?;
+        
+        if (firstName != null && firstName.isNotEmpty) {
+          _firstNameController.text = firstName;
+        }
+        if (lastName != null && lastName.isNotEmpty) {
+          _lastNameController.text = lastName;
+        }
+        
+        // Pre-populate other profile fields if they exist
+        final phone = userProfile['phone'] as String?;
+        final zipCode = userProfile['zipCode'] as String?;
+        final address = userProfile['address'] as String?;
+        
+        if (phone != null && phone.isNotEmpty) {
+          _phoneController.text = phone;
+        }
+        if (zipCode != null && zipCode.isNotEmpty) {
+          _zipCodeController.text = zipCode;
+        }
+        if (address != null && address.isNotEmpty) {
+          _addressLine1Controller.text = address;
+        }
+      });
+      
+      print('✅ Pre-populated owner details from user profile');
+    } catch (e) {
+      print('⚠️ Error loading user profile: $e');
+      // Fallback to just email from Firebase Auth
+      if (user.email != null) {
+        setState(() {
+          _emailController.text = user.email!;
+        });
+      }
+    }
+  }
+  
+  /// Update user profile with form data for future pre-population
+  Future<void> _updateUserProfile(OwnerDetails ownerDetails) async {
+    try {
+      await UserSessionService().updateUserProfile(
+        firstName: ownerDetails.firstName,
+        lastName: ownerDetails.lastName,
+        phone: ownerDetails.phone,
+        zipCode: ownerDetails.zipCode,
+        address: ownerDetails.addressLine1,
+      );
+      print('✅ Updated user profile with owner details');
+    } catch (e) {
+      print('⚠️ Error updating user profile: $e');
+      // Don't block the flow if profile update fails
+    }
+  }
   
   @override
   void dispose() {
@@ -436,6 +513,9 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
         hasESignConsent: _hasESignConsent,
         eSignConsentDate: DateTime.now(),
       );
+
+      // Update user profile with the entered information for future use
+      _updateUserProfile(ownerDetails);
 
       context.read<CheckoutProvider>().setOwnerDetails(ownerDetails);
       context.read<CheckoutProvider>().nextStep();

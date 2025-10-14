@@ -28,6 +28,10 @@ class Claim {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? settledAt;
+  
+  // Advisory Lock for Concurrent Review (10-minute timeout)
+  final String? reviewLockedBy; // Admin user ID holding the lock
+  final DateTime? reviewLockedAt; // When the lock was acquired
 
   Claim({
     required this.claimId,
@@ -48,6 +52,8 @@ class Claim {
     required this.createdAt,
     required this.updatedAt,
     this.settledAt,
+    this.reviewLockedBy,
+    this.reviewLockedAt,
   });
 
   /// Create Claim from Firestore document
@@ -75,6 +81,10 @@ class Claim {
       settledAt: map['settledAt'] != null 
           ? (map['settledAt'] as Timestamp).toDate()
           : null,
+      reviewLockedBy: map['reviewLockedBy'] as String?,
+      reviewLockedAt: map['reviewLockedAt'] != null 
+          ? (map['reviewLockedAt'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -98,6 +108,8 @@ class Claim {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'settledAt': settledAt != null ? Timestamp.fromDate(settledAt!) : null,
+      'reviewLockedBy': reviewLockedBy,
+      'reviewLockedAt': reviewLockedAt != null ? Timestamp.fromDate(reviewLockedAt!) : null,
     };
   }
 
@@ -130,6 +142,9 @@ class Claim {
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? settledAt,
+    String? reviewLockedBy,
+    DateTime? reviewLockedAt,
+    bool clearReviewLock = false,
   }) {
     return Claim(
       claimId: claimId ?? this.claimId,
@@ -150,7 +165,26 @@ class Claim {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       settledAt: settledAt ?? this.settledAt,
+      reviewLockedBy: clearReviewLock ? null : (reviewLockedBy ?? this.reviewLockedBy),
+      reviewLockedAt: clearReviewLock ? null : (reviewLockedAt ?? this.reviewLockedAt),
     );
+  }
+
+  /// Check if claim is currently locked for review
+  bool get isReviewLocked {
+    if (reviewLockedBy == null || reviewLockedAt == null) return false;
+    
+    // Lock expires after 10 minutes
+    final lockExpiry = reviewLockedAt!.add(const Duration(minutes: 10));
+    return DateTime.now().isBefore(lockExpiry);
+  }
+  
+  /// Check if claim lock has expired
+  bool get hasExpiredLock {
+    if (reviewLockedBy == null || reviewLockedAt == null) return false;
+    
+    final lockExpiry = reviewLockedAt!.add(const Duration(minutes: 10));
+    return DateTime.now().isAfter(lockExpiry);
   }
 
   /// Check if claim was overridden by human
@@ -212,7 +246,8 @@ enum ClaimStatus {
   processing('processing'),
   settling('settling'), // Intermediate state for payout processing lock
   settled('settled'),
-  denied('denied');
+  denied('denied'),
+  cancelled('cancelled');
 
   final String value;
   const ClaimStatus(this.value);
@@ -231,6 +266,8 @@ enum ClaimStatus {
         return ClaimStatus.settled;
       case 'denied':
         return ClaimStatus.denied;
+      case 'cancelled':
+        return ClaimStatus.cancelled;
       default:
         throw ArgumentError('Invalid claim status: $value');
     }
@@ -250,6 +287,8 @@ enum ClaimStatus {
         return 'Settled';
       case ClaimStatus.denied:
         return 'Denied';
+      case ClaimStatus.cancelled:
+        return 'Cancelled';
     }
   }
 }
@@ -285,22 +324,6 @@ enum AIDecision {
       case AIDecision.escalate:
         return 'Escalate to Human';
     }
-  }
-}
-
-/// Firestore converter for Claim
-class ClaimConverter implements FirestoreDataConverter<Claim> {
-  const ClaimConverter();
-
-  @override
-  Claim fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot, SnapshotOptions? options) {
-    final data = snapshot.data()!;
-    return Claim.fromMap(data, snapshot.id);
-  }
-
-  @override
-  Map<String, dynamic> toFirestore(Claim claim, SetOptions? options) {
-    return claim.toMap();
   }
 }
 

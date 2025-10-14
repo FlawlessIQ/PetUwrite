@@ -7,7 +7,8 @@ import 'package:http/http.dart' as http;
 
 /// Service for handling Stripe payments
 class StripeService {
-  static const String _publishableKey = 'pk_test_YOUR_PUBLISHABLE_KEY_HERE';
+  // Stripe Test Publishable Key (safe to use in client-side code)
+  static const String _publishableKey = 'pk_test_51SI7vTPzjq9wJkU5zFAJvBSWvFLKfu9Be4klAyLdG8IOjHpQwsw8My1WxhrbagFztc549VKyQAmAtCklGOpbeo4v00IAlWsINb';
   // Secret key should only be used server-side (in Cloud Functions)
   
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

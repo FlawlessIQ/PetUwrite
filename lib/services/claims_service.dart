@@ -1,6 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/claim.dart';
 
+/// Exception thrown when concurrent modification is detected
+class ConcurrentModificationException implements Exception {
+  final String message;
+  ConcurrentModificationException(this.message);
+  
+  @override
+  String toString() => 'ConcurrentModificationException: $message';
+}
+
 /// Service for managing claims and claims analytics
 /// Handles claims submission, aggregation, and training data generation
 class ClaimsService {
@@ -388,6 +397,234 @@ class ClaimsService {
       await claimRef.set(claim.toMap(), SetOptions(merge: true));
     } catch (e) {
       throw Exception('Failed to save draft claim: $e');
+    }
+  }
+
+  // ============================================================================
+  // CONCURRENCY-SAFE CLAIM STATUS UPDATES WITH TRANSACTIONS
+  // ============================================================================
+
+  /// Update claim status with optimistic locking using updatedAt timestamp
+  /// Throws ConcurrentModificationException if claim was modified by another process
+  Future<void> updateClaimStatusTransactional({
+    required String claimId,
+    required ClaimStatus newStatus,
+    required DateTime expectedUpdatedAt,
+    Map<String, dynamic>? additionalFields,
+  }) async {
+    final claimRef = _firestore.collection('claims').doc(claimId);
+    
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(claimRef);
+        
+        if (!snapshot.exists) {
+          throw Exception('Claim $claimId not found');
+        }
+        
+        final currentData = snapshot.data()!;
+        final currentUpdatedAt = (currentData['updatedAt'] as Timestamp).toDate();
+        
+        // Optimistic locking check
+        if (currentUpdatedAt != expectedUpdatedAt) {
+          throw ConcurrentModificationException(
+            'Claim was modified by another process. '
+            'Expected updatedAt: $expectedUpdatedAt, '
+            'Actual updatedAt: $currentUpdatedAt'
+          );
+        }
+        
+        // Prepare update data
+        final updateData = {
+          'status': newStatus.value,
+          'updatedAt': FieldValue.serverTimestamp(),
+          ...?additionalFields,
+        };
+        
+        transaction.update(claimRef, updateData);
+      });
+    } catch (e) {
+      if (e is ConcurrentModificationException) {
+        rethrow;
+      }
+      throw Exception('Failed to update claim status: $e');
+    }
+  }
+
+  /// Transition claim to settling status (used as lock during payout processing)
+  /// This prevents concurrent payout attempts
+  Future<void> transitionToSettling({
+    required String claimId,
+    required DateTime expectedUpdatedAt,
+  }) async {
+    await updateClaimStatusTransactional(
+      claimId: claimId,
+      newStatus: ClaimStatus.settling,
+      expectedUpdatedAt: expectedUpdatedAt,
+    );
+  }
+
+  /// Transition claim from settling to settled (completes payout)
+  Future<void> transitionToSettled({
+    required String claimId,
+    required DateTime expectedUpdatedAt,
+    Map<String, dynamic>? payoutDetails,
+  }) async {
+    await updateClaimStatusTransactional(
+      claimId: claimId,
+      newStatus: ClaimStatus.settled,
+      expectedUpdatedAt: expectedUpdatedAt,
+      additionalFields: {
+        'settledAt': FieldValue.serverTimestamp(),
+        if (payoutDetails != null) 'payoutDetails': payoutDetails,
+      },
+    );
+  }
+
+  // ============================================================================
+  // ADVISORY LOCK SYSTEM FOR ADMIN REVIEW (10-minute timeout)
+  // ============================================================================
+
+  /// Acquire review lock for admin user
+  /// Returns true if lock acquired, false if already locked by another admin
+  Future<bool> acquireReviewLock({
+    required String claimId,
+    required String adminUserId,
+  }) async {
+    final claimRef = _firestore.collection('claims').doc(claimId);
+    
+    try {
+      final result = await _firestore.runTransaction<bool>((transaction) async {
+        final snapshot = await transaction.get(claimRef);
+        
+        if (!snapshot.exists) {
+          throw Exception('Claim $claimId not found');
+        }
+        
+        final data = snapshot.data()!;
+        final reviewLockedBy = data['reviewLockedBy'] as String?;
+        final reviewLockedAt = data['reviewLockedAt'] as Timestamp?;
+        
+        // Check if lock exists and is not expired
+        if (reviewLockedBy != null && reviewLockedAt != null) {
+          final lockTime = reviewLockedAt.toDate();
+          final lockExpiry = lockTime.add(const Duration(minutes: 10));
+          final now = DateTime.now();
+          
+          // Lock is still valid
+          if (now.isBefore(lockExpiry)) {
+            // Already locked by same user - allow (lock refresh)
+            if (reviewLockedBy == adminUserId) {
+              transaction.update(claimRef, {
+                'reviewLockedAt': FieldValue.serverTimestamp(),
+              });
+              return true;
+            }
+            // Locked by different user
+            return false;
+          }
+          // Lock expired - can acquire
+        }
+        
+        // Acquire lock
+        transaction.update(claimRef, {
+          'reviewLockedBy': adminUserId,
+          'reviewLockedAt': FieldValue.serverTimestamp(),
+        });
+        
+        return true;
+      });
+      
+      return result;
+    } catch (e) {
+      throw Exception('Failed to acquire review lock: $e');
+    }
+  }
+
+  /// Release review lock
+  Future<void> releaseReviewLock({
+    required String claimId,
+    required String adminUserId,
+  }) async {
+    final claimRef = _firestore.collection('claims').doc(claimId);
+    
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(claimRef);
+        
+        if (!snapshot.exists) {
+          throw Exception('Claim $claimId not found');
+        }
+        
+        final data = snapshot.data()!;
+        final reviewLockedBy = data['reviewLockedBy'] as String?;
+        
+        // Only release if locked by this user
+        if (reviewLockedBy == adminUserId) {
+          transaction.update(claimRef, {
+            'reviewLockedBy': FieldValue.delete(),
+            'reviewLockedAt': FieldValue.delete(),
+          });
+        }
+      });
+    } catch (e) {
+      throw Exception('Failed to release review lock: $e');
+    }
+  }
+
+  /// Check if claim is currently locked for review
+  Future<bool> isReviewLocked({
+    required String claimId,
+  }) async {
+    try {
+      final snapshot = await _firestore.collection('claims').doc(claimId).get();
+      
+      if (!snapshot.exists) {
+        throw Exception('Claim $claimId not found');
+      }
+      
+      final data = snapshot.data()!;
+      final reviewLockedBy = data['reviewLockedBy'] as String?;
+      final reviewLockedAt = data['reviewLockedAt'] as Timestamp?;
+      
+      if (reviewLockedBy == null || reviewLockedAt == null) {
+        return false;
+      }
+      
+      final lockTime = reviewLockedAt.toDate();
+      final lockExpiry = lockTime.add(const Duration(minutes: 10));
+      final now = DateTime.now();
+      
+      return now.isBefore(lockExpiry);
+    } catch (e) {
+      throw Exception('Failed to check review lock: $e');
+    }
+  }
+
+  /// Clear expired review locks (called by reconciliation function)
+  Future<int> clearExpiredLocks() async {
+    try {
+      final now = DateTime.now();
+      final expiryThreshold = now.subtract(const Duration(minutes: 10));
+      
+      final snapshot = await _firestore
+          .collection('claims')
+          .where('reviewLockedAt', isLessThan: Timestamp.fromDate(expiryThreshold))
+          .get();
+      
+      int clearedCount = 0;
+      
+      for (final doc in snapshot.docs) {
+        await doc.reference.update({
+          'reviewLockedBy': FieldValue.delete(),
+          'reviewLockedAt': FieldValue.delete(),
+        });
+        clearedCount++;
+      }
+      
+      return clearedCount;
+    } catch (e) {
+      throw Exception('Failed to clear expired locks: $e');
     }
   }
 

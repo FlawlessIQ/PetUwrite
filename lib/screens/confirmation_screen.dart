@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/checkout_state.dart';
 import '../services/policy_service.dart';
 
@@ -45,8 +46,17 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
     try {
       final provider = context.read<CheckoutProvider>();
       
+      // Debug: Check if user is authenticated
+      final user = FirebaseAuth.instance.currentUser;
+      print('🔍 Creating policy for user: ${user?.uid} (${user?.email})');
+      
+      if (user == null) {
+        throw Exception('User not authenticated - cannot create policy');
+      }
+      
       // Generate policy number
       final policyNumber = _generatePolicyNumber();
+      print('🔍 Generated policy number: $policyNumber');
       
       // Create policy document
       final policy = await _policyService.createPolicy(
@@ -68,9 +78,24 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
         _policyCreated = true;
       });
     } catch (e) {
+      print('❌ Policy creation failed: $e');
+      print('❌ Policy creation failed: $e');
+      
+      // Extract more specific error information
+      String errorMessage = e.toString();
+      if (errorMessage.contains('permission-denied')) {
+        errorMessage = 'Permission denied: Unable to create policy. Please ensure you are signed in and try again.';
+      } else if (errorMessage.contains('Failed to create policy:')) {
+        // Extract the inner error
+        final match = RegExp(r'Failed to create policy: (.+)').firstMatch(errorMessage);
+        if (match != null) {
+          errorMessage = match.group(1) ?? errorMessage;
+        }
+      }
+      
       setState(() {
         _isCreatingPolicy = false;
-        _errorMessage = e.toString();
+        _errorMessage = errorMessage;
       });
     }
   }

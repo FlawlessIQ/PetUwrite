@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../models/claim.dart';
@@ -12,11 +13,13 @@ import '../../theme/petuwrite_theme.dart';
 class ClaimIntakeScreen extends StatefulWidget {
   final String policyId;
   final String petId;
+  final String? draftClaimId; // Optional: for resuming existing drafts
 
   const ClaimIntakeScreen({
     super.key,
     required this.policyId,
     required this.petId,
+    this.draftClaimId,
   });
 
   @override
@@ -40,7 +43,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   String? _description;
   ClaimType? _claimType;
   double? _estimatedCost;
-  List<String> _attachmentUrls = [];
+  final List<String> _attachmentUrls = [];
   String? _draftClaimId;
 
   // Conversation stage tracking
@@ -72,8 +75,158 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
     super.dispose();
   }
 
-  /// Initialize conversation with greeting
-  void _initializeConversation() {
+  /// Initialize conversation with greeting or resume existing draft
+  void _initializeConversation() async {
+    print('DEBUG: Initializing conversation, draftClaimId: ${widget.draftClaimId}');
+    
+    bool draftLoaded = false;
+    
+    // Check if we're resuming an existing draft
+    if (widget.draftClaimId != null) {
+      print('DEBUG: Loading specific draft claim: ${widget.draftClaimId}');
+      draftLoaded = await _loadExistingDraft();
+    } else {
+      // Check for any existing draft claims for this policy/pet
+      print('DEBUG: Checking for existing drafts for policy: ${widget.policyId}, pet: ${widget.petId}');
+      draftLoaded = await _checkForExistingDrafts();
+    }
+    
+    // If no draft was loaded, start new conversation
+    if (!draftLoaded) {
+      print('DEBUG: No draft loaded, starting new conversation');
+      _startNewConversation();
+    }
+  }
+
+  /// Load existing draft claim data
+  Future<bool> _loadExistingDraft() async {
+    try {
+      print('DEBUG: Attempting to load draft claim: ${widget.draftClaimId}');
+      final claimDoc = await FirebaseFirestore.instance
+          .collection('claims')
+          .doc(widget.draftClaimId)
+          .get();
+      
+      if (claimDoc.exists) {
+        print('DEBUG: Draft claim document exists');
+        final claimData = claimDoc.data()!;
+        print('DEBUG: Claim data: $claimData');
+        final claim = Claim.fromMap(claimData, claimDoc.id);
+        
+        // Populate the claim data
+        _draftClaimId = claim.claimId;
+        _incidentDate = claim.incidentDate;
+        _description = claim.description;
+        _claimType = claim.claimType;
+        _estimatedCost = claim.claimAmount;
+        _attachmentUrls.clear();
+        _attachmentUrls.addAll(claim.attachments);
+        
+        print('DEBUG: Restoring conversation with draft data');
+        // Restore conversation state with existing data
+        _restoreConversationWithDraft(claim);
+        return true;
+      } else {
+        print('DEBUG: Draft claim document does not exist');
+        return false;
+      }
+    } catch (e) {
+      print('ERROR loading existing draft: $e');
+      // Fall back to new conversation
+      return false;
+    }
+  }
+
+  /// Check for existing draft claims for this policy/pet combination
+  Future<bool> _checkForExistingDrafts() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('DEBUG: No authenticated user');
+        return false;
+      }
+      
+      print('DEBUG: Querying for drafts - user: ${user.uid}, policy: ${widget.policyId}, pet: ${widget.petId}');
+      final draftsQuery = await FirebaseFirestore.instance
+          .collection('claims')
+          .where('ownerId', isEqualTo: user.uid)
+          .where('policyId', isEqualTo: widget.policyId)
+          .where('petId', isEqualTo: widget.petId)
+          .where('status', isEqualTo: 'draft')
+          .orderBy('updatedAt', descending: true)
+          .limit(1)
+          .get();
+      
+      print('DEBUG: Found ${draftsQuery.docs.length} draft claims');
+      
+      if (draftsQuery.docs.isNotEmpty) {
+        final draftDoc = draftsQuery.docs.first;
+        final claimData = draftDoc.data();
+        print('DEBUG: Loading draft: ${draftDoc.id}');
+        final claim = Claim.fromMap(claimData, draftDoc.id);
+        
+        // Populate the claim data
+        _draftClaimId = claim.claimId;
+        _incidentDate = claim.incidentDate;
+        _description = claim.description;
+        _claimType = claim.claimType;
+        _estimatedCost = claim.claimAmount;
+        _attachmentUrls.clear();
+        _attachmentUrls.addAll(claim.attachments);
+        
+        // Restore conversation state
+        _restoreConversationWithDraft(claim);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('ERROR checking for existing drafts: $e');
+      // Continue with new conversation
+      return false;
+    }
+  }
+
+  /// Restore conversation state with existing draft data
+  void _restoreConversationWithDraft(Claim claim) {
+    print('DEBUG: Restoring conversation with claim: ${claim.claimId}');
+    print('DEBUG: Claim details - Date: ${claim.incidentDate}, Type: ${claim.claimType}, Desc: ${claim.description}, Amount: ${claim.claimAmount}');
+    
+    setState(() {
+      _messages.clear();
+      
+      // Greeting message
+      _messages.add(ChatMessage(
+        text: "Hi there! I'm Pawla, and I can see you were working on a claim earlier. "
+            "Let me help you continue where you left off. 🐾\n\n"
+            "Here's what we have so far:",
+        isUser: false,
+        timestamp: DateTime.now(),
+        showAvatar: true,
+      ));
+
+      // Show collected information
+      final summaryText = _buildClaimSummary(claim);
+      _messages.add(ChatMessage(
+        text: summaryText,
+        isUser: false,
+        timestamp: DateTime.now(),
+      ));
+
+      // Determine next step based on what's missing
+      final nextStep = _determineNextStep(claim);
+      _messages.add(ChatMessage(
+        text: nextStep,
+        isUser: false,
+        timestamp: DateTime.now(),
+      ));
+      
+      _updateStageBasedOnProgress(claim);
+      print('DEBUG: Restored ${_messages.length} messages, stage: $_currentStage');
+    });
+  }
+
+  /// Start a new conversation for first-time claims
+  void _startNewConversation() {
     setState(() {
       _messages.add(ChatMessage(
         text: "Hi there! I'm Pawla, and I'm here to help you file your claim. "
@@ -86,6 +239,51 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
       ));
       _currentStage = ClaimIntakeStage.collectingDate;
     });
+  }
+
+  /// Build summary of existing claim data
+  String _buildClaimSummary(Claim claim) {
+    final buffer = StringBuffer();
+    buffer.writeln("📋 **Claim Summary:**\n");
+    
+    buffer.writeln("📅 **Incident Date:** ${DateFormat('MMMM d, yyyy').format(claim.incidentDate)}");
+    buffer.writeln("🏥 **Claim Type:** ${claim.claimType.displayName}");
+    
+    if (claim.description.isNotEmpty) {
+      buffer.writeln("📝 **Description:** ${claim.description}");
+    }
+    
+    if (claim.claimAmount > 0) {
+      buffer.writeln("💰 **Estimated Cost:** \$${claim.claimAmount.toStringAsFixed(2)}");
+    }
+    
+    if (claim.attachments.isNotEmpty) {
+      buffer.writeln("📎 **Documents:** ${claim.attachments.length} file(s) uploaded");
+    }
+    
+    return buffer.toString();
+  }
+
+  /// Determine what information is still needed
+  String _determineNextStep(Claim claim) {
+    if (claim.description.isEmpty) {
+      return "Can you describe what happened in more detail?";
+    } else if (claim.claimAmount <= 0) {
+      return "Do you have an estimate of the veterinary costs? This helps us process your claim faster.";
+    } else {
+      return "Everything looks good! Would you like to add any documents (receipts, vet records, photos) or submit your claim?";
+    }
+  }
+
+  /// Update conversation stage based on current progress
+  void _updateStageBasedOnProgress(Claim claim) {
+    if (claim.description.isEmpty) {
+      _currentStage = ClaimIntakeStage.collectingDescription;
+    } else if (claim.claimAmount <= 0) {
+      _currentStage = ClaimIntakeStage.collectingCost;
+    } else {
+      _currentStage = ClaimIntakeStage.collectingDocuments;
+    }
   }
 
   /// Handle user message

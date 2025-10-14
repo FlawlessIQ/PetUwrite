@@ -600,3 +600,7 @@ exports.onBatchCompleted = aiTrainingExport.onBatchCompleted;
 // Export analytics email functions
 const analyticsEmail = require("./analyticsEmail");
 exports.sendAnalyticsEmail = analyticsEmail.sendAnalyticsEmail;
+
+// Export coupon validation function
+const validateCouponModule = require("./validateCoupon");
+exports.validateCoupon = validateCouponModule.validateCoupon;

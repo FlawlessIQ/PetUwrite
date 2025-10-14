@@ -17,6 +17,8 @@ import 'providers/pet_provider.dart';
 import 'providers/policy_provider.dart';
 import 'models/checkout_state.dart';
 import 'services/firebase_service.dart';
+import 'services/stripe_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,8 +31,10 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   
-  // Initialize Stripe (will be configured with real keys later)
-  // await StripeService.init();
+  // Initialize Stripe (skip on web - not fully supported)
+  if (!kIsWeb) {
+    await StripeService.init();
+  }
   
   runApp(const PetUnderwriterAI());
 }

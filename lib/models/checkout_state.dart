@@ -88,6 +88,8 @@ class PaymentInfo {
   final DateTime? paidAt;
   final String? last4;
   final String? brand;
+  final String? couponCode;
+  final double? discountAmount;
 
   PaymentInfo({
     this.paymentIntentId,
@@ -98,6 +100,8 @@ class PaymentInfo {
     this.paidAt,
     this.last4,
     this.brand,
+    this.couponCode,
+    this.discountAmount,
   });
 
   Map<String, dynamic> toJson() {
@@ -110,6 +114,8 @@ class PaymentInfo {
       'paidAt': paidAt?.toIso8601String(),
       'last4': last4,
       'brand': brand,
+      'couponCode': couponCode,
+      'discountAmount': discountAmount,
     };
   }
 
@@ -123,6 +129,8 @@ class PaymentInfo {
       paidAt: json['paidAt'] != null ? DateTime.parse(json['paidAt']) : null,
       last4: json['last4'],
       brand: json['brand'],
+      couponCode: json['couponCode'],
+      discountAmount: json['discountAmount']?.toDouble(),
     );
   }
 }
@@ -215,7 +223,7 @@ class CheckoutProvider extends ChangeNotifier {
   bool get canProceedFromOwnerDetails =>
       _ownerDetails != null && _ownerDetails!.hasESignConsent;
   bool get canProceedFromPayment =>
-      _paymentInfo != null && _paymentInfo!.status == 'succeeded';
+      _paymentInfo != null && (_paymentInfo!.status == 'succeeded' || _paymentInfo!.status == 'test_waived');
 
   /// Initialize checkout with pet and plan
   void initialize({

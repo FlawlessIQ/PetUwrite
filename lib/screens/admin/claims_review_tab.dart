@@ -589,6 +589,10 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
         color = PetUwriteColors.kWarning;
         text = 'Processing';
         break;
+      case ClaimStatus.settling:
+        color = PetUwriteColors.kSecondaryTeal;
+        text = 'Settling';
+        break;
       case ClaimStatus.settled:
         color = PetUwriteColors.kSuccessMint;
         text = 'Settled';

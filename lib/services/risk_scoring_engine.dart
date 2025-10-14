@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/pet.dart';
 import '../models/owner.dart';
@@ -23,6 +24,12 @@ class RiskScoringResult {
   /// Convenience getter for rejection reason (if ineligible)
   String? get rejectionReason => 
       eligibilityResult.eligible ? null : eligibilityResult.reason;
+  
+  /// Convenience getter to check if there are exclusions (conditional approval)
+  bool get hasExclusions => eligibilityResult.hasExclusions;
+  
+  /// Convenience getter for excluded conditions list
+  List<String> get excludedConditions => eligibilityResult.excludedConditions;
 }
 
 /// Engine for calculating risk scores for pet insurance underwriting
@@ -201,14 +208,207 @@ class RiskScoringEngine {
         riskFactors: riskFactors,
       );
       
-      final aiResponse = await _aiService.generateText(prompt);
-      return aiResponse;
+      // Get AI response
+      final aiResponse = await _aiService.generateText(
+        prompt,
+        options: {
+          'temperature': 0.3, // Lower temperature for more consistent analysis
+          'max_tokens': 800,
+        },
+      );
+      
+      // Parse and structure the AI response
+      final structuredAnalysis = _parseAIResponse(aiResponse, traditionalScore);
+      
+      return structuredAnalysis;
     } catch (e) {
+      print('⚠️ AI Risk Analysis failed: $e');
+      print('📊 Falling back to traditional risk assessment');
+      
       // If AI call fails, return traditional analysis
-      return 'Risk Score: ${traditionalScore.toStringAsFixed(1)}/100\n'
-          'Risk Level: ${RiskScore.getRiskLevelFromScore(traditionalScore)}\n'
-          'Key Factors: ${riskFactors.map((f) => f.description).join(', ')}';
+      return _buildFallbackAnalysis(
+        traditionalScore: traditionalScore,
+        riskFactors: riskFactors,
+        categoryScores: categoryScores,
+      );
     }
+  }
+  
+  /// Parse AI response and extract structured data
+  String _parseAIResponse(String aiResponse, double traditionalScore) {
+    try {
+      // Try to extract JSON if present
+      final jsonMatch = RegExp(r'\{[\s\S]*\}').firstMatch(aiResponse);
+      if (jsonMatch != null) {
+        final jsonStr = jsonMatch.group(0)!;
+        final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
+        
+        // Build structured analysis from parsed data
+        return _buildStructuredAnalysis(parsed, traditionalScore);
+      }
+      
+      // If no JSON found, return raw response with header
+      return '''
+AI-Enhanced Risk Analysis:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+$aiResponse
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Traditional Risk Score: ${traditionalScore.toStringAsFixed(1)}/100
+''';
+    } catch (e) {
+      print('⚠️ Failed to parse AI response: $e');
+      // Return raw response if parsing fails
+      return aiResponse;
+    }
+  }
+  
+  /// Build structured analysis from parsed AI data
+  String _buildStructuredAnalysis(Map<String, dynamic> data, double fallbackScore) {
+    final buffer = StringBuffer();
+    buffer.writeln('AI-Enhanced Risk Analysis');
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    
+    // Eligibility recommendation
+    final eligibility = data['eligibility_recommendation'] ?? 'unknown';
+    final eligibilityEmoji = {
+      'approve': '✅',
+      'manual_review': '⚠️',
+      'deny': '❌',
+    }[eligibility] ?? '❓';
+    
+    buffer.writeln('$eligibilityEmoji ELIGIBILITY: ${eligibility.toString().toUpperCase()}');
+    
+    if (data['ai_decline_reason'] != null && data['ai_decline_reason'] != '') {
+      buffer.writeln('   Reason: ${data['ai_decline_reason']}');
+    }
+    buffer.writeln();
+    
+    // Risk scores
+    final aiScore = data['overall_risk_score'] ?? fallbackScore;
+    final riskLevel = data['risk_level'] ?? 'unknown';
+    buffer.writeln('📊 RISK ASSESSMENT');
+    buffer.writeln('   AI Risk Score: ${aiScore}/100');
+    buffer.writeln('   Risk Level: ${riskLevel.toString().toUpperCase()}');
+    buffer.writeln('   Confidence: ${data['confidence_level'] ?? 'N/A'}%');
+    buffer.writeln();
+    
+    // Top risk categories
+    if (data['top_risk_categories'] is List) {
+      buffer.writeln('🔴 TOP RISK CATEGORIES');
+      final categories = data['top_risk_categories'] as List;
+      for (var i = 0; i < categories.length && i < 5; i++) {
+        buffer.writeln('   ${i + 1}. ${categories[i]}');
+      }
+      buffer.writeln();
+    }
+    
+    // Red flags
+    if (data['red_flags'] is List) {
+      final redFlags = data['red_flags'] as List;
+      if (redFlags.isNotEmpty) {
+        buffer.writeln('🚩 RED FLAGS');
+        for (final flag in redFlags) {
+          buffer.writeln('   ⚠️ $flag');
+        }
+        buffer.writeln();
+      }
+    }
+    
+    // Breed-specific risks
+    if (data['breed_specific_risks'] != null) {
+      buffer.writeln('🐾 BREED-SPECIFIC RISKS');
+      buffer.writeln('   ${data['breed_specific_risks']}');
+      buffer.writeln();
+    }
+    
+    // Geographic factors
+    if (data['geographic_factors'] != null) {
+      buffer.writeln('📍 GEOGRAPHIC FACTORS');
+      buffer.writeln('   ${data['geographic_factors']}');
+      buffer.writeln();
+    }
+    
+    // Claim probability
+    if (data['claim_probability_12mo'] != null) {
+      buffer.writeln('📈 CLAIM PROBABILITY (12 Months)');
+      buffer.writeln('   ${data['claim_probability_12mo']}% likelihood');
+      buffer.writeln();
+    }
+    
+    // Coverage recommendations
+    if (data['coverage_recommendations'] != null) {
+      buffer.writeln('💡 COVERAGE RECOMMENDATIONS');
+      buffer.writeln('   ${data['coverage_recommendations']}');
+      buffer.writeln();
+    }
+    
+    // Preventive care
+    if (data['preventive_care_recommendations'] is List) {
+      buffer.writeln('✨ PREVENTIVE CARE RECOMMENDATIONS');
+      final recommendations = data['preventive_care_recommendations'] as List;
+      for (var i = 0; i < recommendations.length && i < 5; i++) {
+        buffer.writeln('   ${i + 1}. ${recommendations[i]}');
+      }
+      buffer.writeln();
+    }
+    
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    return buffer.toString();
+  }
+  
+  /// Build fallback analysis when AI is unavailable
+  String _buildFallbackAnalysis({
+    required double traditionalScore,
+    required List<RiskFactor> riskFactors,
+    required Map<String, double> categoryScores,
+  }) {
+    final riskLevel = RiskScore.getRiskLevelFromScore(traditionalScore);
+    
+    final buffer = StringBuffer();
+    buffer.writeln('Traditional Risk Analysis (AI Unavailable)');
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    
+    buffer.writeln('📊 RISK ASSESSMENT');
+    buffer.writeln('   Risk Score: ${traditionalScore.toStringAsFixed(1)}/100');
+    buffer.writeln('   Risk Level: ${riskLevel.toString().toUpperCase()}');
+    buffer.writeln();
+    
+    buffer.writeln('📈 CATEGORY BREAKDOWN');
+    categoryScores.forEach((category, score) {
+      buffer.writeln('   ${category}: ${score.toStringAsFixed(1)}/100');
+    });
+    buffer.writeln();
+    
+    buffer.writeln('⚠️ KEY RISK FACTORS');
+    final topFactors = (riskFactors.toList()
+          ..sort((a, b) => b.impact.compareTo(a.impact)))
+        .take(5);
+    
+    for (var i = 0; i < topFactors.length; i++) {
+      final factor = topFactors.elementAt(i);
+      buffer.writeln('   ${i + 1}. ${factor.description}');
+      buffer.writeln('      Impact: ${factor.impact.toStringAsFixed(1)}, Severity: ${factor.severity}');
+    }
+    buffer.writeln();
+    
+    // Eligibility recommendation based on score
+    if (traditionalScore > 90) {
+      buffer.writeln('❌ RECOMMENDATION: DENY');
+      buffer.writeln('   Reason: Risk score exceeds acceptable threshold');
+    } else if (traditionalScore >= 80) {
+      buffer.writeln('⚠️ RECOMMENDATION: MANUAL REVIEW');
+      buffer.writeln('   Reason: Elevated risk requires human evaluation');
+    } else {
+      buffer.writeln('✅ RECOMMENDATION: APPROVE');
+      buffer.writeln('   Reason: Risk within acceptable parameters');
+    }
+    
+    buffer.writeln('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    return buffer.toString();
   }
   
   /// Build the AI prompt for risk analysis with underwriting rules
@@ -242,7 +442,7 @@ PET PROFILE:
 - Name: ${pet.name}
 - Species: ${pet.species}
 - Breed: ${pet.breed}
-- Age: ${pet.ageInYears} years (${ageInMonths} months)
+- Age: ${pet.ageInYears} years ($ageInMonths months)
 - Gender: ${pet.gender}
 - Weight: ${pet.weight} kg
 - Neutered: ${pet.isNeutered ? 'Yes' : 'No'}
@@ -871,17 +1071,61 @@ $topProtectiveFactors
       return 0;
     }
     
-    // Score increases with number and severity of conditions
-    final baseScore = 20.0;
-    final perConditionScore = 15.0;
-    final score = baseScore + (pet.preExistingConditions.length * perConditionScore);
+    // Critical conditions that should trigger automatic high risk or denial
+    const criticalConditions = [
+      'cancer',
+      'tumor',
+      'leukemia',
+      'lymphoma',
+      'epilepsy',
+      'kidney failure',
+      'liver disease',
+      'heart murmur',
+      'diabetes', // uncontrolled
+    ];
+    
+    // Check for critical conditions
+    double score = 0;
+    bool hasCriticalCondition = false;
     
     for (final condition in pet.preExistingConditions) {
+      final conditionLower = condition.toLowerCase();
+      
+      // Check if this is a critical condition
+      final isCritical = criticalConditions.any((critical) => 
+        conditionLower.contains(critical)
+      );
+      
+      if (isCritical) {
+        hasCriticalCondition = true;
+        // Critical conditions get VERY high scores to trigger denial
+        score += 65.0;  // Increased from 40 to ensure 90+ with multiplier
+        riskFactors.add(RiskFactor(
+          category: 'preExisting',
+          description: 'CRITICAL: Pre-existing $condition',
+          impact: 8.0,
+          severity: Severity.critical,
+        ));
+      } else {
+        // Non-critical conditions get moderate scores
+        score += 15.0;
+        riskFactors.add(RiskFactor(
+          category: 'preExisting',
+          description: 'Pre-existing condition: $condition',
+          impact: 1.5,
+          severity: Severity.high,
+        ));
+      }
+    }
+    
+    // If multiple critical conditions, add even more risk
+    if (hasCriticalCondition && pet.preExistingConditions.length > 1) {
+      score += 20.0;
       riskFactors.add(RiskFactor(
         category: 'preExisting',
-        description: 'Pre-existing condition: $condition',
-        impact: perConditionScore / 10,
-        severity: Severity.high,
+        description: 'Multiple conditions including critical ones',
+        impact: 2.0,
+        severity: Severity.critical,
       ));
     }
     
@@ -975,8 +1219,8 @@ $topProtectiveFactors
     final weights = {
       'age': 0.25,
       'breed': 0.25,
-      'preExisting': 0.20,
-      'medicalHistory': 0.20,
+      'preExisting': 0.25, // Increased weight for pre-existing conditions
+      'medicalHistory': 0.15,
       'lifestyle': 0.10,
     };
     
@@ -989,7 +1233,25 @@ $topProtectiveFactors
       totalWeight += weight;
     });
     
-    return totalWeight > 0 ? totalScore / totalWeight : 50.0;
+    final baseScore = totalWeight > 0 ? totalScore / totalWeight : 50.0;
+    
+    // ⚠️ CRITICAL RISK MULTIPLIERS
+    // Apply severe penalty for high-risk combinations
+    double multiplier = 1.0;
+    final ageScore = categoryScores['age'] ?? 0;
+    final preExistingScore = categoryScores['preExisting'] ?? 0;
+    
+    // Senior pet (age > 60) with serious pre-existing conditions (score > 40)
+    if (ageScore >= 60 && preExistingScore >= 40) {
+      // This is a critical combination (e.g., cancer + old age)
+      multiplier = 1.4; // Boost score by 40%
+    } else if (ageScore >= 50 && preExistingScore >= 30) {
+      // Moderate high-risk combination
+      multiplier = 1.2; // Boost score by 20%
+    }
+    
+    final finalScore = (baseScore * multiplier).clamp(0.0, 100.0);
+    return finalScore;
   }
   
   double _getIdealWeight(String species, String breed) {

@@ -140,15 +140,17 @@ class ReconciliationService {
       // Deduct points for failures
       if (totalPayouts > 0) {
         final failureRate = failedPayouts / totalPayouts;
-        if (failureRate > 0.05) score -= 30; // >5% failure rate
-        else if (failureRate > 0.02) score -= 20; // >2% failure rate
+        if (failureRate > 0.05) {
+          score -= 30; // >5% failure rate
+        } else if (failureRate > 0.02) score -= 20; // >2% failure rate
         else if (failureRate > 0.01) score -= 10; // >1% failure rate
       }
 
       // Deduct points for escalated issues
       final escalatedCount = statusCounts['escalated'] ?? 0;
-      if (escalatedCount > 5) score -= 30;
-      else if (escalatedCount > 2) score -= 15;
+      if (escalatedCount > 5) {
+        score -= 30;
+      } else if (escalatedCount > 2) score -= 15;
       else if (escalatedCount > 0) score -= 5;
 
       // Deduct points for recent errors

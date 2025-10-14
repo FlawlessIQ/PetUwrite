@@ -52,7 +52,7 @@ class ClaimTimelineWidget extends StatelessWidget {
                 step,
                 isLast: isLast,
               );
-            }).toList(),
+            }),
           ],
         ),
       ),

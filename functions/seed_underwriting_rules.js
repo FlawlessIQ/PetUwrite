@@ -111,6 +111,18 @@ async function seedUnderwritingRules() {
       'seizure disorder',
       'chronic kidney disease',
     ],
+    excludableConditions: [
+      'allergies',
+      'arthritis',
+      'hip dysplasia',
+      'skin conditions',
+      'ear infections',
+      'diabetes',
+      'asthma',
+      'dental disease',
+      'obesity',
+      'anxiety',
+    ],
     rejectionRules: [
       {
         ruleId: 'AGE_TOO_YOUNG',

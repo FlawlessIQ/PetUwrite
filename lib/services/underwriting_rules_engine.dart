@@ -2,21 +2,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/pet.dart';
 import '../models/risk_score.dart';
 
-/// Eligibility result with detailed reasoning
+/// Eligibility result with detailed reasoning and exclusions
 class EligibilityResult {
   final bool eligible;
   final String reason;
   final String? ruleViolated;
   final dynamic violatedValue;
+  final List<String> excludedConditions; // NEW: Conditions that will be excluded from coverage
+  final bool hasExclusions; // NEW: Whether this is a conditional approval
 
   const EligibilityResult({
     required this.eligible,
     this.reason = '',
     this.ruleViolated,
     this.violatedValue,
+    this.excludedConditions = const [],
+    this.hasExclusions = false,
   });
 
-  /// Factory constructor for eligible results
+  /// Factory constructor for eligible results (no exclusions)
   factory EligibilityResult.eligible() {
     return const EligibilityResult(
       eligible: true,
@@ -24,7 +28,22 @@ class EligibilityResult {
     );
   }
 
-  /// Factory constructor for ineligible results
+  /// Factory constructor for conditional approval WITH exclusions
+  /// (Eligible for coverage but certain conditions are excluded)
+  factory EligibilityResult.eligibleWithExclusions({
+    required List<String> excludedConditions,
+    String? additionalNotes,
+  }) {
+    return EligibilityResult(
+      eligible: true,
+      hasExclusions: true,
+      excludedConditions: excludedConditions,
+      reason: additionalNotes ?? 
+        'Coverage approved with the following pre-existing condition exclusions: ${excludedConditions.join(", ")}',
+    );
+  }
+
+  /// Factory constructor for ineligible results (full decline)
   factory EligibilityResult.ineligible({
     required String reason,
     String? ruleViolated,
@@ -45,6 +64,8 @@ class EligibilityResult {
       'reason': reason,
       if (ruleViolated != null) 'ruleViolated': ruleViolated,
       if (violatedValue != null) 'violatedValue': violatedValue,
+      'hasExclusions': hasExclusions,
+      if (excludedConditions.isNotEmpty) 'excludedConditions': excludedConditions,
       'timestamp': FieldValue.serverTimestamp(),
     };
   }
@@ -216,13 +237,21 @@ class UnderwritingRulesEngine {
       }
     }
 
-    // 3. Check critical conditions
+    // 3. Check critical conditions (DECLINE) vs excludable conditions (EXCLUDE)
     final criticalConditions = (rules['criticalConditions'] as List?)
         ?.map((e) => e.toString().toLowerCase())
         .toList() ?? [];
     
+    final excludableConditions = (rules['excludableConditions'] as List?)
+        ?.map((e) => e.toString().toLowerCase())
+        .toList() ?? [];
+    
+    final List<String> conditionsToExclude = [];
+    
     for (final condition in conditions) {
       final conditionLower = condition.toLowerCase();
+      
+      // Check if it's a CRITICAL condition (auto-decline)
       for (final critical in criticalConditions) {
         if (conditionLower.contains(critical) ||
             critical.contains(conditionLower)) {
@@ -233,6 +262,15 @@ class UnderwritingRulesEngine {
             ruleViolated: 'criticalConditions',
             violatedValue: condition,
           );
+        }
+      }
+      
+      // Check if it's an EXCLUDABLE condition (conditional approval)
+      for (final excludable in excludableConditions) {
+        if (conditionLower.contains(excludable) ||
+            excludable.contains(conditionLower)) {
+          conditionsToExclude.add(condition);
+          break;
         }
       }
     }
@@ -265,7 +303,13 @@ class UnderwritingRulesEngine {
       );
     }
 
-    // All checks passed
+    // All checks passed - return eligible (with exclusions if any)
+    if (conditionsToExclude.isNotEmpty) {
+      return EligibilityResult.eligibleWithExclusions(
+        excludedConditions: conditionsToExclude,
+      );
+    }
+    
     return EligibilityResult.eligible();
   }
 

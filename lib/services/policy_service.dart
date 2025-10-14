@@ -46,12 +46,18 @@ class PolicyService {
       );
 
       // Save to Firestore
-      await policyRef.set({
+      final documentData = {
         ...policy.toJson(),
-        'userId': user.uid,
+        'ownerId': user.uid,  // Changed from userId to ownerId to match Firestore rules
         'createdBy': user.email,
         'lastUpdated': FieldValue.serverTimestamp(),
-      });
+      };
+      
+      print('🔍 Saving policy document with data: ${documentData.keys.toList()}');
+      print('🔍 OwnerId being saved: ${user.uid}');
+      print('🔍 Current user authenticated: ${user.email}');
+      
+      await policyRef.set(documentData);
 
       // Create user policy reference
       await _firestore
@@ -103,7 +109,7 @@ class PolicyService {
 
       final querySnapshot = await _firestore
           .collection('policies')
-          .where('userId', isEqualTo: user.uid)
+          .where('ownerId', isEqualTo: user.uid)  // Changed from userId to ownerId
           .orderBy('createdAt', descending: true)
           .get();
 
@@ -234,7 +240,7 @@ class PolicyService {
 
       await policyRef.set({
         ...renewalPolicy.toJson(),
-        'userId': _auth.currentUser!.uid,
+        'ownerId': _auth.currentUser!.uid,  // Changed from userId to ownerId
         'originalPolicyId': policyId,
         'isRenewal': true,
         'lastUpdated': FieldValue.serverTimestamp(),
@@ -254,7 +260,7 @@ class PolicyService {
     try {
       final policies = await _firestore
           .collection('policies')
-          .where('userId', isEqualTo: userId)
+          .where('ownerId', isEqualTo: userId)  // Changed from userId to ownerId
           .get();
 
       int activePolicies = 0;

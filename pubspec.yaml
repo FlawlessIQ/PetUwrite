@@ -75,6 +75,9 @@ dependencies:
   
   # File downloads
   path_provider: ^2.1.2
+  
+  # Local storage
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:
@@ -107,6 +110,10 @@ flutter:
   assets:
     - .env
     - assets/
+    - assets/images/
+    - assets/PetUwrite icon only.png
+    - assets/PetUwrite navy background.png
+    - assets/PetUwrite transparent.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

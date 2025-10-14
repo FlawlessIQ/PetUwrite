@@ -496,7 +496,7 @@ class _AILearningProgressWidgetState extends State<AILearningProgressWidget> {
               ],
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -550,7 +550,7 @@ class _AILearningProgressWidgetState extends State<AILearningProgressWidget> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        ..._recentBatches!.map((batch) => _buildBatchItem(batch)).toList(),
+        ..._recentBatches!.map((batch) => _buildBatchItem(batch)),
       ],
     );
   }

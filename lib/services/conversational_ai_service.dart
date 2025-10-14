@@ -1,13 +1,41 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/intl.dart';
 import '../ai/ai_service.dart';
 
 /// AI service for natural conversational interactions in quote flow
 class ConversationalAIService {
   final GPTService _aiService;
   
-  ConversationalAIService({String? apiKey}) 
+  factory ConversationalAIService({String? apiKey}) {
+    String key;
+    
+    // Priority 1: Use provided API key (for web deployment)
+    if (apiKey != null && apiKey.isNotEmpty) {
+      key = apiKey;
+      print('✅ OpenAI API key provided directly');
+      return ConversationalAIService._internal(key);
+    }
+    
+    // Priority 2: Try loading from .env file (for local development)
+    try {
+      key = dotenv.env['OPENAI_API_KEY'] ?? '';
+      if (key.isNotEmpty) {
+        print('✅ OpenAI API key loaded from .env file');
+        return ConversationalAIService._internal(key);
+      }
+    } catch (e) {
+      print('⚠️ Could not load .env file: $e');
+    }
+    
+    // Priority 3: Fallback mode
+    print('⚠️ OPENAI_API_KEY not found, conversations will use fallback responses');
+    key = 'mock-key-for-fallback-mode';
+    return ConversationalAIService._internal(key);
+  }
+
+  ConversationalAIService._internal(String apiKey) 
       : _aiService = GPTService(
-          apiKey: apiKey ?? dotenv.env['OPENAI_API_KEY'] ?? '',
+          apiKey: apiKey,
           model: 'gpt-4o-mini', // Faster, cheaper for conversations
         );
 
@@ -52,6 +80,9 @@ class ConversationalAIService {
           'message': null,
         };
 
+      case 'age':
+        return _validateAge(userInput, context);
+
       case 'breed':
         return await _validateBreed(userInput, context);
 
@@ -73,12 +104,7 @@ class ConversationalAIService {
     required String petName,
   }) async {
     // USE MOCK MODE IF NO API KEY OR QUOTA EXCEEDED
-    final useMockMode = false; // Real OpenAI enabled! 🚀
-    
-    if (useMockMode) {
-      return _mockEmpatheticResponse(condition, petName);
-    }
-    
+    // Use real OpenAI API (or fallback responses if key missing)
     final prompt = '''
 You are a compassionate pet insurance advisor. A pet owner just mentioned their pet has a health condition.
 
@@ -102,6 +128,63 @@ Response:''';
     }
   }
 
+  /// Validate pet age input
+  Map<String, dynamic> _validateAge(String input, Map<String, dynamic> context) {
+    final species = context['species'] as String? ?? 'pet';
+    final petName = context['petName'] as String? ?? 'your pet';
+    
+    print('🎂 Age Validation - Input: "$input", Species: $species');
+    
+    // Try to parse as integer
+    final age = int.tryParse(input.trim());
+    
+    if (age == null) {
+      return {
+        'corrected': input,
+        'needsConfirmation': true,
+        'message': "I didn't quite catch that. How old is $petName in years? (Just enter a number)",
+      };
+    }
+    
+    // Age must be positive
+    if (age < 0) {
+      return {
+        'corrected': input,
+        'needsConfirmation': true,
+        'message': "Hmm, age can't be negative! How old is $petName?",
+      };
+    }
+    
+    // Check for unrealistic ages
+    // Dogs typically live 10-13 years (max recorded ~30)
+    // Cats typically live 12-18 years (max recorded ~38)
+    final maxAge = species == 'cat' ? 25 : 20;
+    
+    if (age > maxAge) {
+      return {
+        'corrected': input,
+        'needsConfirmation': true,
+        'message': "That seems unusually old for a $species! The typical maximum lifespan for ${species}s is around $maxAge years. Could you double-check $petName's age?",
+      };
+    }
+    
+    // Check for very young pets (under 2 months)
+    if (age == 0) {
+      return {
+        'corrected': input,
+        'needsConfirmation': true,
+        'message': "Is $petName less than a year old? If so, could you tell me their age in months? (e.g., '6 months')",
+      };
+    }
+    
+    // Age is valid
+    return {
+      'corrected': age.toString(),
+      'needsConfirmation': false,
+      'message': null,
+    };
+  }
+
   /// Validate and correct dog/cat breed names
   Future<Map<String, dynamic>> _validateBreed(String input, Map<String, dynamic> context) async {
     final species = context['species'] as String?;
@@ -109,12 +192,7 @@ Response:''';
     print('🐕 Breed Validation - Input: "$input", Species: $species');
     
     // USE MOCK MODE IF NO API KEY OR QUOTA EXCEEDED
-    final useMockMode = false; // Real OpenAI enabled! 🚀
-    
-    if (useMockMode) {
-      return _mockBreedValidation(input, species);
-    }
-    
+    // Use real OpenAI API (or fallback responses if key missing)
     final prompt = '''
 The user entered a pet breed. Validate and correct it if needed.
 
@@ -148,7 +226,7 @@ Corrected breed:''';
         return {
           'corrected': input,
           'needsConfirmation': true,
-          'message': "I didn't quite catch that breed. Could you spell it out for me, or would you like to select 'Mixed Breed'?",
+          'message': "Hmm, I didn't catch that breed. Mind spelling it out, or should we go with Mixed Breed?",
         };
       }
 
@@ -157,7 +235,7 @@ Corrected breed:''';
         return {
           'corrected': corrected,
           'needsConfirmation': true,
-          'message': "Just to confirm, you said $corrected, right?",
+          'message': "Just making sure - $corrected?",
         };
       }
 
@@ -236,25 +314,41 @@ Corrected breed:''';
   }) {
     final petName = context['petName'] as String?;
     final ownerName = context['ownerName'] as String?;
+    final now = DateTime.now();
+    final currentDate = DateFormat('EEEE, MMMM d, yyyy').format(now);
 
     return '''
-You are a friendly, professional pet insurance advisor having a natural conversation. 
+You are Pawla, a warm and friendly pet insurance advisor. You're having a natural, flowing conversation - not conducting an interview.
+
+Current date: $currentDate
 
 Context:
-- Owner's name: ${ownerName ?? 'not provided yet'}
-- Pet's name: ${petName ?? 'not provided yet'}
-- Current question: $questionId
-- User just answered: "$userAnswer"
+- Owner: ${ownerName ?? 'not provided yet'}
+- Pet: ${petName ?? 'not provided yet'}
+- They just said: "$userAnswer"
+- Next topic: "$baseQuestion"
 
-Base question to ask next: "$baseQuestion"
+Guidelines:
+1. VARY your responses - don't start every message the same way
+2. Skip formulaic acknowledgments like "That's great to hear"
+3. Ask the next question naturally, as if continuing a conversation
+4. Use brief transitions: "Got it!", "Perfect,", "Awesome!", or jump right to the question
+5. Keep it to 1 sentence when possible
+6. Sound human - use contractions, be casual but professional
+7. If the pet's name is mentioned, use it naturally (not in every message)
+8. When dealing with dates, remember today is $currentDate
 
-Task: Rewrite the next question to be warm, natural, and conversational. 
-- Use the pet's name when relevant
-- Keep it concise (1-2 sentences max)
-- Match the tone to the answer (if they mentioned something serious, be empathetic)
-- Make it feel like a real conversation, not a form
+BAD examples:
+❌ "That's great to hear, Conor! What breed is Freddy? I'd love to know more about him!"
+❌ "I see. That's wonderful, Conor! How old is Freddy? I'm excited to hear more!"
 
-Natural response:''';
+GOOD examples:
+✅ "What breed is Freddy?"
+✅ "Got it! How old is he?"
+✅ "Perfect. Is Freddy spayed or neutered?"
+✅ "Awesome! Does Freddy have any pre-existing conditions I should know about?"
+
+Your response (keep it natural and brief):''';
   }
 
   /// Personalize base question with context
@@ -384,16 +478,27 @@ Natural response:''';
 
   /// Parse date from natural language input
   Future<Map<String, dynamic>> parseDate(String input) async {
+    final now = DateTime.now();
+    final today = DateFormat('yyyy-MM-dd').format(now);
+    final yesterday = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(days: 1)));
+    
     final prompt = '''
+Current date: $today (${DateFormat('EEEE, MMMM d, yyyy').format(now)})
+
 Parse the following date input and return a date in ISO 8601 format (YYYY-MM-DD).
 
 User input: "$input"
 
 Return ONLY the date in format YYYY-MM-DD, nothing else. If the date cannot be parsed, return "ERROR".
 
+Context for relative dates:
+- Today is: $today
+- Yesterday was: $yesterday
+
 Examples:
-- "yesterday" → ${DateTime.now().subtract(const Duration(days: 1)).toIso8601String().split('T')[0]}
-- "last Monday" → (calculate last Monday)
+- "yesterday" → $yesterday
+- "today" → $today
+- "last Monday" → (calculate last Monday from $today)
 - "January 15, 2025" → 2025-01-15
 - "01/15/2025" → 2025-01-15
 

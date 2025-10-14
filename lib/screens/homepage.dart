@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/petuwrite_theme.dart';
+import '../auth/login_screen.dart';
+import '../auth/customer_home_screen.dart';
 
 /// PetUwrite Homepage - Landing page with navigation options
 /// 
@@ -79,7 +82,7 @@ class Homepage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Large logo image (icon only, no text)
-        Container(
+        SizedBox(
           width: isSmallScreen ? 200 : 280,
           height: isSmallScreen ? 200 : 280,
           child: Image.asset(
@@ -138,12 +141,22 @@ class Homepage extends StatelessWidget {
                     end: Alignment.bottomRight,
                   ),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Claims feature coming soon!'),
-                        backgroundColor: PetUwriteColors.kSecondaryTeal,
-                      ),
-                    );
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CustomerHomeScreen(),
+                        ),
+                      );
+                    }
                   },
                 ),
                 const SizedBox(height: 16),
@@ -157,7 +170,14 @@ class Homepage extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  onTap: () => Navigator.pushNamed(context, '/auth-gate'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                    );
+                  },
                 ),
               ],
             )
@@ -194,12 +214,22 @@ class Homepage extends StatelessWidget {
                       end: Alignment.bottomRight,
                     ),
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Claims feature coming soon!'),
-                          backgroundColor: PetUwriteColors.kSecondaryTeal,
-                        ),
-                      );
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user == null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
+                        );
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CustomerHomeScreen(),
+                          ),
+                        );
+                      }
                     },
                   ),
                 ),
@@ -215,7 +245,14 @@ class Homepage extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    onTap: () => Navigator.pushNamed(context, '/auth-gate'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],

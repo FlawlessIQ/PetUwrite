@@ -72,19 +72,77 @@ class Pet {
   }
   
   factory Pet.fromJson(Map<String, dynamic> json) {
+    // Helper to safely get String with fallback
+    String getString(String key, String fallback) {
+      final value = json[key];
+      if (value == null) return fallback;
+      return value.toString();
+    }
+    
+    // Helper to safely parse DateTime
+    DateTime getDateTime(String key) {
+      final value = json[key];
+      if (value == null) {
+        // Check if age is provided instead
+        final age = json['age'];
+        if (age != null) {
+          final ageInt = age is int ? age : int.tryParse(age.toString()) ?? 1;
+          return DateTime.now().subtract(Duration(days: ageInt * 365));
+        }
+        // Default to 1 year old if no date or age provided
+        return DateTime.now().subtract(const Duration(days: 365));
+      }
+      if (value is DateTime) return value;
+      if (value is String) {
+        try {
+          return DateTime.parse(value);
+        } catch (e) {
+          // If parsing fails, check for age field
+          final age = json['age'];
+          if (age != null) {
+            final ageInt = age is int ? age : int.tryParse(age.toString()) ?? 1;
+            return DateTime.now().subtract(Duration(days: ageInt * 365));
+          }
+          return DateTime.now().subtract(const Duration(days: 365));
+        }
+      }
+      // Fallback
+      return DateTime.now().subtract(const Duration(days: 365));
+    }
+    
+    // Helper to safely get double
+    double getDouble(String key, double fallback) {
+      final value = json[key];
+      if (value == null) return fallback;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? fallback;
+      return fallback;
+    }
+    
+    // Helper to safely get bool
+    bool getBool(String key, bool fallback) {
+      final value = json[key];
+      if (value == null) return fallback;
+      if (value is bool) return value;
+      if (value is String) {
+        return value.toLowerCase() == 'true' || value == '1';
+      }
+      return fallback;
+    }
+    
     return Pet(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      species: json['species'] as String,
-      breed: json['breed'] as String,
-      dateOfBirth: DateTime.parse(json['dateOfBirth'] as String),
-      gender: json['gender'] as String,
-      weight: (json['weight'] as num).toDouble(),
-      isNeutered: json['isNeutered'] as bool,
+      id: getString('id', 'pet_${DateTime.now().millisecondsSinceEpoch}'),
+      name: getString('name', getString('petName', 'Unknown')),
+      species: getString('species', 'dog'),
+      breed: getString('breed', 'Mixed Breed'),
+      dateOfBirth: getDateTime('dateOfBirth'),
+      gender: getString('gender', 'unknown'),
+      weight: getDouble('weight', 10.0),
+      isNeutered: getBool('isNeutered', getBool('neutered', false)),
       preExistingConditions: (json['preExistingConditions'] as List<dynamic>?)
-          ?.map((e) => e as String)
+          ?.map((e) => e.toString())
           .toList() ?? [],
-      microchipNumber: json['microchipNumber'] as String?,
+      microchipNumber: json['microchipNumber']?.toString(),
       medicalConditions: json['medicalConditions'] != null
           ? (json['medicalConditions'] as List)
               .map((c) => MedicalCondition.fromJson(c as Map<String, dynamic>))

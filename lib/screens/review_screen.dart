@@ -133,7 +133,7 @@ class ReviewScreen extends StatelessWidget {
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 16),
-            _buildInfoRow('Age', '${pet.age} years old', Icons.calendar_today),
+            _buildInfoRow('Age', '${pet.ageInYears} years old', Icons.calendar_today),
             const SizedBox(height: 12),
             _buildInfoRow('Gender', pet.gender, Icons.info_outline),
             const SizedBox(height: 12),

@@ -182,7 +182,7 @@ class ClaimTrackerService {
   /// Generate encouraging message based on wait time
   static String _getDocumentReviewMessage(int documentCount, Duration elapsed) {
     if (elapsed.inMinutes < 2) {
-      return "I'm analyzing your ${documentCount} document(s) right now. This usually takes just a few minutes!";
+      return "I'm analyzing your $documentCount document(s) right now. This usually takes just a few minutes!";
     } else if (elapsed.inMinutes < 5) {
       return "Still working on your documents. I'm being thorough to make sure everything is accurate.";
     } else if (elapsed.inMinutes < 10) {
