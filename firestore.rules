@@ -29,6 +29,14 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId);
+      
+      // User's pets subcollection
+      match /pets/{petId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
     }
     
     // Pets collection - users can only access their own pets
@@ -91,18 +99,18 @@ service cloud.firestore {
       }
     }
     
-    // Policies collection - users can only access their own policies
+    // Policies collection - users can access their own policies, admins can access all
     match /policies/{policyId} {
       allow read: if isAuthenticated() && (
-        resource.data.ownerId == request.auth.uid
+        resource.data.ownerId == request.auth.uid || isAdmin()
       );
       // Only allow creation with proper owner ID
       allow create: if isAuthenticated() && (
         request.resource.data.ownerId == request.auth.uid
       );
-      // Allow update only by owner
+      // Allow update only by owner or admin
       allow update: if isAuthenticated() && (
-        resource.data.ownerId == request.auth.uid
+        resource.data.ownerId == request.auth.uid || isAdmin()
       );
       // Prevent deletion of policies
       allow delete: if false;
@@ -174,11 +182,18 @@ service cloud.firestore {
         request.resource.data.ownerId == request.auth.uid &&
         request.resource.data.keys().hasAll(['policyId', 'ownerId', 'petId', 'incidentDate', 'claimType', 'status', 'createdAt', 'updatedAt'])
       );
-      // Admins can update claims, users can update their own drafts
+      // Allow updates: admins always, users for their own claims in certain statuses
+      // For processing status, allow automated AI updates
       allow update: if isAdmin() || (
         isAuthenticated() && 
-        resource.data.ownerId == request.auth.uid &&
-        (resource.data.status == 'draft' || resource.data.status == 'pending')
+        resource.data.ownerId == request.auth.uid && (
+          // User can update drafts, pending, and submitted claims
+          resource.data.status == 'draft' || 
+          resource.data.status == 'pending' || 
+          resource.data.status == 'submitted' ||
+          // Allow AI system to update processing claims (same user context)
+          resource.data.status == 'processing'
+        )
       );
       // Never allow deletion of claims
       allow delete: if false;
@@ -192,10 +207,18 @@ service cloud.firestore {
         allow write: if false; // Only server-side (Cloud Functions / Backend)
       }
       
-      // AI audit trails - admin only
+      // AI audit trails - owner can read, system can write
       match /ai_audit_trail/{logId} {
-        allow read: if isAdmin();
-        allow write: if false; // Only server-side
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/claims/$(claimId)).data.ownerId == request.auth.uid
+          || isAdmin()
+        );
+        // Allow claim owner to write audit logs (AI running in user context)
+        allow create: if isAuthenticated() && (
+          get(/databases/$(database)/documents/claims/$(claimId)).data.ownerId == request.auth.uid
+          || isAdmin()
+        );
+        allow update, delete: if false; // Audit logs are immutable
       }
       
       // Payout audit trails - admin only

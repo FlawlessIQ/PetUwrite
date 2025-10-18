@@ -6,6 +6,7 @@ import '../widgets/explainability_chart.dart';
 import '../models/explainability_data.dart';
 import 'admin_rules_editor_page.dart';
 import 'admin/claims_analytics_tab.dart';
+import 'admin/policies_pipeline_tab.dart';
 import '../widgets/system_health_widget.dart';
 
 /// Admin dashboard for human underwriters to review high-risk quotes
@@ -27,13 +28,36 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  /// Handle sign out
+  Future<void> _handleSignOut() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        // Navigate back to auth gate and clear navigation stack
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/auth-gate',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error signing out: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -48,9 +72,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.white,
+          isScrollable: true,
           tabs: const [
             Tab(icon: Icon(Icons.warning), text: 'High Risk'),
             Tab(icon: Icon(Icons.block), text: 'Ineligible'),
+            Tab(icon: Icon(Icons.policy), text: 'Policies'),
             Tab(icon: Icon(Icons.analytics), text: 'Claims Analytics'),
             Tab(icon: Icon(Icons.edit_note), text: 'Rules Editor'),
             Tab(icon: Icon(Icons.monitor_heart), text: 'System Health'),
@@ -86,6 +112,51 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                 ),
               ],
             ),
+          // Profile/Sign out menu
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.account_circle),
+            tooltip: 'Account',
+            onSelected: (value) async {
+              if (value == 'signout') {
+                await _handleSignOut();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                enabled: false,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      FirebaseAuth.instance.currentUser?.email ?? 'Admin',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Text(
+                      'Administrator',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'signout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20),
+                    SizedBox(width: 12),
+                    Text('Sign Out'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: TabBarView(
@@ -101,6 +172,8 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
           ),
           // Ineligible Tab
           _buildIneligibleQuotesTab(),
+          // Policies Pipeline Tab
+          const PoliciesPipelineTab(),
           // Claims Analytics Tab
           const ClaimsAnalyticsTab(),
           // Rules Editor Tab

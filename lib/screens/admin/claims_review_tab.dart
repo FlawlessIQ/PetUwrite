@@ -601,6 +601,10 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
         color = PetUwriteColors.kError;
         text = 'Denied';
         break;
+      case ClaimStatus.cancelled:
+        color = Colors.grey;
+        text = 'Cancelled';
+        break;
     }
 
     return Container(

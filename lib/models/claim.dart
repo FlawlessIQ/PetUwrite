@@ -76,8 +76,12 @@ class Claim {
       aiReasoningExplanation: map['aiReasoningExplanation'] as Map<String, dynamic>?,
       humanOverride: map['humanOverride'] as Map<String, dynamic>?,
       status: ClaimStatus.fromString(map['status'] as String),
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      createdAt: map['createdAt'] != null
+          ? (map['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      updatedAt: map['updatedAt'] != null
+          ? (map['updatedAt'] as Timestamp).toDate()
+          : DateTime.now(),
       settledAt: map['settledAt'] != null 
           ? (map['settledAt'] as Timestamp).toDate()
           : null,

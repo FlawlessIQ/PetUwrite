@@ -135,15 +135,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             opacity: _fadeAnimation,
             child: Stack(
               children: [
-                // Background paw print pattern
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: 0.03,
-                    child: CustomPaint(
-                      painter: _PawPrintPainter(),
-                    ),
-                  ),
-                ),
                 // Main content
                 SafeArea(
                   child: CustomScrollView(
@@ -168,6 +159,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       // Pending Claims Section
                       SliverToBoxAdapter(
                         child: _buildPendingClaimsSection(context, user),
+                      ),
+                      // Recent Claims Section (shows all claims including completed)
+                      SliverToBoxAdapter(
+                        child: _buildRecentClaimsSection(context, user),
                       ),
                       // Action Grid
                       SliverToBoxAdapter(
@@ -1621,6 +1616,210 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     );
   }
 
+  Widget _buildRecentClaimsSection(BuildContext context, User? user) {
+    if (user == null) return const SizedBox.shrink();
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('claims')
+          .where('userId', isEqualTo: user.uid)
+          .orderBy('updatedAt', descending: true)
+          .limit(5) // Show last 5 claims
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          print('Error loading recent claims: ${snapshot.error}');
+          return const SizedBox.shrink();
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final allClaims = snapshot.data!.docs;
+        print('DEBUG: Found ${allClaims.length} recent claims for user ${user.uid}');
+
+        return Container(
+          margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Section Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: PetUwriteColors.kSecondaryTeal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.history,
+                      color: PetUwriteColors.kSecondaryTeal,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Recent Claims',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Claims List
+              ...allClaims.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return _buildRecentClaimCard(context, doc.id, data);
+              }).toList(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRecentClaimCard(BuildContext context, String claimId, Map<String, dynamic> claimData) {
+    final claimType = claimData['claimType'] as String? ?? 'Unknown';
+    final status = claimData['status'] as String? ?? 'unknown';
+    final amount = (claimData['claimAmount'] as num?)?.toDouble() ?? 0.0;
+    final description = claimData['description'] as String? ?? '';
+    final policyId = claimData['policyId'] as String? ?? '';
+    final petId = claimData['petId'] as String? ?? '';
+    
+    Color statusColor;
+    IconData statusIcon;
+    String statusLabel;
+    
+    switch (status) {
+      case 'draft':
+        statusColor = Colors.orange;
+        statusIcon = Icons.edit_outlined;
+        statusLabel = 'DRAFT';
+        break;
+      case 'submitted':
+        statusColor = Colors.blue;
+        statusIcon = Icons.upload_outlined;
+        statusLabel = 'SUBMITTED';
+        break;
+      case 'processing':
+        statusColor = PetUwriteColors.kSecondaryTeal;
+        statusIcon = Icons.hourglass_empty;
+        statusLabel = 'PROCESSING';
+        break;
+      case 'settled':
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle_outline;
+        statusLabel = 'APPROVED ✓';
+        break;
+      case 'denied':
+        statusColor = Colors.red;
+        statusIcon = Icons.cancel_outlined;
+        statusLabel = 'DENIED';
+        break;
+      case 'cancelled':
+        statusColor = Colors.grey;
+        statusIcon = Icons.block;
+        statusLabel = 'CANCELLED';
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusIcon = Icons.help_outline;
+        statusLabel = status.toUpperCase();
+    }
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _handleSimpleClaimTap(context, claimId, claimData, policyId, petId),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: statusColor.withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        statusIcon,
+                        color: statusColor,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            claimType,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            statusLabel,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (amount > 0)
+                      Text(
+                        '\$${amount.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          color: status == 'settled' ? Colors.green : Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                  ],
+                ),
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    description.length > 80 
+                        ? '${description.substring(0, 80)}...'
+                        : description,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildActionGrid(BuildContext context, List<Map<String, dynamic>> pets) {
     final actions = [
       _ActionData(
@@ -1706,34 +1905,79 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       ),
     ];
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
-          childAspectRatio: 1,
-        ),
-        itemCount: actions.length,
-        itemBuilder: (context, index) {
-          return TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: 1),
-            duration: Duration(milliseconds: 600 + (index * 100)),
-            curve: Curves.easeOutBack,
-            builder: (context, value, child) {
-              return Transform.scale(
-                scale: value,
-                child: _ActionButtonTile(
-                  action: actions[index],
-                ),
-              );
-            },
-          );
-        },
-      ),
+    // Responsive grid layout - adapts to screen size
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Determine optimal layout based on available width
+        final screenWidth = constraints.maxWidth;
+        final int crossAxisCount;
+        final double? cardHeight;
+        final double maxContentWidth;
+        
+        if (screenWidth > 1200) {
+          // Large desktop - 6 columns, compact cards
+          crossAxisCount = 6;
+          cardHeight = 140;
+          maxContentWidth = 1200;
+        } else if (screenWidth > 900) {
+          // Desktop/tablet landscape - 6 columns
+          crossAxisCount = 6;
+          cardHeight = 140;
+          maxContentWidth = 1000;
+        } else if (screenWidth > 600) {
+          // Tablet portrait - 3 columns
+          crossAxisCount = 3;
+          cardHeight = 140;
+          maxContentWidth = 600;
+        } else {
+          // Mobile - 3 columns
+          crossAxisCount = 3;
+          cardHeight = null; // Use aspect ratio for mobile
+          maxContentWidth = screenWidth;
+        }
+        
+        // Center the grid on large screens
+        return Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: maxContentWidth),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: cardHeight != null
+                  ? SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      mainAxisExtent: cardHeight, // Fixed height for web
+                    )
+                  : SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 1, // Square cards for mobile
+                    ),
+              itemCount: actions.length,
+              itemBuilder: (context, index) {
+                return TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: Duration(milliseconds: 600 + (index * 100)),
+                  curve: Curves.easeOutBack,
+                  builder: (context, value, child) {
+                    return Transform.scale(
+                      scale: value,
+                      child: _ActionButtonTile(
+                        action: actions[index],
+                        isCompact: screenWidth > 600, // Compact mode for web
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -2069,9 +2313,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               ),
               ElevatedButton.icon(
                 onPressed: () async {
+                  // Close the dialog first
+                  Navigator.pop(context);
+                  
+                  // Sign out from Firebase
                   await FirebaseAuth.instance.signOut();
+                  
+                  // Navigate to auth gate and clear all routes
                   if (context.mounted) {
-                    Navigator.pop(context);
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/auth-gate',
+                      (route) => false,
+                    );
                   }
                 },
                 icon: const Icon(Icons.logout),
@@ -2369,8 +2622,12 @@ class _ActionData {
 
 class _ActionButtonTile extends StatefulWidget {
   final _ActionData action;
+  final bool isCompact;
 
-  const _ActionButtonTile({required this.action});
+  const _ActionButtonTile({
+    required this.action,
+    this.isCompact = false,
+  });
 
   @override
   State<_ActionButtonTile> createState() => _ActionButtonTileState();
@@ -2381,6 +2638,12 @@ class _ActionButtonTileState extends State<_ActionButtonTile> {
 
   @override
   Widget build(BuildContext context) {
+    // Responsive sizing based on isCompact mode (web vs mobile)
+    final iconSize = widget.isCompact ? 36.0 : 32.0;
+    final titleSize = widget.isCompact ? 14.0 : 13.0;
+    final spacing = widget.isCompact ? 10.0 : 8.0;
+    final borderRadius = widget.isCompact ? 16.0 : 20.0;
+    
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) {
@@ -2395,7 +2658,7 @@ class _ActionButtonTileState extends State<_ActionButtonTile> {
         child: Container(
           decoration: BoxDecoration(
             gradient: widget.action.gradient,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(borderRadius),
             boxShadow: [
               BoxShadow(
                 color: widget.action.gradient.colors.first.withOpacity(0.4),
@@ -2405,26 +2668,37 @@ class _ActionButtonTileState extends State<_ActionButtonTile> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(borderRadius),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(widget.action.icon, color: Colors.white, size: 32),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.action.title,
-                    style: PetUwriteTypography.bodySmall.copyWith(
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: widget.isCompact ? 12 : 8,
+                  vertical: widget.isCompact ? 16 : 12,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      widget.action.icon,
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      size: iconSize,
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                    SizedBox(height: spacing),
+                    Text(
+                      widget.action.title,
+                      style: PetUwriteTypography.bodySmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: titleSize,
+                        height: 1.2,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -2538,46 +2812,6 @@ class _CurvedHeaderClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-class _PawPrintPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    // Draw paw prints pattern
-    const spacing = 120.0;
-    for (double x = 0; x < size.width; x += spacing) {
-      for (double y = 0; y < size.height; y += spacing) {
-        _drawPawPrint(canvas, paint, Offset(x, y));
-      }
-    }
-  }
-
-  void _drawPawPrint(Canvas canvas, Paint paint, Offset center) {
-    // Main pad
-    canvas.drawOval(
-      Rect.fromCenter(center: center, width: 20, height: 25),
-      paint,
-    );
-
-    // Toe pads
-    final toePositions = [
-      Offset(center.dx - 12, center.dy - 15),
-      Offset(center.dx - 4, center.dy - 18),
-      Offset(center.dx + 4, center.dy - 18),
-      Offset(center.dx + 12, center.dy - 15),
-    ];
-
-    for (final pos in toePositions) {
-      canvas.drawCircle(pos, 6, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 // ============================================================================
@@ -2787,6 +3021,16 @@ class _PoliciesListScreen extends StatelessWidget {
           ),
         ),
         actions: [
+          if (status == 'active') ...[
+            TextButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _showCancelPolicyDialog(context, policy);
+              },
+              icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+              label: const Text('Cancel Policy', style: TextStyle(color: Colors.red)),
+            ),
+          ],
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
@@ -2837,6 +3081,266 @@ class _PoliciesListScreen extends StatelessWidget {
       return dateString;
     }
   }
+
+  void _showCancelPolicyDialog(BuildContext context, Map<String, dynamic> policy) {
+    final policyId = policy['id'] as String?;
+    final policyNumber = policy['policyNumber'] as String?;
+    
+    if (policyId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Policy ID not found')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: PetUwriteColors.kPrimaryNavy,
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red.shade300),
+            const SizedBox(width: 12),
+            const Text(
+              'Cancel Policy?',
+              style: TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to cancel Policy #$policyNumber?',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.red.shade300, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Important Information',
+                        style: TextStyle(
+                          color: Colors.red.shade300,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '• Coverage ends immediately\n'
+                    '• No refunds for current billing period\n'
+                    '• Pre-existing conditions may not be covered if you reapply\n'
+                    '• Pending claims will still be processed\n'
+                    '• This action cannot be undone',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 13,
+                      height: 1.6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'If you\'re having issues, please contact our support team first. We\'re here to help!',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 13,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Keep Policy',
+              style: TextStyle(
+                color: PetUwriteColors.kSuccessMint,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _processPolicyCancellation(context, policyId, policyNumber ?? 'Unknown');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Yes, Cancel Policy'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _processPolicyCancellation(BuildContext context, String policyId, String policyNumber) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Cancelling policy...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Update policy status in Firestore
+      await FirebaseFirestore.instance
+          .collection('policies')
+          .doc(policyId)
+          .update({
+        'status': 'cancelled',
+        'cancellationDate': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'cancellationReason': 'Customer requested cancellation',
+      });
+
+      // Close loading dialog
+      if (context.mounted) Navigator.pop(context);
+
+      // Show success message
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: PetUwriteColors.kPrimaryNavy,
+            title: Row(
+              children: [
+                Icon(Icons.check_circle, color: PetUwriteColors.kSuccessMint),
+                const SizedBox(width: 12),
+                const Text(
+                  'Policy Cancelled',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Policy #$policyNumber has been cancelled successfully.',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline, color: PetUwriteColors.kSecondaryTeal, size: 16),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'What happens next?',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '• Coverage ended as of today\n'
+                        '• Any pending claims will be processed\n'
+                        '• You\'ll receive a confirmation email\n'
+                        '• No further charges will be made',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 12,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'We\'re sorry to see you go. If you change your mind, you can always get a new quote!',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(color: PetUwriteColors.kSuccessMint),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (context.mounted) Navigator.pop(context);
+
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error cancelling policy: $e'),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _processPolicyCancellation(context, policyId, policyNumber),
+            ),
+          ),
+        );
+      }
+    }
+  }
 }
 
 /// Enhanced claim details dialog with document upload functionality
@@ -2844,9 +3348,9 @@ class ClaimDetailsDialog extends StatefulWidget {
   final Claim claim;
 
   const ClaimDetailsDialog({
-    Key? key,
+    super.key,
     required this.claim,
-  }) : super(key: key);
+  });
 
   @override
   State<ClaimDetailsDialog> createState() => _ClaimDetailsDialogState();
@@ -3061,8 +3565,20 @@ class _ClaimDetailsDialogState extends State<ClaimDetailsDialog> {
       
       if (result != null && result.files.isNotEmpty) {
         for (final file in result.files) {
-          if (file.path != null) {
-            // Upload to Firebase Storage
+          // On web, use bytes; on mobile, use path
+          if (file.bytes != null) {
+            // Web: Upload using bytes
+            final url = await _claimsService.uploadClaimDocumentFromBytes(
+              file.bytes!,
+              file.name,
+              widget.claim.claimId,
+            );
+            
+            setState(() {
+              _attachmentUrls.add(url);
+            });
+          } else if (file.path != null) {
+            // Mobile: Upload using file path
             final url = await _claimsService.uploadClaimDocument(
               file.path!,
               widget.claim.claimId,

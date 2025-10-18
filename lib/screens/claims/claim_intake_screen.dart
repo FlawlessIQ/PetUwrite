@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../models/claim.dart';
 import '../../services/claims_service.dart';
 import '../../services/conversational_ai_service.dart';
+import '../../services/claim_decision_engine.dart';
 import '../../theme/petuwrite_theme.dart';
 
 /// Conversational AI-powered claim intake screen
@@ -451,7 +452,11 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
     if (lowerMessage.contains('yes') || lowerMessage.contains('upload')) {
       _addAIMessage("Great! Tap the 📎 button below to upload your documents.");
       // Don't advance stage - wait for actual upload
-    } else if (lowerMessage.contains('later') || lowerMessage.contains('skip')) {
+    } else if (lowerMessage.contains('later') || 
+               lowerMessage.contains('skip') || 
+               lowerMessage.contains('done') ||
+               lowerMessage.contains('finished') ||
+               lowerMessage.contains('no')) {
       await _proceedToAnalysis();
     } else {
       _addAIMessage(
@@ -545,10 +550,19 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
       _addAIMessage(
         "✅ Your claim has been successfully submitted!\n\n"
         "Claim ID: ${claim.claimId}\n\n"
-        "We'll review it and get back to you within 24-48 hours. "
-        "You'll receive updates via email and in your policy dashboard.\n\n"
-        "Is there anything else I can help you with today? 🐾"
+        "I'm analyzing your claim now with our AI system... 🤖"
       );
+
+      // Trigger AI decision engine immediately
+      try {
+        await _triggerAIDecision(claim);
+      } catch (e) {
+        print('AI decision failed, will be processed later: $e');
+        _addAIMessage(
+          "Your claim is submitted and will be reviewed within 24-48 hours. "
+          "You'll receive updates via email and in your policy dashboard."
+        );
+      }
 
       setState(() {
         _currentStage = ClaimIntakeStage.complete;
@@ -562,6 +576,62 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
       setState(() {
         _isSubmitting = false;
       });
+    }
+  }
+
+  /// Trigger AI decision engine for instant review
+  Future<void> _triggerAIDecision(Claim claim) async {
+    try {
+      // Import at top if not already: import '../services/claim_decision_engine.dart';
+      final engine = ClaimDecisionEngine();
+      
+      // Change status to processing before analysis
+      await FirebaseFirestore.instance
+          .collection('claims')
+          .doc(claim.claimId)
+          .update({
+        'status': ClaimStatus.processing.value,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      _addAIMessage("Analyzing your claim... This will just take a moment! ⏱️");
+
+      final decision = await engine.processClaimDecision(claim: claim);
+      
+      // Show result to user based on decision
+      if (decision.finalStatus == ClaimStatus.settled || 
+          decision.aiDecision == AIDecision.approve) {
+        _addAIMessage(
+          "🎉 Great news! Your claim has been approved!\n\n"
+          "Amount: \$${claim.claimAmount.toStringAsFixed(2)}\n\n"
+          "You'll receive your reimbursement within 3-5 business days. "
+          "Is there anything else I can help you with? 🐾"
+        );
+      } else if (decision.finalStatus == ClaimStatus.denied ||
+                 decision.aiDecision == AIDecision.deny) {
+        _addAIMessage(
+          "I've reviewed your claim, but unfortunately it doesn't meet our coverage criteria.\n\n"
+          "Reason: ${decision.denyReason ?? 'See policy details'}\n\n"
+          "If you believe this is an error, please contact our support team. "
+          "Is there anything else I can help you with?"
+        );
+      } else {
+        // Escalated to human review
+        _addAIMessage(
+          "Your claim has been submitted for review by our team.\n\n"
+          "We'll carefully review all the details and get back to you within 24-48 hours. "
+          "You'll receive updates via email and in your policy dashboard.\n\n"
+          "Is there anything else I can help you with today? 🐾"
+        );
+      }
+      
+      print('✅ AI Decision completed for claim ${claim.claimId}');
+      print('   Decision: ${decision.aiDecision.value}');
+      print('   Confidence: ${decision.aiConfidenceScore}%');
+      print('   Final Status: ${decision.finalStatus.value}');
+    } catch (e) {
+      print('Error triggering AI decision: $e');
+      rethrow;
     }
   }
 

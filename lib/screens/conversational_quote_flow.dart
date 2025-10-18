@@ -52,7 +52,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
   final List<QuestionData> _questions = [
     QuestionData(
       id: 'welcome',
-      question: "Hi! I'm here to help you protect your furry friend. What's your name?",
+      question: "What's your name?",
       type: QuestionType.text,
       field: 'ownerName',
       placeholder: 'Your name',

@@ -289,7 +289,7 @@ Traditional Risk Score: ${traditionalScore.toStringAsFixed(1)}/100
     final aiScore = data['overall_risk_score'] ?? fallbackScore;
     final riskLevel = data['risk_level'] ?? 'unknown';
     buffer.writeln('📊 RISK ASSESSMENT');
-    buffer.writeln('   AI Risk Score: ${aiScore}/100');
+    buffer.writeln('   AI Risk Score: $aiScore/100');
     buffer.writeln('   Risk Level: ${riskLevel.toString().toUpperCase()}');
     buffer.writeln('   Confidence: ${data['confidence_level'] ?? 'N/A'}%');
     buffer.writeln();
@@ -378,7 +378,7 @@ Traditional Risk Score: ${traditionalScore.toStringAsFixed(1)}/100
     
     buffer.writeln('📈 CATEGORY BREAKDOWN');
     categoryScores.forEach((category, score) {
-      buffer.writeln('   ${category}: ${score.toStringAsFixed(1)}/100');
+      buffer.writeln('   $category: ${score.toStringAsFixed(1)}/100');
     });
     buffer.writeln();
     

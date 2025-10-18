@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/claim.dart';
 
 /// Exception thrown when concurrent modification is detected
@@ -628,7 +630,7 @@ class ClaimsService {
     }
   }
 
-  /// Upload claim document to Firebase Storage
+  /// Upload claim document to Firebase Storage (for mobile using file path)
   Future<String> uploadClaimDocument(String filePath, String claimId) async {
     try {
       // For now, return a mock URL
@@ -641,6 +643,49 @@ class ClaimsService {
       return 'https://storage.googleapis.com/pet-underwriter-ai/claims/$claimId/${DateTime.now().millisecondsSinceEpoch}.jpg';
     } catch (e) {
       throw Exception('Failed to upload document: $e');
+    }
+  }
+
+  /// Upload claim document to Firebase Storage from bytes (for web)
+  Future<String> uploadClaimDocumentFromBytes(
+    Uint8List bytes, 
+    String fileName, 
+    String claimId,
+  ) async {
+    try {
+      // Use Firebase Storage for web
+      final storageRef = FirebaseStorage.instance.ref();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileRef = storageRef.child('claims/$claimId/$timestamp-$fileName');
+      
+      // Upload the file bytes
+      final uploadTask = await fileRef.putData(
+        bytes,
+        SettableMetadata(
+          contentType: _getContentType(fileName),
+        ),
+      );
+      
+      // Get download URL
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      throw Exception('Failed to upload document: $e');
+    }
+  }
+
+  /// Get content type based on file extension
+  String _getContentType(String fileName) {
+    final extension = fileName.toLowerCase().split('.').last;
+    switch (extension) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      default:
+        return 'application/octet-stream';
     }
   }
 }
