@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/checkout_state.dart';
-import '../theme/petUwrite_theme.dart';
+import '../theme/clovara_theme.dart';
 
 /// World-class policy confirmation screen after successful purchase
 class PolicyConfirmationScreen extends StatefulWidget {
@@ -48,7 +48,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: PetUwriteColors.kPrimaryNavy,
+      backgroundColor: ClovaraColors.forest,
       body: SafeArea(
         child: Consumer<CheckoutProvider>(
           builder: (context, provider, child) {
@@ -137,15 +137,15 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [
-                    PetUwriteColors.kSecondaryTeal,
-                    PetUwriteColors.kSecondaryTeal.withOpacity(0.7),
+                    ClovaraColors.clover,
+                    ClovaraColors.clover.withOpacity(0.7),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: PetUwriteColors.kSecondaryTeal.withOpacity(0.5),
+                    color: ClovaraColors.clover.withOpacity(0.5),
                     blurRadius: 30,
                     spreadRadius: 5,
                   ),
@@ -167,7 +167,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
               children: [
                 Text(
                   'Welcome to PetUwrite!',
-                  style: PetUwriteTypography.h2.copyWith(
+                  style: ClovaraTypography.h2.copyWith(
                     color: Colors.white,
                     fontSize: 32,
                   ),
@@ -176,8 +176,8 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                 const SizedBox(height: 12),
                 Text(
                   'Your pet is now protected',
-                  style: PetUwriteTypography.bodyLarge.copyWith(
-                    color: PetUwriteColors.kSecondaryTeal,
+                  style: ClovaraTypography.body.copyWith(
+                    color: ClovaraColors.clover,
                     fontSize: 18,
                   ),
                   textAlign: TextAlign.center,
@@ -199,15 +199,15 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
         borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
           colors: [
-            PetUwriteColors.kPrimaryNavy,
-            PetUwriteColors.kPrimaryNavy.withOpacity(0.9),
+            ClovaraColors.forest,
+            ClovaraColors.forest.withOpacity(0.9),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: PetUwriteColors.kPrimaryNavy.withOpacity(0.3),
+            color: ClovaraColors.forest.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -240,8 +240,8 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                       children: [
                         Text(
                           'POLICY',
-                          style: PetUwriteTypography.caption.copyWith(
-                            color: PetUwriteColors.kSecondaryTeal,
+                          style: ClovaraTypography.bodySmall.copyWith(
+                            color: ClovaraColors.clover,
                             letterSpacing: 2,
                             fontWeight: FontWeight.bold,
                           ),
@@ -249,7 +249,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                         const SizedBox(height: 4),
                         Text(
                           policy.policyNumber,
-                          style: PetUwriteTypography.h3.copyWith(
+                          style: ClovaraTypography.h3.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
@@ -283,7 +283,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                           const SizedBox(width: 6),
                           Text(
                             'ACTIVE',
-                            style: PetUwriteTypography.caption.copyWith(
+                            style: ClovaraTypography.bodySmall.copyWith(
                               color: Colors.green.shade400,
                               fontWeight: FontWeight.bold,
                               fontSize: 11,
@@ -352,13 +352,13 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
           children: [
             Icon(
               icon,
-              color: PetUwriteColors.kSecondaryTeal.withOpacity(0.7),
+              color: ClovaraColors.clover.withOpacity(0.7),
               size: 16,
             ),
             const SizedBox(width: 6),
             Text(
               label,
-              style: PetUwriteTypography.caption.copyWith(
+              style: ClovaraTypography.bodySmall.copyWith(
                 color: Colors.white.withOpacity(0.6),
                 fontSize: 11,
               ),
@@ -368,7 +368,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
         const SizedBox(height: 4),
         Text(
           value,
-          style: PetUwriteTypography.bodyLarge.copyWith(
+          style: ClovaraTypography.body.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.w600,
             fontSize: 15,
@@ -403,16 +403,16 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: [
-                  PetUwriteColors.kSecondaryTeal.withOpacity(0.2),
-                  PetUwriteColors.kPrimaryNavy.withOpacity(0.1),
+                  ClovaraColors.clover.withOpacity(0.2),
+                  ClovaraColors.forest.withOpacity(0.1),
                 ],
               ),
             ),
             child: Center(
               child: Text(
                 policy.pet.name[0].toUpperCase(),
-                style: PetUwriteTypography.h1.copyWith(
-                  color: PetUwriteColors.kPrimaryNavy,
+                style: ClovaraTypography.h1.copyWith(
+                  color: ClovaraColors.forest,
                   fontSize: 36,
                 ),
               ),
@@ -427,15 +427,15 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
               children: [
                 Text(
                   policy.pet.name,
-                  style: PetUwriteTypography.h3.copyWith(
-                    color: PetUwriteColors.kPrimaryNavy,
+                  style: ClovaraTypography.h3.copyWith(
+                    color: ClovaraColors.forest,
                     fontSize: 24,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${policy.pet.breed} • ${policy.pet.ageInYears} ${policy.pet.ageInYears == 1 ? 'year' : 'years'} old',
-                  style: PetUwriteTypography.body.copyWith(
+                  style: ClovaraTypography.body.copyWith(
                     color: Colors.grey.shade600,
                   ),
                 ),
@@ -446,13 +446,13 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: PetUwriteColors.kSecondaryTeal.withOpacity(0.1),
+                    color: ClovaraColors.clover.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     'Insured Pet',
-                    style: PetUwriteTypography.caption.copyWith(
-                      color: PetUwriteColors.kSecondaryTeal,
+                    style: ClovaraTypography.bodySmall.copyWith(
+                      color: ClovaraColors.clover,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -502,20 +502,20 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: PetUwriteColors.kSecondaryTeal.withOpacity(0.1),
+                  color: ClovaraColors.clover.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   Icons.star_rounded,
-                  color: PetUwriteColors.kSecondaryTeal,
+                  color: ClovaraColors.clover,
                   size: 20,
                 ),
               ),
               const SizedBox(width: 12),
               Text(
                 'Coverage Highlights',
-                style: PetUwriteTypography.h4.copyWith(
-                  color: PetUwriteColors.kPrimaryNavy,
+                style: ClovaraTypography.h3.copyWith(
+                  color: ClovaraColors.forest,
                   fontSize: 18,
                 ),
               ),
@@ -590,15 +590,15 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
           const SizedBox(height: 12),
           Text(
             value,
-            style: PetUwriteTypography.h4.copyWith(
-              color: PetUwriteColors.kPrimaryNavy,
+            style: ClovaraTypography.h3.copyWith(
+              color: ClovaraColors.forest,
               fontSize: 20,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: PetUwriteTypography.caption.copyWith(
+            style: ClovaraTypography.bodySmall.copyWith(
               color: Colors.grey.shade600,
               fontSize: 12,
             ),
@@ -634,20 +634,20 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: PetUwriteColors.kPrimaryNavy.withOpacity(0.1),
+                  color: ClovaraColors.forest.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   Icons.timeline_rounded,
-                  color: PetUwriteColors.kPrimaryNavy,
+                  color: ClovaraColors.forest,
                   size: 20,
                 ),
               ),
               const SizedBox(width: 12),
               Text(
                 'What\'s Next',
-                style: PetUwriteTypography.h4.copyWith(
-                  color: PetUwriteColors.kPrimaryNavy,
+                style: ClovaraTypography.h3.copyWith(
+                  color: ClovaraColors.forest,
                   fontSize: 18,
                 ),
               ),
@@ -668,7 +668,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
             'Coverage becomes active',
             Icons.shield_rounded,
             false,
-            PetUwriteColors.kSecondaryTeal,
+            ClovaraColors.clover,
           ),
           _buildTimelineItem(
             'Anytime',
@@ -734,7 +734,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
               children: [
                 Text(
                   date,
-                  style: PetUwriteTypography.caption.copyWith(
+                  style: ClovaraTypography.bodySmall.copyWith(
                     color: color,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
@@ -743,8 +743,8 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: PetUwriteTypography.body.copyWith(
-                    color: PetUwriteColors.kPrimaryNavy,
+                  style: ClovaraTypography.body.copyWith(
+                    color: ClovaraColors.forest,
                     fontSize: 15,
                   ),
                 ),
@@ -766,7 +766,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
           title: 'Download Policy',
           subtitle: 'Get your full policy documents (PDF)',
           icon: Icons.download_rounded,
-          iconColor: PetUwriteColors.kSecondaryTeal,
+          iconColor: ClovaraColors.clover,
           onTap: () {
             // TODO: Implement policy download
             ScaffoldMessenger.of(context).showSnackBar(
@@ -782,7 +782,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
           title: 'Go to Dashboard',
           subtitle: 'Manage your policy and file claims',
           icon: Icons.dashboard_rounded,
-          iconColor: PetUwriteColors.kPrimaryNavy,
+          iconColor: ClovaraColors.forest,
           onTap: () {
             Navigator.pushNamedAndRemoveUntil(
               context,
@@ -851,8 +851,8 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                   children: [
                     Text(
                       title,
-                      style: PetUwriteTypography.bodyLarge.copyWith(
-                        color: PetUwriteColors.kPrimaryNavy,
+                      style: ClovaraTypography.body.copyWith(
+                        color: ClovaraColors.forest,
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
                       ),
@@ -860,7 +860,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: PetUwriteTypography.body.copyWith(
+                      style: ClovaraTypography.body.copyWith(
                         color: Colors.grey.shade600,
                         fontSize: 13,
                       ),
@@ -906,7 +906,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
               children: [
                 Text(
                   'Confirmation Sent',
-                  style: PetUwriteTypography.body.copyWith(
+                  style: ClovaraTypography.body.copyWith(
                     color: Colors.blue.shade900,
                     fontWeight: FontWeight.w600,
                   ),
@@ -914,7 +914,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                 const SizedBox(height: 2),
                 Text(
                   'Check ${policy.owner.email} for details',
-                  style: PetUwriteTypography.caption.copyWith(
+                  style: ClovaraTypography.bodySmall.copyWith(
                     color: Colors.blue.shade700,
                     fontSize: 12,
                   ),
@@ -941,14 +941,14 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
           const SizedBox(height: 16),
           Text(
             'No policy data available',
-            style: PetUwriteTypography.h4.copyWith(
+            style: ClovaraTypography.h3.copyWith(
               color: Colors.grey.shade600,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Please complete the checkout process',
-            style: PetUwriteTypography.body.copyWith(
+            style: ClovaraTypography.body.copyWith(
               color: Colors.grey.shade500,
             ),
           ),
@@ -958,7 +958,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
             icon: const Icon(Icons.arrow_back),
             label: const Text('Go Back'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: PetUwriteColors.kSecondaryTeal,
+              backgroundColor: ClovaraColors.clover,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             ),
           ),

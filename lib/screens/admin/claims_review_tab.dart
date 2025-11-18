@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../models/claim.dart';
 import '../../services/claim_document_ai_service.dart';
-import '../../theme/petuwrite_theme.dart';
+import '../../theme/clovara_theme.dart';
 
 /// Claims Review tab for admin dashboard
 /// Shows claims requiring human review and allows manual decisions
@@ -110,68 +110,110 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
               Row(
                 children: [
                   Icon(Icons.analytics,
-                      color: PetUwriteColors.kSecondaryTeal, size: 28),
+                      color: ClovaraColors.clover, size: 28),
                   const SizedBox(width: 12),
                   Text(
                     'Claims Analytics - This Month',
-                    style: PetUwriteTypography.h3.copyWith(
-                      color: PetUwriteColors.kPrimaryNavy,
+                    style: ClovaraTypography.h3.copyWith(
+                      color: ClovaraColors.forest,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isMobile = constraints.maxWidth < 768;
+                  final isTablet = constraints.maxWidth < 1024;
+                  
+                  final statCards = [
+                    _buildStatCard(
                       icon: Icons.folder_open,
                       label: 'Total Claims',
                       value: totalClaims.toString(),
-                      color: PetUwriteColors.kPrimaryNavy,
+                      color: ClovaraColors.forest,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
+                    _buildStatCard(
                       icon: Icons.check_circle,
                       label: 'Auto-Approved',
                       value: autoApproved.toString(),
                       subtitle:
                           '${totalClaims > 0 ? ((autoApproved / totalClaims) * 100).toStringAsFixed(1) : 0}%',
-                      color: PetUwriteColors.kSuccessMint,
+                      color: ClovaraColors.kSuccessMint,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
+                    _buildStatCard(
                       icon: Icons.person,
                       label: 'Human Reviewed',
                       value: humanReviewed.toString(),
                       subtitle:
                           '${totalClaims > 0 ? ((humanReviewed / totalClaims) * 100).toStringAsFixed(1) : 0}%',
-                      color: PetUwriteColors.kSecondaryTeal,
+                      color: ClovaraColors.clover,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
+                    _buildStatCard(
                       icon: Icons.pending_actions,
                       label: 'Pending Review',
                       value: pending.toString(),
-                      color: PetUwriteColors.kWarning,
+                      color: ClovaraColors.kWarning,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
+                    _buildStatCard(
                       icon: Icons.schedule,
                       label: 'Avg Processing',
                       value: '${avgProcessingTime.toStringAsFixed(1)}h',
-                      color: PetUwriteColors.kTextGrey,
+                      color: ClovaraColors.kTextGrey,
                     ),
-                  ),
-                ],
+                  ];
+                  
+                  if (isMobile) {
+                    // Single column on mobile
+                    return Column(
+                      children: statCards.map((card) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: card,
+                      )).toList(),
+                    );
+                  } else if (isTablet) {
+                    // 2-3 columns on tablet
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: statCards[0]),
+                            const SizedBox(width: 16),
+                            Expanded(child: statCards[1]),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(child: statCards[2]),
+                            const SizedBox(width: 16),
+                            Expanded(child: statCards[3]),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: constraints.maxWidth / 2 - 8,
+                          child: statCards[4],
+                        ),
+                      ],
+                    );
+                  } else {
+                    // All in one row on desktop
+                    return Row(
+                      children: [
+                        Expanded(child: statCards[0]),
+                        const SizedBox(width: 16),
+                        Expanded(child: statCards[1]),
+                        const SizedBox(width: 16),
+                        Expanded(child: statCards[2]),
+                        const SizedBox(width: 16),
+                        Expanded(child: statCards[3]),
+                        const SizedBox(width: 16),
+                        Expanded(child: statCards[4]),
+                      ],
+                    );
+                  }
+                },
               ),
             ],
           ),
@@ -207,7 +249,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: PetUwriteColors.kTextGrey,
+                    color: ClovaraColors.kTextGrey,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -229,7 +271,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
               subtitle,
               style: TextStyle(
                 fontSize: 12,
-                color: PetUwriteColors.kTextMuted,
+                color: ClovaraColors.slate,
               ),
             ),
           ],
@@ -370,7 +412,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: PetUwriteColors.kPrimaryNavy.withOpacity(0.05),
+                  color: ClovaraColors.forest.withOpacity(0.05),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(12),
                     topRight: Radius.circular(12),
@@ -442,7 +484,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
       style: TextStyle(
         fontWeight: FontWeight.bold,
         fontSize: 13,
-        color: PetUwriteColors.kPrimaryNavy,
+        color: ClovaraColors.forest,
       ),
     );
   }
@@ -453,14 +495,14 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
         ? (claim.aiConfidenceScore! * 100).toStringAsFixed(1)
         : 'N/A';
 
-    Color confidenceColor = PetUwriteColors.kTextGrey;
+    Color confidenceColor = ClovaraColors.kTextGrey;
     if (claim.aiConfidenceScore != null) {
       if (claim.aiConfidenceScore! >= 0.85) {
-        confidenceColor = PetUwriteColors.kSuccessMint;
+        confidenceColor = ClovaraColors.kSuccessMint;
       } else if (claim.aiConfidenceScore! >= 0.60) {
-        confidenceColor = PetUwriteColors.kWarning;
+        confidenceColor = ClovaraColors.kWarning;
       } else {
-        confidenceColor = PetUwriteColors.kError;
+        confidenceColor = ClovaraColors.kError;
       }
     }
 
@@ -496,7 +538,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
                 claim.claimId,
                 style: TextStyle(
                   fontSize: 12,
-                  color: PetUwriteColors.kTextGrey,
+                  color: ClovaraColors.kTextGrey,
                 ),
               ),
             ),
@@ -545,7 +587,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
                 DateFormat('MMM d').format(claim.createdAt),
                 style: TextStyle(
                   fontSize: 12,
-                  color: PetUwriteColors.kTextGrey,
+                  color: ClovaraColors.kTextGrey,
                 ),
               ),
             ),
@@ -556,7 +598,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
               child: ElevatedButton(
                 onPressed: () => _openClaimDetail(claim),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: PetUwriteColors.kSecondaryTeal,
+                  backgroundColor: ClovaraColors.clover,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -582,23 +624,23 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
         text = 'Draft';
         break;
       case ClaimStatus.submitted:
-        color = Colors.blue;
+        color = ClovaraColors.clover;
         text = 'Submitted';
         break;
       case ClaimStatus.processing:
-        color = PetUwriteColors.kWarning;
+        color = ClovaraColors.kWarning;
         text = 'Processing';
         break;
       case ClaimStatus.settling:
-        color = PetUwriteColors.kSecondaryTeal;
+        color = ClovaraColors.clover;
         text = 'Settling';
         break;
       case ClaimStatus.settled:
-        color = PetUwriteColors.kSuccessMint;
+        color = ClovaraColors.kSuccessMint;
         text = 'Settled';
         break;
       case ClaimStatus.denied:
-        color = PetUwriteColors.kError;
+        color = ClovaraColors.kError;
         text = 'Denied';
         break;
       case ClaimStatus.cancelled:
@@ -724,7 +766,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: PetUwriteColors.kPrimaryNavy,
+                color: ClovaraColors.forest,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
@@ -810,7 +852,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
             'Description:',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: PetUwriteColors.kPrimaryNavy,
+              color: ClovaraColors.forest,
             ),
           ),
           const SizedBox(height: 4),
@@ -868,7 +910,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
               'AI Explanation:',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: PetUwriteColors.kPrimaryNavy,
+                color: ClovaraColors.forest,
               ),
             ),
             const SizedBox(height: 4),
@@ -907,7 +949,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                       Row(
                         children: [
                           Icon(Icons.description,
-                              color: PetUwriteColors.kSecondaryTeal, size: 20),
+                              color: ClovaraColors.clover, size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -920,7 +962,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: doc.isLegitimate
-                                  ? Colors.green.withOpacity(0.1)
+                                  ? ClovaraColors.clover.withOpacity(0.1)
                                   : Colors.red.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -929,7 +971,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: doc.isLegitimate ? Colors.green : Colors.red,
+                                color: doc.isLegitimate ? ClovaraColors.clover : Colors.red,
                               ),
                             ),
                           ),
@@ -970,18 +1012,18 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                 margin: const EdgeInsets.only(top: 8),
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: PetUwriteColors.kWarning.withOpacity(0.1),
+                  color: ClovaraColors.kWarning.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning, color: PetUwriteColors.kWarning, size: 16),
+                    Icon(Icons.warning, color: ClovaraColors.kWarning, size: 16),
                     const SizedBox(width: 8),
                     Text(
                       'This policy was manually approved (high risk)',
                       style: TextStyle(
                         fontSize: 12,
-                        color: PetUwriteColors.kWarning,
+                        color: ClovaraColors.kWarning,
                       ),
                     ),
                   ],
@@ -1011,7 +1053,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                   onChanged: (value) {
                     setState(() => _selectedDecision = value!);
                   },
-                  activeColor: PetUwriteColors.kSuccessMint,
+                  activeColor: ClovaraColors.kSuccessMint,
                 ),
               ),
               Expanded(
@@ -1022,7 +1064,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                   onChanged: (value) {
                     setState(() => _selectedDecision = value!);
                   },
-                  activeColor: PetUwriteColors.kError,
+                  activeColor: ClovaraColors.kError,
                 ),
               ),
               Expanded(
@@ -1033,7 +1075,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                   onChanged: (value) {
                     setState(() => _selectedDecision = value!);
                   },
-                  activeColor: PetUwriteColors.kWarning,
+                  activeColor: ClovaraColors.kWarning,
                 ),
               ),
             ],
@@ -1102,14 +1144,14 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
         children: [
           Row(
             children: [
-              Icon(icon, color: PetUwriteColors.kSecondaryTeal, size: 20),
+              Icon(icon, color: ClovaraColors.clover, size: 20),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: PetUwriteColors.kPrimaryNavy,
+                  color: ClovaraColors.forest,
                 ),
               ),
             ],
@@ -1133,14 +1175,14 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
               '$label:',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: PetUwriteColors.kTextGrey,
+                color: ClovaraColors.kTextGrey,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(color: PetUwriteColors.kTextDark),
+              style: TextStyle(color: ClovaraColors.kTextDark),
             ),
           ),
         ],
@@ -1149,21 +1191,21 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
   }
 
   Color _getConfidenceColor(double confidence) {
-    if (confidence >= 0.85) return PetUwriteColors.kSuccessMint;
-    if (confidence >= 0.60) return PetUwriteColors.kWarning;
-    return PetUwriteColors.kError;
+    if (confidence >= 0.85) return ClovaraColors.kSuccessMint;
+    if (confidence >= 0.60) return ClovaraColors.kWarning;
+    return ClovaraColors.kError;
   }
 
   Color _getDecisionColor() {
     switch (_selectedDecision) {
       case 'approve':
-        return PetUwriteColors.kSuccessMint;
+        return ClovaraColors.kSuccessMint;
       case 'deny':
-        return PetUwriteColors.kError;
+        return ClovaraColors.kError;
       case 'more_info':
-        return PetUwriteColors.kWarning;
+        return ClovaraColors.kWarning;
       default:
-        return PetUwriteColors.kSecondaryTeal;
+        return ClovaraColors.clover;
     }
   }
 
@@ -1303,7 +1345,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
             content: Text(_selectedDecision == 'approve' 
                 ? 'Claim approved - payout will be processed' 
                 : 'Decision submitted successfully'),
-            backgroundColor: PetUwriteColors.kSuccessMint,
+            backgroundColor: ClovaraColors.kSuccessMint,
           ),
         );
         Navigator.pop(context);
@@ -1315,7 +1357,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.orange,
+            backgroundColor: ClovaraColors.sunset,
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
               label: 'REFRESH',
@@ -1334,7 +1376,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: PetUwriteColors.kError,
+            backgroundColor: ClovaraColors.kError,
           ),
         );
       }

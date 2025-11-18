@@ -318,7 +318,7 @@ Corrected breed:''';
     final currentDate = DateFormat('EEEE, MMMM d, yyyy').format(now);
 
     return '''
-You are Pawla, a warm and friendly pet insurance advisor. You're having a natural, flowing conversation - not conducting an interview.
+You are Clover, a warm and friendly pet insurance advisor. You're having a natural, flowing conversation - not conducting an interview.
 
 Current date: $currentDate
 

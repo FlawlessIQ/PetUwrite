@@ -1,3 +1,4 @@
+import "package:pet_underwriter_ai/theme/clovara_theme.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -47,8 +48,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
   String? _lastUpdatedBy;
   
   // Theme colors
-  static const Color _navyBlue = Color(0xFF0A2647);
-  static const Color _teal = Color(0xFF00C2CB);
+
 
   @override
   void initState() {
@@ -263,12 +263,9 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Underwriting Rules'),
-          backgroundColor: _navyBlue,
-        ),
-        body: const Center(
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
           child: CircularProgressIndicator(),
         ),
       );
@@ -276,10 +273,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
 
     if (!_hasAccess) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Underwriting Rules'),
-          backgroundColor: _navyBlue,
-        ),
+        backgroundColor: Colors.white,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -291,7 +285,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: _navyBlue,
+                  color: ClovaraColors.forest,
                 ),
               ),
               const SizedBox(height: 12),
@@ -318,24 +312,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Underwriting Rules Editor',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: _navyBlue,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () async {
-              setState(() => _isLoading = true);
-              await _loadRules();
-            },
-            tooltip: 'Reload Rules',
-          ),
-        ],
-      ),
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           // Main content
@@ -402,7 +379,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: _teal.withOpacity(0.3)),
+        side: BorderSide(color: ClovaraColors.clover.withOpacity(0.3)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -411,10 +388,10 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _teal.withOpacity(0.1),
+                color: ClovaraColors.clover.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.update, color: _teal, size: 28),
+              child: Icon(Icons.update, color: ClovaraColors.clover, size: 28),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -437,7 +414,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: _navyBlue,
+                      color: ClovaraColors.forest,
                     ),
                   ),
                   if (_lastUpdatedBy != null) ...[
@@ -472,7 +449,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: _navyBlue,
+            color: ClovaraColors.forest,
           ),
         ),
         subtitle: Text(
@@ -481,19 +458,19 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
               : 'Rules are disabled - all quotes will be approved',
           style: TextStyle(
             fontSize: 13,
-            color: _enabled ? Colors.green[700] : Colors.red[700],
+            color: _enabled ? ClovaraColors.clover : ClovaraColors.kWarmCoral,
           ),
         ),
-        activeColor: _teal,
+        activeColor: ClovaraColors.clover,
         secondary: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: _enabled ? _teal.withOpacity(0.1) : Colors.grey[200],
+            color: _enabled ? ClovaraColors.clover.withOpacity(0.1) : Colors.grey[200],
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             _enabled ? Icons.check_circle : Icons.block,
-            color: _enabled ? _teal : Colors.grey[600],
+            color: _enabled ? ClovaraColors.clover : Colors.grey[600],
           ),
         ),
       ),
@@ -508,10 +485,10 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.1),
+            color: ClovaraColors.sunset.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.analytics, color: Colors.orange),
+          child: const Icon(Icons.analytics, color: ClovaraColors.sunset),
         ),
         title: const Text(
           'Maximum Risk Score',
@@ -541,7 +518,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
                         max: 100,
                         divisions: 50,
                         label: _maxRiskScoreSlider.toInt().toString(),
-                        activeColor: _teal,
+                        activeColor: ClovaraColors.clover,
                         onChanged: (value) {
                           setState(() {
                             _maxRiskScoreSlider = value;
@@ -596,10 +573,10 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.1),
+            color: ClovaraColors.clover.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.cake, color: Colors.blue),
+          child: const Icon(Icons.cake, color: ClovaraColors.clover),
         ),
         title: const Text(
           'Age Limits',
@@ -625,7 +602,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
                     prefixIcon: const Icon(Icons.arrow_downward),
                     suffixText: 'months',
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: _teal, width: 2),
+                      borderSide: BorderSide(color: ClovaraColors.clover, width: 2),
                     ),
                   ),
                 ),
@@ -641,7 +618,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
                     prefixIcon: const Icon(Icons.arrow_upward),
                     suffixText: 'years',
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: _teal, width: 2),
+                      borderSide: BorderSide(color: ClovaraColors.clover, width: 2),
                     ),
                   ),
                 ),
@@ -661,7 +638,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.1),
+            color: ClovaraColors.kWarmCoral.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(Icons.pets, color: Colors.red),
@@ -697,7 +674,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
                           border: const OutlineInputBorder(),
                           prefixIcon: const Icon(Icons.add),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: _teal, width: 2),
+                            borderSide: BorderSide(color: ClovaraColors.clover, width: 2),
                           ),
                         ),
                         onSubmitted: (_) => _addBreed(),
@@ -707,7 +684,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
                     ElevatedButton(
                       onPressed: _addBreed,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _teal,
+                        backgroundColor: ClovaraColors.clover,
                         padding: const EdgeInsets.all(16),
                       ),
                       child: const Icon(Icons.add),
@@ -793,7 +770,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
                           border: const OutlineInputBorder(),
                           prefixIcon: const Icon(Icons.add),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: _teal, width: 2),
+                            borderSide: BorderSide(color: ClovaraColors.clover, width: 2),
                           ),
                         ),
                         onSubmitted: (_) => _addCondition(),
@@ -803,7 +780,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
                     ElevatedButton(
                       onPressed: _addCondition,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _teal,
+                        backgroundColor: ClovaraColors.clover,
                         padding: const EdgeInsets.all(16),
                       ),
                       child: const Icon(Icons.add),
@@ -856,7 +833,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _navyBlue,
+          backgroundColor: ClovaraColors.forest,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/checkout_state.dart';
 import '../models/pet.dart';
 import '../services/quote_engine.dart';
-import '../theme/petuwrite_theme.dart';
+import '../theme/clovara_theme.dart';
 import 'review_screen.dart';
 import 'owner_details_screen.dart';
 import 'payment_screen.dart';
@@ -125,7 +125,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return true;
       },
       child: Scaffold(
-        backgroundColor: PetUwriteColors.kPrimaryNavy,
+        backgroundColor: ClovaraColors.forest,
         body: SafeArea(
           child: Consumer<CheckoutProvider>(
             builder: (context, provider, child) {
@@ -150,7 +150,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: PetUwriteColors.kPrimaryNavy,
+        color: ClovaraColors.forest,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -182,7 +182,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               Expanded(
                 child: Text(
                   'PetUwrite',
-                  style: PetUwriteTypography.h2.copyWith(
+                  style: ClovaraTypography.h2.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     letterSpacing: -0.5,
@@ -209,8 +209,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           // Current Step Title
           Text(
             provider.getStepName(provider.currentStep),
-            style: PetUwriteTypography.h3.copyWith(
-              color: PetUwriteColors.kSecondaryTeal,
+            style: ClovaraTypography.h3.copyWith(
+              color: ClovaraColors.clover,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
@@ -252,7 +252,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         height: 4,
                         decoration: BoxDecoration(
                           color: isActive
-                              ? PetUwriteColors.kSecondaryTeal
+                              ? ClovaraColors.clover
                               : Colors.grey.shade300,
                           borderRadius: BorderRadius.circular(2),
                         ),
@@ -308,13 +308,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     Color textColor;
 
     if (isPast) {
-      circleColor = PetUwriteColors.kSecondaryTeal;
+      circleColor = ClovaraColors.clover;
       iconColor = Colors.white;
-      textColor = PetUwriteColors.kPrimaryNavy;
+      textColor = ClovaraColors.forest;
     } else if (isCurrent) {
-      circleColor = PetUwriteColors.kSecondaryTeal;
+      circleColor = ClovaraColors.clover;
       iconColor = Colors.white;
-      textColor = PetUwriteColors.kPrimaryNavy;
+      textColor = ClovaraColors.forest;
     } else {
       circleColor = Colors.grey.shade200;
       iconColor = Colors.grey.shade400;
@@ -333,7 +333,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             shape: BoxShape.circle,
             boxShadow: isCurrent ? [
               BoxShadow(
-                color: PetUwriteColors.kSecondaryTeal.withOpacity(0.4),
+                color: ClovaraColors.clover.withOpacity(0.4),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -465,15 +465,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const SizedBox(height: 16),
             Text(
               'Exit Checkout?',
-              style: PetUwriteTypography.h3.copyWith(
-                color: PetUwriteColors.kPrimaryNavy,
+              style: ClovaraTypography.h3.copyWith(
+                color: ClovaraColors.forest,
               ),
             ),
           ],
         ),
         content: Text(
           'Your progress will be lost if you exit now. Are you sure you want to leave?',
-          style: PetUwriteTypography.bodyLarge.copyWith(
+          style: ClovaraTypography.body.copyWith(
             color: Colors.grey.shade700,
           ),
           textAlign: TextAlign.center,
@@ -484,7 +484,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           OutlinedButton(
             onPressed: () => Navigator.pop(context, false),
             style: OutlinedButton.styleFrom(
-              foregroundColor: PetUwriteColors.kPrimaryNavy,
+              foregroundColor: ClovaraColors.forest,
               side: BorderSide(color: Colors.grey.shade300, width: 2),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

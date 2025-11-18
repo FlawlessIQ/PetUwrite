@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/explainability_chart.dart';
 import '../models/explainability_data.dart';
 import 'admin_rules_editor_page.dart';
 import 'admin/claims_analytics_tab.dart';
 import 'admin/policies_pipeline_tab.dart';
 import '../widgets/system_health_widget.dart';
+import '../theme/clovara_theme.dart';
 
-/// Admin dashboard for human underwriters to review high-risk quotes
+/// Clovara Admin Dashboard - Review and manage high-risk quotes
 /// Only accessible to users with userRole == 2
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -60,26 +62,83 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
     }
   }
 
+  String _getTabTitle() {
+    switch (_tabController.index) {
+      case 0:
+        return 'High Risk Quotes';
+      case 1:
+        return 'Ineligible Quotes';
+      case 2:
+        return 'Policies Pipeline';
+      case 3:
+        return 'Claims Analytics';
+      case 4:
+        return 'Underwriting Rules';
+      case 5:
+        return 'System Health';
+      default:
+        return 'Admin Dashboard';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: SvgPicture.asset(
+                'assets/images/clovara_mark_refined.svg',
+                width: 32,
+                height: 32,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Clovara',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  _getTabTitle(),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        backgroundColor: ClovaraColors.forest,
         foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
+          indicatorColor: ClovaraColors.clover,
+          indicatorWeight: 3,
           isScrollable: true,
+          onTap: (index) => setState(() {}), // Refresh to update title
           tabs: const [
             Tab(icon: Icon(Icons.warning), text: 'High Risk'),
             Tab(icon: Icon(Icons.block), text: 'Ineligible'),
             Tab(icon: Icon(Icons.policy), text: 'Policies'),
-            Tab(icon: Icon(Icons.analytics), text: 'Claims Analytics'),
-            Tab(icon: Icon(Icons.edit_note), text: 'Rules Editor'),
-            Tab(icon: Icon(Icons.monitor_heart), text: 'System Health'),
+            Tab(icon: Icon(Icons.analytics), text: 'Claims'),
+            Tab(icon: Icon(Icons.edit_note), text: 'Rules'),
+            Tab(icon: Icon(Icons.monitor_heart), text: 'Health'),
           ],
         ),
         actions: [
@@ -207,8 +266,8 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
       label: Text(label),
       selected: isSelected,
       onSelected: (selected) => setState(() => _selectedFilter = value),
-      selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-      checkmarkColor: Theme.of(context).colorScheme.primary,
+      selectedColor: ClovaraColors.clover.withOpacity(0.2),
+      checkmarkColor: ClovaraColors.clover,
     );
   }
 
@@ -242,28 +301,61 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
               bottom: BorderSide(color: Colors.grey[300]!),
             ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatCard(
-                'Total High-Risk',
-                allQuotes.length.toString(),
-                Icons.warning_amber,
-                Colors.orange,
-              ),
-              _buildStatCard(
-                'Pending Review',
-                pendingCount.toString(),
-                Icons.pending_actions,
-                Colors.red,
-              ),
-              _buildStatCard(
-                'Overridden',
-                overriddenCount.toString(),
-                Icons.check_circle,
-                Colors.green,
-              ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              
+              if (isMobile) {
+                return Column(
+                  children: [
+                    _buildStatCard(
+                      'Total High-Risk',
+                      allQuotes.length.toString(),
+                      Icons.warning_amber,
+                      ClovaraColors.sunset,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildStatCard(
+                      'Pending Review',
+                      pendingCount.toString(),
+                      Icons.pending_actions,
+                      ClovaraColors.kWarmCoral,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildStatCard(
+                      'Overridden',
+                      overriddenCount.toString(),
+                      Icons.check_circle,
+                      ClovaraColors.clover,
+                    ),
+                  ],
+                );
+              } else {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatCard(
+                      'Total High-Risk',
+                      allQuotes.length.toString(),
+                      Icons.warning_amber,
+                      ClovaraColors.sunset,
+                    ),
+                    _buildStatCard(
+                      'Pending Review',
+                      pendingCount.toString(),
+                      Icons.pending_actions,
+                      ClovaraColors.kWarmCoral,
+                    ),
+                    _buildStatCard(
+                      'Overridden',
+                      overriddenCount.toString(),
+                      Icons.check_circle,
+                      ClovaraColors.clover,
+                    ),
+                  ],
+                );
+              }
+            },
           ),
         );
       },
@@ -472,20 +564,20 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.2),
+                        color: ClovaraColors.clover.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.green),
+                        border: Border.all(color: ClovaraColors.clover),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_circle, size: 16, color: Colors.green),
-                          SizedBox(width: 4),
+                          Icon(Icons.check_circle, size: 16, color: ClovaraColors.clover),
+                          const SizedBox(width: 4),
                           Text(
                             'Overridden',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.green,
+                              color: ClovaraColors.clover,
                             ),
                           ),
                         ],
@@ -496,20 +588,20 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.2),
+                        color: ClovaraColors.sunset.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.orange),
+                        border: Border.all(color: ClovaraColors.sunset),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.pending, size: 16, color: Colors.orange),
-                          SizedBox(width: 4),
+                          Icon(Icons.pending, size: 16, color: ClovaraColors.sunset),
+                          const SizedBox(width: 4),
                           Text(
                             'Pending Review',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.orange,
+                              color: ClovaraColors.sunset,
                             ),
                           ),
                         ],
@@ -645,24 +737,24 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: ClovaraColors.clover.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  border: Border.all(color: ClovaraColors.clover.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.psychology, size: 20, color: Colors.blue),
+                    Icon(Icons.psychology, size: 20, color: ClovaraColors.clover),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'AI Decision',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: Colors.blue,
+                              color: ClovaraColors.clover,
                             ),
                           ),
                           Text(
@@ -672,7 +764,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                         ],
                       ),
                     ),
-                    const Icon(Icons.chevron_right, color: Colors.blue),
+                    Icon(Icons.chevron_right, color: ClovaraColors.clover),
                   ],
                 ),
               ),
@@ -682,24 +774,24 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: ClovaraColors.clover.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    border: Border.all(color: ClovaraColors.clover.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.person, size: 20, color: Colors.green),
+                      Icon(Icons.person, size: 20, color: ClovaraColors.clover),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Human Override',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                                color: ClovaraColors.clover,
                               ),
                             ),
                             Text(
@@ -721,10 +813,10 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
   }
 
   Color _getRiskColor(int score) {
-    if (score >= 90) return Colors.red[700]!;
-    if (score >= 80) return Colors.orange[700]!;
-    if (score >= 70) return Colors.amber[700]!;
-    return Colors.green[700]!;
+    if (score >= 90) return ClovaraColors.kWarmCoral;
+    if (score >= 80) return ClovaraColors.sunset;
+    if (score >= 70) return const Color(0xFFFFA726);
+    return ClovaraColors.clover;
   }
 
   /// Build ineligible quotes tab
@@ -792,29 +884,62 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                   bottom: BorderSide(color: Colors.grey[300]!),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatCard(
-                    'Total Declined',
-                    ineligibleQuotes.length.toString(),
-                    Icons.block,
-                    Colors.red,
-                  ),
-                  _buildStatCard(
-                    'Pending Review',
-                    ineligibleQuotes
-                        .where((doc) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          final eligibility = data['eligibility'] as Map<String, dynamic>?;
-                          return eligibility?['status'] == 'review_requested';
-                        })
-                        .length
-                        .toString(),
-                    Icons.pending,
-                    Colors.orange,
-                  ),
-                ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isMobile = constraints.maxWidth < 600;
+                  
+                  if (isMobile) {
+                    return Column(
+                      children: [
+                        _buildStatCard(
+                          'Total Declined',
+                          ineligibleQuotes.length.toString(),
+                          Icons.block,
+                          Colors.red,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStatCard(
+                          'Pending Review',
+                          ineligibleQuotes
+                              .where((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                final eligibility = data['eligibility'] as Map<String, dynamic>?;
+                                return eligibility?['status'] == 'review_requested';
+                              })
+                              .length
+                              .toString(),
+                          Icons.pending,
+                          Colors.orange,
+                        ),
+                      ],
+                    );
+                  } else {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStatCard(
+                          'Total Declined',
+                          ineligibleQuotes.length.toString(),
+                          Icons.block,
+                          Colors.red,
+                        ),
+                        _buildStatCard(
+                          'Pending Review',
+                          ineligibleQuotes
+                              .where((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                final eligibility = data['eligibility'] as Map<String, dynamic>?;
+                                return eligibility?['status'] == 'review_requested';
+                              })
+                              .length
+                              .toString(),
+                          Icons.pending,
+                          Colors.orange,
+                        ),
+                      ],
+                    );
+                  }
+                },
               ),
             ),
             // List of ineligible quotes
@@ -1072,7 +1197,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                       icon: const Icon(Icons.rate_review, size: 16),
                       label: const Text('Request Review'),
                       style: TextButton.styleFrom(
-                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: ClovaraColors.clover,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                       ),
@@ -1687,7 +1812,7 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
                 label: Text(_isSubmitting ? 'Submitting...' : 'Submit Override'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: ClovaraColors.clover,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -1900,10 +2025,10 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
   }
 
   Color _getRiskColor(int score) {
-    if (score >= 90) return Colors.red[700]!;
-    if (score >= 80) return Colors.orange[700]!;
-    if (score >= 70) return Colors.amber[700]!;
-    return Colors.green[700]!;
+    if (score >= 90) return ClovaraColors.kWarmCoral;
+    if (score >= 80) return ClovaraColors.sunset;
+    if (score >= 70) return const Color(0xFFFFA726);
+    return ClovaraColors.clover;
   }
 
   String _getRiskLevelText(int score) {
@@ -2285,7 +2410,7 @@ class _IneligibleQuoteDetailsViewState
                   : 'Request Manual Review'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: Theme.of(context).colorScheme.primary,
+                backgroundColor: ClovaraColors.clover,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -2800,10 +2925,10 @@ class _IneligibleQuoteDetailsViewState
   }
 
   Color _getRiskColor(int score) {
-    if (score >= 90) return Colors.red[700]!;
-    if (score >= 80) return Colors.orange[700]!;
-    if (score >= 70) return Colors.amber[700]!;
-    return Colors.green[700]!;
+    if (score >= 90) return ClovaraColors.kWarmCoral;
+    if (score >= 80) return ClovaraColors.sunset;
+    if (score >= 70) return const Color(0xFFFFA726);
+    return ClovaraColors.clover;
   }
 
   String _getRiskLevelText(int score) {

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../../theme/clovara_theme.dart';
 
-/// Policies Pipeline Tab - Comprehensive policy management and analytics
+/// Clovara Policies Pipeline Tab - Comprehensive policy management and analytics
 class PoliciesPipelineTab extends StatefulWidget {
   const PoliciesPipelineTab({super.key});
 
@@ -119,72 +120,120 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildMetricCard(
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isMobile = constraints.maxWidth < 768;
+                    final isTablet = constraints.maxWidth < 1024;
+                    
+                    final metricCards = [
+                      _buildMetricCard(
                         'Total Policies',
                         policies.length.toString(),
                         Icons.policy,
-                        Colors.blue,
+                        ClovaraColors.clover,
                         '${policies.length} total',
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
+                      _buildMetricCard(
                         'Active Policies',
                         activePolicies.toString(),
                         Icons.check_circle,
-                        Colors.green,
+                        ClovaraColors.clover,
                         '$activePolicies active',
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
+                      _buildMetricCard(
                         'New (30d)',
                         newPolicies.toString(),
                         Icons.fiber_new,
-                        Colors.orange,
+                        ClovaraColors.sunset,
                         'Last 30 days',
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildMetricCard(
+                      _buildMetricCard(
                         'MRR',
                         '\$${mrr.toStringAsFixed(0)}',
                         Icons.attach_money,
-                        Colors.purple,
+                        ClovaraColors.clover,
                         'Monthly Recurring',
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
+                      _buildMetricCard(
                         'ARR',
                         '\$${arr.toStringAsFixed(0)}',
                         Icons.trending_up,
-                        Colors.teal,
+                        ClovaraColors.clover,
                         'Annual Recurring',
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
+                      _buildMetricCard(
                         'Avg Premium',
                         '\$${avgPolicyValue.toStringAsFixed(2)}',
                         Icons.calculate,
                         Colors.indigo,
                         'Per policy/month',
                       ),
-                    ),
-                  ],
+                    ];
+                    
+                    if (isMobile) {
+                      // Single column on mobile
+                      return Column(
+                        children: metricCards.map((card) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: card,
+                        )).toList(),
+                      );
+                    } else if (isTablet) {
+                      // 2 columns on tablet
+                      return Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(child: metricCards[0]),
+                              const SizedBox(width: 12),
+                              Expanded(child: metricCards[1]),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(child: metricCards[2]),
+                              const SizedBox(width: 12),
+                              Expanded(child: metricCards[3]),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(child: metricCards[4]),
+                              const SizedBox(width: 12),
+                              Expanded(child: metricCards[5]),
+                            ],
+                          ),
+                        ],
+                      );
+                    } else {
+                      // 3 columns on desktop
+                      return Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(child: metricCards[0]),
+                              const SizedBox(width: 12),
+                              Expanded(child: metricCards[1]),
+                              const SizedBox(width: 12),
+                              Expanded(child: metricCards[2]),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(child: metricCards[3]),
+                              const SizedBox(width: 12),
+                              Expanded(child: metricCards[4]),
+                              const SizedBox(width: 12),
+                              Expanded(child: metricCards[5]),
+                            ],
+                          ),
+                        ],
+                      );
+                    }
+                  },
                 ),
               ],
             ),
@@ -393,7 +442,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                   'Total Quotes',
                   totalQuotes,
                   100,
-                  Colors.blue,
+                  ClovaraColors.clover,
                   null,
                 ),
                 _buildFunnelArrow(eligibleRate),
@@ -401,7 +450,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                   'Eligible Quotes',
                   eligibleQuotes,
                   eligibleRate,
-                  Colors.green,
+                  ClovaraColors.clover,
                   totalQuotes,
                 ),
                 _buildFunnelArrow(conversionRate),
@@ -409,7 +458,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                   'Policies Created',
                   totalPolicies,
                   conversionRate,
-                  Colors.orange,
+                  ClovaraColors.sunset,
                   eligibleQuotes,
                 ),
                 _buildFunnelArrow(retentionRate),
@@ -417,7 +466,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                   'Active Policies',
                   activePolicies,
                   retentionRate,
-                  Colors.purple,
+                  ClovaraColors.clover,
                   totalPolicies,
                 ),
               ],
@@ -661,15 +710,15 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.blue[100],
+                        color: ClovaraColors.clover.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${policies.length} total',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue[900],
+                          color: ClovaraColors.clover,
                         ),
                       ),
                     ),
@@ -768,9 +817,9 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'active':
-        return Colors.green;
+        return ClovaraColors.clover;
       case 'pending':
-        return Colors.orange;
+        return ClovaraColors.sunset;
       case 'expired':
         return Colors.grey;
       case 'cancelled':
@@ -778,7 +827,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
       case 'lapsed':
         return Colors.deepOrange;
       default:
-        return Colors.blue;
+        return ClovaraColors.clover;
     }
   }
 

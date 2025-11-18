@@ -1,6 +1,6 @@
 /// Conversation History Service
 /// 
-/// Manages persistent storage of conversation history for Pawla,
+/// Manages persistent storage of conversation history for Clover,
 /// allowing users to resume conversations and providing context continuity.
 library;
 
@@ -8,9 +8,9 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ConversationHistoryService {
-  static const String _conversationKey = 'pawla_conversation_history';
-  static const String _answersKey = 'pawla_conversation_answers';
-  static const String _timestampKey = 'pawla_conversation_timestamp';
+  static const String _conversationKey = 'clover_conversation_history';
+  static const String _answersKey = 'clover_conversation_answers';
+  static const String _timestampKey = 'clover_conversation_timestamp';
   
   /// Save conversation history
   Future<void> saveConversation({

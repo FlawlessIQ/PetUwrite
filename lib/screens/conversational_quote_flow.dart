@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
-import '../theme/petuwrite_theme.dart';
+import '../theme/clovara_theme.dart';
 import '../auth/login_screen.dart';
 import '../auth/customer_home_screen.dart';
 import '../models/pet.dart';
@@ -11,8 +12,8 @@ import '../services/risk_scoring_engine.dart';
 import '../services/conversational_ai_service.dart';
 import '../services/user_session_service.dart';
 import '../ai/ai_service.dart';
-import '../ai/pawla_persona.dart';
-import '../ai/pawla_response_adapter.dart';
+import '../ai/clover_persona.dart';
+import '../ai/clover_response_adapter.dart';
 import 'plan_selection_screen.dart';
 import 'ai_analysis_screen_v2.dart';
 
@@ -45,8 +46,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
   // AI service for natural conversations
   late ConversationalAIService _aiService;
   
-  // Pawla personality adapter
-  final PawlaResponseAdapter _pawlaAdapter = PawlaResponseAdapter();
+  // Clover personality adapter
+  final CloverResponseAdapter _cloverAdapter = CloverResponseAdapter();
   
   // Question data
   final List<QuestionData> _questions = [
@@ -354,7 +355,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
       if (mounted) {
         setState(() {
           _messages.add(ChatMessage(
-            text: "Hi! I'm Pawla 🐾 Let's get started on finding the perfect insurance for your pet. What's your name?",
+            text: "Hi! I'm Clover 🐾 Let's get started on finding the perfect insurance for your pet. What's your name?",
             isBot: true,
             timestamp: DateTime.now(),
             questionData: _questions[0],
@@ -421,7 +422,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
     // Simulate typing delay
     await Future.delayed(Duration(milliseconds: 800 + (question.question.length * 8)));
     
-    // Generate AI-powered conversational question with Pawla's personality
+    // Generate AI-powered conversational question with Clover's personality
     String questionText;
     
     try {
@@ -449,8 +450,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
           
           print('✅ AI response received: ${aiResponse.substring(0, 50)}...');
           
-          // Adapt with Pawla's personality
-          questionText = _pawlaAdapter.adaptResponse(
+          // Adapt with Clover's personality
+          questionText = _cloverAdapter.adaptResponse(
             aiResponse,
             context: _getQuestionContext(question),
             petName: _answers['petName'] as String?,
@@ -459,9 +460,9 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
           );
         } catch (e) {
           print('⚠️ AI service error: $e, using fallback');
-          // Fallback to formatted base question with Pawla formatting
+          // Fallback to formatted base question with Clover formatting
           final baseQuestion = _formatQuestion(question.question);
-          questionText = _pawlaAdapter.formatQuestion(
+          questionText = _cloverAdapter.formatQuestion(
             baseQuestion,
             petName: _answers['petName'] as String?,
             context: _getQuestionContext(question),
@@ -492,8 +493,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
               print('✅ Personalized greeting for $firstName with question: ${question.id}');
             }
           } else {
-            // New user - combine Pawla's greeting with the first question
-            final greeting = PawlaPersona.getRandomGreeting();
+            // New user - combine Clover's greeting with the first question
+            final greeting = CloverPersona.getRandomGreeting();
             final firstQuestion = _formatQuestion(question.question);
             questionText = '$greeting $firstQuestion';
             print('✅ New user greeting generated');
@@ -501,7 +502,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
         } else {
           // Not the first message - format question normally
           final baseQuestion = _formatQuestion(question.question);
-          questionText = _pawlaAdapter.formatQuestion(
+          questionText = _cloverAdapter.formatQuestion(
             baseQuestion,
             petName: _answers['petName'] as String?,
             context: _getQuestionContext(question),
@@ -786,7 +787,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
 
   void _completeQuote() async {
     try {
-      // Show Pawla's celebration message
+      // Show Clover's celebration message
       final petName = _answers['petName'] as String? ?? 'your pet';
       
       setState(() {
@@ -797,7 +798,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
       await Future.delayed(const Duration(milliseconds: 800));
       
       // Generate celebration message
-      final celebrationMessage = _pawlaAdapter.formatCelebration(
+      final celebrationMessage = _cloverAdapter.formatCelebration(
         petName: petName,
         achievement: "Let me calculate the best plans for $petName!",
       );
@@ -858,7 +859,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
           builder: (context) => AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.block, color: PetUwriteColors.kWarmCoral),
+                Icon(Icons.block, color: ClovaraColors.kWarmCoral),
                 const SizedBox(width: 12),
                 const Text('Application Declined'),
               ],
@@ -905,7 +906,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
           builder: (context) => AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.info_outline, color: PetUwriteColors.kSecondaryTeal),
+                Icon(Icons.info_outline, color: ClovaraColors.clover),
                 const SizedBox(width: 12),
                 const Text('Coverage Approved'),
               ],
@@ -931,7 +932,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                     children: [
                       Icon(Icons.remove_circle_outline, 
                         size: 18, 
-                        color: PetUwriteColors.kWarmCoral),
+                        color: ClovaraColors.kWarmCoral),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -953,7 +954,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 style: TextButton.styleFrom(
-                  backgroundColor: PetUwriteColors.kSecondaryTeal,
+                  backgroundColor: ClovaraColors.clover,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
@@ -1000,7 +1001,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
           builder: (context) => AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: PetUwriteColors.kWarmCoral),
+                Icon(Icons.warning_amber_rounded, color: ClovaraColors.kWarmCoral),
                 const SizedBox(width: 12),
                 const Text('Unable to Calculate Risk'),
               ],
@@ -1037,7 +1038,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                   );
                 },
                 style: TextButton.styleFrom(
-                  backgroundColor: PetUwriteColors.kSecondaryTeal,
+                  backgroundColor: ClovaraColors.clover,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
@@ -1145,7 +1146,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
     return formatted;
   }
   
-  /// Get the context for a question to guide Pawla's tone
+  /// Get the context for a question to guide Clover's tone
   String _getQuestionContext(QuestionData question) {
     if (question.id == 'welcome' || question.id == 'petName') {
       return 'greeting';
@@ -1179,13 +1180,13 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     CircularProgressIndicator(
-                      color: PetUwriteColors.kSecondaryTeal,
+                      color: ClovaraColors.clover,
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Pawla is getting ready...',
-                      style: PetUwriteTypography.body.copyWith(
-                        color: PetUwriteColors.kPrimaryNavy,
+                      'Clover is getting ready...',
+                      style: ClovaraTypography.body.copyWith(
+                        color: ClovaraColors.forest,
                       ),
                     ),
                   ],
@@ -1235,7 +1236,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: PetUwriteColors.kPrimaryNavy,
+        color: ClovaraColors.forest,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -1248,7 +1249,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
         children: [
           Row(
             children: [
-              // Pawla Avatar
+              // Clover Avatar
               Container(
                 width: 44,
                 height: 44,
@@ -1256,27 +1257,20 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
+                      color: ClovaraColors.clover.withOpacity(0.3),
                       blurRadius: 8,
                       spreadRadius: 1,
                     ),
                   ],
                 ),
                 child: ClipOval(
-                  child: Image.asset(
-                    'assets/images/pawla_avatar.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      // Fallback to PetUwrite logo
-                      return Container(
-                        color: Colors.white,
-                        padding: const EdgeInsets.all(4),
-                        child: Image.asset(
-                          'assets/PetUwrite icon only.png',
-                          fit: BoxFit.cover,
-                        ),
-                      );
-                    },
+                  child: Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.all(8),
+                    child: SvgPicture.asset(
+                      'assets/images/clovara_mark_refined.svg',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),
@@ -1286,8 +1280,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      PawlaPersona.fullName,
-                      style: PetUwriteTypography.h4.copyWith(
+                      CloverPersona.fullName,
+                      style: ClovaraTypography.h3.copyWith(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -1295,9 +1289,9 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                     ),
                     Text(
                       _isTyping ? 'typing...' : 'Here to help! 🐾',
-                      style: PetUwriteTypography.caption.copyWith(
+                      style: ClovaraTypography.bodySmall.copyWith(
                         color: _isTyping 
-                            ? PetUwriteColors.kSecondaryTeal 
+                            ? ClovaraColors.clover 
                             : Colors.white70,
                         fontSize: 12,
                       ),
@@ -1342,7 +1336,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: Colors.white.withOpacity(0.2),
-              valueColor: AlwaysStoppedAnimation(PetUwriteColors.kSecondaryTeal),
+              valueColor: AlwaysStoppedAnimation(ClovaraColors.clover),
               minHeight: 4,
             ),
           ),
@@ -1357,7 +1351,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Pawla Avatar with pulse and glow animation
+          // Clover Avatar with pulse and glow animation
           TweenAnimationBuilder<double>(
             duration: const Duration(milliseconds: 1200),
             tween: Tween(begin: 0.0, end: 1.0),
@@ -1372,7 +1366,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: PetUwriteColors.kSecondaryTeal.withOpacity(0.4 + (value * 0.2)),
+                        color: ClovaraColors.clover.withOpacity(0.4 + (value * 0.2)),
                         blurRadius: 12 + (value * 8),
                         offset: const Offset(0, 2),
                         spreadRadius: value * 3,
@@ -1380,20 +1374,13 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                     ],
                   ),
                   child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/pawla_avatar.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        // Fallback to PetUwrite logo
-                        return Container(
-                          color: Colors.white,
-                          padding: const EdgeInsets.all(4),
-                          child: Image.asset(
-                            'assets/PetUwrite icon only.png',
-                            fit: BoxFit.cover,
-                          ),
-                        );
-                      },
+                    child: Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.all(6),
+                      child: SvgPicture.asset(
+                        'assets/images/clovara_mark_refined.svg',
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ),
@@ -1461,7 +1448,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
           width: 8,
           height: 8,
           decoration: BoxDecoration(
-            color: PetUwriteColors.kPrimaryNavy.withOpacity(opacity),
+            color: ClovaraColors.forest.withOpacity(opacity),
             shape: BoxShape.circle,
           ),
         );
@@ -1480,7 +1467,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (message.isBot) ...[
-            // Pawla Avatar with fade-in and slide animation
+            // Clover Avatar with fade-in and slide animation
             TweenAnimationBuilder<double>(
               duration: const Duration(milliseconds: 600),
               tween: Tween(begin: 0.0, end: 1.0),
@@ -1498,27 +1485,20 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
+                              color: ClovaraColors.clover.withOpacity(0.3),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
                           ],
                         ),
                         child: ClipOval(
-                          child: Image.asset(
-                            'assets/images/pawla_avatar.png',
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              // Fallback to PetUwrite logo
-                              return Container(
-                                color: Colors.white,
-                                padding: const EdgeInsets.all(4),
-                                child: Image.asset(
-                                  'assets/PetUwrite icon only.png',
-                                  fit: BoxFit.cover,
-                                ),
-                              );
-                            },
+                          child: Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.all(6),
+                            child: SvgPicture.asset(
+                              'assets/images/clovara_mark_refined.svg',
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                       ),
@@ -1556,7 +1536,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                     decoration: BoxDecoration(
                       gradient: message.isBot
                           ? null
-                          : PetUwriteColors.brandGradient,
+                          : ClovaraColors.brandGradient,
                       color: message.isBot ? Colors.white : null,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(20),
@@ -1574,9 +1554,9 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                     ),
                     child: Text(
                       message.text,
-                      style: PetUwriteTypography.body.copyWith(
+                      style: ClovaraTypography.body.copyWith(
                         color: message.isBot 
-                            ? PetUwriteColors.kPrimaryNavy 
+                            ? ClovaraColors.forest 
                             : Colors.white,
                         fontSize: 15,
                         height: 1.4,
@@ -1620,7 +1600,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
+                    color: ClovaraColors.clover.withOpacity(0.3),
                     width: 1.5,
                   ),
                 ),
@@ -1629,14 +1609,14 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                   children: [
                     Icon(
                       option.icon,
-                      color: PetUwriteColors.kSecondaryTeal,
+                      color: ClovaraColors.clover,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       option.label,
-                      style: PetUwriteTypography.body.copyWith(
-                        color: PetUwriteColors.kPrimaryNavy,
+                      style: ClovaraTypography.body.copyWith(
+                        color: ClovaraColors.forest,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1681,12 +1661,12 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isSelected ? PetUwriteColors.kSecondaryTeal.withOpacity(0.1) : Colors.white,
+                  color: isSelected ? ClovaraColors.clover.withOpacity(0.1) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected 
-                        ? PetUwriteColors.kSecondaryTeal
-                        : PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
+                        ? ClovaraColors.clover
+                        : ClovaraColors.clover.withOpacity(0.3),
                     width: isSelected ? 2 : 1.5,
                   ),
                 ),
@@ -1694,21 +1674,21 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                   children: [
                     Icon(
                       isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                      color: isSelected ? PetUwriteColors.kSecondaryTeal : Colors.grey,
+                      color: isSelected ? ClovaraColors.clover : Colors.grey,
                       size: 24,
                     ),
                     const SizedBox(width: 12),
                     Icon(
                       option.icon,
-                      color: isSelected ? PetUwriteColors.kSecondaryTeal : Colors.grey,
+                      color: isSelected ? ClovaraColors.clover : Colors.grey,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         option.label,
-                        style: PetUwriteTypography.body.copyWith(
-                          color: PetUwriteColors.kPrimaryNavy,
+                        style: ClovaraTypography.body.copyWith(
+                          color: ClovaraColors.forest,
                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                         ),
                       ),
@@ -1733,7 +1713,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                   }
                 : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: PetUwriteColors.kSecondaryTeal,
+              backgroundColor: ClovaraColors.clover,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               shape: RoundedRectangleBorder(
@@ -1747,7 +1727,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                   selectedConditions.isEmpty 
                       ? 'Select at least one'
                       : 'Continue with ${selectedConditions.length} selected',
-                  style: PetUwriteTypography.body.copyWith(
+                  style: ClovaraTypography.body.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1798,8 +1778,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
                       ? TextInputType.number
                       : TextInputType.text,
                   textCapitalization: TextCapitalization.words,
-                  style: PetUwriteTypography.body.copyWith(
-                    color: PetUwriteColors.kPrimaryNavy,
+                  style: ClovaraTypography.body.copyWith(
+                    color: ClovaraColors.forest,
                   ),
                   decoration: InputDecoration(
                     hintText: question.placeholder ?? 'Type your answer...',
@@ -1823,7 +1803,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
             const SizedBox(width: 12),
             Container(
               decoration: BoxDecoration(
-                gradient: PetUwriteColors.brandGradient,
+                gradient: ClovaraColors.brandGradient,
                 shape: BoxShape.circle,
               ),
               child: IconButton(

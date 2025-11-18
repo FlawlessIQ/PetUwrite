@@ -5,7 +5,7 @@ import '../auth/customer_home_screen.dart';
 import '../models/risk_score.dart';
 import '../models/owner.dart';
 import '../services/quote_engine.dart';
-import '../theme/petuwrite_theme.dart';
+import '../theme/clovara_theme.dart';
 
 /// Minimal, clean plan selection screen
 class PlanSelectionScreen extends StatefulWidget {
@@ -92,7 +92,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         '\$500 Deductible',
         '24/7 Vet Helpline',
       ],
-      color: PetUwriteColors.kAccentSky,
+      color: ClovaraColors.sunset,
     ),
     PlanData(
       name: 'Plus',
@@ -109,7 +109,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         '24/7 Vet Helpline',
         'Prescription Coverage',
       ],
-      color: PetUwriteColors.kSecondaryTeal,
+      color: ClovaraColors.clover,
       isPopular: true,
     ),
     PlanData(
@@ -129,7 +129,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         'Prescription Coverage',
         'Alternative Therapies',
       ],
-      color: PetUwriteColors.kWarmCoral,
+      color: ClovaraColors.kWarmCoral,
     ),
   ];
 
@@ -146,14 +146,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation(PetUwriteColors.kSecondaryTeal),
+                valueColor: AlwaysStoppedAnimation(ClovaraColors.clover),
               ),
               const SizedBox(height: 20),
               Text(
                 'Creating your plans...',
                 style: TextStyle(
                   fontSize: 16,
-                  color: PetUwriteColors.kPrimaryNavy,
+                  color: ClovaraColors.forest,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -184,7 +184,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_back, color: PetUwriteColors.kPrimaryNavy),
+            icon: Icon(Icons.arrow_back, color: ClovaraColors.forest),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -196,7 +196,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
-                    color: PetUwriteColors.kPrimaryNavy,
+                    color: ClovaraColors.forest,
                   ),
                 ),
                 Text(
@@ -221,7 +221,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           return PopupMenuButton<String>(
-            icon: Icon(Icons.account_circle, color: PetUwriteColors.kPrimaryNavy, size: 28),
+            icon: Icon(Icons.account_circle, color: ClovaraColors.forest, size: 28),
             onSelected: (value) {
               if (value == 'dashboard') {
                 Navigator.push(context, MaterialPageRoute(
@@ -241,7 +241,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           onPressed: () => Navigator.push(context, MaterialPageRoute(
             builder: (context) => const LoginScreen(),
           )),
-          icon: Icon(Icons.login, color: PetUwriteColors.kPrimaryNavy),
+          icon: Icon(Icons.login, color: ClovaraColors.forest),
         );
       },
     );
@@ -311,7 +311,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: selected ? PetUwriteColors.kSecondaryTeal : Colors.grey.shade100,
+                    color: selected ? ClovaraColors.clover : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -336,7 +336,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     final name = plan is Plan ? plan.name : (plan as PlanData).name;
     final price = plan is Plan ? plan.monthlyPremium : (plan as PlanData).monthlyPrice;
     final features = plan is Plan ? plan.features : (plan as PlanData).features;
-    final color = plan is PlanData ? plan.color : PetUwriteColors.kSecondaryTeal;
+    final color = plan is PlanData ? plan.color : ClovaraColors.clover;
     final deductible = plan is Plan ? plan.annualDeductible.toInt() : (plan as PlanData).annualDeductible;
     final reimburse = plan is Plan ? (100 - plan.coPayPercentage).toInt() : (plan as PlanData).reimbursement;
     final limit = plan is Plan ? plan.maxAnnualCoverage.toInt() : (plan as PlanData).annualLimit;
@@ -377,7 +377,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: PetUwriteColors.kSecondaryTeal,
+                color: ClovaraColors.clover,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -415,7 +415,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: PetUwriteColors.kPrimaryNavy,
+              color: ClovaraColors.forest,
             ),
           ),
           const SizedBox(height: 16),
@@ -443,7 +443,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     final name = plan is Plan ? plan.name : (plan as PlanData).name;
     final price = plan is Plan ? plan.monthlyPremium : (plan as PlanData).monthlyPrice;
     final features = plan is Plan ? plan.features : (plan as PlanData).features;
-    final color = plan is PlanData ? plan.color : PetUwriteColors.kSecondaryTeal;
+    final color = plan is PlanData ? plan.color : ClovaraColors.clover;
     final deductible = plan is Plan ? plan.annualDeductible.toInt() : (plan as PlanData).annualDeductible;
     final reimburse = plan is Plan ? (100 - plan.coPayPercentage).toInt() : (plan as PlanData).reimbursement;
     final limit = plan is Plan ? plan.maxAnnualCoverage.toInt() : (plan as PlanData).annualLimit;
@@ -475,7 +475,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: PetUwriteColors.kPrimaryNavy,
+                color: ClovaraColors.forest,
               ),
             ),
             if (recommended) ...[
@@ -483,7 +483,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: PetUwriteColors.kSecondaryTeal,
+                  color: ClovaraColors.clover,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(
@@ -640,7 +640,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           );
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: PetUwriteColors.kSecondaryTeal,
+          backgroundColor: ClovaraColors.clover,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
-import 'theme/petuwrite_theme.dart';
+import 'theme/clovara_theme.dart';
 import 'auth/auth_gate.dart';
 import 'screens/homepage.dart';
 import 'screens/onboarding_screen.dart';
@@ -60,10 +60,10 @@ class PetUnderwriterAI extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: PetUwriteAssets.appName,
+        title: 'Clovara',
         debugShowCheckedModeBanner: false,
-        theme: PetUwriteTheme.lightTheme,
-        darkTheme: PetUwriteTheme.darkTheme,
+        theme: ClovaraTheme.light,
+        darkTheme: ClovaraTheme.dark,
         themeMode: ThemeMode.light,
         // Start with AuthGate - routes to homepage (unauthenticated) or dashboard (authenticated)
         home: const AuthGate(),

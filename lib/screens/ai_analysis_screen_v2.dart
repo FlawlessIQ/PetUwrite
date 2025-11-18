@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import '../theme/petuwrite_theme.dart';
+import '../theme/clovara_theme.dart';
 import '../models/risk_score.dart';
 import '../models/pet.dart';
 import 'plan_selection_screen.dart';
@@ -144,7 +144,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
     final showInsights = _currentStep >= _steps.length - 1;
     
     return Scaffold(
-      backgroundColor: PetUwriteColors.kPrimaryNavy,
+      backgroundColor: ClovaraColors.forest,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -161,7 +161,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                 // Title
                 Text(
                   showInsights ? 'Analysis Complete' : 'Analyzing Coverage',
-                  style: PetUwriteTypography.h2.copyWith(color: Colors.white),
+                  style: ClovaraTypography.h2.copyWith(color: Colors.white),
                 ),
                 
                 const SizedBox(height: 48),
@@ -205,10 +205,10 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
       height: 80,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: PetUwriteColors.brandGradient,
+        gradient: ClovaraColors.brandGradient,
         boxShadow: [
           BoxShadow(
-            color: PetUwriteColors.kSecondaryTeal.withOpacity(0.4),
+            color: ClovaraColors.clover.withOpacity(0.4),
             blurRadius: 20,
             spreadRadius: 5,
           ),
@@ -241,15 +241,15 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: isActive || isComplete
-              ? PetUwriteColors.brandGradientSoft
+              ? ClovaraColors.brandGradientSoft
               : null,
           color: isActive || isComplete ? null : Colors.white.withOpacity(0.05),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isActive 
-                ? PetUwriteColors.kSecondaryTeal
+                ? ClovaraColors.clover
                 : isComplete
-                    ? PetUwriteColors.kSuccessMint
+                    ? ClovaraColors.kSuccessMint
                     : Colors.white.withOpacity(0.1),
             width: 2,
           ),
@@ -262,9 +262,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               height: 48,
               decoration: BoxDecoration(
                 color: isComplete
-                    ? PetUwriteColors.kSuccessMint
+                    ? ClovaraColors.kSuccessMint
                     : isActive
-                        ? PetUwriteColors.kSecondaryTeal
+                        ? ClovaraColors.clover
                         : Colors.white.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
@@ -279,7 +279,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                               angle: value * 2 * math.pi,
                               child: Icon(
                                 step.icon,
-                                color: PetUwriteColors.kPrimaryNavy,
+                                color: ClovaraColors.forest,
                                 size: 24,
                               ),
                             );
@@ -301,9 +301,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                 children: [
                   Text(
                     step.title,
-                    style: PetUwriteTypography.h4.copyWith(
+                    style: ClovaraTypography.h3.copyWith(
                       color: isActive || isComplete
-                          ? PetUwriteColors.kPrimaryNavy
+                          ? ClovaraColors.forest
                           : Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
@@ -311,9 +311,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                   const SizedBox(height: 4),
                   Text(
                     step.description,
-                    style: PetUwriteTypography.body.copyWith(
+                    style: ClovaraTypography.body.copyWith(
                       color: isActive || isComplete
-                          ? PetUwriteColors.kPrimaryNavy.withOpacity(0.7)
+                          ? ClovaraColors.forest.withOpacity(0.7)
                           : Colors.white.withOpacity(0.6),
                     ),
                   ),
@@ -328,7 +328,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation(PetUwriteColors.kPrimaryNavy),
+                  valueColor: AlwaysStoppedAnimation(ClovaraColors.forest),
                 ),
               ),
           ],
@@ -341,11 +341,11 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        gradient: PetUwriteColors.brandGradientSoft,
+        gradient: ClovaraColors.brandGradientSoft,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
+            color: ClovaraColors.clover.withOpacity(0.3),
             blurRadius: 20,
             spreadRadius: 5,
           ),
@@ -355,8 +355,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
         children: [
           Text(
             'Risk Score',
-            style: PetUwriteTypography.h4.copyWith(
-              color: PetUwriteColors.kPrimaryNavy,
+            style: ClovaraTypography.h3.copyWith(
+              color: ClovaraColors.forest,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -376,7 +376,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                     child: CircularProgressIndicator(
                       value: _scoreAnimation.value / 100,
                       strokeWidth: 12,
-                      backgroundColor: PetUwriteColors.kPrimaryNavy.withOpacity(0.2),
+                      backgroundColor: ClovaraColors.forest.withOpacity(0.2),
                       valueColor: AlwaysStoppedAnimation(
                         _getScoreColor(_scoreAnimation.value),
                       ),
@@ -387,16 +387,16 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                     children: [
                       Text(
                         _scoreAnimation.value.toInt().toString(),
-                        style: PetUwriteTypography.h1.copyWith(
-                          color: PetUwriteColors.kPrimaryNavy,
+                        style: ClovaraTypography.h1.copyWith(
+                          color: ClovaraColors.forest,
                           fontSize: 48,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         '/100',
-                        style: PetUwriteTypography.bodyLarge.copyWith(
-                          color: PetUwriteColors.kPrimaryNavy.withOpacity(0.6),
+                        style: ClovaraTypography.body.copyWith(
+                          color: ClovaraColors.forest.withOpacity(0.6),
                         ),
                       ),
                     ],
@@ -417,7 +417,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
             ),
             child: Text(
               _getRiskLevelText(widget.riskScore.riskLevel),
-              style: PetUwriteTypography.button.copyWith(
+              style: ClovaraTypography.button.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -428,8 +428,8 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
           
           Text(
             'Generating personalized plans...',
-            style: PetUwriteTypography.body.copyWith(
-              color: PetUwriteColors.kPrimaryNavy.withOpacity(0.7),
+            style: ClovaraTypography.body.copyWith(
+              color: ClovaraColors.forest.withOpacity(0.7),
             ),
           ),
         ],
@@ -438,10 +438,10 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
   }
 
   Color _getScoreColor(double score) {
-    if (score < 30) return PetUwriteColors.kSuccessMint;
-    if (score < 60) return PetUwriteColors.kSecondaryTeal;
-    if (score < 80) return PetUwriteColors.kWarning;
-    return PetUwriteColors.kWarmCoral;
+    if (score < 30) return ClovaraColors.kSuccessMint;
+    if (score < 60) return ClovaraColors.clover;
+    if (score < 80) return ClovaraColors.kWarning;
+    return ClovaraColors.kWarmCoral;
   }
 
   String _getRiskLevelText(RiskLevel level) {
@@ -461,11 +461,11 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: PetUwriteColors.brandGradientSoft,
+        gradient: ClovaraColors.brandGradientSoft,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: PetUwriteColors.kSecondaryTeal.withOpacity(0.2),
+            color: ClovaraColors.clover.withOpacity(0.2),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -476,12 +476,12 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
         children: [
           Row(
             children: [
-              Icon(Icons.analytics, color: PetUwriteColors.kSecondaryTeal, size: 28),
+              Icon(Icons.analytics, color: ClovaraColors.clover, size: 28),
               const SizedBox(width: 12),
               Text(
                 'Risk Categories',
-                style: PetUwriteTypography.h3.copyWith(
-                  color: PetUwriteColors.kPrimaryNavy,
+                style: ClovaraTypography.h3.copyWith(
+                  color: ClovaraColors.forest,
                 ),
               ),
             ],
@@ -498,13 +498,13 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                     children: [
                       Text(
                         _formatCategoryName(entry.key),
-                        style: PetUwriteTypography.h4.copyWith(
-                          color: PetUwriteColors.kPrimaryNavy,
+                        style: ClovaraTypography.h3.copyWith(
+                          color: ClovaraColors.forest,
                         ),
                       ),
                       Text(
                         '${entry.value.toInt()}/100',
-                        style: PetUwriteTypography.h4.copyWith(
+                        style: ClovaraTypography.h3.copyWith(
                           color: _getScoreColor(entry.value),
                           fontWeight: FontWeight.bold,
                         ),
@@ -517,7 +517,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                     child: LinearProgressIndicator(
                       value: entry.value / 100,
                       minHeight: 12,
-                      backgroundColor: PetUwriteColors.kPrimaryNavy.withOpacity(0.1),
+                      backgroundColor: ClovaraColors.forest.withOpacity(0.1),
                       valueColor: AlwaysStoppedAnimation(_getScoreColor(entry.value)),
                     ),
                   ),
@@ -534,11 +534,11 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: PetUwriteColors.brandGradientSoft,
+        gradient: ClovaraColors.brandGradientSoft,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: PetUwriteColors.kSecondaryTeal.withOpacity(0.2),
+            color: ClovaraColors.clover.withOpacity(0.2),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -549,12 +549,12 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber, color: PetUwriteColors.kWarning, size: 28),
+              Icon(Icons.warning_amber, color: ClovaraColors.kWarning, size: 28),
               const SizedBox(width: 12),
               Text(
                 'Risk Factors',
-                style: PetUwriteTypography.h3.copyWith(
-                  color: PetUwriteColors.kPrimaryNavy,
+                style: ClovaraTypography.h3.copyWith(
+                  color: ClovaraColors.forest,
                 ),
               ),
             ],
@@ -587,16 +587,16 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                       children: [
                         Text(
                           _formatCategoryName(factor.category),
-                          style: PetUwriteTypography.h4.copyWith(
-                            color: PetUwriteColors.kPrimaryNavy,
+                          style: ClovaraTypography.h3.copyWith(
+                            color: ClovaraColors.forest,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           factor.description,
-                          style: PetUwriteTypography.body.copyWith(
-                            color: PetUwriteColors.kPrimaryNavy.withOpacity(0.8),
+                          style: ClovaraTypography.body.copyWith(
+                            color: ClovaraColors.forest.withOpacity(0.8),
                           ),
                         ),
                       ],
@@ -610,7 +610,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                     ),
                     child: Text(
                       factor.impact > 0 ? '+${factor.impact.toInt()}' : '${factor.impact.toInt()}',
-                      style: PetUwriteTypography.bodySmall.copyWith(
+                      style: ClovaraTypography.bodySmall.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
@@ -631,18 +631,18 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            PetUwriteColors.kSecondaryTeal.withOpacity(0.2),
-            PetUwriteColors.kAccentSky.withOpacity(0.2),
+            ClovaraColors.clover.withOpacity(0.2),
+            ClovaraColors.sunset.withOpacity(0.2),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
+          color: ClovaraColors.clover.withOpacity(0.3),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: PetUwriteColors.kSecondaryTeal.withOpacity(0.2),
+            color: ClovaraColors.clover.withOpacity(0.2),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -656,7 +656,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  gradient: PetUwriteColors.brandGradient,
+                  gradient: ClovaraColors.brandGradient,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
@@ -664,7 +664,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               const SizedBox(width: 12),
               Text(
                 'AI Insights',
-                style: PetUwriteTypography.h3.copyWith(
+                style: ClovaraTypography.h3.copyWith(
                   color: Colors.white,
                 ),
               ),
@@ -673,7 +673,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
           const SizedBox(height: 16),
           Text(
             widget.riskScore.aiAnalysis ?? 'No AI insights available',
-            style: PetUwriteTypography.body.copyWith(
+            style: ClovaraTypography.body.copyWith(
               color: Colors.white,
               height: 1.6,
             ),
@@ -714,9 +714,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
 
   Color _getSeverityColor(dynamic severity) {
     final severityStr = severity.toString().toLowerCase();
-    if (severityStr.contains('low')) return PetUwriteColors.kSuccessMint;
-    if (severityStr.contains('medium')) return PetUwriteColors.kWarning;
-    return PetUwriteColors.kWarmCoral;
+    if (severityStr.contains('low')) return ClovaraColors.kSuccessMint;
+    if (severityStr.contains('medium')) return ClovaraColors.kWarning;
+    return ClovaraColors.kWarmCoral;
   }
 }
 

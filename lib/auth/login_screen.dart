@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../theme/petuwrite_theme.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../theme/clovara_theme.dart';
 
 /// Phone number input formatter
 class PhoneNumberFormatter extends TextInputFormatter {
@@ -211,132 +212,166 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 600;
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          color: PetUwriteColors.kPrimaryNavy,
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 450),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Prominent Logo Section
-                    _buildLogoSection(),
-                    
-                    const SizedBox(height: 48),
-                    
-                    // Auth Form Card
-                    _buildAuthCard(),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Additional Actions
-                    _buildAdditionalActions(),
-                  ],
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
+                child: IntrinsicHeight(
+                  child: Column(
+                    children: [
+                      // Header with logo
+                      _buildHeader(context, isMobile),
+                      
+                      // Spacer
+                      const SizedBox(height: 24),
+                      
+                      // Main content (centered)
+                      Expanded(
+                        child: Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isMobile ? 20 : 40,
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Auth Form Card
+                                _buildAuthCard(isMobile),
+                                
+                                const SizedBox(height: 24),
+                                
+                                // Additional Actions
+                                if (!_isSignUp) _buildAdditionalActions(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      // Footer
+                      _buildFooter(context, isMobile),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildLogoSection() {
-    return Column(
-      children: [
-        // Logo with subtle glow effect
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: PetUwriteColors.kSecondaryTeal.withOpacity(0.2),
-                blurRadius: 30,
-                spreadRadius: 5,
+  /// Header with Clovara logo matching homepage
+  Widget _buildHeader(BuildContext context, bool isMobile) {
+    return Padding(
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Logo
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: ClovaraColors.mist,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: ClovaraColors.clover.withOpacity(0.3),
+                width: 2,
               ),
-            ],
+            ),
+            child: SvgPicture.asset(
+              'assets/images/clovara_mark_refined.svg',
+              width: isMobile ? 40 : 56,
+              height: isMobile ? 40 : 56,
+            ),
           ),
-          child: Image.asset(
-            'assets/PetUwrite navy background.png',
-            height: 140,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              // Fallback to transparent logo
-              return Image.asset(
-                'assets/petuwrite_logo_transparent.svg',
-                height: 140,
-                fit: BoxFit.contain,
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 20),
-        // Tagline
-        Text(
-          'Trust powered by intelligence',
-          style: PetUwriteTypography.bodyLarge.copyWith(
-            color: PetUwriteColors.kSecondaryTeal,
-            fontStyle: FontStyle.italic,
-            fontSize: 18,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAuthCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
+          const SizedBox(width: 16),
+          // Brand name
+          Text(
+            'Clovara',
+            style: ClovaraTypography.h1.copyWith(
+              color: ClovaraColors.forest,
+              fontSize: isMobile ? 32 : 48,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -1,
+            ),
           ),
         ],
       ),
-      child: Column(
-        children: [
-          // Tab Bar
-          Container(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: Colors.grey.shade200,
-                  width: 1,
+    );
+  }
+
+  Widget _buildAuthCard(bool isMobile) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: isMobile ? 500 : 600),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              ClovaraColors.clover,
+              Color(0xFF7CB342),
+              ClovaraColors.sunset,
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: ClovaraColors.clover.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Tab Bar
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
                 ),
               ),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: PetUwriteColors.kSecondaryTeal,
-              indicatorWeight: 3,
-              labelColor: PetUwriteColors.kPrimaryNavy,
-              unselectedLabelColor: Colors.grey.shade600,
-              labelStyle: PetUwriteTypography.bodyLarge.copyWith(
-                fontWeight: FontWeight.bold,
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.white,
+                indicatorWeight: 4,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white.withOpacity(0.7),
+                labelStyle: ClovaraTypography.body.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+                tabs: const [
+                  Tab(text: 'Sign In'),
+                  Tab(text: 'Create Account'),
+                ],
               ),
-              tabs: const [
-                Tab(text: 'Sign In'),
-                Tab(text: 'Create Account'),
-              ],
             ),
-          ),
           
-          // Form Content
-          Padding(
-            padding: const EdgeInsets.all(32.0),
+          // Form Content - White card inside gradient
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+            padding: EdgeInsets.all(isMobile ? 24.0 : 40.0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -390,7 +425,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: PetUwriteColors.kSecondaryTeal,
+                            color: ClovaraColors.clover,
                             width: 2,
                           ),
                         ),
@@ -427,7 +462,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: PetUwriteColors.kSecondaryTeal,
+                            color: ClovaraColors.clover,
                             width: 2,
                           ),
                         ),
@@ -469,7 +504,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: PetUwriteColors.kSecondaryTeal,
+                            color: ClovaraColors.clover,
                             width: 2,
                           ),
                         ),
@@ -509,7 +544,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: PetUwriteColors.kSecondaryTeal,
+                          color: ClovaraColors.clover,
                           width: 2,
                         ),
                       ),
@@ -556,7 +591,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: PetUwriteColors.kSecondaryTeal,
+                          color: ClovaraColors.clover,
                           width: 2,
                         ),
                       ),
@@ -582,43 +617,71 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   
                   const SizedBox(height: 32),
                   
-                  // Submit Button
+                  // Submit Button with gradient
                   SizedBox(
                     height: 56,
-                    child: ElevatedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              if (_isSignUp) {
-                                _signUp();
-                              } else {
-                                _signIn();
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: PetUwriteColors.kSecondaryTeal,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            ClovaraColors.clover,
+                            Color(0xFF7CB342),
+                          ],
                         ),
-                        elevation: 0,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: ClovaraColors.clover.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
+                      child: ElevatedButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                                if (_isSignUp) {
+                                  _signUp();
+                                } else {
+                                  _signIn();
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _isSignUp ? 'Create Account' : 'Sign In',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.arrow_forward, size: 20),
+                                ],
                               ),
-                            )
-                          : Text(
-                              _isSignUp ? 'Create Account' : 'Sign In',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                      ),
                     ),
                   ),
                 ],
@@ -627,66 +690,72 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           ),
         ],
       ),
+    ),
     );
   }
 
   Widget _buildAdditionalActions() {
-    return Column(
-      children: [
-        if (!_isSignUp)
-          TextButton(
-            onPressed: _isLoading ? null : () => _showForgotPasswordDialog(),
-            child: Text(
-              'Forgot Password?',
-              style: TextStyle(
-                color: PetUwriteColors.kSecondaryTeal,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        const SizedBox(height: 16),
-        // Demo Accounts Info
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
-            ),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: PetUwriteColors.kSecondaryTeal,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Demo Accounts',
-                    style: PetUwriteTypography.bodyLarge.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Customer: customer@test.com',
-                style: PetUwriteTypography.bodyLarge.copyWith(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
+    return TextButton(
+      onPressed: _isLoading ? null : () => _showForgotPasswordDialog(),
+      child: Text(
+        'Forgot Password?',
+        style: TextStyle(
+          color: ClovaraColors.clover,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
         ),
-      ],
+      ),
+    );
+  }
+
+  /// Footer section
+  Widget _buildFooter(BuildContext context, bool isMobile) {
+    return Padding(
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      child: Column(
+        children: [
+          // Demo account info
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: ClovaraColors.mist,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: ClovaraColors.clover.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: ClovaraColors.clover,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Demo: customer@test.com',
+                  style: ClovaraTypography.body.copyWith(
+                    color: ClovaraColors.slate,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Copyright
+          Text(
+            '© 2024 Clovara • Pet Insurance, Reimagined',
+            style: ClovaraTypography.body.copyWith(
+              color: ClovaraColors.slate.withOpacity(0.6),
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 

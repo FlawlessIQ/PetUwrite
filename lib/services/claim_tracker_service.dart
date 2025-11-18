@@ -1,28 +1,28 @@
 import '../models/claim.dart';
-import '../widgets/pawla_avatar.dart';
+import '../widgets/clover_avatar.dart';
 
 /// Real-time claim tracker service
 /// 
-/// Generates contextual, empathetic status messages for Pawla
+/// Generates contextual, empathetic status messages for Clover
 /// based on claim status, processing stage, and time elapsed
 class ClaimTrackerService {
-  /// Get current status message for Pawla
-  static PawlaMessage getCurrentMessage(Claim claim) {
+  /// Get current status message for Clover
+  static CloverMessage getCurrentMessage(Claim claim) {
     final status = claim.status;
     final hasAI = claim.aiDecision != null;
     final elapsed = DateTime.now().difference(claim.updatedAt);
     
     if (status == ClaimStatus.settled) {
-      return PawlaMessage(
-        expression: PawlaExpression.celebrating,
+      return CloverMessage(
+        expression: CloverExpression.celebrating,
         message: "🎉 Great news! Your claim has been approved and payment is on the way!",
         sentiment: MessageSentiment.positive,
       );
     }
     
     if (status == ClaimStatus.denied) {
-      return PawlaMessage(
-        expression: PawlaExpression.empathetic,
+      return CloverMessage(
+        expression: CloverExpression.empathetic,
         message: "I know this isn't the news you hoped for. Let me explain why, and we can discuss next steps together.",
         sentiment: MessageSentiment.negative,
       );
@@ -32,14 +32,14 @@ class ClaimTrackerService {
       // Different messages based on processing stage
       if (!hasAI) {
         if (claim.attachments.isEmpty) {
-          return PawlaMessage(
-            expression: PawlaExpression.thinking,
+          return CloverMessage(
+            expression: CloverExpression.thinking,
             message: "I'm ready to review your claim! Just upload your vet records and receipts to get started.",
             sentiment: MessageSentiment.neutral,
           );
         } else {
-          return PawlaMessage(
-            expression: PawlaExpression.working,
+          return CloverMessage(
+            expression: CloverExpression.working,
             message: _getDocumentReviewMessage(claim.attachments.length, elapsed),
             sentiment: MessageSentiment.neutral,
           );
@@ -48,14 +48,14 @@ class ClaimTrackerService {
         // AI analysis complete, waiting for human review
         final confidence = claim.aiConfidenceScore ?? 0.5;
         if (confidence >= 0.8) {
-          return PawlaMessage(
-            expression: PawlaExpression.happy,
+          return CloverMessage(
+            expression: CloverExpression.happy,
             message: "Almost done! Your claim looks great. Just doing a final quality check...",
             sentiment: MessageSentiment.positive,
           );
         } else {
-          return PawlaMessage(
-            expression: PawlaExpression.thinking,
+          return CloverMessage(
+            expression: CloverExpression.thinking,
             message: "Our team is carefully reviewing your claim to make sure we get everything right for you.",
             sentiment: MessageSentiment.neutral,
           );
@@ -64,16 +64,16 @@ class ClaimTrackerService {
     }
     
     if (status == ClaimStatus.draft) {
-      return PawlaMessage(
-        expression: PawlaExpression.happy,
-        message: "Hi! I'm Pawla, and I'm here to help you through the claims process. Let's get started!",
+      return CloverMessage(
+        expression: CloverExpression.happy,
+        message: "Hi! I'm Clover, and I'm here to help you through the claims process. Let's get started!",
         sentiment: MessageSentiment.neutral,
       );
     }
     
     // Default fallback
-    return PawlaMessage(
-      expression: PawlaExpression.thinking,
+    return CloverMessage(
+      expression: CloverExpression.thinking,
       message: "I'm checking on your claim status. Hang tight!",
       sentiment: MessageSentiment.neutral,
     );
@@ -214,13 +214,13 @@ class ClaimTrackerService {
   }
 }
 
-/// Pawla message model
-class PawlaMessage {
-  final PawlaExpression expression;
+/// Clover message model
+class CloverMessage {
+  final CloverExpression expression;
   final String message;
   final MessageSentiment sentiment;
   
-  PawlaMessage({
+  CloverMessage({
     required this.expression,
     required this.message,
     required this.sentiment,

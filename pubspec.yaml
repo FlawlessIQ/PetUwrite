@@ -78,6 +78,11 @@ dependencies:
   
   # Local storage
   shared_preferences: ^2.2.2
+  
+  # Splash screen and launcher icons
+  flutter_native_splash: ^2.3.10
+  flutter_launcher_icons: ^0.13.1
+  flutter_svg: ^2.2.2
 
 dev_dependencies:
   flutter_test:
@@ -111,9 +116,9 @@ flutter:
     - .env
     - assets/
     - assets/images/
-    - assets/PetUwrite icon only.png
-    - assets/PetUwrite navy background.png
-    - assets/PetUwrite transparent.png
+    - assets/clovara_ui_kit_svg/
+    - assets/images/clovara_mark_refined.svg
+    - assets/images/clovara_appicon_1024.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -128,21 +133,37 @@ flutter:
   fonts:
     - family: Poppins
       fonts:
-        - asset: fonts/Poppins/Poppins-Regular.ttf
-        - asset: fonts/Poppins/Poppins-Medium.ttf
+        - asset: assets/fonts/Poppins/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins/Poppins-Medium.ttf
           weight: 500
-        - asset: fonts/Poppins/Poppins-SemiBold.ttf
+        - asset: assets/fonts/Poppins/Poppins-SemiBold.ttf
           weight: 600
-        - asset: fonts/Poppins/Poppins-Bold.ttf
+        - asset: assets/fonts/Poppins/Poppins-Bold.ttf
           weight: 700
     
     - family: Inter
       fonts:
-        - asset: fonts/Inter/Inter-Regular.ttf
-        - asset: fonts/Inter/Inter-Medium.ttf
+        - asset: assets/fonts/Inter/Inter-Regular.ttf
+        - asset: assets/fonts/Inter/Inter-Medium.ttf
           weight: 500
-        - asset: fonts/Inter/Inter-SemiBold.ttf
+        - asset: assets/fonts/Inter/Inter-SemiBold.ttf
           weight: 600
   
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Splash screen configuration
+flutter_native_splash:
+  color: "#F7FAF8"
+  image: assets/images/clovara_appicon_1024.png
+  android_12:
+    color: "#F7FAF8"
+    image: assets/images/clovara_appicon_1024.png
+
+# Launcher icons configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/images/clovara_appicon_1024.png
+  adaptive_icon_background: "#F7FAF8"
+  adaptive_icon_foreground: assets/images/clovara_appicon_1024.png

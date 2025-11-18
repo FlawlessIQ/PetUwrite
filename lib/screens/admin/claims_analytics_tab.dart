@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../theme/petuwrite_theme.dart';
+import '../../theme/clovara_theme.dart';
 
 /// Claims Analytics Tab for Admin Dashboard
 /// 
@@ -311,32 +311,88 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.filter_list, color: PetUwriteColors.kPrimaryNavy),
-              const SizedBox(width: 8),
-              Text(
-                'Filters',
-                style: PetUwriteTypography.h4.copyWith(
-                  color: PetUwriteColors.kPrimaryNavy,
-                ),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: _clearFilters,
-                icon: const Icon(Icons.clear),
-                label: const Text('Clear All'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                onPressed: _loadAnalytics,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Refresh'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: PetUwriteColors.kSecondaryTeal,
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              
+              if (isMobile) {
+                // Stack vertically on mobile
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.filter_list, color: ClovaraColors.forest, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Filters',
+                          style: ClovaraTypography.h3.copyWith(
+                            color: ClovaraColors.forest,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _clearFilters,
+                            icon: const Icon(Icons.clear, size: 18),
+                            label: const Text('Clear'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _loadAnalytics,
+                            icon: const Icon(Icons.refresh, size: 18),
+                            label: const Text('Refresh'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: ClovaraColors.clover,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              } else {
+                // Horizontal on desktop
+                return Row(
+                  children: [
+                    Icon(Icons.filter_list, color: ClovaraColors.forest),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Filters',
+                      style: ClovaraTypography.h3.copyWith(
+                        color: ClovaraColors.forest,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: _clearFilters,
+                      icon: const Icon(Icons.clear),
+                      label: const Text('Clear All'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: _loadAnalytics,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Refresh'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ClovaraColors.clover,
+                      ),
+                    ),
+                  ],
+                );
+              }
+            },
           ),
           const SizedBox(height: 16),
           
@@ -387,25 +443,35 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
   }
 
   Widget _buildDateRangeChip() {
-    final dateFormat = DateFormat('MMM d, yyyy');
-    return ActionChip(
-      avatar: const Icon(Icons.calendar_today, size: 16),
-      label: Text('${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}'),
-      onPressed: () async {
-        final DateTimeRange? picked = await showDateRangePicker(
-          context: context,
-          firstDate: DateTime(2024),
-          lastDate: DateTime.now(),
-          initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
-        );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        final dateFormat = isMobile ? DateFormat('M/d/yy') : DateFormat('MMM d, yyyy');
         
-        if (picked != null) {
-          setState(() {
-            _startDate = picked.start;
-            _endDate = picked.end;
-          });
-          _loadAnalytics();
-        }
+        return ActionChip(
+          avatar: const Icon(Icons.calendar_today, size: 16),
+          label: Text(
+            '${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}',
+            style: TextStyle(fontSize: isMobile ? 12 : 14),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 8),
+          onPressed: () async {
+            final DateTimeRange? picked = await showDateRangePicker(
+              context: context,
+              firstDate: DateTime(2024),
+              lastDate: DateTime.now(),
+              initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+            );
+            
+            if (picked != null) {
+              setState(() {
+                _startDate = picked.start;
+                _endDate = picked.end;
+              });
+              _loadAnalytics();
+            }
+          },
+        );
       },
     );
   }
@@ -418,31 +484,48 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
   }) {
     if (items.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButton<String>(
-        value: value,
-        hint: Text(label),
-        underline: const SizedBox(),
-        items: [
-          DropdownMenuItem<String>(
-            value: null,
-            child: Text('All $label'),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 8 : 12,
+            vertical: 4,
           ),
-          ...items.map((item) => DropdownMenuItem(
-                value: item,
-                child: Text(item),
-              )),
-        ],
-        onChanged: (newValue) {
-          onChanged(newValue);
-          _loadAnalytics();
-        },
-      ),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButton<String>(
+            value: value,
+            hint: Text(
+              label,
+              style: TextStyle(fontSize: isMobile ? 12 : 14),
+            ),
+            underline: const SizedBox(),
+            isDense: isMobile,
+            style: TextStyle(
+              fontSize: isMobile ? 12 : 14,
+              color: Colors.black87,
+            ),
+            items: [
+              DropdownMenuItem<String>(
+                value: null,
+                child: Text('All $label'),
+              ),
+              ...items.map((item) => DropdownMenuItem(
+                    value: item,
+                    child: Text(item),
+                  )),
+            ],
+            onChanged: (newValue) {
+              onChanged(newValue);
+              _loadAnalytics();
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -467,12 +550,12 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
           const SizedBox(height: 16),
           Text(
             'No Claims Data',
-            style: PetUwriteTypography.h3.copyWith(color: Colors.grey[600]),
+            style: ClovaraTypography.h3.copyWith(color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
           Text(
             'Analytics will appear here once claims are filed',
-            style: PetUwriteTypography.body.copyWith(color: Colors.grey[500]),
+            style: ClovaraTypography.body.copyWith(color: Colors.grey[500]),
           ),
         ],
       ),
@@ -497,18 +580,32 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
           
           const SizedBox(height: 24),
           
-          // Row with two charts
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Auto-approve vs manual (pie chart)
-              Expanded(child: _buildDecisionDistributionChart(data)),
+          // Row with two charts (stacked on mobile)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 768;
               
-              const SizedBox(width: 16),
-              
-              // AI confidence distribution (bar chart)
-              Expanded(child: _buildConfidenceDistributionChart(data)),
-            ],
+              if (isMobile) {
+                // Stack vertically on mobile
+                return Column(
+                  children: [
+                    _buildDecisionDistributionChart(data),
+                    const SizedBox(height: 16),
+                    _buildConfidenceDistributionChart(data),
+                  ],
+                );
+              } else {
+                // Side by side on desktop/tablet
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _buildDecisionDistributionChart(data)),
+                    const SizedBox(width: 16),
+                    Expanded(child: _buildConfidenceDistributionChart(data)),
+                  ],
+                );
+              }
+            },
           ),
           
           const SizedBox(height: 24),
@@ -521,44 +618,61 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
   }
 
   Widget _buildSummaryCards(Map<String, dynamic> data) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildSummaryCard(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 768;
+        final isTablet = constraints.maxWidth < 1024;
+        
+        // On mobile: 1 column, on tablet: 2 columns, on desktop: 4 columns
+        final crossAxisCount = isMobile ? 1 : (isTablet ? 2 : 4);
+        
+        final cards = [
+          _buildSummaryCard(
             'Total Claims',
             data['totalClaims'].toString(),
             Icons.description,
-            PetUwriteColors.kSecondaryTeal,
+            ClovaraColors.clover,
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildSummaryCard(
+          _buildSummaryCard(
             'Average Amount',
             '\$${data['averageAmount'].toStringAsFixed(2)}',
             Icons.attach_money,
-            PetUwriteColors.kSuccessMint,
+            ClovaraColors.kSuccessMint,
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildSummaryCard(
+          _buildSummaryCard(
             'Total Paid Out',
             '\$${data['totalPaidOut'].toStringAsFixed(2)}',
             Icons.paid,
-            PetUwriteColors.kPrimaryNavy,
+            ClovaraColors.forest,
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildSummaryCard(
+          _buildSummaryCard(
             'Auto-Approval Rate',
             '${((data['autoApproved'] / (data['autoApproved'] + data['manualApproved'] + 0.01)) * 100).toStringAsFixed(1)}%',
             Icons.auto_awesome,
-            PetUwriteColors.kAccentSky,
+            ClovaraColors.sunset,
           ),
-        ),
-      ],
+        ];
+        
+        if (crossAxisCount == 1) {
+          // Single column for mobile
+          return Column(
+            children: cards.map((card) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: card,
+            )).toList(),
+          );
+        } else {
+          // Grid layout for tablet/desktop
+          return Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            children: cards.map((card) => SizedBox(
+              width: (constraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount,
+              child: card,
+            )).toList(),
+          );
+        }
+      },
     );
   }
 
@@ -587,14 +701,14 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
             const SizedBox(height: 16),
             Text(
               value,
-              style: PetUwriteTypography.h2.copyWith(
-                color: PetUwriteColors.kPrimaryNavy,
+              style: ClovaraTypography.h2.copyWith(
+                color: ClovaraColors.forest,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               label,
-              style: PetUwriteTypography.bodySmall.copyWith(
+              style: ClovaraTypography.bodySmall.copyWith(
                 color: Colors.grey[600],
               ),
             ),
@@ -622,8 +736,8 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
           children: [
             Text(
               'Claims by Month',
-              style: PetUwriteTypography.h3.copyWith(
-                color: PetUwriteColors.kPrimaryNavy,
+              style: ClovaraTypography.h3.copyWith(
+                color: ClovaraColors.forest,
               ),
             ),
             const SizedBox(height: 20),
@@ -648,7 +762,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                         getTitlesWidget: (value, meta) {
                           return Text(
                             value.toInt().toString(),
-                            style: PetUwriteTypography.bodySmall,
+                            style: ClovaraTypography.bodySmall,
                           );
                         },
                       ),
@@ -664,7 +778,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               entries[index].key,
-                              style: PetUwriteTypography.bodySmall,
+                              style: ClovaraTypography.bodySmall,
                             ),
                           );
                         },
@@ -680,12 +794,12 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                         return FlSpot(e.key.toDouble(), e.value.value.toDouble());
                       }).toList(),
                       isCurved: true,
-                      color: PetUwriteColors.kSecondaryTeal,
+                      color: ClovaraColors.clover,
                       barWidth: 3,
                       dotData: const FlDotData(show: true),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: PetUwriteColors.kSecondaryTeal.withOpacity(0.2),
+                        color: ClovaraColors.clover.withOpacity(0.2),
                       ),
                     ),
                   ],
@@ -716,8 +830,8 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
           children: [
             Text(
               'Decision Distribution',
-              style: PetUwriteTypography.h3.copyWith(
-                color: PetUwriteColors.kPrimaryNavy,
+              style: ClovaraTypography.h3.copyWith(
+                color: ClovaraColors.forest,
               ),
             ),
             const SizedBox(height: 20),
@@ -732,9 +846,9 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                       PieChartSectionData(
                         value: autoApproved.toDouble(),
                         title: '${((autoApproved / total) * 100).toInt()}%',
-                        color: PetUwriteColors.kSuccessMint,
+                        color: ClovaraColors.kSuccessMint,
                         radius: 60,
-                        titleStyle: PetUwriteTypography.bodySmall.copyWith(
+                        titleStyle: ClovaraTypography.bodySmall.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -743,9 +857,9 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                       PieChartSectionData(
                         value: manualApproved.toDouble(),
                         title: '${((manualApproved / total) * 100).toInt()}%',
-                        color: PetUwriteColors.kAccentSky,
+                        color: ClovaraColors.sunset,
                         radius: 60,
-                        titleStyle: PetUwriteTypography.bodySmall.copyWith(
+                        titleStyle: ClovaraTypography.bodySmall.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -754,9 +868,9 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                       PieChartSectionData(
                         value: denied.toDouble(),
                         title: '${((denied / total) * 100).toInt()}%',
-                        color: PetUwriteColors.kError,
+                        color: ClovaraColors.kError,
                         radius: 60,
-                        titleStyle: PetUwriteTypography.bodySmall.copyWith(
+                        titleStyle: ClovaraTypography.bodySmall.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -765,9 +879,9 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                       PieChartSectionData(
                         value: pending.toDouble(),
                         title: '${((pending / total) * 100).toInt()}%',
-                        color: PetUwriteColors.kWarmCoral,
+                        color: ClovaraColors.kWarmCoral,
                         radius: 60,
-                        titleStyle: PetUwriteTypography.bodySmall.copyWith(
+                        titleStyle: ClovaraTypography.bodySmall.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -778,10 +892,10 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
             ),
             const SizedBox(height: 20),
             _buildLegend([
-              if (autoApproved > 0) ('Auto-Approved', PetUwriteColors.kSuccessMint, autoApproved),
-              if (manualApproved > 0) ('Manual Approved', PetUwriteColors.kAccentSky, manualApproved),
-              if (denied > 0) ('Denied', PetUwriteColors.kError, denied),
-              if (pending > 0) ('Pending', PetUwriteColors.kWarmCoral, pending),
+              if (autoApproved > 0) ('Auto-Approved', ClovaraColors.kSuccessMint, autoApproved),
+              if (manualApproved > 0) ('Manual Approved', ClovaraColors.sunset, manualApproved),
+              if (denied > 0) ('Denied', ClovaraColors.kError, denied),
+              if (pending > 0) ('Pending', ClovaraColors.kWarmCoral, pending),
             ]),
           ],
         ),
@@ -801,8 +915,8 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
           children: [
             Text(
               'AI Confidence Distribution',
-              style: PetUwriteTypography.h3.copyWith(
-                color: PetUwriteColors.kPrimaryNavy,
+              style: ClovaraTypography.h3.copyWith(
+                color: ClovaraColors.forest,
               ),
             ),
             const SizedBox(height: 20),
@@ -827,7 +941,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                         getTitlesWidget: (value, meta) {
                           return Text(
                             value.toInt().toString(),
-                            style: PetUwriteTypography.bodySmall,
+                            style: ClovaraTypography.bodySmall,
                           );
                         },
                       ),
@@ -844,7 +958,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               labels[index],
-                              style: PetUwriteTypography.bodySmall,
+                              style: ClovaraTypography.bodySmall,
                             ),
                           );
                         },
@@ -898,8 +1012,8 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
           children: [
             Text(
               'Average Claim Amount by Month',
-              style: PetUwriteTypography.h3.copyWith(
-                color: PetUwriteColors.kPrimaryNavy,
+              style: ClovaraTypography.h3.copyWith(
+                color: ClovaraColors.forest,
               ),
             ),
             const SizedBox(height: 20),
@@ -924,7 +1038,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                         getTitlesWidget: (value, meta) {
                           return Text(
                             '\$${value.toInt()}',
-                            style: PetUwriteTypography.bodySmall,
+                            style: ClovaraTypography.bodySmall,
                           );
                         },
                       ),
@@ -940,7 +1054,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               entries[index].key,
-                              style: PetUwriteTypography.bodySmall,
+                              style: ClovaraTypography.bodySmall,
                             ),
                           );
                         },
@@ -956,7 +1070,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                       barRods: [
                         BarChartRodData(
                           toY: e.value.value,
-                          color: PetUwriteColors.kSuccessMint,
+                          color: ClovaraColors.kSuccessMint,
                           width: 40,
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                         ),
@@ -991,7 +1105,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
             const SizedBox(width: 6),
             Text(
               '${item.$1}: ${item.$3}',
-              style: PetUwriteTypography.bodySmall,
+              style: ClovaraTypography.bodySmall,
             ),
           ],
         );
@@ -1002,15 +1116,15 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
   Color _getConfidenceColor(String bucket) {
     switch (bucket) {
       case '0-20%':
-        return PetUwriteColors.kError;
+        return ClovaraColors.kError;
       case '20-40%':
-        return PetUwriteColors.kWarmCoral;
+        return ClovaraColors.kWarmCoral;
       case '40-60%':
-        return Colors.orange;
+        return ClovaraColors.sunset;
       case '60-80%':
-        return PetUwriteColors.kAccentSky;
+        return ClovaraColors.sunset;
       case '80-100%':
-        return PetUwriteColors.kSuccessMint;
+        return ClovaraColors.kSuccessMint;
       default:
         return Colors.grey;
     }

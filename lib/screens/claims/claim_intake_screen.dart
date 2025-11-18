@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../models/claim.dart';
 import '../../services/claims_service.dart';
 import '../../services/conversational_ai_service.dart';
 import '../../services/claim_decision_engine.dart';
-import '../../theme/petuwrite_theme.dart';
+import '../../theme/clovara_theme.dart';
 
 /// Conversational AI-powered claim intake screen
 /// Allows customers to file First Notice of Loss (FNOL) with empathy and guidance
@@ -197,7 +198,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
       
       // Greeting message
       _messages.add(ChatMessage(
-        text: "Hi there! I'm Pawla, and I can see you were working on a claim earlier. "
+        text: "Hi there! I'm Clover, and I can see you were working on a claim earlier. "
             "Let me help you continue where you left off. 🐾\n\n"
             "Here's what we have so far:",
         isUser: false,
@@ -230,7 +231,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   void _startNewConversation() {
     setState(() {
       _messages.add(ChatMessage(
-        text: "Hi there! I'm Pawla, and I'm here to help you file your claim. "
+        text: "Hi there! I'm Clover, and I'm here to help you file your claim. "
             "I know this might be a stressful time for you and your pet. "
             "Let's take this step by step together. 🐾\n\n"
             "First, can you tell me when the incident happened?",
@@ -782,10 +783,18 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundImage: const AssetImage('assets/PetUwrite icon only.png'),
+              backgroundColor: Colors.white,
+              child: ClipOval(
+                child: SvgPicture.asset(
+                  'assets/images/clovara_mark_refined.svg',
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
             const SizedBox(width: 8),
-            const Text('File a Claim with Pawla'),
+            const Text('File a Claim with Clover'),
           ],
         ),
         elevation: 0,
@@ -814,7 +823,15 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
                   children: [
                     CircleAvatar(
                       radius: 16,
-                      backgroundImage: const AssetImage('assets/PetUwrite icon only.png'),
+                      backgroundColor: Colors.white,
+                      child: ClipOval(
+                        child: SvgPicture.asset(
+                          'assets/images/clovara_mark_refined.svg',
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Container(
@@ -879,7 +896,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
                   // Send button
                   Container(
                     decoration: BoxDecoration(
-                      color: PetUwriteColors.kSecondaryTeal,
+                      color: ClovaraColors.clover,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -919,7 +936,15 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
           if (!message.isUser && message.showAvatar) ...[
             CircleAvatar(
               radius: 16,
-              backgroundImage: const AssetImage('assets/PetUwrite icon only.png'),
+              backgroundColor: Colors.white,
+              child: ClipOval(
+                child: SvgPicture.asset(
+                  'assets/images/clovara_mark_refined.svg',
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
             const SizedBox(width: 8),
           ],
@@ -928,7 +953,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: message.isUser
-                    ? PetUwriteColors.kSecondaryTeal
+                    ? ClovaraColors.clover
                     : Colors.grey[200],
                 borderRadius: BorderRadius.circular(20),
               ),

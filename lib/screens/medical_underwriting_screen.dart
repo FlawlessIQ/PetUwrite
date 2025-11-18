@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/pet.dart';
 import '../models/medical_history.dart';
-import '../theme/petuwrite_theme.dart';
+import '../theme/clovara_theme.dart';
 import 'plan_selection_screen.dart';
 
 /// Comprehensive medical underwriting screen
@@ -164,15 +164,15 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            PetUwriteColors.kPrimaryNavy,
-            PetUwriteColors.kPrimaryNavy.withOpacity(0.9),
+            ClovaraColors.forest,
+            ClovaraColors.forest.withOpacity(0.9),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: PetUwriteColors.kPrimaryNavy.withOpacity(0.3),
+            color: ClovaraColors.forest.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -199,10 +199,10 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: PetUwriteColors.kSecondaryTeal.withOpacity(0.2),
+                    color: ClovaraColors.clover.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: PetUwriteColors.kSecondaryTeal.withOpacity(0.5),
+                      color: ClovaraColors.clover.withOpacity(0.5),
                       width: 1,
                     ),
                   ),
@@ -211,13 +211,13 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                     children: [
                       Icon(
                         Icons.pets,
-                        color: PetUwriteColors.kSecondaryTeal,
+                        color: ClovaraColors.clover,
                         size: 16,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         widget.pet.name,
-                        style: PetUwriteTypography.bodyLarge.copyWith(
+                        style: ClovaraTypography.body.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
@@ -231,7 +231,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             const SizedBox(height: 24),
             Text(
               'Medical History',
-              style: PetUwriteTypography.h2.copyWith(
+              style: ClovaraTypography.h2.copyWith(
                 color: Colors.white,
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -241,7 +241,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             const SizedBox(height: 8),
             Text(
               'Help us understand ${widget.pet.name}\'s health better',
-              style: PetUwriteTypography.bodyLarge.copyWith(
+              style: ClovaraTypography.body.copyWith(
                 color: Colors.white.withOpacity(0.8),
                 fontSize: 16,
               ),
@@ -276,8 +276,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                           gradient: isCompleted || isActive
                               ? LinearGradient(
                                   colors: [
-                                    PetUwriteColors.kSecondaryTeal,
-                                    PetUwriteColors.kSecondaryTeal.withOpacity(0.8),
+                                    ClovaraColors.clover,
+                                    ClovaraColors.clover.withOpacity(0.8),
                                   ],
                                 )
                               : null,
@@ -302,8 +302,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 children: [
                   Text(
                     _getStepTitle(_currentStep),
-                    style: PetUwriteTypography.h3.copyWith(
-                      color: PetUwriteColors.kPrimaryNavy,
+                    style: ClovaraTypography.h3.copyWith(
+                      color: ClovaraColors.forest,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -311,7 +311,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                   const SizedBox(height: 4),
                   Text(
                     _getStepDescription(_currentStep),
-                    style: PetUwriteTypography.bodyLarge.copyWith(
+                    style: ClovaraTypography.body.copyWith(
                       color: Colors.grey.shade600,
                       fontSize: 14,
                     ),
@@ -321,17 +321,17 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: PetUwriteColors.kSecondaryTeal.withOpacity(0.1),
+                  color: ClovaraColors.clover.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
+                    color: ClovaraColors.clover.withOpacity(0.3),
                     width: 1.5,
                   ),
                 ),
                 child: Text(
                   '${_currentStep + 1}/$_totalSteps',
-                  style: PetUwriteTypography.h4.copyWith(
-                    color: PetUwriteColors.kSecondaryTeal,
+                  style: ClovaraTypography.h3.copyWith(
+                    color: ClovaraColors.clover,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
@@ -405,8 +405,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           // Medications Section
           Text(
             'Current Medications',
-            style: PetUwriteTypography.h4.copyWith(
-              color: PetUwriteColors.kPrimaryNavy,
+            style: ClovaraTypography.h3.copyWith(
+              color: ClovaraColors.forest,
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
@@ -431,8 +431,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           // Allergies Section
           Text(
             'Known Allergies',
-            style: PetUwriteTypography.h4.copyWith(
-              color: PetUwriteColors.kPrimaryNavy,
+            style: ClovaraTypography.h3.copyWith(
+              color: ClovaraColors.forest,
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
@@ -510,20 +510,20 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: PetUwriteColors.kSecondaryTeal.withOpacity(0.1),
+              color: ClovaraColors.clover.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
               size: 40,
-              color: PetUwriteColors.kSecondaryTeal,
+              color: ClovaraColors.clover,
             ),
           ),
           const SizedBox(height: 20),
           Text(
             title,
-            style: PetUwriteTypography.h4.copyWith(
-              color: PetUwriteColors.kPrimaryNavy,
+            style: ClovaraTypography.h3.copyWith(
+              color: ClovaraColors.forest,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -531,7 +531,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           Text(
             message,
             textAlign: TextAlign.center,
-            style: PetUwriteTypography.bodyLarge.copyWith(
+            style: ClovaraTypography.body.copyWith(
               color: Colors.grey.shade600,
               fontSize: 14,
             ),
@@ -556,12 +556,12 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
+            color: ClovaraColors.clover.withOpacity(0.3),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: PetUwriteColors.kSecondaryTeal.withOpacity(0.1),
+              color: ClovaraColors.clover.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -573,20 +573,20 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: PetUwriteColors.kSecondaryTeal.withOpacity(0.1),
+                color: ClovaraColors.clover.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 icon,
-                color: PetUwriteColors.kSecondaryTeal,
+                color: ClovaraColors.clover,
                 size: 20,
               ),
             ),
             const SizedBox(width: 12),
             Text(
               label,
-              style: PetUwriteTypography.h4.copyWith(
-                color: PetUwriteColors.kSecondaryTeal,
+              style: ClovaraTypography.h3.copyWith(
+                color: ClovaraColors.clover,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
@@ -640,8 +640,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                   children: [
                     Text(
                       condition.name,
-                      style: PetUwriteTypography.h4.copyWith(
-                        color: PetUwriteColors.kPrimaryNavy,
+                      style: ClovaraTypography.h3.copyWith(
+                        color: ClovaraColors.forest,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -769,8 +769,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                         Expanded(
                           child: Text(
                             medication.name,
-                            style: PetUwriteTypography.h4.copyWith(
-                              color: PetUwriteColors.kPrimaryNavy,
+                            style: ClovaraTypography.h3.copyWith(
+                              color: ClovaraColors.forest,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
@@ -881,7 +881,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           Text(
             allergy,
             style: TextStyle(
-              color: PetUwriteColors.kPrimaryNavy,
+              color: ClovaraColors.forest,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -976,8 +976,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                     const SizedBox(height: 6),
                     Text(
                       visit.clinic,
-                      style: PetUwriteTypography.h4.copyWith(
-                        color: PetUwriteColors.kPrimaryNavy,
+                      style: ClovaraTypography.h3.copyWith(
+                        color: ClovaraColors.forest,
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),
@@ -1163,7 +1163,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: PetUwriteColors.kPrimaryNavy.withOpacity(0.2),
+                      color: ClovaraColors.forest.withOpacity(0.2),
                       width: 2,
                     ),
                   ),
@@ -1178,14 +1178,14 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                           children: [
                             Icon(
                               Icons.arrow_back_ios_rounded,
-                              color: PetUwriteColors.kPrimaryNavy,
+                              color: ClovaraColors.forest,
                               size: 18,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               'Back',
-                              style: PetUwriteTypography.h4.copyWith(
-                                color: PetUwriteColors.kPrimaryNavy,
+                              style: ClovaraTypography.h3.copyWith(
+                                color: ClovaraColors.forest,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
@@ -1206,14 +1206,14 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      PetUwriteColors.kSecondaryTeal,
-                      PetUwriteColors.kSecondaryTeal.withOpacity(0.9),
+                      ClovaraColors.clover,
+                      ClovaraColors.clover.withOpacity(0.9),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: PetUwriteColors.kSecondaryTeal.withOpacity(0.4),
+                      color: ClovaraColors.clover.withOpacity(0.4),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -1230,7 +1230,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                         children: [
                           Text(
                             _currentStep < _totalSteps - 1 ? 'Continue' : 'Complete & View Plans',
-                            style: PetUwriteTypography.h4.copyWith(
+                            style: ClovaraTypography.h3.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
