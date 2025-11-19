@@ -1,20 +1,20 @@
 /**
  * Cloud Function: Validate Coupon Code
- * 
+ *
  * This function validates coupon codes against Stripe's API
  * and returns discount information.
- * 
+ *
  * Special Coupon: TEST100
  * - This is a hardcoded test coupon that bypasses payment collection
  * - Used for testing purposes only
  * - Returns valid: true, but handled specially on the client side
- * 
+ *
  * Request Body:
  * {
  *   "couponCode": "SUMMER20",
  *   "userId": "user_abc123"
  * }
- * 
+ *
  * Response (Success):
  * {
  *   "valid": true,
@@ -25,7 +25,7 @@
  *   "duration": "once",
  *   "message": "Coupon applied successfully"
  * }
- * 
+ *
  * Response (Invalid):
  * {
  *   "valid": false,
@@ -33,33 +33,33 @@
  * }
  */
 
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-const stripe = require('stripe')(functions.config().stripe.secret_key);
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const stripe = require("stripe")(functions.config().stripe.secret_key);
 
 exports.validateCoupon = functions.https.onRequest(async (req, res) => {
   // Enable CORS
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'POST');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "POST");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
     return;
   }
 
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    res.status(405).json({error: "Method not allowed"});
     return;
   }
 
   try {
-    const { couponCode, userId } = req.body;
+    const {couponCode, userId} = req.body;
 
     if (!couponCode || !userId) {
       res.status(400).json({
         valid: false,
-        message: 'Missing required fields: couponCode and userId'
+        message: "Missing required fields: couponCode and userId",
       });
       return;
     }
@@ -72,7 +72,7 @@ exports.validateCoupon = functions.https.onRequest(async (req, res) => {
       if (!coupon.valid) {
         res.json({
           valid: false,
-          message: 'This coupon is no longer valid'
+          message: "This coupon is no longer valid",
         });
         return;
       }
@@ -81,7 +81,7 @@ exports.validateCoupon = functions.https.onRequest(async (req, res) => {
       // Note: This is a simplified calculation. In production, you'd need
       // to know the actual order amount to calculate the discount correctly.
       let discountAmount = 0;
-      
+
       if (coupon.amount_off) {
         // Fixed amount discount (in cents)
         discountAmount = coupon.amount_off / 100;
@@ -99,24 +99,22 @@ exports.validateCoupon = functions.https.onRequest(async (req, res) => {
         percentOff: coupon.percent_off,
         amountOff: coupon.amount_off ? coupon.amount_off / 100 : null,
         duration: coupon.duration,
-        message: 'Coupon applied successfully'
+        message: "Coupon applied successfully",
       });
-
     } catch (stripeError) {
-      console.error('Stripe error:', stripeError);
-      
+      console.error("Stripe error:", stripeError);
+
       res.json({
         valid: false,
-        message: 'Invalid or expired coupon code'
+        message: "Invalid or expired coupon code",
       });
     }
-
   } catch (error) {
-    console.error('Error validating coupon:', error);
+    console.error("Error validating coupon:", error);
     res.status(500).json({
       valid: false,
-      message: 'Error validating coupon',
-      error: error.message
+      message: "Error validating coupon",
+      error: error.message,
     });
   }
 });

@@ -1,9 +1,9 @@
 /**
  * Claims State Reconciliation System
- * 
+ *
  * Automatically detects and corrects inconsistent states between claims and payouts.
  * Runs hourly to ensure data integrity and retry failed operations.
- * 
+ *
  * Functions:
  * 1. Find payouts marked 'completed' with claims still 'processing'
  * 2. Auto-update claims to 'settled' and log to audit trail
@@ -114,7 +114,7 @@ async function findAndFixMismatchedStates() {
 
   try {
     const db = admin.firestore();
-    
+
     // Query claims that are not in final states
     const claimsSnapshot = await db
         .collection("claims")

@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:http/http.dart' as http; // Still needed for VertexAIService
 
 /// Interface for AI API integrations
 abstract class AIService {
@@ -8,44 +8,39 @@ abstract class AIService {
   Future<Map<String, dynamic>> parseStructuredData(String text);
 }
 
-/// OpenAI GPT API implementation
+/// OpenAI GPT API implementation using Firebase Cloud Functions
 class GPTService implements AIService {
-  final String apiKey;
+  final String apiKey; // No longer used, kept for compatibility
   final String model;
-  final String baseUrl = 'https://api.openai.com/v1';
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
   
   GPTService({
     String? apiKey,
     this.model = 'gpt-4',
-  }) : apiKey = apiKey ?? dotenv.env['OPENAI_API_KEY'] ?? '' {
-    if (this.apiKey.isEmpty) {
-      throw Exception('OPENAI_API_KEY not found in environment variables');
-    }
+  }) : apiKey = apiKey ?? '' {
+    // API key no longer required since we use Cloud Functions
+    print('✅ GPTService initialized with Cloud Functions proxy');
   }
   
   @override
   Future<String> generateText(String prompt, {Map<String, dynamic>? options}) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/chat/completions'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $apiKey',
-      },
-      body: jsonEncode({
-        'model': model,
+    try {
+      // Call Firebase Cloud Function instead of OpenAI directly
+      final callable = _functions.httpsCallable('chatCompletion');
+      
+      final result = await callable.call({
         'messages': [
           {'role': 'user', 'content': prompt},
         ],
-        ...?options,
-      }),
-    );
-    
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['choices'][0]['message']['content'];
-    } else {
+        'model': model,
+        'temperature': options?['temperature'] ?? 0.7,
+        'maxTokens': options?['max_tokens'] ?? 500,
+      });
+      
+      return result.data['content'] as String;
+    } catch (e) {
       throw AIServiceException(
-        'GPT API request failed: ${response.statusCode} - ${response.body}',
+        'Cloud Function chatCompletion failed: $e',
       );
     }
   }

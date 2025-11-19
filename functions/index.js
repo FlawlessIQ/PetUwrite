@@ -18,10 +18,10 @@ admin.initializeApp();
 const pdfExtraction = require("./pdfExtraction");
 
 // Import policy email functions
-const policyEmails = require("./policyEmails");
+// const policyEmails = require("./policyEmails"); // Temporarily disabled due to nodemailer issue
 
 // Import admin dashboard functions
-const adminDashboard = require("./adminDashboard");
+// const adminDashboard = require("./adminDashboard"); // Temporarily disabled
 
 // Import declined quote notification functions
 const declinedQuoteNotifications = require("./declinedQuoteNotifications");
@@ -487,16 +487,18 @@ async function handleSubscriptionDeleted(subscription) {
 exports.extractPdfText = pdfExtraction.extractPdfText;
 
 // Export policy email functions
-exports.sendPolicyEmail = policyEmails.sendPolicyEmail;
-exports.generatePolicyPDF = policyEmails.generatePolicyPDF;
-exports.checkExpiringPolicies = policyEmails.checkExpiringPolicies;
+// Temporarily disabled due to nodemailer issue
+// exports.sendPolicyEmail = policyEmails.sendPolicyEmail;
+// exports.generatePolicyPDF = policyEmails.generatePolicyPDF;
+// exports.checkExpiringPolicies = policyEmails.checkExpiringPolicies;
 
 // Export admin dashboard functions
-exports.flagHighRiskQuote = adminDashboard.flagHighRiskQuote;
-exports.onQuoteOverride = adminDashboard.onQuoteOverride;
-exports.generateDailyOverrideReport = adminDashboard.generateDailyOverrideReport;
-exports.alertPendingQuotes = adminDashboard.alertPendingQuotes;
-exports.getOverrideAnalytics = adminDashboard.getOverrideAnalytics;
+// Temporarily disabled
+// exports.flagHighRiskQuote = adminDashboard.flagHighRiskQuote;
+// exports.onQuoteOverride = adminDashboard.onQuoteOverride;
+// exports.generateDailyOverrideReport = adminDashboard.generateDailyOverrideReport;
+// exports.alertPendingQuotes = adminDashboard.alertPendingQuotes;
+// exports.getOverrideAnalytics = adminDashboard.getOverrideAnalytics;
 exports.processPdfOnUpload = pdfExtraction.processPdfOnUpload;
 exports.getPdfProcessingStatus = pdfExtraction.getPdfProcessingStatus;
 
@@ -604,3 +606,10 @@ exports.sendAnalyticsEmail = analyticsEmail.sendAnalyticsEmail;
 // Export coupon validation function
 const validateCouponModule = require("./validateCoupon");
 exports.validateCoupon = validateCouponModule.validateCoupon;
+
+// Export OpenAI proxy functions
+const openaiProxy = require("./openaiProxy");
+exports.chatCompletion = openaiProxy.chatCompletion;
+exports.analyzeRisk = openaiProxy.analyzeRisk;
+exports.analyzeClaimDocument = openaiProxy.analyzeClaimDocument;
+exports.makeClaimDecision = openaiProxy.makeClaimDecision;

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
 import '../theme/clovara_theme.dart';
@@ -834,14 +833,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow> with 
       final owner = _createOwnerFromAnswers();
       
       // Initialize AI service and calculate risk score
-      // Load API key from .env file (same approach as ConversationalAIService)
-      final apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
-      
-      if (apiKey.isEmpty) {
-        throw Exception('OPENAI_API_KEY not found in environment variables');
-      }
-      
-      final aiService = GPTService(apiKey: apiKey, model: 'gpt-4o');
+      // Using Cloud Functions - no API key needed
+      final aiService = GPTService(model: 'gpt-4o');
       final riskEngine = RiskScoringEngine(aiService: aiService);
       
       // Calculate risk score WITH eligibility check
