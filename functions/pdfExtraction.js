@@ -1,7 +1,10 @@
 const functions = require("firebase-functions/v2");
+const functionsV1 = require("firebase-functions/v1");
 const admin = require("firebase-admin");
+const {FieldValue} = require("firebase-admin/firestore");
 const axios = require("axios");
 const pdfParse = require("pdf-parse");
+const crypto = require("crypto");
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -87,62 +90,129 @@ exports.extractPdfText = functions.https.onRequest(async (req, res) => {
   }
 });
 
+function computeExtractionDocId(bucket, filePath, generation) {
+  const key = `${bucket}:${filePath}:${generation || ""}`;
+  return crypto.createHash("sha1").update(key).digest("hex");
+}
+
 /**
- * Alternative: Firebase Storage-triggered function
- * Automatically processes PDFs when uploaded to vet_records folder
+ * Firebase Storage-triggered function (v1)
+ * Automatically processes PDFs when uploaded to vet_records folder.
+ *
+ * NOTE: We intentionally use the v1 trigger here because v2 storage triggers
+ * rely on Eventarc and can require additional deploy-time IAM/bucket validation.
  */
-exports.processPdfOnUpload = functions.storage.onObjectFinalized(async (event) => {
-  const filePath = event.data.name;
-  const contentType = event.data.contentType;
+exports.processPdfOnUpload = functionsV1.storage.object().onFinalize(async (object) => {
+  const filePath = object.name;
+  const contentType = object.contentType;
+  const bucketName = object.bucket;
+  const generation = object.generation;
 
   // Only process PDFs in vet_records folder
-  if (!filePath.startsWith("vet_records/") || contentType !== "application/pdf") {
-    functions.logger.info("Skipping non-PDF file:", filePath);
-    return null;
+  if (!filePath || !filePath.startsWith("vet_records/") || contentType !== "application/pdf") {
+    functions.logger.info("Skipping non-PDF file:", {filePath, contentType});
+    return;
   }
 
   try {
-    functions.logger.info("Processing PDF upload:", filePath);
+    functions.logger.info("Processing PDF upload:", {filePath, bucketName});
 
-    const bucket = admin.storage().bucket(event.data.bucket);
+    const bucket = admin.storage().bucket(bucketName);
     const file = bucket.file(filePath);
 
-    // Download file
     const [buffer] = await file.download();
 
     // Extract text
     const data = await pdfParse(buffer);
 
-    // Extract petId from path (format: vet_records/{petId}/filename.pdf)
+    // Path formats supported:
+    // - vet_records/{petId}/filename.pdf
+    // - vet_records/cases/{caseId}/filename.pdf
     const pathParts = filePath.split("/");
-    const petId = pathParts[1];
 
-    // Save extracted text to Firestore for processing
-    const docRef = admin.firestore()
-        .collection("pets")
-        .doc(petId)
-        .collection("pdf_extractions")
-        .doc();
+    const isCaseUpload = pathParts.length >= 4 && pathParts[1] === "cases";
+    const caseId = isCaseUpload ? pathParts[2] : null;
+    const petId = !isCaseUpload ? pathParts[1] : null;
+
+    const docId = computeExtractionDocId(bucketName, filePath, generation);
+
+    // Store extracted text as a .txt file in Storage to avoid Firestore document size limits.
+    const originalFileName = pathParts[pathParts.length - 1];
+    const baseName = originalFileName.replace(/\.pdf$/i, "");
+    const textObjectPath = isCaseUpload
+        ? `vet_records/cases/${caseId}/extracted/${baseName}_${Date.now()}.txt`
+        : `vet_records/${petId}/extracted/${baseName}_${Date.now()}.txt`;
+
+    const textFile = bucket.file(textObjectPath);
+    await textFile.save(data.text, {
+      contentType: "text/plain",
+      metadata: {
+        metadata: {
+          sourcePdfPath: filePath,
+          ...(isCaseUpload ? {caseId} : {petId}),
+        },
+      },
+    });
+
+    // Save extraction metadata to Firestore (idempotent doc id)
+    const docRef = isCaseUpload
+        ? admin.firestore().collection("underwriting_cases").doc(caseId).collection("pdf_extractions").doc(docId)
+        : admin.firestore().collection("pets").doc(petId).collection("pdf_extractions").doc(docId);
+
+    const existing = await docRef.get();
+    if (existing.exists && existing.data()?.status === "extracted") {
+      functions.logger.info("Extraction already completed; skipping", {
+        ...(isCaseUpload ? {caseId} : {petId}),
+        docId,
+        filePath,
+      });
+      return;
+    }
 
     await docRef.set({
       filePath,
-      extractedText: data.text,
+      extractedTextPath: textObjectPath,
       pages: data.numpages,
-      extractedAt: admin.firestore.FieldValue.serverTimestamp(),
+      extractedAt: FieldValue.serverTimestamp(),
       status: "extracted",
       metadata: data.info,
+      ...(isCaseUpload ? {caseId} : {petId}),
     });
 
     functions.logger.info("PDF text extraction completed", {
-      petId,
+      ...(isCaseUpload ? {caseId} : {petId}),
       docId: docRef.id,
       pages: data.numpages,
     });
 
-    return {success: true, docId: docRef.id};
+    return;
   } catch (error) {
     functions.logger.error("Error in PDF processing:", error);
-    return {success: false, error: error.message};
+
+    // Best-effort status write for ops visibility.
+    try {
+      const pathParts = filePath.split("/");
+      const isCaseUpload = pathParts.length >= 4 && pathParts[1] === "cases";
+      const caseId = isCaseUpload ? pathParts[2] : null;
+      const petId = !isCaseUpload ? pathParts[1] : null;
+      const docId = computeExtractionDocId(bucketName, filePath, generation);
+
+      const docRef = isCaseUpload
+          ? admin.firestore().collection("underwriting_cases").doc(caseId).collection("pdf_extractions").doc(docId)
+          : admin.firestore().collection("pets").doc(petId).collection("pdf_extractions").doc(docId);
+
+      await docRef.set({
+        filePath,
+        status: "failed",
+        errorMessage: error?.message || String(error),
+        failedAt: FieldValue.serverTimestamp(),
+        ...(isCaseUpload ? {caseId} : {petId}),
+      }, {merge: true});
+    } catch (e) {
+      functions.logger.error("Failed to record PDF extraction failure", e);
+    }
+
+    return;
   }
 });
 

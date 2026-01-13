@@ -9,6 +9,9 @@ import 'dart:math' as math;
 
 class CloverResponseAdapter {
   final math.Random _random = math.Random();
+
+  bool _isHealthContext(String? context) =>
+      context == 'health_conditions' || context == 'medical_history';
   
   /// Adapt a base AI response to match Clover's personality
   String adaptResponse(
@@ -38,14 +41,16 @@ class CloverResponseAdapter {
       }
     }
     
-    // 2. Add conversational warmth
-    adapted = _addConversationalWarmth(adapted, petName: petName);
+    // 2. Add conversational warmth (avoid overly upbeat tone for health topics)
+    if (!_isHealthContext(context) && (userInput == null || !_isSerious(userInput))) {
+      adapted = _addConversationalWarmth(adapted, petName: petName);
+    }
     
     // 3. Replace technical terms with friendly alternatives
     adapted = _softenTechnicalLanguage(adapted);
     
     // 4. Add encouraging phrases at appropriate points
-    if (context == 'progress' && _random.nextDouble() < 0.4) {
+    if (context == 'progress' && !_isHealthContext(context) && _random.nextDouble() < 0.4) {
       adapted += '\n\n${CloverPersona.getRandomEncouragement()}';
     }
     

@@ -53,3 +53,8 @@ app.*.map.json
 # Firebase credentials - DO NOT COMMIT
 **/firebase-service-account.json
 firebase-service-account*.json
+
+# Quote collector tooling
+/tools/quote_collector/output/
+/tools/quote_collector/node_modules/
+/tools/quote_collector/dist/

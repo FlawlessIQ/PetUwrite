@@ -37,7 +37,8 @@ if (result.eligible) {
   "minAgeMonths": 2,
   "maxAgeYears": 14,
   "excludedBreeds": ["Wolf Hybrid", "Pit Bull Terrier", ...],
-  "criticalConditions": ["cancer", "terminal illness", ...]
+  "criticalConditions": ["cancer", "terminal illness", ...],
+  "excludableConditions": ["diabetes", "arthritis", ...]
 }
 ```
 
@@ -52,6 +53,7 @@ if (result.eligible) {
 | `maxAgeYears` | int | Maximum pet age in years | Before & After AI |
 | `excludedBreeds` | string[] | Ineligible breeds | Before & After AI |
 | `criticalConditions` | string[] | Uninsurable conditions | Before & After AI |
+| `excludableConditions` | string[] | Covered policy, but condition is excluded | After AI scoring |
 | `enabled` | bool | Master on/off switch | Always |
 
 ---
@@ -196,6 +198,8 @@ class EligibilityResult {
 ✅ All checks logged to `eligibility_checks` subcollection  
 ✅ Rules include `lastUpdated` and `updatedBy` fields  
 ✅ Default rules used if Firestore unavailable  
+
+Note: if quote flows are allowed while unauthenticated, Firestore rules must allow rules reads (or rules must be fetched via a public config endpoint). Otherwise the engine will fall back to defaults.
 
 ---
 

@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:pet_underwriter_ai/models/pet.dart';
 import 'package:pet_underwriter_ai/models/owner.dart';
 import 'package:pet_underwriter_ai/models/risk_score.dart';
 import 'package:pet_underwriter_ai/services/risk_scoring_engine.dart';
 import 'package:pet_underwriter_ai/ai/ai_service.dart';
+import 'package:pet_underwriter_ai/services/underwriting_rules_engine.dart';
 
 /// Mock AI Service for testing without actual API calls
 class MockAIService implements AIService {
@@ -68,12 +70,18 @@ void main() {
   group('RiskScoringEngine with AI Integration', () {
     late RiskScoringEngine engine;
     late MockAIService mockAIService;
+    late FakeFirebaseFirestore fakeFirestore;
     
     setUp(() {
       mockAIService = MockAIService();
+      fakeFirestore = FakeFirebaseFirestore();
       engine = RiskScoringEngine(
         aiService: mockAIService,
-        // Note: Firestore tests excluded - use integration tests with emulator
+        firestore: fakeFirestore,
+        rulesEngine: UnderwritingRulesEngine(
+          firestore: fakeFirestore,
+          enablePublicCallable: false,
+        ),
       );
     });
     
@@ -187,7 +195,9 @@ void main() {
           .where((f) => f.category == 'preExisting')
           .toList();
       
-      expect(preExistingFactors.length, equals(3));
+      // Expect one factor per condition plus an aggregate factor when a
+      // critical condition is present alongside others.
+      expect(preExistingFactors.length, equals(4));
       expect(riskScore.categoryScores['preExisting']!, greaterThan(0));
     });
     
@@ -196,6 +206,11 @@ void main() {
       final failingService = _FailingMockAIService();
       final failingEngine = RiskScoringEngine(
         aiService: failingService,
+        firestore: fakeFirestore,
+        rulesEngine: UnderwritingRulesEngine(
+          firestore: fakeFirestore,
+          enablePublicCallable: false,
+        ),
       );
       
       final riskScore = await failingEngine.calculateRiskScore(

@@ -6,6 +6,7 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const {FieldValue} = require('firebase-admin/firestore');
 
 /**
  * Triggered when a new quote is created
@@ -30,7 +31,7 @@ exports.flagHighRiskQuote = functions.firestore
       // Update quote with flag
       await snap.ref.update({
         flaggedForReview: true,
-        flaggedAt: admin.firestore.FieldValue.serverTimestamp(),
+        flaggedAt: FieldValue.serverTimestamp(),
         requiresUnderwriterApproval: true,
       });
 
@@ -44,7 +45,7 @@ exports.flagHighRiskQuote = functions.firestore
         aiDecision: quoteData.riskScore?.aiAnalysis?.decision || 'Unknown',
         targetRole: 2, // Underwriter role
         read: false,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
       });
 
       // Get all underwriters
@@ -156,7 +157,7 @@ exports.onQuoteOverride = functions.firestore
         // Update statistics
         await statsRef.set({
           ...currentStats,
-          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          lastUpdated: FieldValue.serverTimestamp(),
         });
 
         // Mark notification as resolved
@@ -170,7 +171,7 @@ exports.onQuoteOverride = functions.firestore
         const updatePromises = notifications.docs.map((doc) =>
           doc.ref.update({
             resolved: true,
-            resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
+            resolvedAt: FieldValue.serverTimestamp(),
             resolvedBy: underwriterId,
           })
         );
@@ -279,7 +280,7 @@ exports.generateDailyOverrideReport = functions.pubsub
         .doc(report.date)
         .set({
           ...report,
-          generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          generatedAt: FieldValue.serverTimestamp(),
         });
 
       console.log(`Daily report generated for ${report.date}:`, report);

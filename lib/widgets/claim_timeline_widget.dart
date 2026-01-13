@@ -139,6 +139,15 @@ class ClaimTimelineWidget extends StatelessWidget {
         timestamp: claim.settledAt,
         color: Colors.green,
       ));
+    } else if (claim.status == ClaimStatus.settling) {
+      steps.add(TimelineStep(
+        title: 'Payment Processing',
+        description: 'Your reimbursement is being processed',
+        icon: Icons.payments,
+        status: TimelineStepStatus.inProgress,
+        timestamp: claim.updatedAt,
+        color: Colors.green,
+      ));
     } else if (claim.status == ClaimStatus.denied) {
       steps.add(TimelineStep(
         title: 'Claim Denied',

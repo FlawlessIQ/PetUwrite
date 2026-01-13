@@ -1,5 +1,6 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const {FieldValue} = require('firebase-admin/firestore');
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 const { Storage } = require('@google-cloud/storage');
@@ -12,13 +13,30 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const storage = new Storage();
 
+function getStorageBucketName() {
+  const explicit = process.env.STORAGE_BUCKET;
+  if (explicit) return explicit;
+
+  const fromAdmin = admin.app()?.options?.storageBucket;
+  if (fromAdmin) return fromAdmin;
+
+  try {
+    const raw = process.env.FIREBASE_CONFIG;
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    return parsed?.storageBucket;
+  } catch (e) {
+    return undefined;
+  }
+}
+
 // Configure email transporter (using SendGrid as example)
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: 'smtp.sendgrid.net',
   port: 587,
   auth: {
     user: 'apikey',
-    pass: functions.config().sendgrid?.key || process.env.SENDGRID_API_KEY,
+    pass: process.env.SENDGRID_API_KEY,
   },
 });
 
@@ -77,7 +95,7 @@ exports.sendPolicyEmail = functions.https.onCall(async (data, context) => {
       policyId,
       recipientEmail,
       subject: mailOptions.subject,
-      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      sentAt: FieldValue.serverTimestamp(),
       status: 'sent',
     });
 
@@ -114,7 +132,15 @@ exports.generatePolicyPDF = functions.https.onCall(async (data, context) => {
     const pdfBuffer = await generatePolicyPDFBuffer(policyData);
 
     // Upload to Firebase Storage
-    const bucket = storage.bucket(functions.config().firebase?.storage_bucket);
+    const bucketName = getStorageBucketName();
+    if (!bucketName) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Missing storage bucket configuration (set STORAGE_BUCKET env var or storageBucket in FIREBASE_CONFIG)'
+      );
+    }
+
+    const bucket = storage.bucket(bucketName);
     const fileName = `policies/${policyId}/${policyNumber}.pdf`;
     const file = bucket.file(fileName);
 
@@ -138,7 +164,7 @@ exports.generatePolicyPDF = functions.https.onCall(async (data, context) => {
     // Update policy document with PDF URL
     await db.collection('policies').doc(policyId).update({
       pdfUrl: url,
-      pdfGeneratedAt: admin.firestore.FieldValue.serverTimestamp(),
+      pdfGeneratedAt: FieldValue.serverTimestamp(),
     });
 
     return { success: true, pdfUrl: url };

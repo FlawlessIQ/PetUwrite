@@ -23,6 +23,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _couponError;
   final _stripeService = StripeService();
   final _couponController = TextEditingController();
+
+  // Exclusions acknowledgement (if any exclusions exist)
+  bool _exclusionsAcknowledged = false;
+  String _exclusionsKey = '';
   
   // Coupon state
   bool _isCouponApplied = false;
@@ -32,6 +36,29 @@ class _PaymentScreenState extends State<PaymentScreen> {
   
   // Stripe card field controller
   stripe.CardFieldInputDetails? _cardFieldDetails;
+
+  String _computeExclusionsKey(List exclusions) {
+    final names = exclusions
+        .map((e) {
+          if (e is String) return e;
+          try {
+            final conditionName = (e as dynamic).conditionName?.toString();
+            if (conditionName != null && conditionName.trim().isNotEmpty) {
+              return conditionName;
+            }
+          } catch (_) {
+            // ignore
+          }
+          return e.toString();
+        })
+        .whereType<String>()
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return names.join('|');
+  }
 
   @override
   void dispose() {
@@ -158,6 +185,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget build(BuildContext context) {
     return Consumer<CheckoutProvider>(
       builder: (context, provider, child) {
+        final exclusionsKey = _computeExclusionsKey(provider.exclusions);
+        if (exclusionsKey != _exclusionsKey) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() {
+              _exclusionsKey = exclusionsKey;
+              _exclusionsAcknowledged = false;
+            });
+          });
+        }
+
         final plan = provider.selectedPlan!;
         final ownerDetails = provider.ownerDetails!;
 
@@ -195,6 +233,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
               _buildSecurityInfo(),
               const SizedBox(height: 24),
 
+              // Exclusions Summary (if any)
+              if (provider.exclusions.isNotEmpty) ...[
+                _buildExclusionsSummaryCard(provider.exclusions),
+                const SizedBox(height: 12),
+                _buildExclusionsAcknowledgement(provider),
+                const SizedBox(height: 24),
+              ],
+
               // Error Message
               if (_errorMessage != null) ...[
                 _buildErrorMessage(),
@@ -210,8 +256,54 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  Widget _buildExclusionsAcknowledgement(CheckoutProvider provider) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: CheckboxListTile(
+        value: _exclusionsAcknowledged,
+        onChanged: (value) {
+          final nextValue = value ?? false;
+          setState(() {
+            _exclusionsAcknowledged = nextValue;
+          });
+          if (nextValue) {
+            provider.recordExclusionsAcknowledgement(source: 'payment');
+          }
+        },
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        controlAffinity: ListTileControlAffinity.leading,
+        title: Text(
+          'I understand these exclusions will not be covered.',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Colors.orange.shade900,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildOrderSummary(plan, ownerDetails) {
     final double finalAmount = _bypassPayment ? 0.0 : (plan.monthlyPremium - _discountAmount);
+
+    String annualLimitLabel() {
+      try {
+        if (plan.isUnlimitedAnnualCoverage == true || (plan.maxAnnualCoverage as double).isInfinite) {
+          return 'Unlimited';
+        }
+        final v = (plan.maxAnnualCoverage as double).toDouble();
+        return '\$${v.toStringAsFixed(0)}';
+      } catch (_) {
+        return '—';
+      }
+    }
     
     return Card(
       elevation: 2,
@@ -230,6 +322,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(height: 16),
             _buildSummaryRow('Plan', plan.name),
+            const SizedBox(height: 8),
+            _buildSummaryRow('Reimbursement', '${plan.reimbursementPercent}%'),
+            const SizedBox(height: 8),
+            _buildSummaryRow('Annual Deductible', '\$${plan.annualDeductible.toStringAsFixed(0)}'),
+            const SizedBox(height: 8),
+            _buildSummaryRow('Annual Limit', annualLimitLabel()),
+            if ((plan.selectedAddOns as List).isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _buildSummaryRow('Add-ons', (plan.selectedAddOns as List).join(', ')),
+            ],
             const SizedBox(height: 12),
             _buildSummaryRow('Policy Holder', ownerDetails.fullName),
             const SizedBox(height: 12),
@@ -633,10 +735,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Widget _buildNavigationButtons(BuildContext context, CheckoutProvider provider, plan) {
     final double finalAmount = _bypassPayment ? 0.0 : (plan.monthlyPremium - _discountAmount);
+    final requiresExclusionsAck = provider.exclusions.isNotEmpty;
+    final isPayEnabled = !requiresExclusionsAck || _exclusionsAcknowledged;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (requiresExclusionsAck && !isPayEnabled)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              'Please acknowledge the exclusions to continue.',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade900,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
         Row(
           children: [
             Expanded(
@@ -659,7 +776,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Expanded(
               flex: 2,
               child: ElevatedButton(
-                onPressed: _isProcessing ? null : () => _handlePayment(context, provider, plan),
+                onPressed: (_isProcessing || !isPayEnabled)
+                    ? null
+                    : () => _handlePayment(context, provider, plan),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: Colors.green,
@@ -733,6 +852,90 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildExclusionsSummaryCard(List exclusions) {
+    final exclusionNames = exclusions
+        .map((e) {
+          if (e is String) return e;
+          try {
+            final conditionName = (e as dynamic).conditionName?.toString();
+            if (conditionName != null && conditionName.trim().isNotEmpty) {
+              return conditionName;
+            }
+          } catch (_) {
+            // ignore
+          }
+          return e.toString();
+        })
+        .whereType<String>()
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    if (exclusionNames.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.gpp_maybe, size: 22, color: Colors.orange.shade800),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Coverage exclusions',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'You are about to pay for a policy that will not cover treatment related to these conditions:',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade700,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: exclusionNames
+                  .map(
+                    (name) => Chip(
+                      label: Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.orange.shade900,
+                        ),
+                      ),
+                      backgroundColor: Colors.orange.shade50,
+                      side: BorderSide(color: Colors.orange.shade200),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

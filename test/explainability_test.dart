@@ -537,6 +537,8 @@ void main() {
         overallSummary: 'Test',
       );
 
+      expect(explainability.finalScore, 60.0);
+
       final totalAbsoluteImpact = contributions.fold(
         0.0,
         (sum, c) => sum + c.impact.abs(),

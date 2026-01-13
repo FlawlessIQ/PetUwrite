@@ -19,6 +19,14 @@ class ClaimTrackerService {
         sentiment: MessageSentiment.positive,
       );
     }
+
+    if (status == ClaimStatus.settling) {
+      return CloverMessage(
+        expression: CloverExpression.working,
+        message: "✅ Your claim is approved. I'm initiating your reimbursement now — this typically takes 3-5 business days.",
+        sentiment: MessageSentiment.positive,
+      );
+    }
     
     if (status == ClaimStatus.denied) {
       return CloverMessage(
@@ -84,6 +92,10 @@ class ClaimTrackerService {
     if (claim.status == ClaimStatus.settled || claim.status == ClaimStatus.denied) {
       return 100;
     }
+
+    if (claim.status == ClaimStatus.settling) {
+      return 95;
+    }
     
     int progress = 0;
     
@@ -115,6 +127,10 @@ class ClaimTrackerService {
   static String getEstimatedTimeRemaining(Claim claim) {
     if (claim.status == ClaimStatus.settled || claim.status == ClaimStatus.denied) {
       return "Complete";
+    }
+
+    if (claim.status == ClaimStatus.settling) {
+      return "3-5 business days";
     }
     
     final hasAI = claim.aiDecision != null;
@@ -172,6 +188,8 @@ class ClaimTrackerService {
     // Final status
     if (claim.status == ClaimStatus.settled) {
       updates.add("✓ Payment processed");
+    } else if (claim.status == ClaimStatus.settling) {
+      updates.add("⏳ Payment processing");
     } else if (claim.status == ClaimStatus.denied) {
       updates.add("✓ Decision finalized");
     }
@@ -200,6 +218,10 @@ class ClaimTrackerService {
     
     if (claim.status == ClaimStatus.processing && claim.aiDecision == null) {
       return null; // No action needed, we're processing
+    }
+
+    if (claim.status == ClaimStatus.settling) {
+      return "No action needed — payment is being processed";
     }
     
     if (claim.status == ClaimStatus.settled) {

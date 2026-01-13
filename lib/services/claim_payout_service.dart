@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/claim.dart';
 import '../ai/ai_service.dart';
@@ -35,17 +34,10 @@ class ClaimPayoutService {
   ClaimPayoutService({
     String? stripeSecretKey,
     String? sendGridApiKey,
-    String? openAiApiKey,
-  })  : _stripeSecretKey = stripeSecretKey ?? 
-            dotenv.env['STRIPE_SECRET_KEY'] ?? 
-            'sk_test_YOUR_SECRET_KEY_HERE',
-        _sendGridApiKey = sendGridApiKey ?? 
-            dotenv.env['SENDGRID_API_KEY'] ?? 
-            'SG.YOUR_API_KEY_HERE',
-        _aiService = GPTService(
-          apiKey: openAiApiKey ?? dotenv.env['OPENAI_API_KEY'] ?? '',
-          model: 'gpt-4o-mini', // Cost-effective for text generation
-        );
+    GPTService? aiService,
+  })  : _stripeSecretKey = stripeSecretKey ?? '',
+        _sendGridApiKey = sendGridApiKey ?? '',
+        _aiService = aiService ?? GPTService(model: 'gpt-5.2');
 
   /// Process approved claim - trigger payout and notifications
   /// 
@@ -62,6 +54,13 @@ class ClaimPayoutService {
     String? approvalNotes,
   }) async {
     try {
+      if (_stripeSecretKey.isEmpty || _sendGridApiKey.isEmpty) {
+        throw Exception(
+          'Payout processing requires server-side credentials. '
+          'Move payouts behind Cloud Functions and do not ship secret keys in the client.',
+        );
+      }
+
       print('🔒 Attempting to lock claim $claimId for payout processing...');
       
       // Step 1: Atomically lock claim with 'settling' status

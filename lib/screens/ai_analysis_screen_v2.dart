@@ -56,7 +56,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
       AnalysisStep(
         icon: Icons.auto_awesome,
         title: 'Running AI analysis',
-        description: 'GPT-4o powered risk assessment',
+        description: 'GPT-5.2 powered risk assessment',
       ),
       AnalysisStep(
         icon: Icons.calculate,
@@ -99,14 +99,20 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
       // Wait longer to allow user to see insights
       await Future.delayed(const Duration(milliseconds: 4000));
       
-      // Check if pet has pre-existing conditions requiring detailed underwriting
-      final hasPreExistingConditions = widget.pet.preExistingConditions.isNotEmpty &&
-          widget.pet.preExistingConditions.any((condition) => 
-              condition != 'None' && condition.isNotEmpty);
+        // Route through medical underwriting when we need additional disclosures/questions.
+        final hasPreExistingConditions = widget.pet.preExistingConditions.isNotEmpty &&
+          widget.pet.preExistingConditions.any((condition) =>
+            condition != 'None' && condition.isNotEmpty);
+        final hasRuleExclusions = widget.routeArguments['hasExclusions'] == true ||
+          (widget.routeArguments['excludedConditions'] is List &&
+            (widget.routeArguments['excludedConditions'] as List).isNotEmpty);
+        final needsMedicalUnderwriting = widget.routeArguments['needsMedicalUnderwriting'] == true;
+
+        final requiresUnderwriting = hasPreExistingConditions || hasRuleExclusions || needsMedicalUnderwriting;
       
       // Navigate to appropriate screen
       if (mounted) {
-        if (hasPreExistingConditions) {
+        if (requiresUnderwriting) {
           // Route through medical underwriting for detailed history collection
           Navigator.pushReplacement(
             context,

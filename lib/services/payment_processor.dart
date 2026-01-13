@@ -224,8 +224,9 @@ class PaymentProcessor {
       }
       
       final policyData = policyDoc.data()!;
-      final amount = policyData['plan']['monthlyPremium'] as double;
-      final schedule = _parsePaymentSchedule(policyData['paymentSchedule'] as String?);
+      // Accessing these fields validates expected structure.
+      policyData['plan']['monthlyPremium'] as double;
+      _parsePaymentSchedule(policyData['paymentSchedule'] as String?);
       
       // Create new payment method token (user must provide updated payment info)
       // This would typically come from the UI after user updates their payment method

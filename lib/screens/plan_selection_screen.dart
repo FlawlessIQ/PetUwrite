@@ -5,6 +5,8 @@ import '../auth/customer_home_screen.dart';
 import '../models/risk_score.dart';
 import '../models/owner.dart';
 import '../services/quote_engine.dart';
+import '../services/product_catalog.dart';
+import '../services/product_catalog_availability_engine.dart';
 import '../theme/clovara_theme.dart';
 
 /// Minimal, clean plan selection screen
@@ -20,10 +22,162 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   Map<String, dynamic>? _routeArguments;
   List<Plan>? _dynamicPlans;
   bool _isLoadingPlans = true;
+
+  final ProductCatalogAvailabilityEngine _productAvailability = ProductCatalogAvailabilityEngine();
+  Map<String, dynamic>? _availability;
+  bool _isLoadingAvailability = true;
+
+  List<String> _getExclusionNamesFromRoute() {
+    final raw = _routeArguments?['exclusions'] ?? _routeArguments?['excludedConditions'];
+    if (raw == null) return const [];
+
+    final names = <String>[];
+
+    void addName(String? value) {
+      final trimmed = (value ?? '').trim();
+      if (trimmed.isEmpty) return;
+      if (!names.contains(trimmed)) names.add(trimmed);
+    }
+
+    if (raw is List) {
+      for (final item in raw) {
+        if (item is String) {
+          addName(item);
+        } else if (item is Map) {
+          final conditionName = item['conditionName']?.toString();
+          addName(conditionName);
+        } else {
+          // Best-effort fallback for unknown shapes
+          addName(item.toString());
+        }
+      }
+    } else if (raw is Map) {
+      addName(raw['conditionName']?.toString());
+    } else if (raw is String) {
+      addName(raw);
+    }
+
+    return names;
+  }
+
+  Widget _buildExclusionsCallout() {
+    final exclusions = _getExclusionNamesFromRoute();
+    if (exclusions.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.gpp_maybe, color: Colors.orange.shade800, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Coverage exclusions',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.orange.shade900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your policy will not cover treatment related to these conditions:',
+            style: TextStyle(fontSize: 13, color: Colors.orange.shade900, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: exclusions
+                .map(
+                  (e) => Chip(
+                    label: Text(
+                      e,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.orange.shade900,
+                      ),
+                    ),
+                    backgroundColor: Colors.white,
+                    side: BorderSide(color: Colors.orange.shade200),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
   
   @override
   void initState() {
     super.initState();
+    _loadAvailability();
+  }
+
+  Future<void> _loadAvailability() async {
+    try {
+      final availability = await _productAvailability.getAvailability();
+      if (!mounted) return;
+      setState(() {
+        _availability = availability;
+        _isLoadingAvailability = false;
+      });
+
+      // If plans are already present, re-filter them.
+      if (_dynamicPlans != null && _dynamicPlans!.isNotEmpty) {
+        _applyAvailabilityToPlans();
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _availability = null;
+        _isLoadingAvailability = false;
+      });
+    }
+  }
+
+  List<Plan> _filterPlansByAvailability(List<Plan> plans) {
+    final availability = _availability;
+    if (availability == null) return plans;
+    return plans
+        .where((p) => ProductCatalogAvailabilityEngine.isTierEnabled(availability, p.type.name))
+        .toList();
+  }
+
+  void _applyAvailabilityToPlans() {
+    if (_dynamicPlans == null) return;
+    final filtered = _filterPlansByAvailability(_dynamicPlans!);
+    if (filtered.isEmpty) return;
+
+    // Keep selection stable if possible.
+    final selected = (_selectedPlanIndex >= 0 && _selectedPlanIndex < _dynamicPlans!.length)
+        ? _dynamicPlans![_selectedPlanIndex]
+        : null;
+
+    final nextIndex = selected == null
+        ? 0
+        : filtered.indexWhere((p) => p.type == selected.type);
+
+    setState(() {
+      _dynamicPlans = filtered;
+      _selectedPlanIndex = nextIndex >= 0 ? nextIndex : 0;
+    });
   }
   
   @override
@@ -42,17 +196,26 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     if (riskScore != null && owner != null) {
       try {
         final quoteEngine = QuoteEngine();
+        final ageYears = _resolveAgeYearsFromRoute();
         final plans = quoteEngine.generateQuote(
           riskScore: riskScore,
           zipCode: owner.address.zipCode,
           state: owner.address.state,
           numberOfPets: 1,
+          ageYears: ageYears,
         );
+
+        final filtered = _filterPlansByAvailability(plans);
+        // Recommended defaults: Standard if available, else first.
+        final recommendedPlanType = filtered.any((p) => p.type == PlanType.standard)
+            ? PlanType.standard
+            : filtered.first.type;
+        final recommendedIndex = filtered.indexWhere((p) => p.type == recommendedPlanType);
         
         setState(() {
-          _dynamicPlans = plans;
+          _dynamicPlans = filtered;
           _isLoadingPlans = false;
-          _selectedPlanIndex = _getRecommendedPlanIndex(riskScore);
+          _selectedPlanIndex = recommendedIndex >= 0 ? recommendedIndex : 0;
         });
       } catch (e) {
         setState(() => _isLoadingPlans = false);
@@ -60,6 +223,411 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     } else {
       setState(() => _isLoadingPlans = false);
     }
+  }
+
+  String _formatAnnualLimit(Plan plan) {
+    if (plan.isUnlimitedAnnualCoverage || plan.maxAnnualCoverage.isInfinite) return 'Unlimited';
+    return '\$${(plan.maxAnnualCoverage / 1000).toStringAsFixed(0)}k';
+  }
+
+  void _updateSelectedPlan(Plan updated) {
+    if (_dynamicPlans == null) return;
+    setState(() {
+      _dynamicPlans = List<Plan>.from(_dynamicPlans!);
+      _dynamicPlans![_selectedPlanIndex] = updated;
+    });
+  }
+
+  int? _resolveAgeYearsFromRoute() {
+    final args = _routeArguments;
+    if (args == null) return null;
+
+    // Common shapes: {pet: Pet}, {petData: Map}, {ageYears: int}, etc.
+    dynamic v = args['ageYears'] ?? args['petAgeYears'] ?? args['petAge'];
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v.trim());
+
+    final pet = args['pet'] ?? args['petData'] ?? args['pet_profile'] ?? args['profile'];
+    if (pet is Map) {
+      final raw = pet['ageYears'] ?? pet['age_years'] ?? pet['age'] ?? pet['petAgeYears'];
+      if (raw is num) return raw.toInt();
+      if (raw is String) return int.tryParse(raw.trim());
+    } else {
+      // Best-effort reflective reads; avoid hard dependency on Pet model.
+      try {
+        final dynamic years = (pet as dynamic).ageYears;
+        if (years is num) return years.toInt();
+      } catch (_) {}
+      try {
+        final dynamic years = (pet as dynamic).ageInYears;
+        if (years is num) return years.toInt();
+      } catch (_) {}
+    }
+
+    return null;
+  }
+
+  Widget _buildCustomizationPanel(Plan plan) {
+    // Only for dynamic Plan (not static fallback)
+    final selectedAddOns = plan.selectedAddOns
+        .map((s) => AddOnType.values.firstWhere(
+              (e) => e.name == s || e.toString() == s,
+              orElse: () => AddOnType.examFees,
+            ))
+        .toSet();
+
+    int? currentAnnualLimit;
+    if (plan.isUnlimitedAnnualCoverage || plan.maxAnnualCoverage.isInfinite) {
+      currentAnnualLimit = null;
+    } else {
+      currentAnnualLimit = plan.maxAnnualCoverage.toInt();
+    }
+
+    final ageYears = _resolveAgeYearsFromRoute();
+
+    final allowedReimbursements = ProductCatalog.reimbursementOptionsFor(riskBand: plan.riskBand);
+    final allowedDeductibles = ProductCatalog.annualDeductibleOptionsFor(riskBand: plan.riskBand);
+    final allowedAnnualLimits = ProductCatalog.annualLimitOptionsFor(
+      riskBand: plan.riskBand,
+      ageYears: ageYears,
+    );
+
+    int currentReimbursement = plan.reimbursementPercent;
+    if (!allowedReimbursements.contains(currentReimbursement)) {
+      currentReimbursement = allowedReimbursements.isEmpty ? 70 : allowedReimbursements.last;
+    }
+
+    int currentDeductible = plan.annualDeductible.toInt();
+    if (!allowedDeductibles.contains(currentDeductible)) {
+      currentDeductible = allowedDeductibles.isEmpty ? 500 : allowedDeductibles.first;
+    }
+
+    // If current selection is no longer allowed, coerce to max finite.
+    if (!allowedAnnualLimits.contains(currentAnnualLimit)) {
+      final coerced = allowedAnnualLimits.whereType<int>().isEmpty
+          ? 10000
+          : (allowedAnnualLimits.whereType<int>().toList()..sort()).last;
+      currentAnnualLimit = coerced;
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Customize coverage',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: ClovaraColors.forest,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          if (_isLoadingAvailability)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Loading available products…',
+                    style: TextStyle(color: Colors.grey.shade700, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+
+          // Reimbursement
+          _buildInlineDropdown<int>(
+            label: 'Reimbursement',
+            value: currentReimbursement,
+            options: allowedReimbursements,
+            display: (v) => '$v%',
+            onChanged: (v) {
+              final engine = QuoteEngine();
+              final updated = engine.buildPlan(
+                tier: plan.type,
+                basePremium: plan.pricingBasePremium,
+                riskBand: plan.riskBand,
+                numberOfPets: plan.numberOfPets,
+                discount: plan.multiPetDiscount,
+                regionalMultiplier: plan.pricingBreakdown?.regionalMultiplier ?? 1.0,
+                regionalKey: plan.pricingBreakdown?.regionalKey ?? 'DEFAULT',
+                ageYears: ageYears,
+                reimbursementPercent: v,
+                annualDeductible: currentDeductible,
+                annualLimit: currentAnnualLimit,
+                addOns: selectedAddOns.toList(),
+              );
+              _updateSelectedPlan(updated);
+            },
+          ),
+
+          const SizedBox(height: 10),
+
+          // Deductible
+          _buildInlineDropdown<int>(
+            label: 'Annual deductible',
+            value: currentDeductible,
+            options: allowedDeductibles,
+            display: (v) => '\$$v',
+            onChanged: (v) {
+              final engine = QuoteEngine();
+              final updated = engine.buildPlan(
+                tier: plan.type,
+                basePremium: plan.pricingBasePremium,
+                riskBand: plan.riskBand,
+                numberOfPets: plan.numberOfPets,
+                discount: plan.multiPetDiscount,
+                regionalMultiplier: plan.pricingBreakdown?.regionalMultiplier ?? 1.0,
+                regionalKey: plan.pricingBreakdown?.regionalKey ?? 'DEFAULT',
+                ageYears: ageYears,
+                reimbursementPercent: currentReimbursement,
+                annualDeductible: v,
+                annualLimit: currentAnnualLimit,
+                addOns: selectedAddOns.toList(),
+              );
+              _updateSelectedPlan(updated);
+            },
+          ),
+
+          const SizedBox(height: 10),
+
+          // Annual limit
+          _buildInlineDropdown<int?>(
+            label: 'Annual limit',
+            value: currentAnnualLimit,
+            options: allowedAnnualLimits,
+            display: (v) => v == null ? 'Unlimited' : '\$${(v / 1000).toStringAsFixed(0)}k',
+            onChanged: (v) {
+              final engine = QuoteEngine();
+              final updated = engine.buildPlan(
+                tier: plan.type,
+                basePremium: plan.pricingBasePremium,
+                riskBand: plan.riskBand,
+                numberOfPets: plan.numberOfPets,
+                discount: plan.multiPetDiscount,
+                regionalMultiplier: plan.pricingBreakdown?.regionalMultiplier ?? 1.0,
+                regionalKey: plan.pricingBreakdown?.regionalKey ?? 'DEFAULT',
+                ageYears: ageYears,
+                reimbursementPercent: currentReimbursement,
+                annualDeductible: currentDeductible,
+                annualLimit: v,
+                addOns: selectedAddOns.toList(),
+              );
+              _updateSelectedPlan(updated);
+            },
+          ),
+
+          const SizedBox(height: 14),
+
+          Text(
+            'Add-ons',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: ClovaraColors.forest,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: AddOn.all
+                .where((addon) {
+                  final availability = _availability;
+                  if (availability == null) return true;
+                  return ProductCatalogAvailabilityEngine.isAddOnEnabled(availability, addon.type.name);
+                })
+                .map((addon) {
+              final selected = selectedAddOns.contains(addon.type);
+              return FilterChip(
+                selected: selected,
+                label: Text(addon.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                onSelected: (v) {
+                  final next = Set<AddOnType>.from(selectedAddOns);
+                  if (v) {
+                    next.add(addon.type);
+                  } else {
+                    next.remove(addon.type);
+                  }
+
+                  final engine = QuoteEngine();
+                  final updated = engine.buildPlan(
+                    tier: plan.type,
+                    basePremium: plan.pricingBasePremium,
+                    riskBand: plan.riskBand,
+                    numberOfPets: plan.numberOfPets,
+                    discount: plan.multiPetDiscount,
+                    regionalMultiplier: plan.pricingBreakdown?.regionalMultiplier ?? 1.0,
+                    regionalKey: plan.pricingBreakdown?.regionalKey ?? 'DEFAULT',
+                    ageYears: ageYears,
+                    reimbursementPercent: plan.reimbursementPercent,
+                    annualDeductible: plan.annualDeductible.toInt(),
+                    annualLimit: currentAnnualLimit,
+                    addOns: next.toList(),
+                  );
+                  _updateSelectedPlan(updated);
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPricingBreakdownSection(Plan plan, Color color) {
+    final breakdown = plan.pricingBreakdown;
+    if (breakdown == null) return const SizedBox.shrink();
+  final versionLabel = breakdown.pricingVersion.startsWith('v')
+    ? breakdown.pricingVersion
+    : 'v${breakdown.pricingVersion}';
+
+    String fmtMoney(double v) => '\$${v.toStringAsFixed(2)}';
+
+    final addOns = breakdown.addOnMonthlyLoads.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          title: Text(
+            'Pricing breakdown',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: ClovaraColors.forest),
+          ),
+          subtitle: Text(
+            '$versionLabel • ${breakdown.effectiveDateIso}',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w600),
+          ),
+          children: [
+            _buildBreakdownRow('Base risk rate', fmtMoney(breakdown.baseRiskRate)),
+            _buildBreakdownRow('Risk band', '${breakdown.riskBand.name} (×${breakdown.riskBandMultiplier.toStringAsFixed(2)})'),
+            _buildBreakdownRow('Region', '${breakdown.regionalKey} (×${breakdown.regionalMultiplier.toStringAsFixed(2)})'),
+            _buildBreakdownRow('Multi-pet discount', '${(breakdown.multiPetDiscount * 100).toStringAsFixed(0)}%'),
+            _buildBreakdownRow('Pricing base premium', fmtMoney(breakdown.pricingBasePremium)),
+            _buildBreakdownRow('Reimbursement', '${breakdown.reimbursementPercent}% (×${breakdown.reimbursementFactor.toStringAsFixed(2)})'),
+            _buildBreakdownRow('Deductible', '\$${breakdown.annualDeductible} (×${breakdown.deductibleFactor.toStringAsFixed(2)})'),
+            _buildBreakdownRow(
+              'Annual limit',
+              '${breakdown.annualLimit == null ? 'Unlimited' : '\$${breakdown.annualLimit}'} (×${breakdown.annualLimitFactor.toStringAsFixed(2)})',
+            ),
+            const SizedBox(height: 8),
+            _buildBreakdownRow('Premium before add-ons', fmtMoney(breakdown.premiumBeforeAddOns)),
+            if (addOns.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Add-ons', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.grey.shade800)),
+              const SizedBox(height: 6),
+              ...addOns.map((e) => _buildBreakdownRow(e.key, '+ ${fmtMoney(e.value)}')),
+            ],
+            const SizedBox(height: 8),
+            _buildBreakdownRow('Add-on total', '+ ${fmtMoney(breakdown.addOnTotal)}'),
+            if (breakdown.minPremiumApplied)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 14, color: color),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Minimum premium applied',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 10),
+            Container(height: 1, color: Colors.grey.shade200),
+            const SizedBox(height: 10),
+            _buildBreakdownRow(
+              'Final monthly premium',
+              fmtMoney(breakdown.finalMonthlyPremium),
+              valueStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBreakdownRow(String label, String value, {TextStyle? valueStyle}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            textAlign: TextAlign.right,
+            style: valueStyle ?? const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInlineDropdown<T>({
+    required String label,
+    required T value,
+    required List<T> options,
+    required String Function(T v) display,
+    required void Function(T v) onChanged,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w600),
+          ),
+        ),
+        DropdownButton<T>(
+          value: value,
+          underline: const SizedBox.shrink(),
+          items: options
+              .map(
+                (o) => DropdownMenuItem<T>(
+                  value: o,
+                  child: Text(display(o), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+                ),
+              )
+              .toList(),
+          onChanged: (v) {
+            if (v == null) return;
+            onChanged(v);
+          },
+        ),
+      ],
+    );
   }
   
   int _getRecommendedPlanIndex(RiskScore riskScore) {
@@ -84,18 +652,18 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       monthlyPrice: 29.99,
       annualDeductible: 500,
       reimbursement: 70,
-      annualLimit: 5000,
+      annualLimit: 10000,
       features: [
         'Accidents & Illnesses',
         '70% Reimbursement',
-        '\$5,000 Annual Limit',
+        '\$10,000 Annual Limit',
         '\$500 Deductible',
         '24/7 Vet Helpline',
       ],
       color: ClovaraColors.sunset,
     ),
     PlanData(
-      name: 'Plus',
+      name: 'Standard',
       monthlyPrice: 49.99,
       annualDeductible: 250,
       reimbursement: 80,
@@ -113,16 +681,16 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       isPopular: true,
     ),
     PlanData(
-      name: 'Elite',
+      name: 'Premium',
       monthlyPrice: 79.99,
-      annualDeductible: 100,
+      annualDeductible: 250,
       reimbursement: 90,
       annualLimit: 20000,
       features: [
         'Accidents & Illnesses',
         '90% Reimbursement',
         '\$20,000 Annual Limit',
-        '\$100 Deductible',
+        '\$250 Deductible',
         'Wellness Coverage Included',
         'Dental Coverage',
         '24/7 Vet Helpline',
@@ -253,7 +821,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         _buildPlanTabs(),
         Expanded(
           child: SingleChildScrollView(
-            child: _buildPlanDetails(_plans[_selectedPlanIndex], _selectedPlanIndex),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildExclusionsCallout(),
+                if (_plans[_selectedPlanIndex] is Plan)
+                  _buildCustomizationPanel(_plans[_selectedPlanIndex] as Plan),
+                _buildPlanDetails(_plans[_selectedPlanIndex], _selectedPlanIndex),
+              ],
+            ),
           ),
         ),
         _buildContinueButton(),
@@ -280,6 +856,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             ),
           ),
         ),
+        _buildExclusionsCallout(),
         Padding(
           padding: const EdgeInsets.only(bottom: 24, left: 32, right: 32),
           child: Center(
@@ -333,13 +910,12 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   }
   
   Widget _buildPlanDetails(dynamic plan, int index) {
-    final name = plan is Plan ? plan.name : (plan as PlanData).name;
     final price = plan is Plan ? plan.monthlyPremium : (plan as PlanData).monthlyPrice;
     final features = plan is Plan ? plan.features : (plan as PlanData).features;
     final color = plan is PlanData ? plan.color : ClovaraColors.clover;
     final deductible = plan is Plan ? plan.annualDeductible.toInt() : (plan as PlanData).annualDeductible;
     final reimburse = plan is Plan ? (100 - plan.coPayPercentage).toInt() : (plan as PlanData).reimbursement;
-    final limit = plan is Plan ? plan.maxAnnualCoverage.toInt() : (plan as PlanData).annualLimit;
+    final limitLabel = plan is Plan ? _formatAnnualLimit(plan) : '\$${((plan as PlanData).annualLimit / 1000).toStringAsFixed(0)}k';
     final riskScore = _routeArguments?['riskScore'] as RiskScore?;
     final recommended = riskScore != null && index == _getRecommendedPlanIndex(riskScore);
     
@@ -402,11 +978,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             children: [
               _buildStat('$reimburse%', 'Reimbursement', color),
               const SizedBox(width: 16),
-              _buildStat('\$${(limit / 1000).toStringAsFixed(0)}k', 'Annual Limit', color),
+              _buildStat(limitLabel, 'Annual Limit', color),
               const SizedBox(width: 16),
               _buildStat('\$$deductible', 'Deductible', color),
             ],
           ),
+          if (plan is Plan) ...[
+            const SizedBox(height: 18),
+            _buildPricingBreakdownSection(plan, color),
+          ],
           const SizedBox(height: 32),
           Divider(height: 1, color: Colors.grey.shade200),
           const SizedBox(height: 24),
@@ -446,7 +1026,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     final color = plan is PlanData ? plan.color : ClovaraColors.clover;
     final deductible = plan is Plan ? plan.annualDeductible.toInt() : (plan as PlanData).annualDeductible;
     final reimburse = plan is Plan ? (100 - plan.coPayPercentage).toInt() : (plan as PlanData).reimbursement;
-    final limit = plan is Plan ? plan.maxAnnualCoverage.toInt() : (plan as PlanData).annualLimit;
+    final limitLabel = plan is Plan ? _formatAnnualLimit(plan) : '\$${((plan as PlanData).annualLimit / 1000).toStringAsFixed(0)}k';
     final riskScore = _routeArguments?['riskScore'] as RiskScore?;
     final recommended = riskScore != null && index == _getRecommendedPlanIndex(riskScore);
     final selected = _selectedPlanIndex == index;
@@ -524,7 +1104,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             const SizedBox(height: 24),
             _buildCompactStat('$reimburse%', 'Reimbursement', color),
             const SizedBox(height: 12),
-            _buildCompactStat('\$${(limit / 1000).toStringAsFixed(0)}k', 'Annual Limit', color),
+            _buildCompactStat(limitLabel, 'Annual Limit', color),
             const SizedBox(height: 12),
             _buildCompactStat('\$$deductible', 'Deductible', color),
             const SizedBox(height: 24),
@@ -636,6 +1216,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               'pet': _routeArguments?['petData'] ?? _routeArguments?['pet'] ?? {},
               'selectedPlan': _plans[_selectedPlanIndex],
               'riskScore': _routeArguments?['riskScore'],
+              'underwritingCaseId': _routeArguments?['underwritingCaseId'],
+              'exclusions': _routeArguments?['exclusions'] ?? _routeArguments?['excludedConditions'],
+              'underwritingSnapshot': _routeArguments?['underwritingSnapshot'],
             },
           );
         },

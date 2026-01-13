@@ -262,18 +262,31 @@ enum ClaimStatus {
         return ClaimStatus.draft;
       case 'submitted':
         return ClaimStatus.submitted;
+      case 'pending':
+      case 'in_review':
+      case 'in-review':
+      case 'review':
       case 'processing':
         return ClaimStatus.processing;
+      case 'approved':
+        // Backwards-compatible: older docs may mark approval directly.
+        // Prefer 'settling' (payment in progress) semantics.
+        return ClaimStatus.settling;
       case 'settling':
         return ClaimStatus.settling;
+      case 'paid':
+      case 'completed':
       case 'settled':
         return ClaimStatus.settled;
+      case 'rejected':
       case 'denied':
         return ClaimStatus.denied;
       case 'cancelled':
+      case 'canceled':
         return ClaimStatus.cancelled;
       default:
-        throw ArgumentError('Invalid claim status: $value');
+        // Be defensive: treat unknown statuses as processing.
+        return ClaimStatus.processing;
     }
   }
 

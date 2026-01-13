@@ -1,0 +1,6 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./tools/quote_collector" }
+  ]
+}

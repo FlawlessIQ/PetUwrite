@@ -11,6 +11,7 @@
 
 const functions = require("firebase-functions/v2");
 const admin = require("firebase-admin");
+const {FieldValue} = require("firebase-admin/firestore");
 const {Storage} = require("@google-cloud/storage");
 const https = require("https");
 
@@ -153,7 +154,7 @@ exports.exportAITrainingBatch = functions.https.onCall(async (data, context) => 
     await batchRef.update({
       status: "exported",
       exportPath: `gs://${BUCKET_NAME}/${gcsPath}`,
-      exportedAt: admin.firestore.FieldValue.serverTimestamp(),
+      exportedAt: FieldValue.serverTimestamp(),
       exportedBy: context.auth.uid,
     });
 
@@ -167,7 +168,7 @@ exports.exportAITrainingBatch = functions.https.onCall(async (data, context) => 
       recordCount: statistics.totalRecords,
       labelDistribution: statistics.labelDistribution,
       avgConfidence: statistics.avgConfidence,
-      exportedAt: admin.firestore.FieldValue.serverTimestamp(),
+      exportedAt: FieldValue.serverTimestamp(),
       exportedBy: context.auth.uid,
     });
 
@@ -438,7 +439,7 @@ exports.onBatchCompleted = functions.firestore.onDocumentUpdated(
           await db.collection(BATCHES_COLLECTION).doc(batchId).update({
             status: "export_failed",
             exportError: error.message,
-            exportErrorAt: admin.firestore.FieldValue.serverTimestamp(),
+            exportErrorAt: FieldValue.serverTimestamp(),
           });
         }
       }
@@ -527,7 +528,7 @@ async function exportBatchInternal(batchId, triggeredBy = "system") {
   await batchRef.update({
     status: "exported",
     exportPath: `gs://${BUCKET_NAME}/${gcsPath}`,
-    exportedAt: admin.firestore.FieldValue.serverTimestamp(),
+    exportedAt: FieldValue.serverTimestamp(),
     exportedBy: triggeredBy,
   });
 
@@ -541,7 +542,7 @@ async function exportBatchInternal(batchId, triggeredBy = "system") {
     recordCount: statistics.totalRecords,
     labelDistribution: statistics.labelDistribution,
     avgConfidence: statistics.avgConfidence,
-    exportedAt: admin.firestore.FieldValue.serverTimestamp(),
+    exportedAt: FieldValue.serverTimestamp(),
     exportedBy: triggeredBy,
   });
 

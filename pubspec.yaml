@@ -65,8 +65,6 @@ dependencies:
   fl_chart: ^0.68.0
   
   # Environment variables
-  flutter_dotenv: ^5.1.0
-  
   # UUID generation for idempotency
   uuid: ^4.2.1
   
@@ -113,7 +111,6 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - .env
     - assets/
     - assets/images/
     - assets/clovara_ui_kit_svg/

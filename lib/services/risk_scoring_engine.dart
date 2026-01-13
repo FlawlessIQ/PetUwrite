@@ -45,7 +45,9 @@ class RiskScoringEngine {
     UnderwritingRulesEngine? rulesEngine,
   }) : _aiService = aiService,
        _firestore = firestore ?? FirebaseFirestore.instance,
-       _rulesEngine = rulesEngine ?? UnderwritingRulesEngine(firestore: firestore);
+       _rulesEngine = rulesEngine ??
+           UnderwritingRulesEngine(firestore: firestore ?? FirebaseFirestore.instance);
+
   /// Calculate comprehensive risk score for a pet
   /// Combines traditional actuarial methods with AI-powered analysis
   /// Automatically stores result in Firestore if quoteId is provided
@@ -188,7 +190,7 @@ class RiskScoringEngine {
     );
   }
   
-  /// Call external AI API (GPT-4o or Vertex AI) to get enhanced risk analysis
+  /// Call external AI API (gpt-5.2 or Vertex AI) to get enhanced risk analysis
   /// Returns AI-generated insights, risk factors, and recommendations
   Future<String> _getAIRiskAnalysis({
     required Pet pet,

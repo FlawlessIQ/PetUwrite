@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/quote_engine.dart';
+import '../services/product_catalog.dart';
 
 /// Widget to display insurance plan options as cards
 class PlanCards extends StatefulWidget {
@@ -75,7 +76,8 @@ class _PlanCardsState extends State<PlanCards> {
   Widget _buildPlanCard(Plan plan, int index) {
     final isSelected = widget.selectedPlan == plan;
     final isHovered = _hoveredIndex == index;
-    final isPlusOrElite = plan.type == PlanType.plus || plan.type == PlanType.elite;
+    final isHighlighted =
+        plan.type == PlanType.plus || plan.type == PlanType.premium || plan.type == PlanType.unlimited;
     
     return MouseRegion(
       onEnter: (_) => setState(() => _hoveredIndex = index),
@@ -97,19 +99,24 @@ class _PlanCardsState extends State<PlanCards> {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              gradient: isPlusOrElite
+              gradient: isHighlighted
                   ? LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: plan.type == PlanType.elite
-                          ? [
-                              Colors.purple.shade50,
-                              Colors.blue.shade50,
-                            ]
-                          : [
-                              Colors.blue.shade50,
-                              Colors.green.shade50,
-                            ],
+                      colors: switch (plan.type) {
+                        PlanType.unlimited => [
+                            Colors.amber.shade50,
+                            Colors.orange.shade50,
+                          ],
+                        PlanType.premium => [
+                            Colors.purple.shade50,
+                            Colors.blue.shade50,
+                          ],
+                        _ => [
+                            Colors.blue.shade50,
+                            Colors.green.shade50,
+                          ],
+                      },
                     )
                   : null,
             ),
@@ -139,13 +146,21 @@ class _PlanCardsState extends State<PlanCards> {
         headerColor = Colors.blue;
         icon = Icons.shield_outlined;
         break;
-      case PlanType.plus:
+      case PlanType.standard:
         headerColor = Colors.green;
+        icon = Icons.verified_user_outlined;
+        break;
+      case PlanType.plus:
+        headerColor = Colors.teal;
         icon = Icons.shield;
         break;
-      case PlanType.elite:
+      case PlanType.premium:
         headerColor = Colors.purple;
         icon = Icons.workspace_premium;
+        break;
+      case PlanType.unlimited:
+        headerColor = Colors.orange.shade800;
+        icon = Icons.all_inclusive;
         break;
     }
     
@@ -180,7 +195,7 @@ class _PlanCardsState extends State<PlanCards> {
             ),
             textAlign: TextAlign.center,
           ),
-          if (plan.type == PlanType.plus)
+          if (plan.type == PlanType.standard)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Chip(

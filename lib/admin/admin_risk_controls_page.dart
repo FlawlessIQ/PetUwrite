@@ -628,7 +628,7 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
       icon: Icons.auto_awesome,
       children: [
         Text(
-          'Customize the system prompt sent to GPT-4o for risk analysis',
+          'Customize the system prompt sent to GPT-5.2 for risk analysis',
           style: ClovaraTypography.bodySmall.copyWith(
             color: ClovaraColors.forest.withOpacity(0.7),
           ),

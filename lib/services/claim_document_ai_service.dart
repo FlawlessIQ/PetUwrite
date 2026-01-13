@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../ai/ai_service.dart';
 
 /// AI-powered document analysis for claim verification
@@ -27,12 +26,11 @@ class ClaimDocumentAIService {
     OCRProvider ocrProvider = OCRProvider.googleVision,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _gptService = gptService ?? GPTService(
-          apiKey: dotenv.env['OPENAI_API_KEY'] ?? '',
-          model: 'gpt-4o', // Use GPT-4o for vision + analysis
+          model: 'gpt-5.2',
         ),
-        _googleVisionApiKey = googleVisionApiKey ?? dotenv.env['GOOGLE_VISION_API_KEY'],
-        _awsAccessKey = awsAccessKey ?? dotenv.env['AWS_ACCESS_KEY_ID'],
-        _awsSecretKey = awsSecretKey ?? dotenv.env['AWS_SECRET_ACCESS_KEY'],
+        _googleVisionApiKey = googleVisionApiKey,
+        _awsAccessKey = awsAccessKey,
+        _awsSecretKey = awsSecretKey,
         _ocrProvider = ocrProvider;
 
   /// Analyze claim document (PDF, JPG, PNG)
@@ -73,13 +71,13 @@ class ClaimDocumentAIService {
       );
       print('✅ Validation: ${amountValidation['status']} (${amountValidation['message']})');
 
-      // Step 4: Send to GPT-4o for contextual analysis
-      print('🤖 Step 4: Running GPT-4o analysis...');
+      // Step 4: Send to gpt-5.2 for contextual analysis
+      print('🤖 Step 4: Running gpt-5.2 analysis...');
       final gptAnalysis = await _analyzeWithGPT4(
         extractedText: extractedText,
         parsedData: parsedData,
       );
-      print('✅ GPT-4o analysis complete. Category: ${gptAnalysis['category']}');
+      print('✅ gpt-5.2 analysis complete. Category: ${gptAnalysis['category']}');
 
       // Step 5: Calculate overall confidence score
       final confidenceScore = _calculateConfidenceScore(
@@ -468,7 +466,7 @@ License #: CA-VET-98765
     };
   }
 
-  /// Analyze document with GPT-4o for legitimacy and classification
+  /// Analyze document with gpt-5.2 for legitimacy and classification
   Future<Map<String, dynamic>> _analyzeWithGPT4({
     required String extractedText,
     required Map<String, dynamic> parsedData,

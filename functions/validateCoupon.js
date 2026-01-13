@@ -33,21 +33,23 @@
  * }
  */
 
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-const stripe = require("stripe")(functions.config().stripe.secret_key);
+const {onRequest} = require("firebase-functions/v2/https");
+const Stripe = require("stripe");
 
-exports.validateCoupon = functions.https.onRequest(async (req, res) => {
-  // Enable CORS
-  res.set("Access-Control-Allow-Origin", "*");
-  res.set("Access-Control-Allow-Methods", "POST");
-  res.set("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    res.status(204).send("");
-    return;
+function getStripeClient() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error(
+      "Stripe secret key is not configured. Set STRIPE_SECRET_KEY env var.",
+    );
   }
+  return Stripe(secretKey);
+}
 
+exports.validateCoupon = onRequest({
+  cors: true,
+}, async (req, res) => {
+  // Enable CORS
   if (req.method !== "POST") {
     res.status(405).json({error: "Method not allowed"});
     return;
@@ -66,6 +68,7 @@ exports.validateCoupon = functions.https.onRequest(async (req, res) => {
 
     // Retrieve the coupon from Stripe
     try {
+      const stripe = getStripeClient();
       const coupon = await stripe.coupons.retrieve(couponCode);
 
       // Check if coupon is valid

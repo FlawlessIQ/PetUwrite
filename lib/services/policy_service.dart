@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../models/checkout_state.dart';
+import '../models/policy_exclusion.dart';
 import '../models/pet.dart';
 import '../services/quote_engine.dart';
 
@@ -18,6 +19,9 @@ class PolicyService {
     required Plan plan,
     required PaymentInfo payment,
     required String policyNumber,
+    String? underwritingCaseId,
+    List<PolicyExclusion> exclusions = const [],
+    Map<String, dynamic>? underwritingSnapshot,
   }) async {
     try {
       final user = _auth.currentUser;
@@ -43,6 +47,9 @@ class PolicyService {
         expirationDate: expirationDate,
         createdAt: now,
         status: 'active',
+        underwritingCaseId: underwritingCaseId,
+        exclusions: exclusions,
+        underwritingSnapshot: underwritingSnapshot,
       );
 
       // Save to Firestore

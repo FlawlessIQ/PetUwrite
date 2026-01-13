@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/checkout_state.dart';
+import '../models/policy_exclusion.dart';
 import '../services/policy_service.dart';
+import '../services/underwriting_case_service.dart';
 
 /// Step 4: Confirmation screen with policy details and PDF download
 class ConfirmationScreen extends StatefulWidget {
@@ -57,6 +59,65 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
       // Generate policy number
       final policyNumber = _generatePolicyNumber();
       print('🔍 Generated policy number: $policyNumber');
+
+      // Phase 5: Fetch underwriting decision snapshot if caseId present.
+      // Otherwise, use the snapshot carried forward from medical underwriting.
+      Map<String, dynamic>? underwritingSnapshot = provider.underwritingSnapshot;
+      List<PolicyExclusion>? decisionExclusions;
+      final caseId = provider.underwritingCaseId;
+      if (caseId != null && caseId.isNotEmpty) {
+        final uwService = UnderwritingCaseService();
+        final decision = await uwService.getCurrentDecision(caseId);
+        if (decision == null) {
+          throw Exception(
+            'Underwriting decision missing. Please return to underwriting to complete review, then try again.',
+          );
+        }
+
+        decisionExclusions = decision.exclusions;
+        underwritingSnapshot = {
+          'caseId': caseId,
+          'decision': decision.toJson(),
+          'capturedAt': DateTime.now().toIso8601String(),
+        };
+      }
+
+      final hasDeclaredConditions = (provider.pet?.preExistingConditions ?? const <String>[])
+          .any((c) => c.trim().isNotEmpty && c.trim() != 'None');
+
+      if ((hasDeclaredConditions || provider.exclusions.isNotEmpty) &&
+          underwritingSnapshot == null) {
+        throw Exception(
+          'Underwriting decision missing. Please return to underwriting to complete review, then try again.',
+        );
+      }
+
+      // Stamp exclusions acknowledgement evidence (if present) onto snapshot.
+      if (underwritingSnapshot != null) {
+        final updated = Map<String, dynamic>.from(underwritingSnapshot);
+        final ack = provider.underwritingSnapshot?['exclusionsAcknowledgements'];
+        if (ack is Map) {
+          updated['exclusionsAcknowledgements'] = ack;
+        }
+        final ackAt = provider.underwritingSnapshot?['exclusionsAcknowledgedAt'];
+        if (ackAt != null) {
+          updated['exclusionsAcknowledgedAt'] = ackAt;
+        }
+        underwritingSnapshot = updated;
+      }
+
+      // Persist pricing / coverage selection evidence at bind time.
+      // This is separate from the plan persisted on the policy, and supports auditability.
+      final selectedPlan = provider.selectedPlan;
+      if (selectedPlan != null) {
+        final updated = Map<String, dynamic>.from(underwritingSnapshot ?? <String, dynamic>{});
+        updated['pricingAtBind'] = {
+          'capturedAt': DateTime.now().toIso8601String(),
+          'plan': selectedPlan.toJson(),
+          'pricingBreakdown': selectedPlan.pricingBreakdown?.toJson(),
+        };
+        underwritingSnapshot = updated;
+      }
       
       // Create policy document
       final policy = await _policyService.createPolicy(
@@ -65,6 +126,9 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
         plan: provider.selectedPlan!,
         payment: provider.paymentInfo!,
         policyNumber: policyNumber,
+        underwritingCaseId: caseId,
+        exclusions: decisionExclusions ?? provider.exclusions,
+        underwritingSnapshot: underwritingSnapshot,
       );
 
       // Update provider with policy
@@ -655,7 +719,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
               label: 'OPEN',
               textColor: Colors.white,
               onPressed: () {
-                // Open PDF viewer
+                print('PDF URL: $pdfUrl');
               },
             ),
           ),

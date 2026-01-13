@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/claim.dart';
+import 'claims_document_uploader.dart';
 
 /// Exception thrown when concurrent modification is detected
 class ConcurrentModificationException implements Exception {
@@ -633,14 +634,20 @@ class ClaimsService {
   /// Upload claim document to Firebase Storage (for mobile using file path)
   Future<String> uploadClaimDocument(String filePath, String claimId) async {
     try {
-      // For now, return a mock URL
-      // In production, you'd use Firebase Storage:
-      // final storageRef = FirebaseStorage.instance.ref();
-      // final fileRef = storageRef.child('claims/$claimId/${DateTime.now().millisecondsSinceEpoch}.jpg');
-      // await fileRef.putFile(File(filePath));
-      // return await fileRef.getDownloadURL();
-      
-      return 'https://storage.googleapis.com/pet-underwriter-ai/claims/$claimId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final storageRef = FirebaseStorage.instance.ref();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = filePath.split('/').last;
+      final fileRef = storageRef.child('claims/$claimId/$timestamp-$fileName');
+
+      await uploadFileToStorageRef(
+        fileRef,
+        filePath,
+        metadata: SettableMetadata(
+          contentType: _getContentType(fileName),
+        ),
+      );
+
+      return await fileRef.getDownloadURL();
     } catch (e) {
       throw Exception('Failed to upload document: $e');
     }

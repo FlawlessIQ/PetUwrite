@@ -1,0 +1,29 @@
+/**
+ * Minimal Cloud Functions export for emulators.
+ *
+ * Purpose:
+ * - Keep emulator startup stable and fast.
+ * - Avoid loading legacy modules that rely on deprecated runtime config.
+ */
+
+const openaiProxy = require("./openaiProxy");
+const claimsReconciliation = require("./claimsReconciliation");
+
+const {onCall} = require("firebase-functions/v2/https");
+
+// Basic health check for emulator debugging.
+exports.ping = onCall(async () => ({ok: true, emulated: true}));
+
+// Claims pipeline (E2E)
+exports.processClaimDecision = openaiProxy.processClaimDecision;
+exports.processClaimPayout = claimsReconciliation.processClaimPayout;
+
+// Useful helpers for local ops/debug (safe, no external dependencies)
+exports.retryFailedOperation = claimsReconciliation.retryFailedOperation;
+
+// Keep these available for smoke-testing public unauth flows if needed
+const underwritingRulesPublic = require("./underwritingRulesPublic");
+exports.getUnderwritingRulesPublic = underwritingRulesPublic.getUnderwritingRulesPublic;
+
+const productCatalogPublic = require("./productCatalogPublic");
+exports.getProductCatalogPublic = productCatalogPublic.getProductCatalogPublic;

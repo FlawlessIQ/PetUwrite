@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:intl/intl.dart';
 import '../../models/claim.dart';
 import '../../services/claim_document_ai_service.dart';
@@ -1336,14 +1337,35 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
         });
       });
 
+      // If approved, kick off server-side payout processing.
+      if (_selectedDecision == 'approve') {
+        try {
+          final callable = FirebaseFunctions.instance.httpsCallable('processClaimPayout');
+          await callable.call({
+            'claimId': widget.claim.claimId,
+          });
+        } catch (e) {
+          // Don't block the admin's decision; reconciliation/retries can recover.
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Payout initiation failed: $e'),
+                backgroundColor: ClovaraColors.sunset,
+                duration: const Duration(seconds: 6),
+              ),
+            );
+          }
+        }
+      }
+
       setState(() => _isLoading = false);
 
       // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_selectedDecision == 'approve' 
-                ? 'Claim approved - payout will be processed' 
+            content: Text(_selectedDecision == 'approve'
+                ? 'Claim approved — payout initiated'
                 : 'Decision submitted successfully'),
             backgroundColor: ClovaraColors.kSuccessMint,
           ),

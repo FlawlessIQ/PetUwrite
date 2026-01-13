@@ -16,7 +16,7 @@ class GPTService implements AIService {
   
   GPTService({
     String? apiKey,
-    this.model = 'gpt-4',
+    this.model = 'gpt-5.2',
   }) : apiKey = apiKey ?? '' {
     // API key no longer required since we use Cloud Functions
     print('✅ GPTService initialized with Cloud Functions proxy');
@@ -65,6 +65,8 @@ $text
     
     final response = await generateText(prompt, options: {
       'response_format': {'type': 'json_object'},
+      // Structured outputs can be large; keep this higher than the chat default.
+      'max_tokens': 2000,
     });
     
     return jsonDecode(response);

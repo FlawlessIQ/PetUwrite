@@ -6,6 +6,7 @@
 
 const functions = require('firebase-functions/v2');
 const admin = require('firebase-admin');
+const {FieldValue} = require('firebase-admin/firestore');
 const nodemailer = require('nodemailer');
 
 const db = admin.firestore();
@@ -88,7 +89,7 @@ exports.sendAnalyticsEmail = functions.https.onCall(async (data, context) => {
       recipientEmail,
       dateRange,
       sharedBy: context.auth.uid,
-      sharedAt: admin.firestore.FieldValue.serverTimestamp(),
+      sharedAt: FieldValue.serverTimestamp(),
       reportType: 'claims_analytics',
     });
 

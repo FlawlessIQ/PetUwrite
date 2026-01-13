@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../models/claim.dart';
 import '../../services/claims_service.dart';
 import '../../services/conversational_ai_service.dart';
-import '../../services/claim_decision_engine.dart';
 import '../../theme/clovara_theme.dart';
 
 /// Conversational AI-powered claim intake screen
@@ -583,36 +584,27 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   /// Trigger AI decision engine for instant review
   Future<void> _triggerAIDecision(Claim claim) async {
     try {
-      // Import at top if not already: import '../services/claim_decision_engine.dart';
-      final engine = ClaimDecisionEngine();
-      
-      // Change status to processing before analysis
-      await FirebaseFirestore.instance
-          .collection('claims')
-          .doc(claim.claimId)
-          .update({
-        'status': ClaimStatus.processing.value,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
       _addAIMessage("Analyzing your claim... This will just take a moment! ⏱️");
 
-      final decision = await engine.processClaimDecision(claim: claim);
-      
+      final callable = FirebaseFunctions.instance.httpsCallable('processClaimDecision');
+      final result = await callable.call({'claimId': claim.claimId});
+      final data = (result.data as Map).cast<String, dynamic>();
+      final decision = (data['decision'] as Map?)?.cast<String, dynamic>() ?? {};
+      final decisionType = (decision['decision'] as String? ?? 'review').toLowerCase();
+      final denialReason = decision['denialReason'] as String?;
+
       // Show result to user based on decision
-      if (decision.finalStatus == ClaimStatus.settled || 
-          decision.aiDecision == AIDecision.approve) {
+      if (decisionType == 'approve') {
         _addAIMessage(
           "🎉 Great news! Your claim has been approved!\n\n"
           "Amount: \$${claim.claimAmount.toStringAsFixed(2)}\n\n"
-          "You'll receive your reimbursement within 3-5 business days. "
+          "We're initiating your reimbursement now. You'll typically receive it within 3-5 business days. "
           "Is there anything else I can help you with? 🐾"
         );
-      } else if (decision.finalStatus == ClaimStatus.denied ||
-                 decision.aiDecision == AIDecision.deny) {
+      } else if (decisionType == 'deny') {
         _addAIMessage(
           "I've reviewed your claim, but unfortunately it doesn't meet our coverage criteria.\n\n"
-          "Reason: ${decision.denyReason ?? 'See policy details'}\n\n"
+          "Reason: ${denialReason ?? 'See policy details'}\n\n"
           "If you believe this is an error, please contact our support team. "
           "Is there anything else I can help you with?"
         );
@@ -625,11 +617,9 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
           "Is there anything else I can help you with today? 🐾"
         );
       }
-      
-      print('✅ AI Decision completed for claim ${claim.claimId}');
-      print('   Decision: ${decision.aiDecision.value}');
-      print('   Confidence: ${decision.aiConfidenceScore}%');
-      print('   Final Status: ${decision.finalStatus.value}');
+
+      print('✅ Server-side AI Decision completed for claim ${claim.claimId}');
+      print('   Decision: $decisionType');
     } catch (e) {
       print('Error triggering AI decision: $e');
       rethrow;
@@ -679,11 +669,24 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
           _isAITyping = true;
         });
 
+        final claimId = _draftClaimId ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+        // Ensure the draft claim exists before uploading documents so
+        // Storage rules can safely enforce ownership via Firestore.
+        _draftClaimId = claimId;
+        await _saveDraft();
+
         // Upload to Firebase Storage
-        final url = await _claimsService.uploadClaimDocument(
-          image.path,
-          _draftClaimId ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        );
+        final url = kIsWeb
+            ? await _claimsService.uploadClaimDocumentFromBytes(
+                await image.readAsBytes(),
+                image.name,
+                claimId,
+              )
+            : await _claimsService.uploadClaimDocument(
+                image.path,
+                claimId,
+              );
 
         setState(() {
           _attachmentUrls.add(url);

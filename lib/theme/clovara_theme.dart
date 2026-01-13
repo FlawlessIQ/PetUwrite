@@ -88,7 +88,6 @@ class ClovaraTheme {
         primary: ClovaraColors.clover,
         secondary: ClovaraColors.sunset,
         surface: ClovaraColors.white,
-        background: ClovaraColors.mist,
         error: ClovaraColors.error,
         onPrimary: Colors.white,
         onSecondary: Colors.white,

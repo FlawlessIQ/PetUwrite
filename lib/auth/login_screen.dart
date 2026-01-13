@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/clovara_theme.dart';
+import '../services/user_session_service.dart';
 
 /// Phone number input formatter
 class PhoneNumberFormatter extends TextInputFormatter {
@@ -109,6 +110,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
       
       // Pop back after successful sign-in to let AuthGate handle navigation
+      // Migrate any locally saved pending quote for this user, then pop back.
+      try {
+        await UserSessionService().migratePendingQuoteOnSignIn();
+      } catch (e) {
+        print('Error migrating pending quote after sign-in: $e');
+      }
+
       if (mounted) {
         Navigator.of(context).pop();
       }

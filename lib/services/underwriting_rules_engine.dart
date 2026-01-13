@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../models/pet.dart';
 import '../models/risk_score.dart';
 
@@ -86,14 +87,21 @@ class EligibilityResult {
 /// ```
 class UnderwritingRulesEngine {
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions? _functions;
+  final bool _enablePublicCallable;
   
   // Cache rules to avoid excessive Firestore reads
   Map<String, dynamic>? _cachedRules;
   DateTime? _cacheTimestamp;
   static const Duration _cacheDuration = Duration(minutes: 15);
 
-  UnderwritingRulesEngine({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  UnderwritingRulesEngine({
+    FirebaseFirestore? firestore,
+    FirebaseFunctions? functions,
+    bool enablePublicCallable = true,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _functions = functions,
+        _enablePublicCallable = enablePublicCallable;
 
   /// Load underwriting rules from Firestore
   /// 
@@ -113,6 +121,34 @@ class UnderwritingRulesEngine {
         _cacheTimestamp != null &&
         DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
       return _cachedRules!;
+    }
+
+    // First try: public callable (works for unauthenticated quote flows).
+    // Falls back to Firestore direct read (useful in dev / when rules are readable).
+    if (_enablePublicCallable) {
+      try {
+        final callable = (_functions ?? FirebaseFunctions.instance)
+            .httpsCallable('getUnderwritingRulesPublic');
+        final result = await callable.call();
+
+        final raw = result.data;
+        final Map<String, dynamic> rules = raw is Map
+            ? raw.map((key, value) => MapEntry(key.toString(), value))
+            : <String, dynamic>{};
+
+        final completeRules = {
+          ..._getDefaultRules(),
+          ...rules,
+        };
+
+        _cachedRules = completeRules;
+        _cacheTimestamp = DateTime.now();
+
+        return completeRules;
+      } catch (e) {
+        // Ignore and try Firestore next.
+        print('ℹ️ getUnderwritingRulesPublic unavailable, falling back to Firestore: $e');
+      }
     }
 
     try {
@@ -170,6 +206,7 @@ class UnderwritingRulesEngine {
         'terminal cancer',
         'metastatic cancer',
       ],
+      'excludableConditions': <String>[],
       'enabled': true,
     };
   }

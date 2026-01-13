@@ -10,12 +10,14 @@ const {onDocumentCreated, onDocumentUpdated} = require("firebase-functions/v2/fi
 const {onRequest} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const {FieldValue} = require("firebase-admin/firestore");
 
 // Initialize Firebase Admin
 admin.initializeApp();
 
 // Import PDF extraction functions
 const pdfExtraction = require("./pdfExtraction");
+const pdfExtractionAlerts = require("./pdfExtractionAlerts");
 
 // Import policy email functions
 // const policyEmails = require("./policyEmails"); // Temporarily disabled due to nodemailer issue
@@ -81,7 +83,7 @@ exports.onQuoteCreated = onDocumentCreated(
           quoteId: quoteId,
           ownerId: quoteData.ownerId,
           petId: quoteData.petId,
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          timestamp: FieldValue.serverTimestamp(),
           metadata: {
             status: quoteData.status,
             numberOfPlans: quoteData.availablePlans?.length || 0,
@@ -191,7 +193,7 @@ exports.onPolicyBound = onDocumentUpdated(
             nextPaymentDate: nextPaymentDate,
             paymentSchedule: paymentSchedule,
             amount: policyData.plan.monthlyPremium,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
             status: "pending",
           });
 
@@ -202,7 +204,7 @@ exports.onPolicyBound = onDocumentUpdated(
             policyNumber: policyData.policyNumber,
             ownerId: policyData.ownerId,
             petId: policyData.petId,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: FieldValue.serverTimestamp(),
             metadata: {
               planTier: policyData.plan.tier,
               monthlyPremium: policyData.plan.monthlyPremium,
@@ -309,7 +311,7 @@ exports.calculateRiskScore = onRequest(
         await admin.firestore().collection("riskScores").add({
           ...mockRiskScore,
           ownerId: ownerId,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
         });
 
         logger.info("Risk score calculated", {
@@ -390,7 +392,7 @@ async function handlePaymentSuccess(paymentIntent) {
     // Update policy status
     await admin.firestore().collection("policies").doc(policyId).update({
       status: "PolicyStatus.active",
-      lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
+      lastPaymentDate: FieldValue.serverTimestamp(),
     });
 
     // Log payment
@@ -400,7 +402,7 @@ async function handlePaymentSuccess(paymentIntent) {
       amount: paymentIntent.amount / 100,
       currency: paymentIntent.currency,
       status: "succeeded",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
   }
 }
@@ -417,7 +419,7 @@ async function handlePaymentFailure(paymentIntent) {
     // Update policy status
     await admin.firestore().collection("policies").doc(policyId).update({
       status: "PolicyStatus.suspended",
-      paymentFailureDate: admin.firestore.FieldValue.serverTimestamp(),
+      paymentFailureDate: FieldValue.serverTimestamp(),
     });
 
     // Log failed payment
@@ -428,7 +430,7 @@ async function handlePaymentFailure(paymentIntent) {
       currency: paymentIntent.currency,
       status: "failed",
       failureReason: paymentIntent.last_payment_error?.message,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
 
     // TODO: Send payment failure notification
@@ -478,7 +480,7 @@ async function handleSubscriptionDeleted(subscription) {
     await admin.firestore().collection("policies").doc(policyId).update({
       status: "PolicyStatus.cancelled",
       subscriptionStatus: "canceled",
-      cancellationDate: admin.firestore.FieldValue.serverTimestamp(),
+      cancellationDate: FieldValue.serverTimestamp(),
     });
   }
 }
@@ -501,6 +503,7 @@ exports.extractPdfText = pdfExtraction.extractPdfText;
 // exports.getOverrideAnalytics = adminDashboard.getOverrideAnalytics;
 exports.processPdfOnUpload = pdfExtraction.processPdfOnUpload;
 exports.getPdfProcessingStatus = pdfExtraction.getPdfProcessingStatus;
+exports.alertPdfExtractionFailures = pdfExtractionAlerts.alertPdfExtractionFailures;
 
 /**
  * Triggered when a quote's eligibility status changes to declined
@@ -553,7 +556,7 @@ exports.onQuoteDeclined = onDocumentUpdated(
             petBreed: quoteData.pet?.breed,
             petAge: quoteData.pet?.age,
             riskScore: quoteData.riskScore?.totalScore,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: FieldValue.serverTimestamp(),
             notificationsSent: {
               slack: result.slack,
               email: result.email,
@@ -593,6 +596,7 @@ exports.updateClaimsAnalyticsCache = claimsAnalytics.updateClaimsAnalyticsCache;
 const claimsReconciliation = require("./claimsReconciliation");
 exports.reconcileClaimsState = claimsReconciliation.reconcileClaimsState;
 exports.retryFailedOperation = claimsReconciliation.retryFailedOperation;
+exports.processClaimPayout = claimsReconciliation.processClaimPayout;
 
 // Export AI training export functions
 const aiTrainingExport = require("./aiTrainingExport");
@@ -613,3 +617,14 @@ exports.chatCompletion = openaiProxy.chatCompletion;
 exports.analyzeRisk = openaiProxy.analyzeRisk;
 exports.analyzeClaimDocument = openaiProxy.analyzeClaimDocument;
 exports.makeClaimDecision = openaiProxy.makeClaimDecision;
+exports.processClaimDecision = openaiProxy.processClaimDecision;
+
+// Export underwriting rules (public callable for unauth quote flows)
+const underwritingRulesPublic = require("./underwritingRulesPublic");
+exports.getUnderwritingRulesPublic =
+  underwritingRulesPublic.getUnderwritingRulesPublic;
+
+// Export product catalog switches (public callable for unauth quote flows)
+const productCatalogPublic = require("./productCatalogPublic");
+exports.getProductCatalogPublic =
+  productCatalogPublic.getProductCatalogPublic;

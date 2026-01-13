@@ -1,11 +1,21 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/pet.dart';
 import '../models/medical_history.dart';
+import '../models/risk_score.dart';
+import '../models/underwriting_case.dart';
+import '../models/underwriting_decision.dart';
+import '../models/underwriting_medical_history.dart';
+import '../models/policy_exclusion.dart';
+import '../services/underwriting_case_service.dart';
+import '../services/underwriting_decision_engine.dart';
+import '../services/underwriting_rules_engine.dart';
 import '../theme/clovara_theme.dart';
+import '../widgets/underwriting_disclosure_dialog.dart';
 import 'plan_selection_screen.dart';
 
 /// Comprehensive medical underwriting screen
-/// 
+///
 /// Collects detailed medical history for pets with pre-existing conditions
 /// Shown between AI analysis and plan selection for high-risk cases
 class MedicalUnderwritingScreen extends StatefulWidget {
@@ -21,34 +31,35 @@ class MedicalUnderwritingScreen extends StatefulWidget {
   });
 
   @override
-  State<MedicalUnderwritingScreen> createState() => _MedicalUnderwritingScreenState();
+  State<MedicalUnderwritingScreen> createState() =>
+      _MedicalUnderwritingScreenState();
 }
 
-class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen> 
+class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     with SingleTickerProviderStateMixin {
   final _pageController = PageController();
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
-  
+
   int _currentStep = 0;
   final int _totalSteps = 3;
-  
+
   // Medical history data
   List<MedicalCondition> _conditions = [];
   List<Medication> _medications = [];
   List<String> _allergies = [];
   List<VetVisit> _vetVisits = [];
-  
+
   // Form controllers
   final _allergyController = TextEditingController();
-  
+
   // Condition form controllers
   final _conditionNameController = TextEditingController();
   final _conditionTreatmentController = TextEditingController();
   final _conditionNotesController = TextEditingController();
   DateTime? _conditionDiagnosisDate;
   String _conditionStatus = 'active';
-  
+
   // Medication form controllers
   final _medicationNameController = TextEditingController();
   final _medicationDosageController = TextEditingController();
@@ -56,7 +67,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   final _medicationPurposeController = TextEditingController();
   DateTime? _medicationStartDate;
   bool _medicationIsOngoing = true;
-  
+
   // Vet visit form controllers
   final _vetNameController = TextEditingController();
   final _clinicNameController = TextEditingController();
@@ -64,7 +75,18 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   final _visitTreatmentController = TextEditingController();
   DateTime? _visitDate;
   String _visitType = 'checkup';
-  
+
+  // Conditions that generally require additional medical details before we can
+  // responsibly show plans (e.g., chronic or historically high-impact).
+  static const Set<String> _highDetailConditions = {
+    'Diabetes',
+    'Heart Disease',
+    'Kidney Disease',
+    'Cancer (history)',
+    'Hip Dysplasia',
+    'Arthritis',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -79,22 +101,24 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     _fadeController.forward();
     _initializeFromPet();
   }
-  
+
   void _initializeFromPet() {
     // Pre-populate with basic condition data if available
     if (widget.pet.preExistingConditions.isNotEmpty) {
       for (final conditionName in widget.pet.preExistingConditions) {
         if (conditionName != 'Pre-existing condition reported') {
-          _conditions.add(MedicalCondition(
-            id: 'cond_${DateTime.now().millisecondsSinceEpoch}',
-            name: conditionName,
-            diagnosisDate: DateTime.now().subtract(const Duration(days: 365)),
-            status: 'active',
-          ));
+          _conditions.add(
+            MedicalCondition(
+              id: 'cond_${DateTime.now().millisecondsSinceEpoch}',
+              name: conditionName,
+              diagnosisDate: DateTime.now().subtract(const Duration(days: 365)),
+              status: 'active',
+            ),
+          );
         }
       }
     }
-    
+
     // Copy existing medical data if available
     if (widget.pet.medicalConditions != null) {
       _conditions = List.from(widget.pet.medicalConditions!);
@@ -109,7 +133,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       _vetVisits = List.from(widget.pet.vetHistory!);
     }
   }
-  
+
   @override
   void dispose() {
     _fadeController.dispose();
@@ -163,10 +187,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            ClovaraColors.forest,
-            ClovaraColors.forest.withOpacity(0.9),
-          ],
+          colors: [ClovaraColors.forest, ClovaraColors.forest.withOpacity(0.9)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -191,13 +212,20 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: ClovaraColors.clover.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -209,11 +237,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.pets,
-                        color: ClovaraColors.clover,
-                        size: 16,
-                      ),
+                      Icon(Icons.pets, color: ClovaraColors.clover, size: 16),
                       const SizedBox(width: 6),
                       Text(
                         widget.pet.name,
@@ -262,7 +286,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             children: List.generate(_totalSteps, (index) {
               final isActive = index == _currentStep;
               final isCompleted = index < _currentStep;
-              
+
               return Expanded(
                 child: Row(
                   children: [
@@ -281,8 +305,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                                   ],
                                 )
                               : null,
-                          color: !(isCompleted || isActive) 
-                              ? const Color(0xFFE0E0E0) 
+                          color: !(isCompleted || isActive)
+                              ? const Color(0xFFE0E0E0)
                               : null,
                         ),
                       ),
@@ -319,7 +343,10 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: ClovaraColors.clover.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -380,7 +407,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             _buildEmptyState(
               icon: Icons.favorite_outline,
               title: 'No conditions yet',
-              message: 'Add any medical conditions ${widget.pet.name} has or had',
+              message:
+                  'Add any medical conditions ${widget.pet.name} has or had',
             )
           else
             ..._conditions.map((condition) => _buildConditionCard(condition)),
@@ -427,7 +455,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             onPressed: _showAddMedicationDialog,
           ),
           const SizedBox(height: 32),
-          
+
           // Allergies Section
           Text(
             'Known Allergies',
@@ -448,7 +476,9 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             Wrap(
               spacing: 10,
               runSpacing: 10,
-              children: _allergies.map((allergy) => _buildModernAllergyChip(allergy)).toList(),
+              children: _allergies
+                  .map((allergy) => _buildModernAllergyChip(allergy))
+                  .toList(),
             ),
           const SizedBox(height: 16),
           _buildModernAddButton(
@@ -500,10 +530,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.grey.shade200,
-          width: 2,
-        ),
+        border: Border.all(color: Colors.grey.shade200, width: 2),
       ),
       child: Column(
         children: [
@@ -513,11 +540,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
               color: ClovaraColors.clover.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              size: 40,
-              color: ClovaraColors.clover,
-            ),
+            child: Icon(icon, size: 40, color: ClovaraColors.clover),
           ),
           const SizedBox(height: 20),
           Text(
@@ -576,11 +599,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 color: ClovaraColors.clover.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                icon,
-                color: ClovaraColors.clover,
-                size: 20,
-              ),
+              child: Icon(icon, color: ClovaraColors.clover, size: 20),
             ),
             const SizedBox(width: 12),
             Text(
@@ -655,7 +674,9 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(condition.status).withOpacity(0.15),
+                            color: _getStatusColor(
+                              condition.status,
+                            ).withOpacity(0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -908,10 +929,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: visitColor.withOpacity(0.2),
-          width: 2,
-        ),
+        border: Border.all(color: visitColor.withOpacity(0.2), width: 2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -1223,13 +1241,17 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(16),
-                    onTap: _currentStep < _totalSteps - 1 ? _nextStep : _complete,
+                    onTap: _currentStep < _totalSteps - 1
+                        ? _nextStep
+                        : _complete,
                     child: Center(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            _currentStep < _totalSteps - 1 ? 'Continue' : 'Complete & View Plans',
+                            _currentStep < _totalSteps - 1
+                                ? 'Continue'
+                                : 'Complete & View Plans',
                             style: ClovaraTypography.h3.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -1257,6 +1279,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
   void _nextStep() {
     if (_currentStep < _totalSteps - 1) {
+      if (!_validateBeforeContinuing()) return;
       _fadeController.reverse().then((_) {
         setState(() {
           _currentStep++;
@@ -1279,7 +1302,9 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     }
   }
 
-  void _complete() {
+  void _complete() async {
+    if (!_validateBeforeContinuing(isCompleting: true)) return;
+
     // Create updated pet with medical history
     final updatedPet = widget.pet.copyWith(
       medicalConditions: _conditions,
@@ -1288,6 +1313,159 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       vetHistory: _vetVisits,
       isReceivingTreatment: _medications.any((m) => m.isOngoing),
     );
+
+    final caseId = widget.quoteData?['underwritingCaseId']?.toString();
+
+    UnderwritingDecision? computedDecision;
+    List<PolicyExclusion>? computedExclusions;
+    Map<String, dynamic>? computedSnapshot;
+
+    // Always compute a deterministic decision when we have a RiskScore.
+    // Persist it to an underwriting case only when a caseId exists.
+    try {
+      final riskScore = widget.riskScore;
+      if (riskScore is RiskScore) {
+        final uwConditions = _conditions
+            .where((c) => c.name.trim().isNotEmpty)
+            .map(
+              (c) => UnderwritingCondition(
+                name: c.name,
+                diagnosisMonthYear:
+                    '${c.diagnosisDate.year.toString().padLeft(4, '0')}-${c.diagnosisDate.month.toString().padLeft(2, '0')}',
+                isResolved: c.isResolved,
+                isManaged: (c.treatment ?? '').trim().isNotEmpty ||
+                    c.status == 'managed' ||
+                    c.status == 'stable',
+                treatmentStatus: c.status,
+                meds: const [],
+                notes: c.notes,
+              ),
+            )
+            .toList();
+
+        final rulesEngine = UnderwritingRulesEngine();
+        final eligibility = await rulesEngine.checkEligibility(
+          updatedPet,
+          riskScore,
+          uwConditions.map((c) => c.name).toList(),
+        );
+
+        final decisionEngine = UnderwritingDecisionEngine();
+        final decision = decisionEngine.buildFromEligibility(
+          eligibility: eligibility,
+        );
+
+        computedDecision = decision;
+        computedExclusions = decision.exclusions;
+
+        computedSnapshot = {
+          'caseId': caseId,
+          'decision': decision.toJson(),
+          'capturedAt': DateTime.now().toIso8601String(),
+          'source': (caseId != null && caseId.isNotEmpty)
+              ? 'underwriting_case'
+              : 'medical_underwriting_client',
+        };
+
+        // Disclosure acknowledgement is required for declines or exclusions,
+        // even when we cannot persist an underwriting case.
+        if (decision.outcome == UnderwritingOutcome.decline ||
+            decision.outcome == UnderwritingOutcome.approveWithExclusions) {
+          final acknowledged = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => UnderwritingDisclosureDialog(
+              decision: decision,
+              petName: updatedPet.name,
+            ),
+          );
+
+          if (acknowledged != true) {
+            return;
+          }
+        }
+      }
+    } catch (_) {
+      // Do not block completion if decision computation fails.
+    }
+
+    if (caseId != null && caseId.isNotEmpty) {
+      try {
+        final service = UnderwritingCaseService();
+        final uwConditions = _conditions
+            .where((c) => c.name.trim().isNotEmpty)
+            .map(
+              (c) => UnderwritingCondition(
+                name: c.name,
+                diagnosisMonthYear:
+                    '${c.diagnosisDate.year.toString().padLeft(4, '0')}-${c.diagnosisDate.month.toString().padLeft(2, '0')}',
+                isResolved: c.isResolved,
+                isManaged: (c.treatment ?? '').trim().isNotEmpty ||
+                    c.status == 'managed' ||
+                    c.status == 'stable',
+                treatmentStatus: c.status,
+                meds: const [],
+                notes: c.notes,
+              ),
+            )
+            .toList();
+
+        await service.saveMedicalHistory(
+          caseId,
+          UnderwritingMedicalHistory(
+            conditions: uwConditions,
+            vetClinicName: _clinicNameController.text.trim().isEmpty
+                ? null
+                : _clinicNameController.text.trim(),
+            userAttestation: false,
+          ),
+        );
+
+        if (computedDecision != null) {
+          await service.saveDecision(caseId, computedDecision);
+
+          switch (computedDecision.outcome) {
+            case UnderwritingOutcome.approve:
+              await service.updateStatus(
+                caseId,
+                UnderwritingCaseStatus.approved,
+              );
+              break;
+            case UnderwritingOutcome.approveWithExclusions:
+              await service.updateStatus(
+                caseId,
+                UnderwritingCaseStatus.approvedWithExclusions,
+              );
+              break;
+            case UnderwritingOutcome.decline:
+              await service.updateStatus(
+                caseId,
+                UnderwritingCaseStatus.declined,
+              );
+              break;
+            case UnderwritingOutcome.refer:
+              await service.updateStatus(
+                caseId,
+                UnderwritingCaseStatus.referred,
+              );
+              break;
+          }
+
+          if (computedDecision.outcome == UnderwritingOutcome.decline ||
+              computedDecision.outcome ==
+                  UnderwritingOutcome.approveWithExclusions) {
+            await service.logEvent(caseId, 'underwriting_disclosure_acknowledged', {
+              'outcome': underwritingOutcomeToString(computedDecision.outcome),
+              'reasonCodes': computedDecision.reasonCodes,
+              'exclusionsCount': computedDecision.exclusions.length,
+              'acknowledgedAt': DateTime.now().toIso8601String(),
+            });
+          }
+        }
+      } catch (_) {
+        // Do not block navigation on save failures.
+      }
+    }
 
     // Navigate to plan selection with updated pet data
     Navigator.pushReplacement(
@@ -1299,6 +1477,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             'petData': updatedPet.toJson(),
             'pet': updatedPet,
             'riskScore': widget.riskScore,
+            if (computedExclusions != null)
+              'exclusions': computedExclusions.map((e) => e.toJson()).toList(),
+            if (computedSnapshot != null) 'underwritingSnapshot': computedSnapshot,
+            if (caseId != null && caseId.isNotEmpty)
+              'underwritingCaseId': caseId,
             ...?widget.quoteData,
           },
         ),
@@ -1306,12 +1489,108 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     );
   }
 
+  bool _validateBeforeContinuing({bool isCompleting = false}) {
+    final petHasDeclaredConditions =
+        widget.pet.preExistingConditions.isNotEmpty &&
+        widget.pet.preExistingConditions.any(
+          (c) => c.trim().isNotEmpty && c != 'None',
+        );
+
+    // If the pet has declared conditions, we should not allow skipping the
+    // medical history entirely.
+    if (petHasDeclaredConditions && _conditions.isEmpty) {
+      _showBlockingValidationDialog(
+        title: 'Add condition details',
+        message:
+            'Please confirm at least one condition so we can review ${widget.pet.name}\'s history accurately.',
+      );
+      return false;
+    }
+
+    final requiresMoreDetail = _requiresSupportingDetails();
+
+    // Step 1 (medications/allergies): ensure we capture at least one supporting
+    // detail for high-detail conditions or actively-treated cases.
+    if (!isCompleting && _currentStep == 1 && requiresMoreDetail) {
+      final hasTreatmentDetail = _conditions.any((c) {
+        final treatment = (c.treatment ?? '').trim();
+        final notes = (c.notes ?? '').trim();
+        return treatment.isNotEmpty || notes.isNotEmpty;
+      });
+
+      if (_medications.isEmpty && !hasTreatmentDetail) {
+        _showBlockingValidationDialog(
+          title: 'More details needed',
+          message:
+              'Before we can continue, please add a medication (if any) or a quick treatment/notes summary so we can underwrite ${widget.pet.name}\'s condition(s).',
+        );
+        return false;
+      }
+    }
+
+    // Step 2 (vet history) / completing: require at least one verifiable support
+    // signal (vet visit or medication) for chronic/high-detail conditions.
+    if ((isCompleting || _currentStep == 2) && requiresMoreDetail) {
+      if (_vetVisits.isEmpty && _medications.isEmpty) {
+        _showBlockingValidationDialog(
+          title: 'Vet visit or medication required',
+          message:
+              'Please add at least one vet visit or medication entry so we can properly evaluate ${widget.pet.name}\'s condition(s) before showing plans.',
+        );
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool _requiresSupportingDetails() {
+    final declared = widget.pet.preExistingConditions
+        .map((c) => c.trim())
+        .where((c) => c.isNotEmpty && c != 'Pre-existing condition reported')
+        .toSet();
+
+    final hasHighDetailCondition = declared.any(_highDetailConditions.contains);
+
+    final petData = widget.quoteData?['petData'];
+    final receivingTreatmentAnswer = petData is Map<String, dynamic>
+        ? petData['isReceivingTreatment']
+        : null;
+
+    final bool saysReceivingTreatment =
+        receivingTreatmentAnswer == true ||
+        (receivingTreatmentAnswer is String &&
+            receivingTreatmentAnswer.toLowerCase() == 'managed');
+
+    return hasHighDetailCondition || saysReceivingTreatment;
+  }
+
+  void _showBlockingValidationDialog({
+    required String title,
+    required String message,
+  }) {
+    if (!mounted) return;
+
+    unawaited(
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Dialog methods
   void _showAddConditionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => _buildConditionDialog(),
-    );
+    showDialog(context: context, builder: (context) => _buildConditionDialog());
   }
 
   void _showAddMedicationDialog() {
@@ -1322,17 +1601,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   }
 
   void _showAddAllergyDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => _buildAllergyDialog(),
-    );
+    showDialog(context: context, builder: (context) => _buildAllergyDialog());
   }
 
   void _showAddVetVisitDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => _buildVetVisitDialog(),
-    );
+    showDialog(context: context, builder: (context) => _buildVetVisitDialog());
   }
 
   Widget _buildConditionDialog() {
@@ -1352,9 +1625,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             const SizedBox(height: 16),
             ListTile(
               title: const Text('Diagnosis Date'),
-              subtitle: Text(_conditionDiagnosisDate != null 
-                  ? _formatDate(_conditionDiagnosisDate!)
-                  : 'Select date'),
+              subtitle: Text(
+                _conditionDiagnosisDate != null
+                    ? _formatDate(_conditionDiagnosisDate!)
+                    : 'Select date',
+              ),
               trailing: const Icon(Icons.calendar_today),
               onTap: () async {
                 final date = await showDatePicker(
@@ -1378,10 +1653,12 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 border: OutlineInputBorder(),
               ),
               items: ['active', 'managed', 'stable', 'resolved']
-                  .map((status) => DropdownMenuItem(
-                        value: status,
-                        child: Text(status.toUpperCase()),
-                      ))
+                  .map(
+                    (status) => DropdownMenuItem(
+                      value: status,
+                      child: Text(status.toUpperCase()),
+                    ),
+                  )
                   .toList(),
               onChanged: (value) {
                 if (value != null) {
@@ -1420,7 +1697,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         ),
         ElevatedButton(
           onPressed: () {
-            if (_conditionNameController.text.isNotEmpty && 
+            if (_conditionNameController.text.isNotEmpty &&
                 _conditionDiagnosisDate != null) {
               _addCondition();
               Navigator.pop(context);
@@ -1550,9 +1827,9 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           children: [
             ListTile(
               title: const Text('Visit Date'),
-              subtitle: Text(_visitDate != null 
-                  ? _formatDate(_visitDate!)
-                  : 'Select date'),
+              subtitle: Text(
+                _visitDate != null ? _formatDate(_visitDate!) : 'Select date',
+              ),
               trailing: const Icon(Icons.calendar_today),
               onTap: () async {
                 final date = await showDatePicker(
@@ -1575,12 +1852,21 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 labelText: 'Visit Type',
                 border: OutlineInputBorder(),
               ),
-              items: ['checkup', 'emergency', 'surgery', 'follow-up', 'vaccination']
-                  .map((type) => DropdownMenuItem(
-                        value: type,
-                        child: Text(type.toUpperCase()),
-                      ))
-                  .toList(),
+              items:
+                  [
+                        'checkup',
+                        'emergency',
+                        'surgery',
+                        'follow-up',
+                        'vaccination',
+                      ]
+                      .map(
+                        (type) => DropdownMenuItem(
+                          value: type,
+                          child: Text(type.toUpperCase()),
+                        ),
+                      )
+                      .toList(),
               onChanged: (value) {
                 if (value != null) {
                   setState(() => _visitType = value);
@@ -1650,18 +1936,20 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   // Add/Remove methods
   void _addCondition() {
     setState(() {
-      _conditions.add(MedicalCondition(
-        id: 'cond_${DateTime.now().millisecondsSinceEpoch}',
-        name: _conditionNameController.text,
-        diagnosisDate: _conditionDiagnosisDate!,
-        status: _conditionStatus,
-        treatment: _conditionTreatmentController.text.isEmpty 
-            ? null 
-            : _conditionTreatmentController.text,
-        notes: _conditionNotesController.text.isEmpty 
-            ? null 
-            : _conditionNotesController.text,
-      ));
+      _conditions.add(
+        MedicalCondition(
+          id: 'cond_${DateTime.now().millisecondsSinceEpoch}',
+          name: _conditionNameController.text,
+          diagnosisDate: _conditionDiagnosisDate!,
+          status: _conditionStatus,
+          treatment: _conditionTreatmentController.text.isEmpty
+              ? null
+              : _conditionTreatmentController.text,
+          notes: _conditionNotesController.text.isEmpty
+              ? null
+              : _conditionNotesController.text,
+        ),
+      );
     });
     _clearConditionForm();
   }
@@ -1682,17 +1970,19 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
   void _addMedication() {
     setState(() {
-      _medications.add(Medication(
-        id: 'med_${DateTime.now().millisecondsSinceEpoch}',
-        name: _medicationNameController.text,
-        dosage: _medicationDosageController.text,
-        frequency: _medicationFrequencyController.text,
-        startDate: _medicationStartDate ?? DateTime.now(),
-        purpose: _medicationPurposeController.text.isEmpty 
-            ? null 
-            : _medicationPurposeController.text,
-        isOngoing: _medicationIsOngoing,
-      ));
+      _medications.add(
+        Medication(
+          id: 'med_${DateTime.now().millisecondsSinceEpoch}',
+          name: _medicationNameController.text,
+          dosage: _medicationDosageController.text,
+          frequency: _medicationFrequencyController.text,
+          startDate: _medicationStartDate ?? DateTime.now(),
+          purpose: _medicationPurposeController.text.isEmpty
+              ? null
+              : _medicationPurposeController.text,
+          isOngoing: _medicationIsOngoing,
+        ),
+      );
     });
     _clearMedicationForm();
   }
@@ -1727,19 +2017,21 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
   void _addVetVisit() {
     setState(() {
-      _vetVisits.add(VetVisit(
-        id: 'visit_${DateTime.now().millisecondsSinceEpoch}',
-        visitDate: _visitDate!,
-        veterinarian: _vetNameController.text,
-        clinic: _clinicNameController.text,
-        visitType: _visitType,
-        diagnosis: _visitDiagnosisController.text.isEmpty 
-            ? null 
-            : _visitDiagnosisController.text,
-        treatment: _visitTreatmentController.text.isEmpty 
-            ? null 
-            : _visitTreatmentController.text,
-      ));
+      _vetVisits.add(
+        VetVisit(
+          id: 'visit_${DateTime.now().millisecondsSinceEpoch}',
+          visitDate: _visitDate!,
+          veterinarian: _vetNameController.text,
+          clinic: _clinicNameController.text,
+          visitType: _visitType,
+          diagnosis: _visitDiagnosisController.text.isEmpty
+              ? null
+              : _visitDiagnosisController.text,
+          treatment: _visitTreatmentController.text.isEmpty
+              ? null
+              : _visitTreatmentController.text,
+        ),
+      );
     });
     _clearVetVisitForm();
   }

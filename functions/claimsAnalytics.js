@@ -1,5 +1,6 @@
-const functions = require('firebase-functions');
+const functions = require('firebase-functions/v1');
 const admin = require('firebase-admin');
+const {FieldValue} = require('firebase-admin/firestore');
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
@@ -378,13 +379,13 @@ exports.updateClaimsAnalyticsCache = functions.pubsub
       // Store in cache collection
       await db.collection('analytics_cache').doc('claims_30_days').set({
         ...thirtyDayAnalytics,
-        generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        generatedAt: FieldValue.serverTimestamp(),
         range: '30_days',
       });
 
       await db.collection('analytics_cache').doc('claims_90_days').set({
         ...ninetyDayAnalytics,
-        generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        generatedAt: FieldValue.serverTimestamp(),
         range: '90_days',
       });
 

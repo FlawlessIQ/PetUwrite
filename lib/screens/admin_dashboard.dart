@@ -6,7 +6,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/explainability_chart.dart';
 import '../models/explainability_data.dart';
 import 'admin_rules_editor_page.dart';
+import '../admin/admin_product_catalog_page.dart';
 import 'admin/claims_analytics_tab.dart';
+import 'admin/underwriting_cases_tab.dart';
 import 'admin/policies_pipeline_tab.dart';
 import '../widgets/system_health_widget.dart';
 import '../theme/clovara_theme.dart';
@@ -30,7 +32,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
   }
 
   @override
@@ -72,10 +74,14 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
         return 'Policies Pipeline';
       case 3:
         return 'Claims Analytics';
-      case 4:
-        return 'Underwriting Rules';
       case 5:
+        return 'Underwriting Rules';
+      case 6:
+        return 'Products & Riders';
+      case 7:
         return 'System Health';
+      case 4:
+        return 'Underwriting Review';
       default:
         return 'Admin Dashboard';
     }
@@ -137,7 +143,9 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
             Tab(icon: Icon(Icons.block), text: 'Ineligible'),
             Tab(icon: Icon(Icons.policy), text: 'Policies'),
             Tab(icon: Icon(Icons.analytics), text: 'Claims'),
+            Tab(icon: Icon(Icons.assignment_late), text: 'Underwriting'),
             Tab(icon: Icon(Icons.edit_note), text: 'Rules'),
+            Tab(icon: Icon(Icons.inventory_2), text: 'Products'),
             Tab(icon: Icon(Icons.monitor_heart), text: 'Health'),
           ],
         ),
@@ -235,8 +243,12 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
           const PoliciesPipelineTab(),
           // Claims Analytics Tab
           const ClaimsAnalyticsTab(),
+          // Underwriting Review Tab
+          const UnderwritingCasesTab(),
           // Rules Editor Tab
           const AdminRulesEditorPage(),
+          // Products & Riders Tab
+          const AdminProductCatalogPage(),
           // System Health Tab
           _buildSystemHealthTab(),
         ],

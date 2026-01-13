@@ -15,6 +15,7 @@
  */
 
 const admin = require("firebase-admin");
+const {FieldValue} = require("firebase-admin/firestore");
 const fs = require("fs");
 const path = require("path");
 
@@ -165,7 +166,7 @@ async function seedUnderwritingRules() {
       recommendationLogic:
         "If any of the above are true, recommend: eligibility = 'deny'",
     },
-    lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+    lastUpdated: FieldValue.serverTimestamp(),
     updatedBy: "system_seed",
   };
 

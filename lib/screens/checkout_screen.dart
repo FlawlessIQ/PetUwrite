@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/checkout_state.dart';
+import '../models/policy_exclusion.dart';
 import '../models/pet.dart';
 import '../services/quote_engine.dart';
+import '../services/product_catalog.dart';
 import '../theme/clovara_theme.dart';
 import 'review_screen.dart';
 import 'owner_details_screen.dart';
@@ -13,11 +15,17 @@ import 'confirmation_screen.dart';
 class CheckoutScreen extends StatefulWidget {
   final dynamic pet;
   final dynamic selectedPlan;
+  final String? underwritingCaseId;
+  final List<dynamic>? exclusions;
+  final Map<String, dynamic>? underwritingSnapshot;
 
   const CheckoutScreen({
     super.key,
     required this.pet,
     required this.selectedPlan,
+    this.underwritingCaseId,
+    this.exclusions,
+    this.underwritingSnapshot,
   });
 
   @override
@@ -57,17 +65,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             // Convert PlanData to Plan
             final monthlyPrice = planData.monthlyPrice ?? planData.monthlyPremium ?? 0.0;
             final reimbursement = planData.reimbursement ?? 80;
+            final annualLimitRaw = planData.annualLimit ?? planData.maxAnnualCoverage;
+            final maxAnnualCoverage = (annualLimitRaw ?? 10000);
+
             planObject = Plan(
               type: _getPlanTypeFromName(planData.name ?? 'Basic'),
               name: planData.name ?? 'Unknown Plan',
               description: 'Pet insurance coverage',
+              pricingBasePremium: monthlyPrice is num ? monthlyPrice.toDouble() : 0.0,
               monthlyPremium: monthlyPrice is num ? monthlyPrice.toDouble() : 0.0,
               annualDeductible: (planData.annualDeductible ?? 500).toDouble(),
               coPayPercentage: (100 - reimbursement).toDouble(),
-              maxAnnualCoverage: (planData.annualLimit ?? planData.maxAnnualCoverage ?? 10000).toDouble(),
+              maxAnnualCoverage: maxAnnualCoverage is num ? maxAnnualCoverage.toDouble() : 10000.0,
               maxLifetimeCoverage: null,
               numberOfPets: 1,
               multiPetDiscount: 0.0,
+              reimbursementPercent: reimbursement is num ? reimbursement.toInt() : 80,
               features: List<String>.from(planData.features ?? []),
               exclusions: [],
             );
@@ -83,6 +96,56 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               pet: petObject,
               plan: planObject,
             );
+
+        // Phase 5: Set underwriting metadata if present
+        final rawExclusions = widget.exclusions;
+        List<PolicyExclusion>? parsedExclusions;
+        if (rawExclusions is List) {
+          parsedExclusions = rawExclusions
+              .map((e) {
+                if (e is PolicyExclusion) return e;
+                if (e is String) {
+                  final name = e.trim();
+                  if (name.isEmpty) return null;
+                  return PolicyExclusion(
+                    conditionName: name,
+                    scope: 'condition',
+                    effectiveDate: DateTime.now(),
+                    notes: 'Rule exclusion',
+                  );
+                }
+                if (e is Map) {
+                  return PolicyExclusion.fromJson(
+                    e.cast<String, dynamic>(),
+                  );
+                }
+                return null;
+              })
+              .whereType<PolicyExclusion>()
+              .toList();
+        }
+
+        final snapshot = widget.underwritingSnapshot ??
+            ((parsedExclusions != null && parsedExclusions.isNotEmpty)
+                ? {
+                    'capturedAt': DateTime.now().toIso8601String(),
+                    'source': 'checkout_route',
+                    'exclusions': parsedExclusions
+                        .map((e) => e.toJson())
+                        .toList(growable: false),
+                  }
+                : null);
+
+        if ((widget.underwritingCaseId != null &&
+                widget.underwritingCaseId!.isNotEmpty) ||
+            (parsedExclusions != null && parsedExclusions.isNotEmpty) ||
+            snapshot != null) {
+          context.read<CheckoutProvider>().setUnderwritingMetadata(
+                caseId: widget.underwritingCaseId,
+                exclusions: parsedExclusions,
+                snapshot: snapshot,
+              );
+        }
       } catch (e, stackTrace) {
         print('ERROR initializing checkout: $e');
         print('Stack trace: $stackTrace');
@@ -94,14 +157,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     switch (name.toLowerCase()) {
       case 'basic':
         return PlanType.basic;
-      case 'plus':
       case 'standard':
+        return PlanType.standard;
+      case 'plus':
         return PlanType.plus;
-      case 'elite':
       case 'premium':
-        return PlanType.elite;
+        return PlanType.premium;
+      case 'unlimited':
+        return PlanType.unlimited;
       default:
-        return PlanType.plus;
+        return PlanType.standard;
     }
   }
 

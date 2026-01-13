@@ -1,11 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../ai/ai_service.dart';
 import '../models/claim.dart';
 import 'claim_document_ai_service.dart';
 
 /// AI-powered claim decision engine
-/// Combines actuarial rules + GPT-4o analysis for automated claim processing
+/// Combines actuarial rules + gpt-5.2 analysis for automated claim processing
 class ClaimDecisionEngine {
   final FirebaseFirestore _firestore;
   final GPTService _gptService;
@@ -24,8 +23,7 @@ class ClaimDecisionEngine {
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _gptService = gptService ??
             GPTService(
-              apiKey: dotenv.env['OPENAI_API_KEY'] ?? '',
-              model: 'gpt-4o',
+              model: 'gpt-5.2',
             ),
         _documentService = documentService ?? ClaimDocumentAIService();
 
@@ -252,7 +250,7 @@ class ClaimDecisionEngine {
     return _createMockAnalysis(inputData, lastError?.toString());
   }
 
-  /// Run AI analysis using GPT-4o
+  /// Run AI analysis using gpt-5.2
   Future<AIAnalysisResult> _runAIAnalysis(
     Map<String, dynamic> inputData,
   ) async {
@@ -264,7 +262,7 @@ class ClaimDecisionEngine {
     return result;
   }
 
-  /// Build structured prompt for GPT-4o
+  /// Build structured prompt for gpt-5.2
   String _buildAIPrompt(Map<String, dynamic> inputData) {
     final claim = inputData['claim'];
     final docs = inputData['documents'] as List;
@@ -457,7 +455,7 @@ JSON:''';
         !hasFraudFlags &&
         aiResult.legitimacy == 'legitimate') {
       aiDecision = AIDecision.approve;
-      finalStatus = ClaimStatus.settled;
+      finalStatus = ClaimStatus.settling;
       autoProcessed = true;
       explanation += '\n\n✅ Auto-approved: High confidence (${confidenceScore.toStringAsFixed(1)}%) '
           'and amount under \$${autoApproveAmountLimit.toStringAsFixed(0)} threshold.';
@@ -617,7 +615,7 @@ JSON:''';
       },
       'processingMetadata': {
         'engineVersion': '1.0.0',
-        'modelUsed': 'gpt-4o',
+        'modelUsed': 'gpt-5.2',
         'processingTime': DateTime.now().toIso8601String(),
       },
     };
@@ -780,7 +778,7 @@ JSON:''';
   }
 }
 
-/// AI analysis result from GPT-4o
+/// AI analysis result from gpt-5.2
 class AIAnalysisResult {
   final String legitimacy;
   final String costReasonableness;

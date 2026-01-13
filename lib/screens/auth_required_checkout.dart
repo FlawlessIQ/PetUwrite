@@ -7,11 +7,17 @@ import 'checkout_screen.dart';
 class AuthRequiredCheckout extends StatelessWidget {
   final dynamic pet;
   final dynamic selectedPlan;
+  final String? underwritingCaseId;
+  final List<dynamic>? exclusions;
+  final Map<String, dynamic>? underwritingSnapshot;
 
   const AuthRequiredCheckout({
     super.key,
     required this.pet,
     required this.selectedPlan,
+    this.underwritingCaseId,
+    this.exclusions,
+    this.underwritingSnapshot,
   });
 
   @override
@@ -33,6 +39,9 @@ class AuthRequiredCheckout extends StatelessWidget {
           return CheckoutScreen(
             pet: pet,
             selectedPlan: selectedPlan,
+            underwritingCaseId: underwritingCaseId,
+            exclusions: exclusions,
+            underwritingSnapshot: underwritingSnapshot,
           );
         }
 

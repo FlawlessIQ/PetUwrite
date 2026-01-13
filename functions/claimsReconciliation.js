@@ -15,6 +15,7 @@ const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {onCall} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const {FieldValue} = require("firebase-admin/firestore");
 const https = require("https");
 
 // Environment variables (set via Firebase config)
@@ -25,6 +26,267 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@petuwrite.com";
 
 // Maximum retry attempts before escalation
 const MAX_RETRY_ATTEMPTS = 3;
+
+function isEmulator() {
+  return process.env.FUNCTIONS_EMULATOR === "true" || !!process.env.FIREBASE_EMULATOR_HUB;
+}
+
+async function isAdminCaller(request) {
+  if (!request.auth) return false;
+  if (request.auth.token?.admin === true) return true;
+
+  try {
+    const uid = request.auth.uid;
+    const userDoc = await admin.firestore().collection("users").doc(uid).get();
+    return userDoc.exists && (userDoc.data()?.userRole === 2);
+  } catch (e) {
+    logger.warn("Failed to verify admin via userRole", {
+      uid: request.auth?.uid,
+      error: e?.message || String(e),
+    });
+    return false;
+  }
+}
+
+/**
+ * Callable: processClaimPayout
+ *
+ * Admin-only payout processing entrypoint.
+ * - Ensures claim is in a payout-eligible state (processing/settling)
+ * - Locks claim by transitioning to 'settling' if needed
+ * - Creates a payout record in top-level /payouts
+ * - Attempts Stripe payout; on success marks claim as settled
+ * - On failure, marks payout failed and leaves claim in settling for reconciliation/retry
+ */
+exports.processClaimPayout = onCall({
+  enforceAppCheck: false,
+}, async (request) => {
+  const claimId = request.data?.claimId;
+
+  if (!(await isAdminCaller(request))) {
+    throw new Error("Unauthorized: Admin access required");
+  }
+
+  if (!claimId || typeof claimId !== "string") {
+    throw new Error("Missing required parameter: claimId");
+  }
+
+  if (!STRIPE_SECRET_KEY && !isEmulator()) {
+    throw new Error("Missing STRIPE_SECRET_KEY environment variable");
+  }
+
+  const db = admin.firestore();
+  const claimRef = db.collection("claims").doc(claimId);
+  const claimSnap = await claimRef.get();
+  if (!claimSnap.exists) {
+    throw new Error("Claim not found");
+  }
+
+  const claim = claimSnap.data() || {};
+  const currentStatus = String(claim.status || "").toLowerCase();
+  if (["denied", "cancelled", "canceled"].includes(currentStatus)) {
+    throw new Error(`Claim is not payout-eligible (status: ${currentStatus})`);
+  }
+
+  // If already settled, return idempotently.
+  if (currentStatus === "settled") {
+    const existing = await db
+        .collection("payouts")
+        .where("claimId", "==", claimId)
+        .where("status", "==", "completed")
+        .limit(1)
+        .get();
+    return {
+      success: true,
+      claimId,
+      status: "settled",
+      payoutId: existing.empty ? null : existing.docs[0].id,
+      message: "Claim already settled",
+    };
+  }
+
+  // Ensure claim is locked in settling.
+  if (currentStatus !== "settling") {
+    if (currentStatus !== "processing") {
+      throw new Error(`Claim must be in processing/settling (status: ${currentStatus})`);
+    }
+    await claimRef.update({
+      status: "settling",
+      processingBy: request.auth.uid,
+      settlingStartedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  }
+
+  // Idempotency: if a payout already exists (pending/completed), return it.
+  const existingPayout = await db
+      .collection("payouts")
+      .where("claimId", "==", claimId)
+      .where("status", "in", ["pending", "completed", "pending_retry"])
+      .limit(1)
+      .get();
+
+  if (!existingPayout.empty) {
+    const payoutDoc = existingPayout.docs[0];
+    const payoutData = payoutDoc.data();
+    return {
+      success: true,
+      claimId,
+      payoutId: payoutDoc.id,
+      payoutStatus: payoutData.status,
+      message: "Payout already exists",
+    };
+  }
+
+  // Look up Stripe customer id on the user record.
+  const ownerId = claim.ownerId;
+  if (!ownerId) {
+    throw new Error("Claim is missing ownerId");
+  }
+  const ownerDoc = await db.collection("users").doc(ownerId).get();
+  const owner = ownerDoc.exists ? (ownerDoc.data() || {}) : {};
+  const stripeCustomerId = owner.stripeCustomerId;
+  if (!stripeCustomerId) {
+    throw new Error("Missing stripeCustomerId for claim owner");
+  }
+
+  const amount = Number(claim.claimAmount || 0);
+  const currency = String(claim.currency || "usd").toLowerCase();
+  const idempotencyKey = `claim_${claimId}_${Date.now()}`;
+
+  const payoutRef = await db.collection("payouts").add({
+    claimId,
+    ownerId,
+    policyId: claim.policyId || null,
+    petId: claim.petId || null,
+    amount,
+    currency,
+    status: "pending",
+    stripeCustomerId,
+    idempotencyKey,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+    approvedBy: request.auth.uid,
+  });
+
+  try {
+    const stripeResult = isEmulator() ? {
+      success: true,
+      transactionId: `emu_tx_${Date.now()}`,
+      emulated: true,
+    } : await executeStripePayout({
+      amount,
+      currency,
+      customerId: stripeCustomerId,
+      idempotencyKey,
+      description: `Claim payout for claim ${claimId}`,
+    });
+
+    if (!stripeResult.success) {
+      await db.collection("payouts").doc(payoutRef.id).update({
+        status: "failed",
+        failureType: "stripe_payout",
+        lastError: stripeResult.error || "Stripe payout failed",
+        retryCount: 0,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      await db.collection("payout_audit_trail").add({
+        type: "payout_failed",
+        payoutId: payoutRef.id,
+        claimId,
+        operation: "stripe_payout",
+        performedBy: request.auth.uid,
+        timestamp: FieldValue.serverTimestamp(),
+        error: stripeResult.error || null,
+      });
+
+      return {
+        success: false,
+        claimId,
+        payoutId: payoutRef.id,
+        message: "Payout failed; scheduled reconciliation/retry will handle",
+      };
+    }
+
+    // Mark payout completed and claim settled.
+    await db.runTransaction(async (tx) => {
+      tx.update(db.collection("payouts").doc(payoutRef.id), {
+        status: "completed",
+        stripeTransactionId: stripeResult.transactionId,
+        completedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      tx.update(claimRef, {
+        status: "settled",
+        settledAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    });
+
+    // Best-effort notification.
+    if (SENDGRID_API_KEY && owner.email) {
+      const ownerName = `${owner.firstName || ""} ${owner.lastName || ""}`.trim() || "Customer";
+      const sendGridResult = await sendPayoutNotification({
+        to: owner.email,
+        ownerName,
+        claimId,
+        amount,
+        currency: (claim.currency || "USD"),
+      });
+
+      if (sendGridResult.success) {
+        await db.collection("payouts").doc(payoutRef.id).update({
+          notificationSent: true,
+          notificationSentAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      } else {
+        await db.collection("payouts").doc(payoutRef.id).update({
+          notificationSent: false,
+          failureType: "sendgrid_notification",
+          status: "pending_retry",
+          retryCount: 0,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    await db.collection("payout_audit_trail").add({
+      type: "payout_completed",
+      payoutId: payoutRef.id,
+      claimId,
+      operation: "stripe_payout",
+      performedBy: request.auth.uid,
+      stripeTransactionId: stripeResult.transactionId,
+      timestamp: FieldValue.serverTimestamp(),
+    });
+
+    return {
+      success: true,
+      claimId,
+      payoutId: payoutRef.id,
+      status: "settled",
+      stripeTransactionId: stripeResult.transactionId,
+    };
+  } catch (error) {
+    logger.error("Error processing claim payout", {
+      claimId,
+      payoutId: payoutRef.id,
+      error: error.message,
+    });
+
+    await db.collection("payouts").doc(payoutRef.id).update({
+      status: "failed",
+      failureType: "stripe_payout",
+      lastError: error.message,
+      retryCount: 0,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    throw error;
+  }
+});
 
 /**
  * Scheduled function that runs hourly to reconcile claims state
@@ -151,8 +413,8 @@ async function findAndFixMismatchedStates() {
           // Update claim to 'settled'
           await db.collection("claims").doc(claimId).update({
             status: "settled",
-            settledAt: admin.firestore.FieldValue.serverTimestamp(),
-            reconciledAt: admin.firestore.FieldValue.serverTimestamp(),
+            settledAt: FieldValue.serverTimestamp(),
+            reconciledAt: FieldValue.serverTimestamp(),
             reconciledBy: "system_reconciliation",
           });
 
@@ -165,7 +427,7 @@ async function findAndFixMismatchedStates() {
             newStatus: "settled",
             reason: "Auto-reconciled: Found completed payout for non-settled claim",
             performedBy: "system",
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: FieldValue.serverTimestamp(),
             metadata: {
               claimAmount: claimData.claimAmount,
               payoutAmount: payoutData.amount,
@@ -259,7 +521,7 @@ async function retryFailedOperations() {
           // Update retry count and schedule next attempt
           await db.collection("payouts").doc(payoutId).update({
             retryCount: retryCount + 1,
-            lastRetryAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastRetryAt: FieldValue.serverTimestamp(),
             status: "pending_retry",
           });
 
@@ -270,7 +532,7 @@ async function retryFailedOperations() {
             retryCount: retryCount + 1,
             failureType,
             result: "failed",
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: FieldValue.serverTimestamp(),
           });
         }
       } catch (error) {
@@ -337,14 +599,14 @@ async function retryStripePayout(payoutId, payoutData) {
       await db.collection("payouts").doc(payoutId).update({
         status: "completed",
         stripeTransactionId: stripeResult.transactionId,
-        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        completedAt: FieldValue.serverTimestamp(),
         retrySuccessful: true,
       });
 
       // Update claim status
       await db.collection("claims").doc(payoutData.claimId).update({
         status: "settled",
-        settledAt: admin.firestore.FieldValue.serverTimestamp(),
+        settledAt: FieldValue.serverTimestamp(),
       });
 
       // Log success to audit trail
@@ -355,7 +617,7 @@ async function retryStripePayout(payoutId, payoutData) {
         operation: "stripe_payout",
         retryCount: (payoutData.retryCount || 0) + 1,
         stripeTransactionId: stripeResult.transactionId,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        timestamp: FieldValue.serverTimestamp(),
       });
 
       return true;
@@ -408,7 +670,7 @@ async function retrySendGridNotification(payoutId, payoutData) {
       // Update payout
       await db.collection("payouts").doc(payoutId).update({
         notificationSent: true,
-        notificationSentAt: admin.firestore.FieldValue.serverTimestamp(),
+        notificationSentAt: FieldValue.serverTimestamp(),
       });
 
       // Log success
@@ -418,7 +680,7 @@ async function retrySendGridNotification(payoutId, payoutData) {
         claimId: payoutData.claimId,
         operation: "sendgrid_notification",
         retryCount: (payoutData.retryCount || 0) + 1,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        timestamp: FieldValue.serverTimestamp(),
       });
 
       return true;
@@ -444,7 +706,7 @@ async function escalateFailedOperation(payoutId, payoutData) {
     // Mark as escalated
     await db.collection("payouts").doc(payoutId).update({
       status: "escalated",
-      escalatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      escalatedAt: FieldValue.serverTimestamp(),
       escalatedReason: `Failed after ${payoutData.retryCount} retry attempts`,
     });
 
@@ -457,7 +719,7 @@ async function escalateFailedOperation(payoutId, payoutData) {
       retryCount: payoutData.retryCount,
       failureType: payoutData.failureType,
       lastError: payoutData.lastError,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
       requiresManualIntervention: true,
     });
 
@@ -850,7 +1112,7 @@ async function logReconciliationRun(results) {
     const db = admin.firestore();
     await db.collection("reconciliation_runs").add({
       ...results,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
     });
   } catch (error) {
     logger.error("Error logging reconciliation run", {
@@ -873,7 +1135,7 @@ exports.retryFailedOperation = onCall({
   }
 
   // Verify admin access
-  if (!request.auth || !request.auth.token.admin) {
+  if (!(await isAdminCaller(request))) {
     throw new Error("Unauthorized: Admin access required");
   }
 
@@ -909,7 +1171,7 @@ exports.retryFailedOperation = onCall({
       claimId: payoutData.claimId,
       performedBy: request.auth.uid,
       result: success ? "success" : "failed",
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
     });
 
     return {

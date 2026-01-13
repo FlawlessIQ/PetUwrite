@@ -1,42 +1,19 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
 import '../ai/ai_service.dart';
+import 'breed_size_guide.dart';
 
 /// AI service for natural conversational interactions in quote flow
 class ConversationalAIService {
   final GPTService _aiService;
   
   factory ConversationalAIService({String? apiKey}) {
-    String key;
-    
-    // Priority 1: Use provided API key (for web deployment)
-    if (apiKey != null && apiKey.isNotEmpty) {
-      key = apiKey;
-      print('✅ OpenAI API key provided directly');
-      return ConversationalAIService._internal(key);
-    }
-    
-    // Priority 2: Try loading from .env file (for local development)
-    try {
-      key = dotenv.env['OPENAI_API_KEY'] ?? '';
-      if (key.isNotEmpty) {
-        print('✅ OpenAI API key loaded from .env file');
-        return ConversationalAIService._internal(key);
-      }
-    } catch (e) {
-      print('⚠️ Could not load .env file: $e');
-    }
-    
-    // Priority 3: Fallback mode
-    print('⚠️ OPENAI_API_KEY not found, conversations will use fallback responses');
-    key = 'mock-key-for-fallback-mode';
-    return ConversationalAIService._internal(key);
+    // `apiKey` is ignored: GPTService uses Cloud Functions proxy.
+    return ConversationalAIService._internal();
   }
 
-  ConversationalAIService._internal(String apiKey) 
+  ConversationalAIService._internal()
       : _aiService = GPTService(
-          apiKey: apiKey,
-          model: 'gpt-4o-mini', // Faster, cheaper for conversations
+          model: 'gpt-5.2',
         );
 
   /// Generate an empathetic, contextual bot message based on user input
@@ -86,6 +63,9 @@ class ConversationalAIService {
       case 'breed':
         return await _validateBreed(userInput, context);
 
+      case 'weight':
+        return _validateWeight(userInput, context);
+
       case 'preExistingConditionTypes':
         return await _validateHealthCondition(userInput, context);
 
@@ -124,7 +104,7 @@ Response:''';
       return response.trim();
     } catch (e) {
       // Fallback empathetic message
-      return "I'm sorry to hear $petName is dealing with that. We're here to help find the right coverage to support $petName's health journey.";
+      return _mockEmpatheticResponse(condition, petName);
     }
   }
 
@@ -180,6 +160,95 @@ Response:''';
     // Age is valid
     return {
       'corrected': age.toString(),
+      'needsConfirmation': false,
+      'message': null,
+    };
+  }
+
+  /// Validate pet weight input (entered in lbs) and sanity-check against breed/age.
+  Map<String, dynamic> _validateWeight(String input, Map<String, dynamic> context) {
+    final species = (context['species'] as String?)?.toLowerCase();
+    final petName = context['petName'] as String? ?? 'your pet';
+    final breed = context['breed'] as String?;
+
+    final parsed = double.tryParse(input.trim());
+    if (parsed == null) {
+      return {
+        'corrected': input,
+        'needsConfirmation': true,
+        'message': "What’s ${petName}'s weight in pounds? (Just a number is perfect)",
+      };
+    }
+
+    if (parsed <= 0) {
+      return {
+        'corrected': parsed.toString(),
+        'needsConfirmation': true,
+        'message': "That doesn’t look quite right — what’s ${petName}'s weight in pounds?",
+      };
+    }
+
+    // Very broad species sanity checks
+    if (species == 'cat') {
+      if (parsed < 3 || parsed > 30) {
+        return {
+          'corrected': parsed.toString(),
+          'needsConfirmation': true,
+          'message':
+              "Just double-checking — did you mean ${parsed.toStringAsFixed(0)} lbs for ${petName}? Cats are usually in the 7–15 lb range.",
+        };
+      }
+      return {
+        'corrected': parsed.toString(),
+        'needsConfirmation': false,
+        'message': null,
+      };
+    }
+
+    // Dogs
+    if (parsed < 2 || parsed > 250) {
+      return {
+        'corrected': parsed.toString(),
+        'needsConfirmation': true,
+        'message':
+            "Just to confirm — did you mean ${parsed.toStringAsFixed(0)} lbs for ${petName}?",
+      };
+    }
+
+    // Breed-aware check for clearly adult dogs
+    int? ageYears;
+    final ageValue = context['age'];
+    if (ageValue is String) ageYears = int.tryParse(ageValue);
+    if (ageValue is int) ageYears = ageValue;
+
+    final expected = BreedSizeGuide.expectedAdultWeightLbs(breed);
+    final isAdultish = (ageYears != null && ageYears >= 2);
+
+    if (expected != null && isAdultish) {
+      final min = expected.minLbs;
+      final max = expected.maxLbs;
+
+      // Only flag when it's wildly outside expected adult range.
+      if (parsed < min * 0.55) {
+        return {
+          'corrected': parsed.toString(),
+          'needsConfirmation': true,
+          'message':
+              "Quick sanity check: a typical adult ${breed ?? 'dog'} is often around ${min.toStringAsFixed(0)}–${max.toStringAsFixed(0)} lbs. Did you mean ${parsed.toStringAsFixed(0)} lbs for ${petName}?",
+        };
+      }
+      if (parsed > max * 1.6) {
+        return {
+          'corrected': parsed.toString(),
+          'needsConfirmation': true,
+          'message':
+              "Just double-checking — ${parsed.toStringAsFixed(0)} lbs sounds high for a ${breed ?? 'dog'}. Is that right for ${petName}?",
+        };
+      }
+    }
+
+    return {
+      'corrected': parsed.toString(),
       'needsConfirmation': false,
       'message': null,
     };
@@ -245,14 +314,9 @@ Corrected breed:''';
         'message': null,
       };
     } catch (e, stackTrace) {
-      // Fallback to basic capitalization
       print('❌ Breed Validation Error: $e');
       print('Stack trace: $stackTrace');
-      return {
-        'corrected': _capitalizeNames(input),
-        'needsConfirmation': false,
-        'message': null,
-      };
+      return _mockBreedValidation(input, species);
     }
   }
 
@@ -422,6 +486,7 @@ Your response (keep it natural and brief):''';
       'boxer': 'Boxer',
       'dachshund': 'Dachshund',
       'rottweiler': 'Rottweiler',
+      'irish wolfhound': 'Irish Wolfhound',
       'pitbull': 'American Pit Bull Terrier',
       'pit bull': 'American Pit Bull Terrier',
     };

@@ -5,6 +5,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/clovara_theme.dart';
 import '../screens/conversational_quote_flow.dart';
 import '../screens/claims/claim_intake_screen.dart';
+import '../screens/claims/claim_details_screen.dart';
+import '../screens/claims/claims_list_screen.dart';
 import '../services/user_session_service.dart';
 
 /// Modern Clovara Customer Dashboard
@@ -519,19 +521,33 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Recent Claims',
-                style: ClovaraTypography.h3.copyWith(
-                  color: ClovaraColors.forest,
-                  fontWeight: FontWeight.bold,
-                  fontSize: isMobile ? 18 : 24,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Recent Claims',
+                      style: ClovaraTypography.h3.copyWith(
+                        color: ClovaraColors.forest,
+                        fontWeight: FontWeight.bold,
+                        fontSize: isMobile ? 18 : 24,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ClaimsListScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text('View all'),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
-              ...claims.map((claim) {
-                final data = claim.data() as Map<String, dynamic>;
-                return _buildClaimCard(context, data, isMobile);
-              }),
+              ...claims.map((claim) => _buildClaimCard(context, claim, isMobile)),
             ],
           ),
         );
@@ -540,7 +556,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildClaimCard(
-      BuildContext context, Map<String, dynamic> claim, bool isMobile) {
+      BuildContext context, QueryDocumentSnapshot claimDoc, bool isMobile) {
+    final claim = claimDoc.data() as Map<String, dynamic>;
     final claimType = claim['claimType'] as String? ?? 'Claim';
     final status = claim['status'] as String? ?? 'pending';
     final amount = (claim['claimAmount'] as num?)?.toDouble() ?? 0.0;
@@ -549,6 +566,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     switch (status.toLowerCase()) {
       case 'settled':
       case 'approved':
+      case 'settling':
         statusColor = Colors.green;
         break;
       case 'denied':
@@ -560,7 +578,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(isMobile ? 16 : 20),
       decoration: BoxDecoration(
         color: ClovaraColors.mist,
         borderRadius: BorderRadius.circular(16),
@@ -568,56 +585,80 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           color: statusColor.withOpacity(0.3),
         ),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              status.toLowerCase() == 'settled' || status.toLowerCase() == 'approved'
-                  ? Icons.check_circle
-                  : Icons.pending,
-              color: statusColor,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ClaimDetailsScreen(claimId: claimDoc.id),
+              ),
+            );
+          },
+          child: Padding(
+            padding: EdgeInsets.all(isMobile ? 16 : 20),
+            child: Row(
               children: [
-                Text(
-                  claimType,
-                  style: ClovaraTypography.body.copyWith(
-                    color: ClovaraColors.forest,
-                    fontWeight: FontWeight.bold,
-                    fontSize: isMobile ? 14 : 16,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    (status.toLowerCase() == 'settled' || status.toLowerCase() == 'approved')
+                        ? Icons.check_circle
+                        : (status.toLowerCase() == 'settling')
+                            ? Icons.payments
+                            : Icons.pending,
+                    color: statusColor,
+                    size: 20,
                   ),
                 ),
-                Text(
-                  status.toUpperCase(),
-                  style: ClovaraTypography.bodySmall.copyWith(
-                    color: statusColor,
-                    fontSize: isMobile ? 11 : 12,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        claimType,
+                        style: ClovaraTypography.body.copyWith(
+                          color: ClovaraColors.forest,
+                          fontWeight: FontWeight.bold,
+                          fontSize: isMobile ? 14 : 16,
+                        ),
+                      ),
+                      Text(
+                        status.toUpperCase(),
+                        style: ClovaraTypography.bodySmall.copyWith(
+                          color: statusColor,
+                          fontSize: isMobile ? 11 : 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                if (amount > 0)
+                  Text(
+                    '\$${amount.toStringAsFixed(0)}',
+                    style: ClovaraTypography.body.copyWith(
+                      color: ClovaraColors.forest,
+                      fontWeight: FontWeight.bold,
+                      fontSize: isMobile ? 16 : 18,
+                    ),
+                  ),
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.chevron_right,
+                  color: ClovaraColors.slate.withOpacity(0.8),
                 ),
               ],
             ),
           ),
-          if (amount > 0)
-            Text(
-              '\$${amount.toStringAsFixed(0)}',
-              style: ClovaraTypography.body.copyWith(
-                color: ClovaraColors.forest,
-                fontWeight: FontWeight.bold,
-                fontSize: isMobile ? 16 : 18,
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }

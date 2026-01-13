@@ -4,13 +4,67 @@ import '../models/checkout_state.dart';
 import '../models/medical_history.dart';
 
 /// Step 1: Review pet and quote information
-class ReviewScreen extends StatelessWidget {
+class ReviewScreen extends StatefulWidget {
   const ReviewScreen({super.key});
+
+  @override
+  State<ReviewScreen> createState() => _ReviewScreenState();
+}
+
+class _ReviewScreenState extends State<ReviewScreen> {
+  bool _exclusionsAcknowledged = false;
+  String _exclusionsKey = '';
+
+  String _formatAnnualLimit(plan) {
+    try {
+      if (plan.isUnlimitedAnnualCoverage == true || (plan.maxAnnualCoverage as double).isInfinite) {
+        return 'Unlimited';
+      }
+      final v = (plan.maxAnnualCoverage as double).toDouble();
+      return '\$${v.toStringAsFixed(0)}';
+    } catch (_) {
+      return '—';
+    }
+  }
+
+  String _computeExclusionsKey(List exclusions) {
+    final names = exclusions
+        .map((e) {
+          if (e is String) return e;
+          try {
+            final conditionName = (e as dynamic).conditionName?.toString();
+            if (conditionName != null && conditionName.trim().isNotEmpty) {
+              return conditionName;
+            }
+          } catch (_) {
+            // ignore
+          }
+          return e.toString();
+        })
+        .whereType<String>()
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return names.join('|');
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<CheckoutProvider>(
       builder: (context, provider, child) {
+        final exclusionsKey = _computeExclusionsKey(provider.exclusions);
+        if (exclusionsKey != _exclusionsKey) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() {
+              _exclusionsKey = exclusionsKey;
+              _exclusionsAcknowledged = false;
+            });
+          });
+        }
+
         // Handle null pet or plan with loading state
         if (provider.pet == null || provider.selectedPlan == null) {
           return const Center(
@@ -66,6 +120,18 @@ class ReviewScreen extends StatelessWidget {
               _buildPlanInfoCard(plan),
               const SizedBox(height: 16),
 
+              // Exclusions Card (if any)
+              if (provider.exclusions.isNotEmpty)
+                _buildExclusionsCard(provider.exclusions),
+              if (provider.exclusions.isNotEmpty)
+                const SizedBox(height: 16),
+
+              // Exclusions acknowledgement (required)
+              if (provider.exclusions.isNotEmpty)
+                _buildExclusionsAcknowledgement(provider),
+              if (provider.exclusions.isNotEmpty)
+                const SizedBox(height: 16),
+
               // Coverage Details Card
               _buildCoverageDetailsCard(plan),
               const SizedBox(height: 16),
@@ -75,11 +141,49 @@ class ReviewScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Continue Button
-              _buildContinueButton(context, provider),
+              _buildContinueButton(
+                context,
+                provider,
+                isEnabled: provider.exclusions.isEmpty || _exclusionsAcknowledged,
+              ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildExclusionsAcknowledgement(CheckoutProvider provider) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: CheckboxListTile(
+        value: _exclusionsAcknowledged,
+        onChanged: (value) {
+          final nextValue = value ?? false;
+          setState(() {
+            _exclusionsAcknowledged = nextValue;
+          });
+          if (nextValue) {
+            provider.recordExclusionsAcknowledgement(source: 'review');
+          }
+        },
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        controlAffinity: ListTileControlAffinity.leading,
+        title: Text(
+          'I understand these exclusions will not be covered.',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Colors.orange.shade900,
+          ),
+        ),
+      ),
     );
   }
 
@@ -250,9 +354,57 @@ class ReviewScreen extends StatelessWidget {
                   ),
                 ),
               ],
+
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Your selected configuration',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _pill('${plan.reimbursementPercent}% reimbursement'),
+                        _pill('\$${plan.annualDeductible.toStringAsFixed(0)} deductible'),
+                        _pill('${_formatAnnualLimit(plan)} annual limit'),
+                        if ((plan.selectedAddOns as List).isNotEmpty)
+                          _pill('Add-ons: ${(plan.selectedAddOns as List).join(', ')}'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _pill(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.22),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.25)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -303,6 +455,102 @@ class ReviewScreen extends StatelessWidget {
                 Icons.handshake,
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExclusionsCard(List exclusions) {
+    final exclusionNames = exclusions
+        .map((e) {
+          if (e is String) return e;
+          try {
+            // PolicyExclusion shape
+            final conditionName = (e as dynamic).conditionName?.toString();
+            if (conditionName != null && conditionName.trim().isNotEmpty) {
+              return conditionName;
+            }
+          } catch (_) {
+            // ignore
+          }
+          return e.toString();
+        })
+        .whereType<String>()
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    if (exclusionNames.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.gpp_maybe,
+                    size: 24,
+                    color: Colors.orange.shade800,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Coverage exclusions',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'This policy will not cover treatment related to these conditions:',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade700,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: exclusionNames
+                  .map(
+                    (name) => Chip(
+                      label: Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.orange.shade900,
+                        ),
+                      ),
+                      backgroundColor: Colors.orange.shade50,
+                      side: BorderSide(color: Colors.orange.shade200),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                    ),
+                  )
+                  .toList(),
+            ),
           ],
         ),
       ),
@@ -798,14 +1046,33 @@ class ReviewScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildContinueButton(BuildContext context, CheckoutProvider provider) {
+  Widget _buildContinueButton(
+    BuildContext context,
+    CheckoutProvider provider, {
+    required bool isEnabled,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (!isEnabled)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              'Please acknowledge the exclusions to continue.',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade900,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ElevatedButton(
-          onPressed: () {
-            provider.nextStep();
-          },
+          onPressed: isEnabled
+              ? () {
+                  provider.nextStep();
+                }
+              : null,
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
@@ -835,10 +1102,14 @@ class ReviewScreen extends StatelessWidget {
 
   List<Color> _getPlanGradient(planType) {
     switch (planType.toString()) {
-      case 'PlanType.elite':
+      case 'PlanType.unlimited':
+        return [Colors.orange.shade800, Colors.amber.shade600];
+      case 'PlanType.premium':
         return [Colors.purple.shade700, Colors.blue.shade700];
       case 'PlanType.plus':
         return [Colors.blue.shade700, Colors.green.shade700];
+      case 'PlanType.standard':
+        return [Colors.green.shade700, Colors.teal.shade700];
       default:
         return [Colors.blue.shade600, Colors.blue.shade800];
     }
@@ -846,10 +1117,14 @@ class ReviewScreen extends StatelessWidget {
 
   IconData _getPlanIcon(planType) {
     switch (planType.toString()) {
-      case 'PlanType.elite':
+      case 'PlanType.unlimited':
+        return Icons.all_inclusive;
+      case 'PlanType.premium':
         return Icons.workspace_premium;
       case 'PlanType.plus':
         return Icons.shield;
+      case 'PlanType.standard':
+        return Icons.verified_user_outlined;
       default:
         return Icons.shield_outlined;
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'pet.dart';
+import 'policy_exclusion.dart';
 import '../services/quote_engine.dart';
 
 /// Enumeration of checkout steps
@@ -147,6 +148,9 @@ class PolicyDocument {
   final DateTime expirationDate;
   final DateTime createdAt;
   final String status;
+  final String? underwritingCaseId;
+  final List<PolicyExclusion> exclusions;
+  final Map<String, dynamic>? underwritingSnapshot;
 
   PolicyDocument({
     required this.policyId,
@@ -159,6 +163,9 @@ class PolicyDocument {
     required this.expirationDate,
     required this.createdAt,
     this.status = 'active',
+    this.underwritingCaseId,
+    this.exclusions = const [],
+    this.underwritingSnapshot,
   });
 
   Map<String, dynamic> toJson() {
@@ -173,6 +180,9 @@ class PolicyDocument {
       'expirationDate': expirationDate.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'status': status,
+      'underwritingCaseId': underwritingCaseId,
+      'exclusions': exclusions.map((e) => e.toJson()).toList(),
+      'underwritingSnapshot': underwritingSnapshot,
     };
   }
 
@@ -188,6 +198,13 @@ class PolicyDocument {
       expirationDate: DateTime.parse(json['expirationDate']),
       createdAt: DateTime.parse(json['createdAt']),
       status: json['status'] ?? 'active',
+      underwritingCaseId: json['underwritingCaseId']?.toString(),
+      exclusions: (json['exclusions'] as List?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(PolicyExclusion.fromJson)
+              .toList() ??
+          const [],
+      underwritingSnapshot: (json['underwritingSnapshot'] as Map?)?.cast<String, dynamic>(),
     );
   }
 }
@@ -203,6 +220,30 @@ class CheckoutProvider extends ChangeNotifier {
   bool _isProcessing = false;
   String? _error;
 
+  // Underwriting metadata (Phase 5)
+  String? _underwritingCaseId;
+  List<PolicyExclusion> _exclusions = [];
+  Map<String, dynamic>? _underwritingSnapshot;
+  String _exclusionsKey = '';
+
+  String _computeExclusionsKey(List<PolicyExclusion> exclusions) {
+    final names = exclusions
+        .map((e) => e.conditionName.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return names.join('|');
+  }
+
+  void _clearExclusionsAcknowledgements() {
+    if (_underwritingSnapshot == null) return;
+    final updated = Map<String, dynamic>.from(_underwritingSnapshot!);
+    updated.remove('exclusionsAcknowledgements');
+    updated.remove('exclusionsAcknowledgedAt');
+    _underwritingSnapshot = updated;
+  }
+
   // Getters
   CheckoutStep get currentStep => _currentStep;
   Pet? get pet => _pet;
@@ -212,6 +253,10 @@ class CheckoutProvider extends ChangeNotifier {
   PolicyDocument? get policy => _policy;
   bool get isProcessing => _isProcessing;
   String? get error => _error;
+
+  String? get underwritingCaseId => _underwritingCaseId;
+  List<PolicyExclusion> get exclusions => _exclusions;
+  Map<String, dynamic>? get underwritingSnapshot => _underwritingSnapshot;
 
   // Step progress
   int get currentStepIndex => _currentStep.index;
@@ -237,6 +282,8 @@ class CheckoutProvider extends ChangeNotifier {
     _paymentInfo = null;
     _policy = null;
     _error = null;
+    _exclusionsKey = _computeExclusionsKey(_exclusions);
+    _clearExclusionsAcknowledgements();
     notifyListeners();
   }
 
@@ -257,6 +304,45 @@ class CheckoutProvider extends ChangeNotifier {
   /// Set policy document
   void setPolicy(PolicyDocument policy) {
     _policy = policy;
+    notifyListeners();
+  }
+
+  /// Set underwriting metadata (Phase 5)
+  void setUnderwritingMetadata({
+    String? caseId,
+    List<PolicyExclusion>? exclusions,
+    Map<String, dynamic>? snapshot,
+  }) {
+    if (caseId != null) _underwritingCaseId = caseId;
+
+    if (exclusions != null) {
+      final nextKey = _computeExclusionsKey(exclusions);
+      if (nextKey != _exclusionsKey) {
+        _exclusionsKey = nextKey;
+        _clearExclusionsAcknowledgements();
+      }
+      _exclusions = exclusions;
+    }
+
+    if (snapshot != null) _underwritingSnapshot = snapshot;
+    notifyListeners();
+  }
+
+  /// Records user acknowledgement that exclusions exist and will not be covered.
+  /// Stored inside `underwritingSnapshot` so it is stamped onto the bound policy.
+  void recordExclusionsAcknowledgement({required String source}) {
+    final now = DateTime.now().toIso8601String();
+    final updated = Map<String, dynamic>.from(_underwritingSnapshot ?? const {});
+
+    final existing = (updated['exclusionsAcknowledgements'] as Map?)?.cast<String, dynamic>() ??
+        <String, dynamic>{};
+    final acknowledgements = Map<String, dynamic>.from(existing);
+    acknowledgements[source] = now;
+
+    updated['exclusionsAcknowledgements'] = acknowledgements;
+    updated['exclusionsAcknowledgedAt'] = now;
+
+    _underwritingSnapshot = updated;
     notifyListeners();
   }
 

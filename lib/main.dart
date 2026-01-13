@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'theme/clovara_theme.dart';
 import 'auth/auth_gate.dart';
@@ -17,14 +16,12 @@ import 'providers/pet_provider.dart';
 import 'providers/policy_provider.dart';
 import 'models/checkout_state.dart';
 import 'services/firebase_service.dart';
+import 'services/user_session_service.dart';
 import 'services/stripe_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
   
   // Initialize Firebase
   await Firebase.initializeApp(
@@ -36,6 +33,9 @@ void main() async {
     await StripeService.init();
   }
   
+  // Setup auth state listener to handle pending quote migration on sign-in
+  UserSessionService().setupAuthStateListener();
+
   runApp(const PetUnderwriterAI());
 }
 
@@ -85,6 +85,9 @@ class PetUnderwriterAI extends StatelessWidget {
                 builder: (context) => AuthRequiredCheckout(
                   pet: args['pet'],
                   selectedPlan: args['selectedPlan'],
+                  underwritingCaseId: args['underwritingCaseId']?.toString(),
+                  exclusions: args['exclusions'] is List ? (args['exclusions'] as List) : null,
+                  underwritingSnapshot: (args['underwritingSnapshot'] as Map?)?.cast<String, dynamic>(),
                 ),
               );
             }
