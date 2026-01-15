@@ -9,7 +9,7 @@ firebase functions:config:set \
   stripe.secret_key="sk_live_..." \
   sendgrid.api_key="SG...." \
   slack.webhook_url="https://hooks.slack.com/..." \
-  admin.email="admin@petuwrite.com"
+  admin.email="admin@clovara.com"
 
 # Deploy functions
 firebase deploy --only functions:reconcileClaimsState,functions:retryFailedOperation

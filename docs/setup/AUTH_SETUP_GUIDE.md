@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-PetUwrite now has complete role-based authentication system with Firebase Auth and Firestore. Users are automatically routed to the appropriate screen based on their role.
+Clovara now has complete role-based authentication system with Firebase Auth and Firestore. Users are automatically routed to the appropriate screen based on their role.
 
 ---
 
@@ -94,7 +94,7 @@ Password: test123
 
 **Underwriter Account:**
 ```
-Email: admin@petuwrite.com
+Email: admin@clovara.com
 Password: test123
 ```
 
@@ -119,7 +119,7 @@ Password: test123
 ```javascript
 {
   "uid": "xyz789",
-  "email": "admin@petuwrite.com",
+  "email": "admin@clovara.com",
   "userRole": 2,  // Underwriter/Admin
   "createdAt": Timestamp,
   "updatedAt": Timestamp
@@ -222,7 +222,7 @@ service cloud.firestore {
 ### Step 4: Deploy Security Rules
 
 ```bash
-cd /Users/conorlawless/Development/PetUwrite
+cd /Users/conorlawless/Development/Clovara
 firebase deploy --only firestore:rules
 ```
 
@@ -245,7 +245,7 @@ firebase deploy --only firestore:rules
 ### Test Underwriter Flow
 
 1. Sign out from customer account
-2. Sign in with: `admin@petuwrite.com` / `test123`
+2. Sign in with: `admin@clovara.com` / `test123`
 3. You should see the **Admin Dashboard** with:
    - High-risk quotes list
    - Filter and sort options
@@ -312,7 +312,7 @@ exports.promoteToUnderwriter = functions.https.onCall(async (data, context) => {
 ### Customer View
 ```
 ┌─────────────────────────────────┐
-│  PetUwrite             👤       │
+│  Clovara             👤       │
 ├─────────────────────────────────┤
 │  Welcome back!                  │
 │  customer@test.com              │
@@ -457,7 +457,7 @@ You now have:
 
 **Test Credentials:**
 - Customer: `customer@test.com` / `test123`
-- Underwriter: `admin@petuwrite.com` / `test123`
+- Underwriter: `admin@clovara.com` / `test123`
 
 ---
 

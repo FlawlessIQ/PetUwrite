@@ -104,7 +104,7 @@ Navigate to Firestore console and create:
     "liver failure"
   ],
   "lastUpdated": "2025-10-10T12:00:00Z",
-  "updatedBy": "admin@petuwrite.com"
+  "updatedBy": "admin@clovara.com"
 }
 ```
 

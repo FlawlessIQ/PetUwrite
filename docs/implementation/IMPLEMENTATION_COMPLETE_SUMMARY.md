@@ -258,7 +258,7 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
 
 # SendGrid (optional)
 SENDGRID_API_KEY="SG.YOUR_API_KEY"
-NOTIFICATION_EMAIL="admin@petuwrite.com"
+NOTIFICATION_EMAIL="admin@clovara.com"
 ```
 
 ### **Set via Firebase CLI**
@@ -267,7 +267,7 @@ NOTIFICATION_EMAIL="admin@petuwrite.com"
 firebase functions:config:set \
   slack.webhook_url="YOUR_SLACK_WEBHOOK" \
   sendgrid.api_key="YOUR_SENDGRID_KEY" \
-  sendgrid.notification_email="admin@petuwrite.com"
+  sendgrid.notification_email="admin@clovara.com"
 ```
 
 ---

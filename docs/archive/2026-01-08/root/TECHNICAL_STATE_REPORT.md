@@ -1,4 +1,4 @@
-# PetUwrite – Current Technical State Report (for Seed Investors)
+# Clovara – Current Technical State Report (for Seed Investors)
 
 **Report Date:** October 13, 2025  
 **Version:** 1.0.0+1  
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-PetUwrite is an **AI-powered pet insurance platform** featuring explainable underwriting, conversational quoting, and real-time claims processing. The platform is architected on Flutter/Firebase with advanced emotional intelligence features (Pawla AI avatar) and comprehensive admin tooling. Approximately **40% complete** toward production MVP, with core underwriting and policy management systems operational.
+Clovara is an **AI-powered pet insurance platform** featuring explainable underwriting, conversational quoting, and real-time claims processing. The platform is architected on Flutter/Firebase with advanced emotional intelligence features (Pawla AI avatar) and comprehensive admin tooling. Approximately **40% complete** toward production MVP, with core underwriting and policy management systems operational.
 
 **Key Differentiator:** Explainable AI system that transparently shows users why their risk score was calculated, building trust through transparency.
 
@@ -754,14 +754,14 @@ Total AI costs: ~$100-150/month at scale
 
 ## 12. Conclusion & Recommendation
 
-**Current State:** PetUwrite is a **well-architected, 40% complete MVP** with significant technical advantages (explainable AI, emotional intelligence, real-time rules engine). The codebase is clean, documented, and scalable.
+**Current State:** Clovara is a **well-architected, 40% complete MVP** with significant technical advantages (explainable AI, emotional intelligence, real-time rules engine). The codebase is clean, documented, and scalable.
 
 **Critical Path:** 3 blocking items prevent launch:
 1. AI risk scoring integration (2-3 days)
 2. Stripe payment completion (3-4 days)
 3. Legal/compliance prep (2-3 weeks)
 
-**Investment Thesis:** With **$60-80k** and **8-10 weeks**, PetUwrite can reach beta launch with a differentiated product in a $3B+ pet insurance market. The explainable AI system alone provides a 12+ month competitive moat.
+**Investment Thesis:** With **$60-80k** and **8-10 weeks**, Clovara can reach beta launch with a differentiated product in a $3B+ pet insurance market. The explainable AI system alone provides a 12+ month competitive moat.
 
 **Technical Due Diligence Rating:** ⭐⭐⭐⭐ (4/5 stars)
 - **Strengths:** Architecture, unique features, documentation

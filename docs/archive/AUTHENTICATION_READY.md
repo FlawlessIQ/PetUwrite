@@ -4,7 +4,7 @@
 
 ### 1. Firebase Web App Created ✅
 - App ID: `1:984654950987:web:f9c4d1e5fe50cf2ba193ce`
-- Display name: "PetUwrite Web"
+- Display name: "Clovara Web"
 - Configuration added to `firebase_options.dart`
 
 ### 2. Email/Password Authentication Enabled ✅

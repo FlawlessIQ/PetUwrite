@@ -13,8 +13,8 @@ const db = admin.firestore();
 
 // SendGrid configuration
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@petuwrite.com';
-const FROM_NAME = 'PetUwrite Analytics';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@clovara.com';
+const FROM_NAME = 'Clovara Analytics';
 
 /**
  * Send analytics report via email
@@ -168,7 +168,7 @@ A detailed CSV report is attached with complete breakdowns by:
 • Settlement Time Metrics
 
 --
-PetUwrite Analytics System
+Clovara Analytics System
   `.trim();
 }
 
@@ -345,7 +345,7 @@ function formatEmailHtml(analytics, dateRange, timestamp) {
   </div>
 
   <div class="footer">
-    <p>PetUwrite Analytics System</p>
+    <p>Clovara Analytics System</p>
     <p>This report was automatically generated and sent securely.</p>
   </div>
 </body>

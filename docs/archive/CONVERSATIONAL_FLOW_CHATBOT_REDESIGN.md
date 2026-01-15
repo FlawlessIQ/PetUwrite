@@ -37,7 +37,7 @@ _buildChatHeader()
 **Design:**
 - **Navy background** (#0A2647)
 - **Bot avatar** (44px circle with gradient)
-- **Assistant name** ("PetUwrite Assistant")
+- **Assistant name** ("Clovara Assistant")
 - **Status indicator** ("typing..." in teal when bot is typing, "Online" otherwise)
 - **Account button** (right side icon)
 - **Progress bar** (teal, shows completion based on answers given)
@@ -45,7 +45,7 @@ _buildChatHeader()
 **Layout:**
 ```
 ┌─────────────────────────────────────┐
-│ [Avatar] PetUwrite Assistant    👤  │
+│ [Avatar] Clovara Assistant    👤  │
 │          typing...                  │
 │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 └─────────────────────────────────────┘

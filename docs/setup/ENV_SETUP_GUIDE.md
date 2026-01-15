@@ -167,7 +167,7 @@ When a new developer joins the team:
 1. **Clone the repository**
    ```bash
    git clone <repo-url>
-   cd PetUwrite
+   cd Clovara
    ```
 
 2. **Copy the example file**
@@ -206,7 +206,7 @@ STRIPE_SECRET_KEY=sk_test_...
 FIREBASE_API_KEY=AIza...
 
 # Custom settings
-APP_NAME=PetUwrite
+APP_NAME=Clovara
 DEBUG_MODE=true
 ```
 
@@ -220,7 +220,7 @@ STRIPE_SECRET_KEY=your_stripe_secret_here
 ### 3. Use in code
 ```dart
 final stripePubKey = dotenv.env['STRIPE_PUBLISHABLE_KEY'];
-final appName = dotenv.env['APP_NAME'] ?? 'PetUwrite';
+final appName = dotenv.env['APP_NAME'] ?? 'Clovara';
 final isDebug = dotenv.env['DEBUG_MODE'] == 'true';
 ```
 

@@ -36,7 +36,7 @@ Complete checklist for deploying the checkout flow and policy management system.
 
 #### Flutter App
 ```bash
-cd /Users/conorlawless/Development/PetUwrite
+cd /Users/conorlawless/Development/Clovara
 flutter pub get
 ```
 
@@ -53,7 +53,7 @@ Verify these packages are in `pubspec.yaml`:
 
 #### Cloud Functions
 ```bash
-cd /Users/conorlawless/Development/PetUwrite/functions
+cd /Users/conorlawless/Development/Clovara/functions
 npm install
 ```
 
@@ -70,7 +70,7 @@ Verify these packages are in `package.json`:
 
 1. **Set Firebase Project**
    ```bash
-   cd /Users/conorlawless/Development/PetUwrite
+   cd /Users/conorlawless/Development/Clovara
    firebase use pet-underwriter-ai
    ```
 

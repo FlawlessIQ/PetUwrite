@@ -1,7 +1,7 @@
 # 🔧 Asset Path Fix - RESOLVED
 
 **Issue:** App wouldn't run due to missing logo files at incorrect path
-**Error:** `No file or variants found for asset: build/flutter_assets/PetUwrite%20navy%20background.png`
+**Error:** `No file or variants found for asset: build/flutter_assets/Clovara%20navy%20background.png`
 
 ## ❌ Problem
 
@@ -18,18 +18,18 @@ mkdir -p assets/
 ```
 
 ### 2. Updated Asset Paths in Code
-**File:** `lib/theme/petuwrite_theme.dart`
+**File:** `lib/theme/clovara_theme.dart`
 
 Changed from:
 ```dart
-static const String logoNavyBackground = 'build/flutter_assets/PetUwrite navy background.png';
-static const String logoTransparent = 'build/flutter_assets/PetUwrite transparent.png';
+static const String logoNavyBackground = 'build/flutter_assets/Clovara navy background.png';
+static const String logoTransparent = 'build/flutter_assets/Clovara transparent.png';
 ```
 
 Changed to:
 ```dart
-static const String logoNavyBackground = 'assets/petuwrite_logo_navy.svg';
-static const String logoTransparent = 'assets/petuwrite_logo_transparent.svg';
+static const String logoNavyBackground = 'assets/clovara_logo_navy.svg';
+static const String logoTransparent = 'assets/clovara_logo_transparent.svg';
 ```
 
 ### 3. Updated pubspec.yaml
@@ -39,8 +39,8 @@ Changed from:
 ```yaml
 assets:
   - .env
-  - build/flutter_assets/PetUwrite navy background.png
-  - build/flutter_assets/PetUwrite transparent.png
+  - build/flutter_assets/Clovara navy background.png
+  - build/flutter_assets/Clovara transparent.png
 ```
 
 Changed to:
@@ -52,18 +52,18 @@ assets:
 
 ### 4. Created Placeholder SVG Logos
 Created two temporary SVG placeholder files:
-- ✅ `assets/petuwrite_logo_navy.svg` - Navy background with teal branding
-- ✅ `assets/petuwrite_logo_transparent.svg` - Transparent logo with PW initials
+- ✅ `assets/clovara_logo_navy.svg` - Navy background with teal branding
+- ✅ `assets/clovara_logo_transparent.svg` - Transparent logo with PW initials
 
-These are **temporary placeholders** with PetUwrite brand colors (Navy #0A2647, Teal #00C2CB, Sky #A8E6E8).
+These are **temporary placeholders** with Clovara brand colors (Navy #0A2647, Teal #00C2CB, Sky #A8E6E8).
 
 ## 📂 Correct Directory Structure
 
 ```
-PetUwrite/
+Clovara/
 ├── assets/                              ← Source assets folder
-│   ├── petuwrite_logo_navy.svg         ← Placeholder logo
-│   └── petuwrite_logo_transparent.svg  ← Placeholder logo
+│   ├── clovara_logo_navy.svg         ← Placeholder logo
+│   └── clovara_logo_transparent.svg  ← Placeholder logo
 ├── fonts/                               ← Font files
 │   ├── Poppins/
 │   └── Inter/
@@ -76,7 +76,7 @@ PetUwrite/
 
 ### Navy Background Logo (512x512)
 - Navy background (#0A2647)
-- Teal text "PetUwrite" (#00C2CB)
+- Teal text "Clovara" (#00C2CB)
 - Sky tagline (#A8E6E8)
 - Decorative circles
 
@@ -102,14 +102,14 @@ When you have your actual logo files:
 
 1. **Add PNG logo files** to `assets/` directory:
    ```
-   assets/petuwrite_logo_navy.png
-   assets/petuwrite_logo_transparent.png
+   assets/clovara_logo_navy.png
+   assets/clovara_logo_transparent.png
    ```
 
-2. **Update the paths** in `lib/theme/petuwrite_theme.dart`:
+2. **Update the paths** in `lib/theme/clovara_theme.dart`:
    ```dart
-   static const String logoNavyBackground = 'assets/petuwrite_logo_navy.png';
-   static const String logoTransparent = 'assets/petuwrite_logo_transparent.png';
+   static const String logoNavyBackground = 'assets/clovara_logo_navy.png';
+   static const String logoTransparent = 'assets/clovara_logo_transparent.png';
    ```
 
 3. **Run:**

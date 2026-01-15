@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-A comprehensive admin dashboard for managing all underwriting parameters, pricing rules, and AI configurations across the PetUwrite platform.
+A comprehensive admin dashboard for managing all underwriting parameters, pricing rules, and AI configurations across the Clovara platform.
 
 **Access Level:** Admin users only (`userRole == 2`)
 
@@ -167,7 +167,7 @@ admin_settings/global_config
   
   // Metadata
   "last_updated": Timestamp(2025-10-08 14:30:00),  // server timestamp
-  "updated_by": "admin@petuwrite.com"              // string, user email
+  "updated_by": "admin@clovara.com"              // string, user email
 }
 ```
 
@@ -547,7 +547,7 @@ class QuoteResultsScreen extends StatelessWidget {
 
 **Access Control:** Role-based, admin-only (userRole == 2)
 
-**UI Quality:** Full PetUwrite branding, polished interactions
+**UI Quality:** Full Clovara branding, polished interactions
 
 **Data Persistence:** Single batched write to Firestore
 

@@ -1,4 +1,4 @@
-# Technical Gaps Analysis: PetUwrite MVP
+# Technical Gaps Analysis: Clovara MVP
 
 **Date:** October 14, 2025  
 **Current Status:** ~60% MVP Complete  
@@ -81,7 +81,7 @@
 - **Setup Steps:**
   1. Create SendGrid account (free tier: 100 emails/day)
   2. Generate API key
-  3. Verify sender domain (petuwrite.com)
+  3. Verify sender domain (clovara.com)
   4. Add API key to Firebase: `firebase functions:config:set sendgrid.api_key="SG.xxx"`
   5. Update email functions to use SendGrid SDK
   6. Test all email types (policy, claims, overrides)

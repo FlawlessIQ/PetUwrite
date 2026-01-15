@@ -100,7 +100,7 @@ firebase deploy --only firestore:rules
 
 **Expected Output:**
 ```
-=== Deploying to 'petuwrite-prod'...
+=== Deploying to 'clovara-prod'...
 
 i  deploying firestore
 i  firestore: checking firestore.rules for compilation errors...
@@ -377,7 +377,7 @@ firebase firestore:logs --limit 50
 - [Rules Simulator](https://firebase.google.com/docs/firestore/security/test-rules-emulator)
 - [Best Practices](https://firebase.google.com/docs/firestore/security/rules-best-practices)
 
-### PetUwrite Documentation
+### Clovara Documentation
 - [Full Security Rules Documentation](./FIRESTORE_SECURITY_RULES.md)
 - [Admin Dashboard Guide](./ADMIN_DASHBOARD_GUIDE.md)
 - [Underwriting Rules Engine Guide](./UNDERWRITING_RULES_ENGINE_GUIDE.md)

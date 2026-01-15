@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/checkout_state.dart';
 import '../models/policy_exclusion.dart';
+import '../services/draft_service.dart';
 import '../services/policy_service.dart';
+import '../services/user_session_service.dart';
 import '../services/underwriting_case_service.dart';
 
 /// Step 4: Confirmation screen with policy details and PDF download
@@ -133,6 +135,14 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
 
       // Update provider with policy
       provider.setPolicy(policy);
+
+        // Clear any saved checkout progress / resume key on successful bind.
+        try {
+          await UserSessionService().clearPendingCheckout();
+          await DraftService().clearAll();
+        } catch (_) {
+          // Ignore cleanup errors.
+        }
 
       // Send email notification
       await _policyService.sendPolicyEmail(policy);

@@ -12,7 +12,7 @@
 
 **After:**
 - **Compact header:** Logo (80-100px) + App name + tagline in one horizontal row
-- **Single branding:** "PetUwrite" shown only once (in white)
+- **Single branding:** "Clovara" shown only once (in white)
 - **Side-by-side cards:** 3 cards in a row on desktop, stacked on mobile
 - **Features section:** 4 feature cards highlighting platform benefits
 - **Busier layout:** More content, less empty space
@@ -23,7 +23,7 @@
 #### Header Section (Top)
 ```
 ┌─────────────────────────────────────────────────┐
-│  [Logo]  PetUwrite                              │
+│  [Logo]  Clovara                              │
 │  80-100px  "Trust powered by intelligence"      │
 └─────────────────────────────────────────────────┘
 ```
@@ -71,7 +71,7 @@ Mobile (<900px):
 #### 1. Header (Compact)
 - **Logo size:** 280-400px → 80-100px
 - **Layout:** Vertical stack → Horizontal row
-- **Branding:** Removed duplicate "PetUwrite" title
+- **Branding:** Removed duplicate "Clovara" title
 - **Tagline:** Moved inline with logo and name
 - **Space saved:** ~30% of vertical space
 
@@ -85,7 +85,7 @@ Mobile (<900px):
 - **Border radius:** 20px → 16px
 
 #### 3. Features Section (NEW)
-- **Added:** "Why Choose PetUwrite?" section
+- **Added:** "Why Choose Clovara?" section
 - **4 feature cards:**
   - ⚡ Instant Quotes - "Get AI-powered quotes in under 2 minutes"
   - 🛡️ Comprehensive Coverage - "Protect your pet with 90-95% reimbursement"
@@ -146,7 +146,7 @@ Empty Space:      25% of viewport (distributed)
 
 ✅ **Fits on one page:** No excessive scrolling needed  
 ✅ **Side-by-side cards:** Desktop shows 3 cards horizontally  
-✅ **Single branding:** "PetUwrite" shown only once  
+✅ **Single branding:** "Clovara" shown only once  
 ✅ **Busier layout:** Added features section, reduced spacing  
 ✅ **Better contrast:** Removed navy-on-navy text  
 ✅ **Professional:** Clean, modern, content-rich  
@@ -182,7 +182,7 @@ Empty Space:      25% of viewport (distributed)
 - [x] Desktop view shows 3 cards side-by-side
 - [x] Mobile view stacks cards vertically
 - [x] Logo displays at correct size
-- [x] "PetUwrite" appears only once
+- [x] "Clovara" appears only once
 - [x] Features section displays 4 cards
 - [x] Footer fits on one line
 - [x] All navigation works

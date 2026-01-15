@@ -8,8 +8,6 @@ import '../ai/ai_service.dart';
 import 'ai_retraining_service.dart';
 
 /// Service for handling claim payouts, notifications, and denials
-/// 
-/// Responsibilities:
 /// - Process approved claim payouts via Stripe Connect
 /// - Record payout transactions in Firestore
 /// - Send email + in-app notifications on completion
@@ -18,35 +16,35 @@ import 'ai_retraining_service.dart';
 class ClaimPayoutService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  
+
   // Stripe API configuration
   static const String _stripeApiUrl = 'https://api.stripe.com/v1';
   final String _stripeSecretKey;
-  
+
   // SendGrid API configuration
   static const String _sendGridApiUrl = 'https://api.sendgrid.com/v3/mail/send';
   final String _sendGridApiKey;
-  
+
   // AI service for empathetic denial messages
   final GPTService _aiService;
-  
+
   /// Create service with API keys from environment or parameters
   ClaimPayoutService({
     String? stripeSecretKey,
     String? sendGridApiKey,
     GPTService? aiService,
-  })  : _stripeSecretKey = stripeSecretKey ?? '',
-        _sendGridApiKey = sendGridApiKey ?? '',
-        _aiService = aiService ?? GPTService(model: 'gpt-5.2');
+  }) : _stripeSecretKey = stripeSecretKey ?? '',
+       _sendGridApiKey = sendGridApiKey ?? '',
+      _aiService = aiService ?? GPTService();
 
   /// Process approved claim - trigger payout and notifications
-  /// 
+  ///
   /// This method is idempotent and transaction-safe:
   /// - Uses 'settling' status as a distributed lock
   /// - Prevents concurrent approvals via atomic status update
   /// - Stores Stripe idempotency key to prevent duplicate charges
   /// - Wraps payout completion + claim settlement in transaction
-  /// 
+  ///
   /// Returns the payout transaction ID
   Future<String> processApprovedClaim({
     required String claimId,
@@ -62,19 +60,19 @@ class ClaimPayoutService {
       }
 
       print('🔒 Attempting to lock claim $claimId for payout processing...');
-      
+
       // Step 1: Atomically lock claim with 'settling' status
       // This prevents concurrent admin approvals
       try {
         final claimRef = _firestore.collection('claims').doc(claimId);
         final claimDoc = await claimRef.get();
-        
+
         if (!claimDoc.exists) {
           throw Exception('Claim $claimId not found');
         }
-        
+
         final currentStatus = claimDoc.data()?['status'] as String?;
-        
+
         // Check if already processed
         if (currentStatus == 'settled') {
           print('⚠️ Claim already settled - returning existing payout');
@@ -86,34 +84,39 @@ class ClaimPayoutService {
           if (existingPayout.docs.isNotEmpty) {
             return existingPayout.docs.first.id;
           }
-          throw Exception('Claim is settled but no payout found - data inconsistency');
+          throw Exception(
+            'Claim is settled but no payout found - data inconsistency',
+          );
         }
-        
+
         // Check if currently being settled by another admin
         if (currentStatus == 'settling') {
           final settlingBy = claimDoc.data()?['processingBy'] as String?;
-          final settlingStarted = claimDoc.data()?['settlingStartedAt'] as Timestamp?;
-          final lockAge = settlingStarted != null 
+          final settlingStarted =
+              claimDoc.data()?['settlingStartedAt'] as Timestamp?;
+          final lockAge = settlingStarted != null
               ? DateTime.now().difference(settlingStarted.toDate())
               : Duration.zero;
-          
+
           if (lockAge.inMinutes < 5) {
             throw Exception(
               'Claim is currently being processed by $settlingBy. '
-              'Lock acquired ${lockAge.inMinutes} minute(s) ago.'
+              'Lock acquired ${lockAge.inMinutes} minute(s) ago.',
             );
           } else {
-            print('⚠️ Stale lock detected (${lockAge.inMinutes} min old) - taking over');
+            print(
+              '⚠️ Stale lock detected (${lockAge.inMinutes} min old) - taking over',
+            );
           }
         }
-        
+
         // Only allow locking from 'processing' status
         if (currentStatus != 'processing' && currentStatus != 'settling') {
           throw Exception(
-            'Claim must be in processing status (current: $currentStatus)'
+            'Claim must be in processing status (current: $currentStatus)',
           );
         }
-        
+
         // Atomically update to 'settling' status (acts as distributed lock)
         await claimRef.update({
           'status': ClaimStatus.settling.value,
@@ -121,17 +124,17 @@ class ClaimPayoutService {
           'settlingStartedAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
-        
+
         print('✅ Lock acquired for claim $claimId');
       } catch (e) {
         print('❌ Failed to acquire lock: $e');
         rethrow;
       }
-      
+
       // Step 2: Load claim data
       final claimDoc = await _firestore.collection('claims').doc(claimId).get();
       final claim = Claim.fromMap(claimDoc.data()!, claimDoc.id);
-      
+
       // Step 3: Check for existing payout (idempotency)
       final existingPayout = await _firestore
           .collection('claims')
@@ -140,11 +143,11 @@ class ClaimPayoutService {
           .where('status', whereIn: ['completed', 'pending'])
           .limit(1)
           .get();
-      
+
       if (existingPayout.docs.isNotEmpty) {
         final payoutStatus = existingPayout.docs.first.data()['status'];
         print('⚠️ Existing payout found with status: $payoutStatus');
-        
+
         if (payoutStatus == 'completed') {
           // Ensure claim is marked settled
           await _firestore.collection('claims').doc(claimId).update({
@@ -157,17 +160,18 @@ class ClaimPayoutService {
           print('⚠️ Pending payout exists - will attempt to complete it');
         }
       }
-      
+
       // Step 4: Retrieve owner's payment method
       final paymentMethodId = await _getOwnerPaymentMethod(claim.ownerId);
-      
+
       // Step 5: Generate Stripe idempotency key (prevents duplicate charges)
-      final idempotencyKey = 'claim_${claimId}_${DateTime.now().millisecondsSinceEpoch}';
-      
+      final idempotencyKey =
+          'claim_${claimId}_${DateTime.now().millisecondsSinceEpoch}';
+
       // Step 6: Create or get payout transaction record
       DocumentReference payoutRef;
       String payoutId;
-      
+
       if (existingPayout.docs.isNotEmpty) {
         payoutRef = existingPayout.docs.first.reference;
         payoutId = existingPayout.docs.first.id;
@@ -177,20 +181,20 @@ class ClaimPayoutService {
             .doc(claimId)
             .collection('payout')
             .add({
-          'claimId': claimId,
-          'ownerId': claim.ownerId,
-          'petId': claim.petId,
-          'policyId': claim.policyId,
-          'amount': claim.claimAmount,
-          'currency': claim.currency,
-          'status': 'pending',
-          'paymentMethodId': paymentMethodId,
-          'approvedBy': approvedBy,
-          'approvalNotes': approvalNotes,
-          'stripeIdempotencyKey': idempotencyKey,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+              'claimId': claimId,
+              'ownerId': claim.ownerId,
+              'petId': claim.petId,
+              'policyId': claim.policyId,
+              'amount': claim.claimAmount,
+              'currency': claim.currency,
+              'status': 'pending',
+              'paymentMethodId': paymentMethodId,
+              'approvedBy': approvedBy,
+              'approvalNotes': approvalNotes,
+              'stripeIdempotencyKey': idempotencyKey,
+              'createdAt': FieldValue.serverTimestamp(),
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
         payoutId = payoutRef.id;
       }
 
@@ -215,7 +219,7 @@ class ClaimPayoutService {
             'completedAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
           });
-          
+
           // Update claim status to settled
           final claimRef = _firestore.collection('claims').doc(claimId);
           transaction.update(claimRef, {
@@ -280,7 +284,7 @@ class ClaimPayoutService {
           'failedAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
-        
+
         // Release lock on claim
         await _firestore.collection('claims').doc(claimId).update({
           'status': ClaimStatus.processing.value,
@@ -294,10 +298,7 @@ class ClaimPayoutService {
           claimId: claimId,
           payoutId: payoutId,
           event: 'payout_failed',
-          details: {
-            'error': e.toString(),
-            'approvedBy': approvedBy,
-          },
+          details: {'error': e.toString(), 'approvedBy': approvedBy},
         );
 
         rethrow;
@@ -316,10 +317,7 @@ class ClaimPayoutService {
   }) async {
     try {
       // Step 1: Verify claim exists
-      final claimDoc = await _firestore
-          .collection('claims')
-          .doc(claimId)
-          .get();
+      final claimDoc = await _firestore.collection('claims').doc(claimId).get();
 
       if (!claimDoc.exists) {
         throw Exception('Claim $claimId not found');
@@ -387,18 +385,24 @@ class ClaimPayoutService {
       }
 
       // Retrieve payment methods from Stripe
-      final response = await http.get(
-        Uri.parse('$_stripeApiUrl/customers/$stripeCustomerId/payment_methods?type=card'),
-        headers: {
-          'Authorization': 'Bearer $_stripeSecretKey',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw TimeoutException('Stripe API request timed out after 30 seconds');
-        },
-      );
+      final response = await http
+          .get(
+            Uri.parse(
+              '$_stripeApiUrl/customers/$stripeCustomerId/payment_methods?type=card',
+            ),
+            headers: {
+              'Authorization': 'Bearer $_stripeSecretKey',
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw TimeoutException(
+                'Stripe API request timed out after 30 seconds',
+              );
+            },
+          );
 
       if (response.statusCode != 200) {
         throw Exception('Failed to retrieve payment methods: ${response.body}');
@@ -408,7 +412,9 @@ class ClaimPayoutService {
       final paymentMethods = data['data'] as List;
 
       if (paymentMethods.isEmpty) {
-        throw Exception('No payment methods found for customer $stripeCustomerId');
+        throw Exception(
+          'No payment methods found for customer $stripeCustomerId',
+        );
       }
 
       // Return the first (default) payment method
@@ -420,10 +426,10 @@ class ClaimPayoutService {
   }
 
   /// Execute Stripe payout (real implementation uses Stripe Connect)
-  /// 
+  ///
   /// For production, this would use Stripe Connect to transfer funds
   /// to the customer's bank account or debit card
-  /// 
+  ///
   /// Includes idempotency key to prevent duplicate charges if retried
   Future<String> _executeStripePayout({
     required String claimId,
@@ -448,28 +454,33 @@ class ClaimPayoutService {
 
       // PRODUCTION: Create Stripe Transfer/Payout with idempotency key
       // This requires Stripe Connect setup with Express/Custom accounts
-      
+
       // Option 1: Refund to original payment method
-      final response = await http.post(
-        Uri.parse('$_stripeApiUrl/refunds'),
-        headers: {
-          'Authorization': 'Bearer $_stripeSecretKey',
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Idempotency-Key': idempotencyKey, // Prevents duplicate charges
-        },
-        body: {
-          'payment_intent': paymentMethodId, // Would be original payment intent
-          'amount': (amount * 100).toInt().toString(), // Convert to cents
-          'reason': 'requested_by_customer',
-          'metadata[claimId]': claimId,
-          'metadata[payoutId]': payoutId,
-        },
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw TimeoutException('Stripe API request timed out after 30 seconds');
-        },
-      );
+      final response = await http
+          .post(
+            Uri.parse('$_stripeApiUrl/refunds'),
+            headers: {
+              'Authorization': 'Bearer $_stripeSecretKey',
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Idempotency-Key': idempotencyKey, // Prevents duplicate charges
+            },
+            body: {
+              'payment_intent':
+                  paymentMethodId, // Would be original payment intent
+              'amount': (amount * 100).toInt().toString(), // Convert to cents
+              'reason': 'requested_by_customer',
+              'metadata[claimId]': claimId,
+              'metadata[payoutId]': payoutId,
+            },
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw TimeoutException(
+                'Stripe API request timed out after 30 seconds',
+              );
+            },
+          );
 
       if (response.statusCode != 200) {
         throw Exception('Stripe payout failed: ${response.body}');
@@ -516,7 +527,8 @@ class ClaimPayoutService {
     await Future.delayed(const Duration(seconds: 2));
 
     // Generate mock transaction ID
-    final mockTransactionId = 'mock_txn_${DateTime.now().millisecondsSinceEpoch}';
+    final mockTransactionId =
+        'mock_txn_${DateTime.now().millisecondsSinceEpoch}';
 
     print('🧪 MOCK PAYOUT: $amount $currency for claim $claimId');
     print('🧪 Mock Transaction ID: $mockTransactionId');
@@ -534,7 +546,10 @@ class ClaimPayoutService {
   }) async {
     try {
       // Get owner and pet details
-      final ownerDoc = await _firestore.collection('users').doc(claim.ownerId).get();
+      final ownerDoc = await _firestore
+          .collection('users')
+          .doc(claim.ownerId)
+          .get();
       final petDoc = await _firestore.collection('pets').doc(claim.petId).get();
 
       if (!ownerDoc.exists || !petDoc.exists) {
@@ -564,7 +579,8 @@ class ClaimPayoutService {
         userId: claim.ownerId,
         type: 'claim_approved',
         title: 'Claim Approved! 🎉',
-        message: 'Your claim for $petName\'s treatment has been approved. ${_formatCurrency(claim.claimAmount, claim.currency)} has been sent to your account.',
+        message:
+            'Your claim for $petName\'s treatment has been approved. ${_formatCurrency(claim.claimAmount, claim.currency)} has been sent to your account.',
         data: {
           'claimId': claim.claimId,
           'payoutId': payoutId,
@@ -602,15 +618,13 @@ class ClaimPayoutService {
         'personalizations': [
           {
             'to': [
-              {'email': recipientEmail, 'name': recipientName}
+              {'email': recipientEmail, 'name': recipientName},
             ],
-            'subject': '✅ Claim Approved - ${_formatCurrency(claimAmount, currency)} on the way!',
-          }
+            'subject':
+                '✅ Claim Approved - ${_formatCurrency(claimAmount, currency)} on the way!',
+          },
         ],
-        'from': {
-          'email': 'claims@petuwrite.com',
-          'name': 'PetUwrite Claims Team',
-        },
+        'from': {'email': 'claims@clovara.com', 'name': 'Clovara Claims Team'},
         'content': [
           {
             'type': 'text/html',
@@ -622,23 +636,27 @@ class ClaimPayoutService {
               claimId: claimId,
               stripeTransactionId: stripeTransactionId,
             ),
-          }
+          },
         ],
       };
 
-      final response = await http.post(
-        Uri.parse(_sendGridApiUrl),
-        headers: {
-          'Authorization': 'Bearer $_sendGridApiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(emailData),
-      ).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          throw TimeoutException('SendGrid API request timed out after 15 seconds');
-        },
-      );
+      final response = await http
+          .post(
+            Uri.parse(_sendGridApiUrl),
+            headers: {
+              'Authorization': 'Bearer $_sendGridApiKey',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(emailData),
+          )
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              throw TimeoutException(
+                'SendGrid API request timed out after 15 seconds',
+              );
+            },
+          );
 
       if (response.statusCode == 202) {
         print('✅ Approval email sent to $recipientEmail');
@@ -660,11 +678,12 @@ class ClaimPayoutService {
     try {
       // Get pet details for personalization
       final petDoc = await _firestore.collection('pets').doc(claim.petId).get();
-      final petName = petDoc.exists 
+      final petName = petDoc.exists
           ? (petDoc.data()?['name'] as String?) ?? 'your pet'
           : 'your pet';
 
-      final prompt = '''
+      final prompt =
+          '''
 You are a compassionate customer service representative for a pet insurance company.
 Write an empathetic, clear denial message for a claim that was not approved.
 
@@ -707,14 +726,14 @@ We understand how much you care about your pet's health, and we carefully review
 
 Unfortunately, after reviewing the documentation and policy terms, we are unable to approve this claim at this time. This decision is based on the specific circumstances of this treatment and how they align with your policy coverage.
 
-We know this isn't the news you were hoping for. If you have questions about this decision or would like to discuss your coverage options, our team is here to help. You can reach us at claims@petuwrite.com or call 1-800-PET-CARE.
+We know this isn't the news you were hoping for. If you have questions about this decision or would like to discuss your coverage options, our team is here to help. You can reach us at claims@clovara.com or call 1-800-CLOVARA.
 
 Please remember that your policy continues to provide coverage for eligible treatments going forward. We're committed to being there when your pet needs us most.
 
 Thank you for trusting us with your pet's care.
 
 Warm regards,
-The PetUwrite Claims Team
+The Clovara Claims Team
 ''';
   }
 
@@ -727,7 +746,10 @@ The PetUwrite Claims Team
   }) async {
     try {
       // Get owner and pet details
-      final ownerDoc = await _firestore.collection('users').doc(claim.ownerId).get();
+      final ownerDoc = await _firestore
+          .collection('users')
+          .doc(claim.ownerId)
+          .get();
       final petDoc = await _firestore.collection('pets').doc(claim.petId).get();
 
       if (!ownerDoc.exists || !petDoc.exists) {
@@ -755,11 +777,9 @@ The PetUwrite Claims Team
         userId: claim.ownerId,
         type: 'claim_denied',
         title: 'Claim Decision Update',
-        message: 'We\'ve reviewed your claim for $petName. Please check your email for details.',
-        data: {
-          'claimId': claim.claimId,
-          'denialMessage': denialMessage,
-        },
+        message:
+            'We\'ve reviewed your claim for $petName. Please check your email for details.',
+        data: {'claimId': claim.claimId, 'denialMessage': denialMessage},
       );
 
       print('✅ Denial notifications sent for claim ${claim.claimId}');
@@ -787,15 +807,12 @@ The PetUwrite Claims Team
         'personalizations': [
           {
             'to': [
-              {'email': recipientEmail, 'name': recipientName}
+              {'email': recipientEmail, 'name': recipientName},
             ],
             'subject': 'Claim Decision - $petName',
-          }
+          },
         ],
-        'from': {
-          'email': 'claims@petuwrite.com',
-          'name': 'PetUwrite Claims Team',
-        },
+        'from': {'email': 'claims@clovara.com', 'name': 'Clovara Claims Team'},
         'content': [
           {
             'type': 'text/html',
@@ -805,23 +822,27 @@ The PetUwrite Claims Team
               claimId: claimId,
               denialMessage: denialMessage,
             ),
-          }
+          },
         ],
       };
 
-      final response = await http.post(
-        Uri.parse(_sendGridApiUrl),
-        headers: {
-          'Authorization': 'Bearer $_sendGridApiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(emailData),
-      ).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          throw TimeoutException('SendGrid API request timed out after 15 seconds');
-        },
-      );
+      final response = await http
+          .post(
+            Uri.parse(_sendGridApiUrl),
+            headers: {
+              'Authorization': 'Bearer $_sendGridApiKey',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(emailData),
+          )
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              throw TimeoutException(
+                'SendGrid API request timed out after 15 seconds',
+              );
+            },
+          );
 
       if (response.statusCode == 202) {
         print('✅ Denial email sent to $recipientEmail');
@@ -871,13 +892,13 @@ The PetUwrite Claims Team
           .doc(claimId)
           .collection('payout_audit_trail')
           .add({
-        'claimId': claimId,
-        'payoutId': payoutId,
-        'event': event,
-        'details': details ?? {},
-        'timestamp': FieldValue.serverTimestamp(),
-        'actor': _auth.currentUser?.uid ?? 'system',
-      });
+            'claimId': claimId,
+            'payoutId': payoutId,
+            'event': event,
+            'details': details ?? {},
+            'timestamp': FieldValue.serverTimestamp(),
+            'actor': _auth.currentUser?.uid ?? 'system',
+          });
     } catch (e) {
       print('⚠️ Error logging payout event: $e');
       // Don't fail the operation if logging fails
@@ -999,7 +1020,7 @@ The PetUwrite Claims Team
     </div>
     
     <center>
-      <a href="https://app.petuwrite.com/claims/$claimId" class="cta-button">View Claim Details</a>
+      <a href="https://app.clovara.com/claims/$claimId" class="cta-button">View Claim Details</a>
     </center>
     
     <p>If you have any questions about this payment or your coverage, our team is always here to help.</p>
@@ -1007,11 +1028,11 @@ The PetUwrite Claims Team
     <p>Thank you for trusting us with $petName's care!</p>
     
     <p>Warm regards,<br>
-    <strong>The PetUwrite Claims Team</strong></p>
+    <strong>The Clovara Claims Team</strong></p>
     
     <div class="footer">
-      <p>Questions? Contact us at claims@petuwrite.com or call 1-800-PET-CARE</p>
-      <p>&copy; 2025 PetUwrite. All rights reserved.</p>
+      <p>Questions? Contact us at claims@clovara.com or call 1-800-CLOVARA</p>
+      <p>&copy; 2026 Clovara. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -1113,18 +1134,18 @@ $denialMessage
     </div>
     
     <center>
-      <a href="https://app.petuwrite.com/claims/$claimId" class="cta-button">View Full Claim Details</a>
+      <a href="https://app.clovara.com/claims/$claimId" class="cta-button">View Full Claim Details</a>
     </center>
     
     <p>If you would like to discuss this decision or have questions about your coverage, please don't hesitate to reach out. Our team is here to help.</p>
     
     <p><strong>Contact Us:</strong><br>
-    📧 Email: claims@petuwrite.com<br>
-    📞 Phone: 1-800-PET-CARE<br>
-    💬 Live Chat: <a href="https://app.petuwrite.com/support">app.petuwrite.com/support</a></p>
+    📧 Email: claims@clovara.com<br>
+    📞 Phone: 1-800-CLOVARA<br>
+    💬 Live Chat: <a href="https://app.clovara.com/support">app.clovara.com/support</a></p>
     
     <div class="footer">
-      <p>&copy; 2025 PetUwrite. All rights reserved.</p>
+      <p>&copy; 2026 Clovara. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -1157,7 +1178,9 @@ $denialMessage
   }
 
   /// Get payout history for a claim
-  Future<List<Map<String, dynamic>>> getClaimPayoutHistory(String claimId) async {
+  Future<List<Map<String, dynamic>>> getClaimPayoutHistory(
+    String claimId,
+  ) async {
     try {
       final snapshot = await _firestore
           .collection('claims')
@@ -1222,13 +1245,14 @@ $denialMessage
           .collection('payout')
           .doc(payoutId)
           .update({
-        'status': 'retrying',
-        'retryAttempt': (payoutData['retryAttempt'] ?? 0) + 1,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'status': 'retrying',
+            'retryAttempt': (payoutData['retryAttempt'] ?? 0) + 1,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       // Retry Stripe payout with new idempotency key for retry
-      final retryIdempotencyKey = 'retry_${payoutId}_${DateTime.now().millisecondsSinceEpoch}';
+      final retryIdempotencyKey =
+          'retry_${payoutId}_${DateTime.now().millisecondsSinceEpoch}';
       final stripeTransactionId = await _executeStripePayout(
         claimId: claimId,
         payoutId: payoutId,
@@ -1246,17 +1270,17 @@ $denialMessage
           .collection('payout')
           .doc(payoutId)
           .update({
-        'status': 'completed',
-        'stripeTransactionId': stripeTransactionId,
-        'completedAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'status': 'completed',
+            'stripeTransactionId': stripeTransactionId,
+            'completedAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       print('✅ Payout retry successful: $payoutId');
       return stripeTransactionId;
     } catch (e) {
       print('❌ Error retrying payout: $e');
-      
+
       // Mark as failed again
       await _firestore
           .collection('claims')
@@ -1264,10 +1288,10 @@ $denialMessage
           .collection('payout')
           .doc(payoutId)
           .update({
-        'status': 'failed',
-        'errorMessage': e.toString(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'status': 'failed',
+            'errorMessage': e.toString(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       rethrow;
     }

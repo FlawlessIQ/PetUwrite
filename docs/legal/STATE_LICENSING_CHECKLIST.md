@@ -1,6 +1,6 @@
 # State Insurance Licensing Checklist
 
-**Purpose:** Guide for expanding PetUwrite pet insurance services to all 50 US states
+**Purpose:** Guide for expanding Clovara pet insurance services to all 50 US states
 
 **Last Updated:** [INSERT DATE]
 
@@ -10,7 +10,7 @@
 
 Pet insurance is regulated at the **state level** in the United States. Each state has its own Department of Insurance (or equivalent) that oversees insurance licensing, product approvals, and rate filings.
 
-**PetUwrite's Business Model:**
+**Clovara's Business Model:**
 - We are a **technology platform**, NOT an insurance company
 - We facilitate connections between pet owners and licensed insurance carriers
 - Insurance policies are underwritten by [INSERT LICENSED CARRIER NAME]
@@ -29,22 +29,22 @@ Pet insurance is regulated at the **state level** in the United States. Each sta
 ### 1. Insurance Carrier License
 - **Who Needs It**: The entity underwriting and issuing policies
 - **Requirements**: Substantial capital reserves ($5M-$50M), state-by-state approval
-- **PetUwrite Status**: ❌ NOT an insurance carrier
+- **Clovara Status**: ❌ NOT an insurance carrier
 
 ### 2. Managing General Agent (MGA) License
 - **Who Needs It**: Agents who underwrite and bind coverage on behalf of a carrier
 - **Requirements**: State-specific licensing, surety bonds, carrier authority agreements
-- **PetUwrite Status**: ⚠️ May be required if we make binding underwriting decisions
+- **Clovara Status**: ⚠️ May be required if we make binding underwriting decisions
 
 ### 3. Insurance Producer/Agent License
 - **Who Needs It**: Individuals or entities that sell insurance products
 - **Requirements**: Pre-licensing education, state exam, background check, continuing education
-- **PetUwrite Status**: ✅ Likely required in most states
+- **Clovara Status**: ✅ Likely required in most states
 
 ### 4. Technology Service Provider (No License)
 - **Who Needs It**: Platforms that provide technology but don't transact insurance
 - **Requirements**: Minimal or none; operates as vendor to licensed carriers
-- **PetUwrite Status**: ✅ Preferred model if possible
+- **Clovara Status**: ✅ Preferred model if possible
 
 ---
 
@@ -223,7 +223,7 @@ Pet insurance is regulated at the **state level** in the United States. Each sta
 - **What It Is**: Central licensing system for most states
 - **Benefit**: Apply for multiple state licenses through one portal
 - **Cost**: $25-$50 per state application via NIPR
-- **PetUwrite Status**: Should register with NIPR
+- **Clovara Status**: Should register with NIPR
 
 ### Resident vs. Non-Resident Licenses
 - **Resident License**: State where you maintain your primary business
@@ -252,7 +252,7 @@ In addition to licensing, **insurance products** (policy forms, rates) must be a
 - **Requirements**: Actuarial justification for premium rates
 - **Approval**: Some states require prior approval; others allow "file and use"
 
-**PetUwrite's Role**: Work with carrier partner to ensure products are approved in all states where we operate.
+**Clovara's Role**: Work with carrier partner to ensure products are approved in all states where we operate.
 
 ---
 
@@ -282,23 +282,23 @@ In addition to licensing, **insurance products** (policy forms, rates) must be a
 ### 5. Annual Reports and Audits
 - **Who**: MGAs and carriers (not typically producers)
 - **Requirements**: Financial statements, transaction reports
-- **PetUwrite Status**: Likely not required if we're a producer only
+- **Clovara Status**: Likely not required if we're a producer only
 
 ---
 
 ## Alternative Licensing Model: Carrier Partnership
 
 ### Option: No Direct Licensing
-If PetUwrite operates purely as a **technology vendor** to a licensed carrier:
+If Clovara operates purely as a **technology vendor** to a licensed carrier:
 - **Licensing**: Carrier handles all insurance licensing
 - **Underwriting**: Carrier makes all underwriting decisions
 - **Claims**: Carrier processes all claims
-- **PetUwrite Role**: Quote engine, AI risk scoring, platform provider
+- **Clovara Role**: Quote engine, AI risk scoring, platform provider
 - **Benefit**: No state-by-state licensing burden
 - **Drawback**: Less control over underwriting, lower margins
 
 ### Legal Structure:
-- **Master Service Agreement (MSA)**: Contract between PetUwrite and carrier
+- **Master Service Agreement (MSA)**: Contract between Clovara and carrier
 - **Data Processing Agreement (DPA)**: GDPR/CCPA compliance
 - **Vendor Agreement**: Technology services only, no insurance transactions
 

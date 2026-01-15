@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:async';
 import '../theme/clovara_theme.dart';
 import '../models/risk_score.dart';
 import '../models/pet.dart';
@@ -24,18 +25,29 @@ class AIAnalysisScreen extends StatefulWidget {
   State<AIAnalysisScreen> createState() => _AIAnalysisScreenState();
 }
 
-class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProviderStateMixin {
+class _AIAnalysisScreenState extends State<AIAnalysisScreen>
+    with TickerProviderStateMixin {
   late AnimationController _mainController;
   late AnimationController _scoreController;
   late Animation<double> _scoreAnimation;
-  
+
+  final ScrollController _scrollController = ScrollController();
+  final List<GlobalKey> _stepKeys = <GlobalKey>[];
+  final GlobalKey _scoreGaugeKey = GlobalKey();
+  final GlobalKey _categoryScoresKey = GlobalKey();
+  final GlobalKey _riskFactorsKey = GlobalKey();
+  final GlobalKey _aiInsightsKey = GlobalKey();
+
+  bool _userScrolling = false;
+  Timer? _resumeAutoScrollTimer;
+
   int _currentStep = 0;
   final List<AnalysisStep> _steps = [];
 
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize steps based on risk score
     _steps.addAll([
       AnalysisStep(
@@ -56,7 +68,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
       AnalysisStep(
         icon: Icons.auto_awesome,
         title: 'Running AI analysis',
-        description: 'GPT-5.2 powered risk assessment',
+        description: 'AI-powered risk assessment',
       ),
       AnalysisStep(
         icon: Icons.calculate,
@@ -64,24 +76,55 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
         description: 'Personalizing your coverage',
       ),
     ]);
-    
+
+    // Keys for auto-scrolling to each step.
+    _stepKeys.addAll(List.generate(_steps.length, (_) => GlobalKey()));
+
     // Main animation controller for step progression
     _mainController = AnimationController(
       duration: const Duration(milliseconds: 8000),
       vsync: this,
     );
-    
+
     // Score reveal animation
     _scoreController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
-    
-    _scoreAnimation = Tween<double>(begin: 0.0, end: widget.riskScore.overallScore).animate(
-      CurvedAnimation(parent: _scoreController, curve: Curves.easeOutCubic),
-    );
-    
+
+    _scoreAnimation =
+        Tween<double>(begin: 0.0, end: widget.riskScore.overallScore).animate(
+          CurvedAnimation(parent: _scoreController, curve: Curves.easeOutCubic),
+        );
+
     _startAnalysis();
+  }
+
+  void _onUserScrollActivity() {
+    _userScrolling = true;
+    _resumeAutoScrollTimer?.cancel();
+    _resumeAutoScrollTimer = Timer(const Duration(milliseconds: 1600), () {
+      if (!mounted) return;
+      _userScrolling = false;
+    });
+  }
+
+  void _autoScrollTo(GlobalKey key, {double alignment = 0.15}) {
+    if (!mounted || _userScrolling) return;
+    final ctx = key.currentContext;
+    if (ctx == null) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _userScrolling) return;
+      final ctx2 = key.currentContext;
+      if (ctx2 == null) return;
+      Scrollable.ensureVisible(
+        ctx2,
+        alignment: alignment,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   void _startAnalysis() async {
@@ -89,27 +132,44 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
     for (int i = 0; i < _steps.length; i++) {
       if (mounted) {
         setState(() => _currentStep = i);
+        // Follow progress down the screen.
+        if (i >= 0 && i < _stepKeys.length) {
+          _autoScrollTo(_stepKeys[i]);
+        }
         await Future.delayed(const Duration(milliseconds: 1600));
       }
     }
-    
+
     // Start score animation
     if (mounted) {
+      // When insights become visible, scroll to the score section.
+      _autoScrollTo(_scoreGaugeKey, alignment: 0.08);
       _scoreController.forward();
       // Wait longer to allow user to see insights
       await Future.delayed(const Duration(milliseconds: 4000));
-      
-        // Route through medical underwriting when we need additional disclosures/questions.
-        final hasPreExistingConditions = widget.pet.preExistingConditions.isNotEmpty &&
-          widget.pet.preExistingConditions.any((condition) =>
-            condition != 'None' && condition.isNotEmpty);
-        final hasRuleExclusions = widget.routeArguments['hasExclusions'] == true ||
-          (widget.routeArguments['excludedConditions'] is List &&
-            (widget.routeArguments['excludedConditions'] as List).isNotEmpty);
-        final needsMedicalUnderwriting = widget.routeArguments['needsMedicalUnderwriting'] == true;
 
-        final requiresUnderwriting = hasPreExistingConditions || hasRuleExclusions || needsMedicalUnderwriting;
-      
+      // Route through medical underwriting when we need additional disclosures/questions.
+      final hasPreExistingConditions =
+          widget.pet.preExistingConditions.isNotEmpty &&
+          widget.pet.preExistingConditions.any(
+            (condition) => condition != 'None' && condition.isNotEmpty,
+          );
+      final hasRuleExclusions =
+          widget.routeArguments['hasExclusions'] == true ||
+          (widget.routeArguments['excludedConditions'] is List &&
+              (widget.routeArguments['excludedConditions'] as List).isNotEmpty);
+      final needsMedicalUnderwriting =
+          widget.routeArguments['needsMedicalUnderwriting'] == true;
+
+      final requiresUnderwriting =
+          hasPreExistingConditions ||
+          hasRuleExclusions ||
+          needsMedicalUnderwriting;
+
+      print(
+        '🧭 Underwriting routing: requires=$requiresUnderwriting preExisting=$hasPreExistingConditions hasRuleExclusions=$hasRuleExclusions needsMedicalUnderwriting=$needsMedicalUnderwriting conditions=${widget.pet.preExistingConditions.isEmpty ? '(none)' : widget.pet.preExistingConditions.join(', ')}',
+      );
+
       // Navigate to appropriate screen
       if (mounted) {
         if (requiresUnderwriting) {
@@ -126,11 +186,18 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
           );
         } else {
           // Skip underwriting for healthy pets
+          final nextArgs = <String, dynamic>{
+            ...widget.routeArguments,
+            'pricingEnabled': true,
+            'underwritingStatus': 'APPROVED',
+              'underwritingReason': 'NO_DISCLOSED_CONDITIONS',
+              'integrityPassed': true,
+          };
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (context) => const PlanSelectionScreen(),
-              settings: RouteSettings(arguments: widget.routeArguments),
+              settings: RouteSettings(arguments: nextArgs),
             ),
           );
         }
@@ -142,62 +209,86 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
   void dispose() {
     _mainController.dispose();
     _scoreController.dispose();
+    _resumeAutoScrollTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final showInsights = _currentStep >= _steps.length - 1;
-    
+
     return Scaffold(
       backgroundColor: ClovaraColors.forest,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-                
-                // Agent avatar
-                _buildAvatar(),
-                
-                const SizedBox(height: 32),
-                
-                // Title
-                Text(
-                  showInsights ? 'Analysis Complete' : 'Analyzing Coverage',
-                  style: ClovaraTypography.h2.copyWith(color: Colors.white),
-                ),
-                
-                const SizedBox(height: 48),
-                
-                // Analysis steps
-                ...List.generate(_steps.length, (index) => _buildStepCard(index)),
-                
-                const SizedBox(height: 32),
-                
-                // Risk score gauge (shown after steps complete)
-                if (showInsights)
-                  AnimatedOpacity(
-                    opacity: 1.0,
-                    duration: const Duration(milliseconds: 500),
-                    child: Column(
-                      children: [
-                        _buildScoreGauge(),
-                        const SizedBox(height: 32),
-                        _buildCategoryScores(),
-                        const SizedBox(height: 24),
-                        _buildRiskFactors(),
-                        const SizedBox(height: 24),
-                        if (widget.riskScore.aiAnalysis != null)
-                          _buildAIInsights(),
-                      ],
-                    ),
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is UserScrollNotification ||
+                notification is ScrollStartNotification) {
+              _onUserScrollActivity();
+            }
+            return false;
+          },
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 40),
+
+                  // Agent avatar
+                  _buildAvatar(),
+
+                  const SizedBox(height: 32),
+
+                  // Title
+                  Text(
+                    showInsights ? 'Analysis Complete' : 'Analyzing Coverage',
+                    style: ClovaraTypography.h2.copyWith(color: Colors.white),
                   ),
-                
-                const SizedBox(height: 24),
-              ],
+
+                  const SizedBox(height: 48),
+
+                  // Analysis steps
+                  ...List.generate(
+                    _steps.length,
+                    (index) => _buildStepCard(index),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Risk score gauge (shown after steps complete)
+                  if (showInsights)
+                    AnimatedOpacity(
+                      opacity: 1.0,
+                      duration: const Duration(milliseconds: 500),
+                      child: Column(
+                        children: [
+                          KeyedSubtree(key: _scoreGaugeKey, child: _buildScoreGauge()),
+                          const SizedBox(height: 32),
+                          KeyedSubtree(
+                            key: _categoryScoresKey,
+                            child: _buildCategoryScores(),
+                          ),
+                          const SizedBox(height: 24),
+                          KeyedSubtree(
+                            key: _riskFactorsKey,
+                            child: _buildRiskFactors(),
+                          ),
+                          const SizedBox(height: 24),
+                          if (widget.riskScore.aiAnalysis != null)
+                            KeyedSubtree(
+                              key: _aiInsightsKey,
+                              child: _buildAIInsights(),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ),
         ),
@@ -228,116 +319,121 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
     final step = _steps[index];
     final isActive = index == _currentStep;
     final isComplete = index < _currentStep;
-    
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 400 + (index * 100)),
-      tween: Tween(begin: 0.0, end: 1.0),
-      curve: Curves.easeOutBack,
-      builder: (context, value, child) {
-        return Transform.scale(
-          scale: value,
-          child: Opacity(
-            opacity: value.clamp(0.0, 1.0), // Clamp opacity to valid range
-            child: child,
+
+    return KeyedSubtree(
+      key: index >= 0 && index < _stepKeys.length ? _stepKeys[index] : null,
+      child: TweenAnimationBuilder<double>(
+        duration: Duration(milliseconds: 400 + (index * 100)),
+        tween: Tween(begin: 0.0, end: 1.0),
+        curve: Curves.easeOutBack,
+        builder: (context, value, child) {
+          return Transform.scale(
+            scale: value,
+            child: Opacity(
+              opacity: value.clamp(0.0, 1.0), // Clamp opacity to valid range
+              child: child,
+            ),
+          );
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: isActive || isComplete
+                ? ClovaraColors.brandGradientSoft
+                : null,
+            color: isActive || isComplete
+                ? null
+                : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isActive
+                  ? ClovaraColors.clover
+                  : isComplete
+                  ? ClovaraColors.kSuccessMint
+                  : Colors.white.withOpacity(0.1),
+              width: 2,
+            ),
           ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: isActive || isComplete
-              ? ClovaraColors.brandGradientSoft
-              : null,
-          color: isActive || isComplete ? null : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isActive 
-                ? ClovaraColors.clover
-                : isComplete
-                    ? ClovaraColors.kSuccessMint
-                    : Colors.white.withOpacity(0.1),
-            width: 2,
-          ),
-        ),
-        child: Row(
-          children: [
-            // Icon
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isComplete
-                    ? ClovaraColors.kSuccessMint
+          child: Row(
+            children: [
+              // Icon
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isComplete
+                      ? ClovaraColors.kSuccessMint
+                      : isActive
+                      ? ClovaraColors.clover
+                      : Colors.white.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: isComplete
+                    ? const Icon(Icons.check, color: Colors.white, size: 24)
                     : isActive
-                        ? ClovaraColors.clover
-                        : Colors.white.withOpacity(0.1),
-                shape: BoxShape.circle,
+                    ? TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 1000),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Transform.rotate(
+                            angle: value * 2 * math.pi,
+                            child: Icon(
+                              step.icon,
+                              color: ClovaraColors.forest,
+                              size: 24,
+                            ),
+                          );
+                        },
+                      )
+                    : Icon(
+                        step.icon,
+                        color: Colors.white.withOpacity(0.3),
+                        size: 24,
+                      ),
               ),
-              child: isComplete
-                  ? const Icon(Icons.check, color: Colors.white, size: 24)
-                  : isActive
-                      ? TweenAnimationBuilder<double>(
-                          duration: const Duration(milliseconds: 1000),
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          builder: (context, value, child) {
-                            return Transform.rotate(
-                              angle: value * 2 * math.pi,
-                              child: Icon(
-                                step.icon,
-                                color: ClovaraColors.forest,
-                                size: 24,
-                              ),
-                            );
-                          },
-                        )
-                      : Icon(
-                          step.icon,
-                          color: Colors.white.withOpacity(0.3),
-                          size: 24,
-                        ),
-            ),
-            
-            const SizedBox(width: 16),
-            
-            // Text
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    step.title,
-                    style: ClovaraTypography.h3.copyWith(
-                      color: isActive || isComplete
-                          ? ClovaraColors.forest
-                          : Colors.white,
-                      fontWeight: FontWeight.bold,
+
+              const SizedBox(width: 16),
+
+              // Text
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      step.title,
+                      style: ClovaraTypography.h3.copyWith(
+                        color: isActive || isComplete
+                            ? ClovaraColors.forest
+                            : Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    step.description,
-                    style: ClovaraTypography.body.copyWith(
-                      color: isActive || isComplete
-                          ? ClovaraColors.forest.withOpacity(0.7)
-                          : Colors.white.withOpacity(0.6),
+                    const SizedBox(height: 4),
+                    Text(
+                      step.description,
+                      style: ClovaraTypography.body.copyWith(
+                        color: isActive || isComplete
+                            ? ClovaraColors.forest.withOpacity(0.7)
+                            : Colors.white.withOpacity(0.6),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Loading indicator for active step
-            if (isActive)
-              const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation(ClovaraColors.forest),
+                  ],
                 ),
               ),
-          ],
+
+              // Loading indicator for active step
+              if (isActive)
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation(ClovaraColors.forest),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -366,9 +462,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               fontWeight: FontWeight.bold,
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Circular score gauge
           AnimatedBuilder(
             animation: _scoreAnimation,
@@ -411,9 +507,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               );
             },
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Risk level label
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -429,9 +525,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
               ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Text(
             'Generating personalized plans...',
             style: ClovaraTypography.body.copyWith(
@@ -524,7 +620,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                       value: entry.value / 100,
                       minHeight: 12,
                       backgroundColor: ClovaraColors.forest.withOpacity(0.1),
-                      valueColor: AlwaysStoppedAnimation(_getScoreColor(entry.value)),
+                      valueColor: AlwaysStoppedAnimation(
+                        _getScoreColor(entry.value),
+                      ),
                     ),
                   ),
                 ],
@@ -555,7 +653,11 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber, color: ClovaraColors.kWarning, size: 28),
+              Icon(
+                Icons.warning_amber,
+                color: ClovaraColors.kWarning,
+                size: 28,
+              ),
               const SizedBox(width: 12),
               Text(
                 'Risk Factors',
@@ -609,13 +711,18 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: _getSeverityColor(factor.severity),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      factor.impact > 0 ? '+${factor.impact.toInt()}' : '${factor.impact.toInt()}',
+                      factor.impact > 0
+                          ? '+${factor.impact.toInt()}'
+                          : '${factor.impact.toInt()}',
                       style: ClovaraTypography.bodySmall.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -665,14 +772,16 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen> with TickerProvider
                   gradient: ClovaraColors.brandGradient,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
                 'AI Insights',
-                style: ClovaraTypography.h3.copyWith(
-                  color: Colors.white,
-                ),
+                style: ClovaraTypography.h3.copyWith(color: Colors.white),
               ),
             ],
           ),

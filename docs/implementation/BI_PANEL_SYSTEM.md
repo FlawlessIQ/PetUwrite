@@ -418,7 +418,7 @@ Admins can share analytics reports via email with beautiful HTML templates and C
 │  📎 A detailed CSV report is attached           │
 │  for further analysis.                          │
 ├────────────────────────────────────────────────┤
-│ Footer: Powered by PetUwrite AI                 │
+│ Footer: Powered by Clovara AI                 │
 └────────────────────────────────────────────────┘
 ```
 
@@ -454,7 +454,7 @@ AI Denials Overridden:    5
 ═════════════════════════════════════════
 A detailed CSV report is attached for further analysis.
 
-Powered by PetUwrite AI
+Powered by Clovara AI
 ```
 
 #### 4. CSV Attachment
@@ -467,8 +467,8 @@ Full 8-section CSV report attached as `claims_analytics_YYYYMMDD_HHMMSS.csv`
 
 ```bash
 SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-FROM_EMAIL=analytics@petuwrite.com
-FROM_NAME="PetUwrite Analytics"
+FROM_EMAIL=analytics@clovara.com
+FROM_NAME="Clovara Analytics"
 ```
 
 **SendGrid Setup:**
@@ -480,8 +480,8 @@ FROM_NAME="PetUwrite Analytics"
 
 ```bash
 firebase functions:config:set sendgrid.api_key="SG.xxxx" \
-  sendgrid.from_email="analytics@petuwrite.com" \
-  sendgrid.from_name="PetUwrite Analytics"
+  sendgrid.from_email="analytics@clovara.com" \
+  sendgrid.from_name="Clovara Analytics"
 ```
 
 ### Usage Example

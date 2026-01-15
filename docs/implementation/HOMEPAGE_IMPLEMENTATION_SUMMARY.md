@@ -7,7 +7,7 @@
 
 A beautiful landing page featuring:
 - **Navy background** (matching brand color `kPrimaryNavy`)
-- **Large prominent logo** centered at top (using `assets/PetUwrite transparent.png`)
+- **Large prominent logo** centered at top (using `assets/Clovara transparent.png`)
 - **App name and tagline** prominently displayed
 - **Three action cards:**
   1. **Get a Quote** - Links to conversational quote flow
@@ -18,7 +18,7 @@ A beautiful landing page featuring:
 
 ### Design Features
 - ✨ Gradient cards with different color schemes for visual hierarchy
-- 🎨 Brand-consistent colors from `PetUwriteTheme`
+- 🎨 Brand-consistent colors from `ClovaraTheme`
 - 📱 Responsive layout (different sizing for small/large screens)
 - 💫 Smooth hover effects with Material InkWell
 - 🎯 Clear call-to-action buttons with icons
@@ -110,7 +110,7 @@ Homepage (NEW)
 
 - **Claims flow** not yet implemented (shows "Coming soon" message)
 - **Footer links** not yet connected to actual pages
-- **Background image** uses solid color instead of `assets/PetUwrite navy background.png` (for better performance and consistency)
+- **Background image** uses solid color instead of `assets/Clovara navy background.png` (for better performance and consistency)
 
 ## 🧪 Testing Checklist
 
@@ -127,7 +127,7 @@ Homepage (NEW)
 ## 📝 Code Quality
 
 - ✅ Uses brand theme constants
-- ✅ Follows PetUwrite design system
+- ✅ Follows Clovara design system
 - ✅ Proper widget composition
 - ✅ Responsive design patterns
 - ✅ Clean navigation structure

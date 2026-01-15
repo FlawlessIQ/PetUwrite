@@ -35,22 +35,34 @@ exports.extractPdfText = functions.https.onRequest(async (req, res) => {
   }
 
   try {
-    const {pdfUrl} = req.body;
+      const {pdfUrl, gsPath} = req.body;
 
-    if (!pdfUrl) {
-      res.status(400).json({error: "Missing pdfUrl in request body"});
+      if (!pdfUrl && !gsPath) {
+        res.status(400).json({error: "Missing pdfUrl or gsPath in request body"});
       return;
     }
 
-    functions.logger.info("Extracting text from PDF:", {pdfUrl});
+      functions.logger.info("Extracting text from PDF:", {pdfUrl, gsPath});
 
-    // Download PDF from Firebase Storage
-    const response = await axios.get(pdfUrl, {
-      responseType: "arraybuffer",
-      timeout: 30000, // 30 second timeout
-    });
-
-    const pdfBuffer = Buffer.from(response.data);
+      let pdfBuffer;
+      if (gsPath) {
+        const match = /^gs:\/\/([^/]+)\/(.+)$/.exec(gsPath);
+        if (!match) {
+          res.status(400).json({error: "Invalid gsPath format. Expected gs://bucket/path"});
+          return;
+        }
+        const bucketName = match[1];
+        const filePath = match[2];
+        const [buffer] = await admin.storage().bucket(bucketName).file(filePath).download();
+        pdfBuffer = buffer;
+      } else {
+        // Download PDF from Firebase Storage URL
+        const response = await axios.get(pdfUrl, {
+          responseType: "arraybuffer",
+          timeout: 30000, // 30 second timeout
+        });
+        pdfBuffer = Buffer.from(response.data);
+      }
 
     // Extract text using pdf-parse
     const data = await pdfParse(pdfBuffer, {

@@ -14,6 +14,8 @@ class UserSessionService {
 
   // Local storage keys
   static const String _pendingQuoteKey = 'pending_quote_data';
+  static const String _pendingUnderwritingKey = 'pending_underwriting_data';
+  static const String _pendingCheckoutKey = 'pending_checkout_data';
 
   /// Get current authenticated user
   User? get currentUser => _auth.currentUser;
@@ -160,6 +162,95 @@ class UserSessionService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_pendingQuoteKey);
     print('🗑️ Cleared pending quote');
+  }
+
+  /// Save a pending underwriting follow-up locally.
+  ///
+  /// This supports "save & revisit" when underwriting returns NEED_MORE_INFO
+  /// (e.g., identity confirmation / missing vet documents).
+  Future<void> savePendingUnderwriting({
+    required String underwritingCaseId,
+    String? petName,
+    dynamic riskScore,
+    String? reason,
+    List<Map<String, dynamic>> requiredEvidence = const [],
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final payload = <String, dynamic>{
+      'underwritingCaseId': underwritingCaseId,
+      if (petName != null) 'petName': petName,
+      if (riskScore != null) 'riskScore': riskScore,
+      if (reason != null) 'reason': reason,
+      if (requiredEvidence.isNotEmpty) 'requiredEvidence': requiredEvidence,
+      'savedAt': DateTime.now().toIso8601String(),
+    };
+
+    try {
+      await prefs.setString(_pendingUnderwritingKey, jsonEncode(payload));
+      print('💾 Saved pending underwriting locally: $underwritingCaseId');
+    } catch (e) {
+      // Don't crash the flow if local persistence fails.
+      print('Error saving pending underwriting: $e');
+    }
+  }
+
+  /// Get pending underwriting follow-up data.
+  Future<Map<String, dynamic>?> getPendingUnderwriting() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_pendingUnderwritingKey);
+    if (jsonString == null) return null;
+    try {
+      final decoded = jsonDecode(jsonString);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) return decoded.cast<String, dynamic>();
+    } catch (e) {
+      print('Error reading pending underwriting: $e');
+    }
+    return null;
+  }
+
+  /// Clear any pending underwriting follow-up.
+  Future<void> clearPendingUnderwriting() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_pendingUnderwritingKey);
+    print('🗑️ Cleared pending underwriting');
+  }
+
+  /// Save a pending checkout snapshot locally.
+  ///
+  /// Used for "save & revisit" across owner details + payment (and to restore
+  /// checkout step state after app/browser restart).
+  Future<void> savePendingCheckout(Map<String, dynamic> checkoutData) async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      await prefs.setString(_pendingCheckoutKey, jsonEncode(checkoutData));
+      print('💾 Saved pending checkout locally');
+    } catch (e) {
+      print('Error saving pending checkout: $e');
+    }
+  }
+
+  /// Get pending checkout snapshot.
+  Future<Map<String, dynamic>?> getPendingCheckout() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_pendingCheckoutKey);
+    if (jsonString == null) return null;
+    try {
+      final decoded = jsonDecode(jsonString);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) return decoded.cast<String, dynamic>();
+    } catch (e) {
+      print('Error reading pending checkout: $e');
+    }
+    return null;
+  }
+
+  /// Clear any pending checkout snapshot.
+  Future<void> clearPendingCheckout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_pendingCheckoutKey);
+    print('🗑️ Cleared pending checkout');
   }
 
   /// Save pending quote to Firestore (for authenticated users)

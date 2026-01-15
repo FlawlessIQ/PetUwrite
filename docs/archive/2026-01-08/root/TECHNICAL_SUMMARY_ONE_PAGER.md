@@ -1,4 +1,4 @@
-# PetUwrite - Technical Summary (One-Pager)
+# Clovara - Technical Summary (One-Pager)
 
 **Platform:** AI-Powered Pet Insurance (Flutter/Firebase)  
 **Status:** 40% MVP Complete  

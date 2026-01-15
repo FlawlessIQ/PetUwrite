@@ -1,7 +1,7 @@
 # Policy Confirmation Screen - World-Class Redesign ✅
 
 ## Overview
-The Policy Confirmation screen has been completely reimagined as a world-class celebration experience that showcases the newly activated policy while maintaining perfect alignment with PetUwrite's Navy/Teal brand theme. This is the culmination of the customer's journey—a moment worth celebrating.
+The Policy Confirmation screen has been completely reimagined as a world-class celebration experience that showcases the newly activated policy while maintaining perfect alignment with Clovara's Navy/Teal brand theme. This is the culmination of the customer's journey—a moment worth celebrating.
 
 ---
 
@@ -28,7 +28,7 @@ The Policy Confirmation screen has been completely reimagined as a world-class c
 ┌─────────────────────────────────────────┐
 │                                         │
 │       🟢 Animated Checkmark             │  ← Navy Background
-│   "Welcome to PetUwrite!"               │
+│   "Welcome to Clovara!"               │
 │   "Your pet is now protected"           │
 │                                         │
 ├─────────────────────────────────────────┤  ← Rounded Top
@@ -91,7 +91,7 @@ ScaleTransition with elastic curve
 
 #### Welcome Message
 ```dart
-"Welcome to PetUwrite!" (H2, 32px, White)
+"Welcome to Clovara!" (H2, 32px, White)
 "Your pet is now protected" (BodyLarge, 18px, Teal)
 ```
 
@@ -352,8 +352,8 @@ FadeTransition(opacity: animation)
 
 ### Primary Colors
 ```dart
-Navy Background: PetUwriteColors.kPrimaryNavy (#0A2647)
-Teal Accent: PetUwriteColors.kSecondaryTeal (#00C2CB)
+Navy Background: ClovaraColors.kPrimaryNavy (#0A2647)
+Teal Accent: ClovaraColors.kSecondaryTeal (#00C2CB)
 ```
 
 ### Coverage Item Colors

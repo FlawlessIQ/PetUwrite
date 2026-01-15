@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io';
+import 'dart:typed_data';
 
 import '../models/owner.dart';
 import '../models/pet.dart';
@@ -26,7 +26,8 @@ class UnderwritingIntakeScreen extends StatefulWidget {
   });
 
   @override
-  State<UnderwritingIntakeScreen> createState() => _UnderwritingIntakeScreenState();
+  State<UnderwritingIntakeScreen> createState() =>
+      _UnderwritingIntakeScreenState();
 }
 
 class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
@@ -92,7 +93,7 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: const ['pdf'],
-        withData: false,
+        withData: true,
       );
 
       if (result == null || result.files.isEmpty) {
@@ -102,32 +103,63 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
         return;
       }
 
-      final path = result.files.single.path;
-      if (path == null) {
-        throw Exception('Selected file has no path');
+      final file = result.files.single;
+      final bytes = file.bytes;
+      if (bytes == null) {
+        throw Exception('Unable to read PDF bytes');
       }
 
       setState(() {
         _vetUploadStatus = 'Uploading and parsing vet record…';
       });
 
-      final parser = VetHistoryParser(aiService: GPTService(model: 'gpt-5.2'));
-      await parser.parseUploadedPdfForCase(
-        pdfFile: File(path),
+      final parser = VetHistoryParser(
+        aiService: GPTService(),
+      );
+      final parsed = await parser.parseUploadedPdfBytesForCase(
+        pdfBytes: Uint8List.fromList(bytes),
         caseId: widget.caseId,
         petId: widget.pet.id,
-        filename: result.files.single.name,
+        filename: file.name,
       );
+
+      final parseLooksEmpty =
+          parsed.diagnoses.isEmpty &&
+          parsed.treatments.isEmpty &&
+          parsed.medications.isEmpty &&
+          parsed.vaccinations.isEmpty &&
+          parsed.surgeries.isEmpty &&
+          parsed.allergies.isEmpty &&
+          parsed.previousClaims.isEmpty &&
+          parsed.lastCheckup == null;
 
       if (!mounted) return;
       setState(() {
-        _vetUploadStatus = 'Vet record uploaded and parsed.';
+        _vetUploadStatus = parseLooksEmpty
+            ? 'Vet record uploaded. We’ll review it shortly.'
+            : 'Vet record uploaded and parsed.';
+        _isUploadingVetRecord = false;
+      });
+    } on VetHistoryParseException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _vetUploadStatus =
+            'Vet record uploaded, but auto-fill failed. We’ll review it shortly. (${e.toString()})';
         _isUploadingVetRecord = false;
       });
     } catch (e) {
       if (!mounted) return;
+      final raw = e.toString();
+      final lower = raw.toLowerCase();
+      final isUnauthorized =
+          lower.contains('firebase_storage/unauthorized') ||
+          lower.contains('not authorized') ||
+          lower.contains('permission');
+      final friendly = isUnauthorized
+          ? 'Upload blocked. Please sign in and try again, or contact support if this persists.'
+          : raw.replaceAll('Exception: ', '');
       setState(() {
-        _vetUploadStatus = 'Vet record upload failed: ${e.toString().replaceAll('Exception: ', '')}';
+        _vetUploadStatus = 'Vet record upload failed: $friendly';
         _isUploadingVetRecord = false;
       });
     }
@@ -161,9 +193,8 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                       children: [
                         Text(
                           'Next step: medical history',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -173,18 +204,14 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                         const SizedBox(height: 12),
                         Text(
                           'Case ID: ${widget.caseId}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: Colors.grey.shade600),
                         ),
                         if (_history != null) ...[
                           const SizedBox(height: 8),
                           Text(
                             'Conditions captured: ${_history!.conditions.length}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: Colors.grey.shade600),
                           ),
                         ],
@@ -192,9 +219,7 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                           const SizedBox(height: 12),
                           Text(
                             _error!,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: ClovaraColors.kWarmCoral),
                           ),
                         ],
@@ -203,7 +228,9 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
-                            onPressed: _isUploadingVetRecord ? null : _uploadVetRecordPdf,
+                            onPressed: _isUploadingVetRecord
+                                ? null
+                                : _uploadVetRecordPdf,
                             style: OutlinedButton.styleFrom(
                               foregroundColor: ClovaraColors.forest,
                               side: BorderSide(color: Colors.grey.shade300),
@@ -216,7 +243,9 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                                 ? const SizedBox(
                                     height: 18,
                                     width: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   )
                                 : const Text('Upload vet record (PDF)'),
                           ),
@@ -225,9 +254,7 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                           const SizedBox(height: 8),
                           Text(
                             _vetUploadStatus!,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: Colors.grey.shade600),
                           ),
                         ],

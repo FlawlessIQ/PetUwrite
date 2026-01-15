@@ -2,7 +2,7 @@
 
 ## 🔐 Overview
 
-This document describes the Firebase Firestore security rules for the PetUwrite application, including role-based access control and data protection policies.
+This document describes the Firebase Firestore security rules for the Clovara application, including role-based access control and data protection policies.
 
 ---
 
@@ -668,7 +668,7 @@ allow read: if isAdmin(); // Uses helper function with single get()
 - [Rules Language](https://firebase.google.com/docs/rules/rules-language)
 - [Testing Rules](https://firebase.google.com/docs/rules/unit-tests)
 
-### PetUwrite Documentation
+### Clovara Documentation
 - [Admin Dashboard Guide](./ADMIN_DASHBOARD_GUIDE.md)
 - [Override Eligibility Guide](./ADMIN_OVERRIDE_ELIGIBILITY_GUIDE.md)
 - [Underwriting Rules Engine](./UNDERWRITING_RULES_ENGINE_GUIDE.md)

@@ -19,6 +19,7 @@ import 'services/firebase_service.dart';
 import 'services/user_session_service.dart';
 import 'services/stripe_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'config/emulator_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +28,10 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Optional: connect to local Firebase emulators when enabled.
+  // Enable with: --dart-define=USE_FIREBASE_EMULATORS=true
+  await EmulatorConfig.configureFirebaseEmulators();
   
   // Initialize Stripe (skip on web - not fully supported)
   if (!kIsWeb) {

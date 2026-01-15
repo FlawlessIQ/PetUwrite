@@ -67,7 +67,7 @@ Quote Flow → [AI Analysis Screen 10s animated] → Plan Selection
 - Improved error handling with fallback navigation
 
 **`ai_analysis_screen_v2.dart` (new file):**
-- Full-screen branded experience with PetUwrite theme
+- Full-screen branded experience with Clovara theme
 - Navy background (#0A2647)
 - Gradient teal cards for active/completed steps
 - Agent avatar with teal gradient and glow effect
@@ -250,7 +250,7 @@ AnimatedBuilder:
 3. Verify Poppins font on headings
 4. Check Inter font on body text
 5. Confirm agent avatar shows teal gradient
-6. Verify colors match PetUwriteTheme
+6. Verify colors match ClovaraTheme
 
 ## 📈 Success Metrics
 
@@ -288,7 +288,7 @@ No configuration needed. Screen automatically:
 **Remaining Work:**
 
 1. **Brand Remaining Screens** (Medium Priority)
-   - Apply PetUwrite theme to customer home screen
+   - Apply Clovara theme to customer home screen
    - Update admin dashboard with navy/teal theme
    - Brand checkout flow screens (review, owner, payment, confirmation)
    - Ensure consistent experience throughout app
@@ -319,4 +319,4 @@ No configuration needed. Screen automatically:
 **Animation Controllers:** 2
 **Total Experience Time:** 10.5 seconds
 **Risk Score Visualization:** Circular gauge with color coding
-**Branding:** Full PetUwrite theme integration
+**Branding:** Full Clovara theme integration

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/login_screen.dart';
+import '../services/draft_service.dart';
 import 'checkout_screen.dart';
 
 /// Wrapper that ensures user is authenticated before accessing checkout
@@ -45,12 +46,86 @@ class AuthRequiredCheckout extends StatelessWidget {
           );
         }
 
-        // User not authenticated - show login required screen
-        return _LoginRequiredScreen(
+        // No user session yet: bootstrap an anonymous session so checkout and
+        // save/resume can work without forcing sign-up.
+        return _AnonymousCheckoutBootstrap(
           pet: pet,
           selectedPlan: selectedPlan,
+          underwritingCaseId: underwritingCaseId,
+          exclusions: exclusions,
+          underwritingSnapshot: underwritingSnapshot,
         );
       },
+    );
+  }
+}
+
+class _AnonymousCheckoutBootstrap extends StatefulWidget {
+  final dynamic pet;
+  final dynamic selectedPlan;
+  final String? underwritingCaseId;
+  final List<dynamic>? exclusions;
+  final Map<String, dynamic>? underwritingSnapshot;
+
+  const _AnonymousCheckoutBootstrap({
+    required this.pet,
+    required this.selectedPlan,
+    this.underwritingCaseId,
+    this.exclusions,
+    this.underwritingSnapshot,
+  });
+
+  @override
+  State<_AnonymousCheckoutBootstrap> createState() => _AnonymousCheckoutBootstrapState();
+}
+
+class _AnonymousCheckoutBootstrapState extends State<_AnonymousCheckoutBootstrap> {
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    try {
+      await DraftService().ensureAnonymousSession();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // If anonymous auth fails for any reason, fall back to the existing login prompt.
+    if (_error != null || FirebaseAuth.instance.currentUser == null) {
+      return _LoginRequiredScreen(
+        pet: widget.pet,
+        selectedPlan: widget.selectedPlan,
+      );
+    }
+
+    return CheckoutScreen(
+      pet: widget.pet,
+      selectedPlan: widget.selectedPlan,
+      underwritingCaseId: widget.underwritingCaseId,
+      exclusions: widget.exclusions,
+      underwritingSnapshot: widget.underwritingSnapshot,
     );
   }
 }

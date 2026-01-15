@@ -14,7 +14,7 @@ Your Flutter app is fully structured with 21+ files organized into:
 
 ```bash
 # Make sure you're in the project directory
-cd /Users/conorlawless/Development/PetUwrite
+cd /Users/conorlawless/Development/Clovara
 
 # Launch the app
 flutter run

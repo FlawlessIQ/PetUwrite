@@ -11,7 +11,7 @@
 │    │  ┌────┐          │       │
 │    │  │ 🐾 │ 80px     │       │ ← Small icon
 │    │  └────┘          │       │
-│    │  PetUwrite       │       │
+│    │  Clovara       │       │
 │    │  Trust powered   │       │
 │    │                  │       │
 │    │  [Email]         │       │
@@ -36,7 +36,7 @@
 │                                │
 │    ┌──────────────────┐       │
 │    │                  │       │
-│    │  [PETUWRITE]     │       │
+│    │  [CLOVARA]     │       │
 │    │  [   LOGO   ]    │       │ ← LARGE 140px!
 │    │  [ WITH PET  ]   │       │
 │    │                  │       │

@@ -7,7 +7,9 @@ import '../screens/conversational_quote_flow.dart';
 import '../screens/claims/claim_intake_screen.dart';
 import '../screens/claims/claim_details_screen.dart';
 import '../screens/claims/claims_list_screen.dart';
+import '../screens/underwriting_followup_documents_screen.dart';
 import '../services/user_session_service.dart';
+import '../services/underwriting_case_service.dart';
 
 /// Modern Clovara Customer Dashboard
 /// Clean white background with gradient accent cards
@@ -54,6 +56,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             // Pending Quotes Section
             SliverToBoxAdapter(
               child: _buildPendingQuotesSection(context, user, isMobile),
+            ),
+
+            // Underwriting Follow-up (Documents Needed)
+            SliverToBoxAdapter(
+              child: _buildPendingUnderwritingSection(context, user, isMobile),
             ),
             
             // Active Policies Section
@@ -288,6 +295,150 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   _buildPendingQuoteCard(context, quote, isMobile)),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPendingUnderwritingSection(
+    BuildContext context,
+    User? user,
+    bool isMobile,
+  ) {
+    if (user == null) return const SizedBox.shrink();
+
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: UserSessionService().getPendingUnderwriting(),
+      builder: (context, snapshot) {
+        final pending = snapshot.data;
+        final caseId = pending?['underwritingCaseId']?.toString().trim();
+        if (caseId == null || caseId.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final petName = pending?['petName']?.toString().trim();
+
+        return FutureBuilder(
+          future: UnderwritingCaseService().getCase(caseId),
+          builder: (context, caseSnap) {
+            final uwCase = caseSnap.data;
+
+            // If the saved underwriting is for a different account, do not
+            // offer a resume path on the signed-in dashboard.
+            final belongsToUser = uwCase != null && uwCase.userId == user.uid;
+
+            return Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 20 : 40,
+                vertical: 12,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Documents Needed',
+                    style: ClovaraTypography.h3.copyWith(
+                      color: ClovaraColors.forest,
+                      fontWeight: FontWeight.bold,
+                      fontSize: isMobile ? 18 : 24,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: ClovaraColors.mist,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: ClovaraColors.clover.withOpacity(0.2),
+                        width: 2,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: belongsToUser
+                            ? () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const UnderwritingFollowUpDocumentsScreen(),
+                                  ),
+                                );
+                              }
+                            : null,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: EdgeInsets.all(isMobile ? 16 : 18),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: Icon(
+                                  Icons.upload_file_outlined,
+                                  color: ClovaraColors.forest,
+                                  size: isMobile ? 22 : 24,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      belongsToUser
+                                          ? 'Continue underwriting'
+                                          : 'Saved underwriting found',
+                                      style: ClovaraTypography.body.copyWith(
+                                        color: ClovaraColors.forest,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: isMobile ? 14 : 15,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      belongsToUser
+                                          ? (petName != null && petName.isNotEmpty
+                                              ? 'Upload follow-up documents for $petName'
+                                              : 'Upload follow-up documents to continue')
+                                          : 'This saved case belongs to a different account on this device.',
+                                      style: ClovaraTypography.body.copyWith(
+                                        color: ClovaraColors.slate,
+                                        fontSize: isMobile ? 12 : 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  await UserSessionService().clearPendingUnderwriting();
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Saved underwriting cleared.'),
+                                    ),
+                                  );
+                                  if (!mounted) return;
+                                  setState(() {});
+                                },
+                                child: const Text('Clear'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );

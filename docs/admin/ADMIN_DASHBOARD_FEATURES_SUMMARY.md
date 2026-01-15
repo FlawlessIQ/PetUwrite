@@ -8,7 +8,7 @@
 
 ## 📊 Dashboard Tabs
 
-The Admin Dashboard (`lib/screens/admin_dashboard.dart`) provides comprehensive tools for managing the PetUwrite insurance platform with **4 main tabs**:
+The Admin Dashboard (`lib/screens/admin_dashboard.dart`) provides comprehensive tools for managing the Clovara insurance platform with **4 main tabs**:
 
 ### 1️⃣ **High Risk Tab** 🚨
 Review and manage high-risk insurance quotes that require human oversight.
@@ -251,7 +251,7 @@ await FirebaseFirestore.instance
   .collection('users')
   .doc(userId)
   .set({
-    'email': 'admin@petuwrite.com',
+    'email': 'admin@clovara.com',
     'userRole': 2,  // Admin access
     'createdAt': FieldValue.serverTimestamp(),
   });

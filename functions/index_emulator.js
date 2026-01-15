@@ -27,3 +27,17 @@ exports.getUnderwritingRulesPublic = underwritingRulesPublic.getUnderwritingRule
 
 const productCatalogPublic = require("./productCatalogPublic");
 exports.getProductCatalogPublic = productCatalogPublic.getProductCatalogPublic;
+
+// Draft save/resume (anonymous auth + resume key)
+const drafts = require("./drafts");
+exports.upsertDraft = drafts.upsertDraft;
+exports.resolveDraft = drafts.resolveDraft;
+exports.clearDraft = drafts.clearDraft;
+
+// Vet record parsing helpers (PDF + image OCR)
+// These are safe to expose in emulators for local testing.
+const pdfExtraction = require("./pdfExtraction");
+exports.extractPdfText = pdfExtraction.extractPdfText;
+
+const imageExtraction = require("./imageExtraction");
+exports.extractImageText = imageExtraction.extractImageText;

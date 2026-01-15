@@ -1,4 +1,4 @@
-# PetUwrite Platform - Comprehensive Analysis
+# Clovara Platform - Comprehensive Analysis
 
 **Date:** October 10, 2025  
 **Status:** Production-Ready MVP  
@@ -8,7 +8,7 @@
 
 ## 📋 Executive Summary
 
-PetUwrite is a complete AI-powered pet insurance underwriting platform that combines:
+Clovara is a complete AI-powered pet insurance underwriting platform that combines:
 - **Conversational AI** for quote generation
 - **Machine learning** risk assessment with explainability
 - **Real-time underwriting** rules engine
@@ -801,9 +801,9 @@ caption: 14px, Regular
 ```
 
 **Logo:**
-- Icon-only version: `assets/PetUwrite icon only.png` (563×563px)
-- Full logo: `assets/PetUwrite transparent.png`
-- Navy background: `assets/PetUwrite navy background.png`
+- Icon-only version: `assets/Clovara icon only.png` (563×563px)
+- Full logo: `assets/Clovara transparent.png`
+- Navy background: `assets/Clovara navy background.png`
 
 ### Design Patterns
 
@@ -1212,7 +1212,7 @@ docs/
 
 ## 🏆 Competitive Advantages
 
-### What Makes PetUwrite Unique
+### What Makes Clovara Unique
 
 **1. AI-Powered Underwriting**
 - Instant risk assessment
@@ -1250,7 +1250,7 @@ docs/
 
 ### Support Channels (Planned)
 
-- **Email:** support@petuwrite.com
+- **Email:** support@clovara.com
 - **Live Chat:** In-app messaging (future)
 - **Phone:** 1-800-PET-CARE (future)
 - **Knowledge Base:** Help center (future)
@@ -1332,7 +1332,7 @@ docs/
 
 ### What We've Built
 
-PetUwrite is a **complete, production-ready MVP** of an AI-powered pet insurance platform featuring:
+Clovara is a **complete, production-ready MVP** of an AI-powered pet insurance platform featuring:
 
 **For Customers:**
 - Conversational AI quote flow

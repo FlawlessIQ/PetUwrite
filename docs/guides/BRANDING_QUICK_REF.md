@@ -1,10 +1,10 @@
-# 🎨 PetUwrite Branding - Quick Reference Card
+# 🎨 Clovara Branding - Quick Reference Card
 
 ## ✅ What's Done
 
 | Item | Status | File |
 |------|--------|------|
-| Theme System | ✅ Complete | `lib/theme/petuwrite_theme.dart` |
+| Theme System | ✅ Complete | `lib/theme/clovara_theme.dart` |
 | Main App | ✅ Updated | `lib/main.dart` |
 | Login Screen | ✅ Branded | `lib/auth/login_screen.dart` |
 
@@ -32,13 +32,13 @@ Buttons:  Inter SemiBold (600)
 
 ### Assets
 ```
-Logo Navy: flutter_assets/PetUwrite navy background.png
-Logo Clear: flutter_assets/PetUwrite transparent.png
+Logo Navy: flutter_assets/Clovara navy background.png
+Logo Clear: flutter_assets/Clovara transparent.png
 ```
 
 ### Branding
 ```
-Name:     PetUwrite
+Name:     Clovara
 Tagline:  Trust powered by intelligence
 Copyright: © 2025 FlawlessIQ LLC
 ```
@@ -49,10 +49,10 @@ Copyright: © 2025 FlawlessIQ LLC
 
 ### Use Colors
 ```dart
-import 'package:pet_underwriter_ai/theme/petuwrite_theme.dart';
+import 'package:pet_underwriter_ai/theme/clovara_theme.dart';
 
 // Direct
-color: PetUwriteColors.kSecondaryTeal
+color: ClovaraColors.kSecondaryTeal
 
 // From theme
 color: Theme.of(context).colorScheme.secondary
@@ -61,7 +61,7 @@ color: Theme.of(context).colorScheme.secondary
 ### Use Typography
 ```dart
 // Direct
-Text('Hello', style: PetUwriteTypography.h2)
+Text('Hello', style: ClovaraTypography.h2)
 
 // From theme
 Text('Hello', style: Theme.of(context).textTheme.displayMedium)
@@ -82,7 +82,7 @@ BrandGradientCard(
 // Custom
 Container(
   decoration: BoxDecoration(
-    gradient: PetUwriteColors.brandGradient,
+    gradient: ClovaraColors.brandGradient,
   ),
 )
 ```
@@ -118,8 +118,8 @@ TextButton(
    ```bash
    mkdir flutter_assets
    # Add these files:
-   # - PetUwrite navy background.png
-   # - PetUwrite transparent.png
+   # - Clovara navy background.png
+   # - Clovara transparent.png
    ```
 
 2. **Add Fonts** ⭐ IMPORTANT
@@ -135,8 +135,8 @@ TextButton(
    flutter:
      assets:
        - .env
-       - flutter_assets/PetUwrite navy background.png
-       - flutter_assets/PetUwrite transparent.png
+       - flutter_assets/Clovara navy background.png
+       - flutter_assets/Clovara transparent.png
      
      fonts:
        - family: Poppins
@@ -183,7 +183,7 @@ flutter run
 Should see:
 - ✅ Dark gradient background
 - ✅ White logo card
-- ✅ "PetUwrite" title
+- ✅ "Clovara" title
 - ✅ "Trust powered by intelligence" tagline
 - ✅ Teal buttons
 - ✅ Copyright footer
@@ -217,16 +217,16 @@ Should see:
 ### Theme not showing?
 ```dart
 // Make sure you imported it in main.dart
-import 'theme/petuwrite_theme.dart';
+import 'theme/clovara_theme.dart';
 
 // And applied it
-theme: PetUwriteTheme.lightTheme,
+theme: ClovaraTheme.lightTheme,
 ```
 
 ### Colors wrong?
 ```dart
-// Use PetUwriteColors directly
-Container(color: PetUwriteColors.kSecondaryTeal)
+// Use ClovaraColors directly
+Container(color: ClovaraColors.kSecondaryTeal)
 ```
 
 ### Fonts not working?
@@ -242,7 +242,7 @@ Container(color: PetUwriteColors.kSecondaryTeal)
 3. Run `flutter pub get`
 4. Use correct asset path:
    ```dart
-   Image.asset(PetUwriteAssets.logoTransparent)
+   Image.asset(ClovaraAssets.logoTransparent)
    ```
 
 ---
@@ -285,7 +285,7 @@ flutter run -d android
 
 ## 🎉 You're Ready!
 
-Your PetUwrite app now has:
+Your Clovara app now has:
 ✅ Professional brand theme
 ✅ Consistent colors across all screens
 ✅ Modern typography (when fonts added)

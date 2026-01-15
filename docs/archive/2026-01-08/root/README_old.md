@@ -1,4 +1,4 @@
-# PetUwrite - AI-Powered Pet Insurance Platform# Pet Underwriter AI
+# Clovara - AI-Powered Pet Insurance Platform# Pet Underwriter AI
 
 
 
@@ -22,7 +22,7 @@ lib/
 
 │   ├── plan_selection_screen.dart
 
-PetUwrite is a modern pet insurance platform that leverages AI to provide:│   ├── checkout_screen.dart
+Clovara is a modern pet insurance platform that leverages AI to provide:│   ├── checkout_screen.dart
 
 - **Instant Quotes** - Get pet insurance quotes in minutes through conversational AI│   └── policy_confirmation_screen.dart
 
@@ -106,7 +106,7 @@ PetUwrite is a modern pet insurance platform that leverages AI to provide:│   
 
    git clone <repository-url>
 
-   cd PetUwrite### Models
+   cd Clovara### Models
 
    ```- **Pet**: Pet information (name, species, breed, age, medical history)
 
@@ -250,7 +250,7 @@ See [docs/implementation/](docs/implementation/) for phase-by-phase implementati
 
 
 ```
-PetUwrite/
+Clovara/
 ├── lib/
 │   ├── screens/          # UI screens
 │   ├── widgets/          # Reusable widgets

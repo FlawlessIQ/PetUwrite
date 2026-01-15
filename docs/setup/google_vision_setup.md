@@ -1,12 +1,18 @@
 # Google Cloud Vision API Setup Guide
 
+## Related: Vet record photo OCR
+
+This doc covers general Vision setup (API key + proxy pattern). For the specific **vet record image OCR** flow used in medical underwriting (Cloud Function `extractImageText`, emulator notes, IAM), see:
+
+- [docs/setup/VET_RECORD_IMAGE_OCR_SETUP.md](docs/setup/VET_RECORD_IMAGE_OCR_SETUP.md)
+
 ## Quick Setup (5 minutes)
 
 ### Step 1: Create Google Cloud Project
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Click "Select a project" → "New Project"
-3. Name: `petuwrite-ocr` or similar
+3. Name: `clovara-ocr` or similar
 4. Click "Create"
 
 ### Step 2: Enable Vision API

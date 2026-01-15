@@ -1,7 +1,7 @@
 # ✅ App is Running Successfully!
 
 **Date:** October 8, 2025  
-**Status:** 🎉 **RESOLVED** - App now runs with PetUwrite branding!
+**Status:** 🎉 **RESOLVED** - App now runs with Clovara branding!
 
 ## ✅ What Was Fixed
 
@@ -9,7 +9,7 @@
 **Problem:** Assets were pointing to `build/flutter_assets/` (wrong directory)
 
 **Solution:**
-- Changed asset paths from `build/flutter_assets/PetUwrite navy background.png` to `assets/petuwrite_logo_navy.svg`
+- Changed asset paths from `build/flutter_assets/Clovara navy background.png` to `assets/clovara_logo_navy.svg`
 - Created `assets/` directory for source files
 - Updated `pubspec.yaml` to include `assets/` folder
 
@@ -22,9 +22,9 @@
 - Fixed undefined color property: `textSecondaryLight` → `Colors.white70`
 
 ### 3. Placeholder Logo Files Created
-**Solution:** Created SVG placeholders with PetUwrite branding:
-- ✅ `assets/petuwrite_logo_navy.svg` - Navy background with teal branding
-- ✅ `assets/petuwrite_logo_transparent.svg` - Transparent logo with PW initials
+**Solution:** Created SVG placeholders with Clovara branding:
+- ✅ `assets/clovara_logo_navy.svg` - Navy background with teal branding
+- ✅ `assets/clovara_logo_transparent.svg` - Transparent logo with PW initials
 
 ## 🚀 App Status
 
@@ -36,7 +36,7 @@ flutter run -d chrome
 
 ### What's Working
 ✅ App compiles without errors  
-✅ PetUwrite theme applied globally  
+✅ Clovara theme applied globally  
 ✅ Login screen displays with branding  
 ✅ Navy/Teal color scheme visible  
 ✅ Rounded buttons and inputs  
@@ -52,10 +52,10 @@ flutter run -d chrome
 ## 📂 Final Directory Structure
 
 ```
-PetUwrite/
+Clovara/
 ├── assets/
-│   ├── petuwrite_logo_navy.svg          ← Placeholder logo (navy bg)
-│   └── petuwrite_logo_transparent.svg   ← Placeholder logo (transparent)
+│   ├── clovara_logo_navy.svg          ← Placeholder logo (navy bg)
+│   └── clovara_logo_transparent.svg   ← Placeholder logo (transparent)
 ├── fonts/
 │   ├── Poppins/
 │   │   ├── Poppins-Regular.ttf (157 KB)
@@ -68,7 +68,7 @@ PetUwrite/
 │       └── Inter-SemiBold.ttf (287 KB)
 ├── lib/
 │   ├── theme/
-│   │   └── petuwrite_theme.dart         ← Complete brand system
+│   │   └── clovara_theme.dart         ← Complete brand system
 │   ├── auth/
 │   │   └── login_screen.dart            ← Branded login (fixed)
 │   └── main.dart                        ← Theme applied
@@ -82,7 +82,7 @@ When you open the app at http://127.0.0.1:64596:
 ### Login Screen Features
 - **Dark gradient background** (Navy → Dark)
 - **White logo card** with shadow and teal glow
-- **PetUwrite branding** (name + tagline)
+- **Clovara branding** (name + tagline)
 - **Teal buttons** with rounded corners
 - **Sky blue input focus** states
 - **Copyright footer** at bottom
@@ -99,12 +99,12 @@ When you open the app at http://127.0.0.1:64596:
 When you have actual logo PNG files:
 ```bash
 # Add your logos to assets/ folder:
-assets/petuwrite_logo_navy.png
-assets/petuwrite_logo_transparent.png
+assets/clovara_logo_navy.png
+assets/clovara_logo_transparent.png
 
-# Update paths in lib/theme/petuwrite_theme.dart:
-static const String logoNavyBackground = 'assets/petuwrite_logo_navy.png';
-static const String logoTransparent = 'assets/petuwrite_logo_transparent.png';
+# Update paths in lib/theme/clovara_theme.dart:
+static const String logoNavyBackground = 'assets/clovara_logo_navy.png';
+static const String logoTransparent = 'assets/clovara_logo_transparent.png';
 ```
 
 ### 2. Fix Font Warnings on Web (Optional)
@@ -167,7 +167,7 @@ This is expected on web - fonts still work on mobile/desktop
 
 ## 🎉 Success!
 
-Your PetUwrite app is now running with:
+Your Clovara app is now running with:
 - ✅ Complete brand theme system
 - ✅ Custom colors (Navy, Teal, Sky)
 - ✅ Custom fonts (Poppins, Inter)

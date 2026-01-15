@@ -87,7 +87,7 @@ Run this in Firebase Console or Cloud Functions:
 ```javascript
 // Firestore: users/{userId}
 {
-  "email": "admin@petuwrite.com",
+  "email": "admin@clovara.com",
   "userRole": 2,  // Admin role
   "name": "Admin User",
   "createdAt": "2025-10-10T12:00:00Z"
@@ -374,7 +374,7 @@ Display Updated Timestamp
     "_seconds": 1728561600,
     "_nanoseconds": 0
   },
-  "updatedBy": "admin@petuwrite.com"
+  "updatedBy": "admin@clovara.com"
 }
 ```
 
@@ -598,7 +598,7 @@ service cloud.firestore {
 │ ┌────────────────────────────────────────┐ │
 │ │ 🔄  Last Updated                        │ │
 │ │     2 hours ago                         │ │
-│ │     by admin@petuwrite.com              │ │
+│ │     by admin@clovara.com              │ │
 │ └────────────────────────────────────────┘ │
 │                                            │
 │ ┌────────────────────────────────────────┐ │

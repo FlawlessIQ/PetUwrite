@@ -4,7 +4,7 @@ import '../models/claim.dart';
 import 'claim_document_ai_service.dart';
 
 /// AI-powered claim decision engine
-/// Combines actuarial rules + gpt-5.2 analysis for automated claim processing
+/// Combines actuarial rules + AI analysis for automated claim processing
 class ClaimDecisionEngine {
   final FirebaseFirestore _firestore;
   final GPTService _gptService;
@@ -23,7 +23,7 @@ class ClaimDecisionEngine {
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _gptService = gptService ??
             GPTService(
-              model: 'gpt-5.2',
+              model: 'gemini-pro-latest',
             ),
         _documentService = documentService ?? ClaimDocumentAIService();
 
@@ -250,7 +250,7 @@ class ClaimDecisionEngine {
     return _createMockAnalysis(inputData, lastError?.toString());
   }
 
-  /// Run AI analysis using gpt-5.2
+  /// Run AI analysis
   Future<AIAnalysisResult> _runAIAnalysis(
     Map<String, dynamic> inputData,
   ) async {
@@ -262,7 +262,7 @@ class ClaimDecisionEngine {
     return result;
   }
 
-  /// Build structured prompt for gpt-5.2
+  /// Build structured prompt for AI
   String _buildAIPrompt(Map<String, dynamic> inputData) {
     final claim = inputData['claim'];
     final docs = inputData['documents'] as List;
@@ -615,7 +615,7 @@ JSON:''';
       },
       'processingMetadata': {
         'engineVersion': '1.0.0',
-        'modelUsed': 'gpt-5.2',
+          'modelUsed': 'gemini-pro-latest',
         'processingTime': DateTime.now().toIso8601String(),
       },
     };
@@ -778,7 +778,7 @@ JSON:''';
   }
 }
 
-/// AI analysis result from gpt-5.2
+/// AI analysis result
 class AIAnalysisResult {
   final String legitimacy;
   final String costReasonableness;

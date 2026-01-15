@@ -30,6 +30,12 @@ service firebase.storage {
         && firestore.get(/databases/(default)/documents/policies/$(policyId)).data.ownerId == request.auth.uid;
     }
 
+    function isUnderwritingCaseOwner(caseId) {
+      return isAuthenticated()
+        && firestore.exists(/databases/(default)/documents/underwriting_cases/$(caseId))
+        && firestore.get(/databases/(default)/documents/underwriting_cases/$(caseId)).data.userId == request.auth.uid;
+    }
+
     // Allow authenticated users to upload claim documents
     match /claims/{claimId}/{fileName} {
       allow read: if isAdmin() || isClaimOwner(claimId);
@@ -52,6 +58,17 @@ service firebase.storage {
       allow write: if (isAdmin() || isPolicyOwner(policyId))
                    && request.resource.size < 10 * 1024 * 1024  // Max 10MB
                    && request.resource.contentType.matches('image/.*|application/pdf');
+    }
+
+    // Underwriting: vet record uploads (PDF + extracted text) are scoped to an underwriting case.
+    // Storage paths used by VetHistoryParser:
+    // - vet_records/cases/{caseId}/{file}.pdf
+    // - vet_records/cases/{caseId}/extracted/{file}.txt
+    match /vet_records/cases/{caseId}/{allPaths=**} {
+      allow read: if isAdmin() || isUnderwritingCaseOwner(caseId);
+      allow write: if (isAdmin() || isUnderwritingCaseOwner(caseId))
+                   && request.resource.size < 20 * 1024 * 1024  // Max 20MB for vet PDFs
+                   && request.resource.contentType.matches('application/pdf|text/plain');
     }
     
     // Deny all other access

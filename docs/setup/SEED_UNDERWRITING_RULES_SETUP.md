@@ -28,7 +28,7 @@ Three tools to seed the required `admin_settings/underwriting_rules` Firestore d
 1. Go to [Firebase Console](https://console.firebase.google.com) → Your Project
 2. ⚙️ Settings → Project Settings → Service Accounts
 3. Click **"Generate New Private Key"**
-4. Save as `firebase-service-account.json` in **PetUwrite/functions/** directory
+4. Save as `firebase-service-account.json` in **Clovara/functions/** directory
 
 **Option B: Use Existing Credentials**
 If you have GOOGLE_APPLICATION_CREDENTIALS set, skip to Step 2.
@@ -289,7 +289,7 @@ match /admin_settings/{document} {
 ## 📁 File Structure After Setup
 
 ```
-PetUwrite/
+Clovara/
 ├── functions/
 │   ├── seed_underwriting_rules.js          ← Run this script
 │   ├── firebase-service-account.json       ← Place credentials here

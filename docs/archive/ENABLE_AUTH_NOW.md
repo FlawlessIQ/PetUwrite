@@ -69,7 +69,7 @@ open https://console.firebase.google.com/project/pet-underwriter-ai/authenticati
 
 1. **Created Firebase Web App** 
    - App ID: `1:984654950987:web:f9c4d1e5fe50cf2ba193ce`
-   - Display name: "PetUwrite Web"
+   - Display name: "Clovara Web"
 
 2. **Updated firebase_options.dart**
    - Added real API key: `AIzaSyAasP7WKdW7RaJ55uaOvcf5iu5mDDSn_FU`

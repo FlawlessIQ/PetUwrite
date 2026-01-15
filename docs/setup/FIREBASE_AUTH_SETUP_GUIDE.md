@@ -58,7 +58,7 @@ Your app already has a complete authentication screen with:
 ✅ **Email/Password Signup** 
 ✅ **Password Reset**
 ✅ **Error Handling**
-✅ **PetUwrite Branding**
+✅ **Clovara Branding**
 ✅ **Auto-creates user document in Firestore**
 ✅ **Sets `userRole: 0` for customers**
 
@@ -211,7 +211,7 @@ open https://console.firebase.google.com/project/pet-underwriter-ai/authenticati
 
 ```bash
 # Run your app
-cd /Users/conorlawless/Development/PetUwrite
+cd /Users/conorlawless/Development/Clovara
 flutter run -d chrome
 
 # Test flow:
@@ -290,7 +290,7 @@ await db.collection('users').doc('USER_UID_HERE').set({
 open https://console.firebase.google.com/project/pet-underwriter-ai/authentication
 
 # 2. Test your app
-cd /Users/conorlawless/Development/PetUwrite
+cd /Users/conorlawless/Development/Clovara
 flutter run -d chrome
 
 # 3. Check users (after auth enabled)

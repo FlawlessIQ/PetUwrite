@@ -42,7 +42,7 @@ node seed_underwriting_rules.js
 
 ```
 ═══════════════════════════════════════════════════════════
-  PetUwrite - Underwriting Rules Seeder
+  Clovara - Underwriting Rules Seeder
 ═══════════════════════════════════════════════════════════
 
 🔧 Initializing Firebase Admin SDK...
@@ -75,7 +75,7 @@ node seed_underwriting_rules.js
 
 Place `firebase-service-account.json` in project root:
 ```
-PetUwrite/
+Clovara/
 ├── seed_underwriting_rules.js
 ├── firebase-service-account.json  ← Place here
 └── ...

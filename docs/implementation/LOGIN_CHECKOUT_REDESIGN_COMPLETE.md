@@ -11,7 +11,7 @@
 
 **New Design:**
 - **Prominent Logo Display:**
-  - Large logo image using `assets/PetUwrite navy background.png`
+  - Large logo image using `assets/Clovara navy background.png`
   - Centered at top with subtle glow effect
   - Fallback to transparent logo if navy version unavailable
   - Height: 140px with elegant border radius
@@ -85,7 +85,7 @@
 **New Design:**
 - **Branded Header:**
   - Logo displayed prominently in header
-  - Uses `assets/PetUwrite navy background.png`
+  - Uses `assets/Clovara navy background.png`
   - Current step name shown with teal accent
   - Elegant gradient background
   - Teal shadow glow effect
@@ -138,7 +138,7 @@
 
 ## 🎨 Branding Consistency
 
-### Color Palette (PetUwrite Theme)
+### Color Palette (Clovara Theme)
 - **Primary Navy:** #0A2647 (Background)
 - **Secondary Teal:** #00C2CB (Accents, buttons, highlights)
 - **Success Mint:** #A8E6E8 (Completed states)
@@ -178,8 +178,8 @@
 2. **lib/screens/checkout_screen_old_backup.dart**
 
 ### Assets Used:
-1. **assets/PetUwrite navy background.png** ← Primary logo
-2. **assets/petuwrite_logo_transparent.svg** ← Fallback logo
+1. **assets/Clovara navy background.png** ← Primary logo
+2. **assets/clovara_logo_transparent.svg** ← Fallback logo
 
 ---
 
@@ -194,14 +194,14 @@ Container(
     borderRadius: BorderRadius.circular(24),
     boxShadow: [
       BoxShadow(
-        color: PetUwriteColors.kSecondaryTeal.withOpacity(0.2),
+        color: ClovaraColors.kSecondaryTeal.withOpacity(0.2),
         blurRadius: 30,
         spreadRadius: 5,
       ),
     ],
   ),
   child: Image.asset(
-    'assets/PetUwrite navy background.png',
+    'assets/Clovara navy background.png',
     height: 140,
     fit: BoxFit.contain,
   ),
@@ -218,7 +218,7 @@ Container(
     borderRadius: BorderRadius.circular(12),
   ),
   child: Image.asset(
-    'assets/PetUwrite navy background.png',
+    'assets/Clovara navy background.png',
     fit: BoxFit.contain,
   ),
 )
@@ -312,14 +312,14 @@ Container(
 ## 💡 Design Notes
 
 ### Why Navy Background Logo?
-The navy background logo (`PetUwrite navy background.png`) is used because:
+The navy background logo (`Clovara navy background.png`) is used because:
 1. **Blends perfectly** with navy background
 2. **No jarring white borders** around logo
 3. **Professional appearance** - looks integrated, not pasted
 4. **Matches brand aesthetic** - consistent with overall design
 
 ### Why Transparent Logo as Fallback?
-The transparent logo (`petuwrite_logo_transparent.svg`) is used as fallback:
+The transparent logo (`clovara_logo_transparent.svg`) is used as fallback:
 1. **Ensures logo always displays** - even if PNG is missing
 2. **Works on any background** - versatile
 3. **Vector format** - scales perfectly
@@ -401,8 +401,8 @@ The transparent logo (`petuwrite_logo_transparent.svg`) is used as fallback:
 Ensure these files exist in your project:
 ```
 assets/
-├── PetUwrite navy background.png  ✅ Primary logo
-└── petuwrite_logo_transparent.svg ✅ Fallback logo
+├── Clovara navy background.png  ✅ Primary logo
+└── clovara_logo_transparent.svg ✅ Fallback logo
 ```
 
 ### pubspec.yaml Check:
@@ -410,8 +410,8 @@ assets/
 flutter:
   assets:
     - assets/
-    - assets/PetUwrite navy background.png
-    - assets/petuwrite_logo_transparent.svg
+    - assets/Clovara navy background.png
+    - assets/clovara_logo_transparent.svg
 ```
 
 ### Hot Reload:
@@ -432,7 +432,7 @@ flutter build ios
 ## 🎉 Result
 
 Both screens now feature:
-✨ **Prominent PetUwrite branding**  
+✨ **Prominent Clovara branding**  
 ✨ **Consistent with quote flow design**  
 ✨ **Navy background with teal accents**  
 ✨ **Large, visible logo display**  

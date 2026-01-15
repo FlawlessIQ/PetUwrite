@@ -201,7 +201,7 @@ void main() {
       expect(riskScore.categoryScores['preExisting']!, greaterThan(0));
     });
     
-    test('AI service failure returns fallback analysis', () async {
+    test('AI service failure does not fabricate fallback analysis', () async {
       // Create engine with failing AI service
       final failingService = _FailingMockAIService();
       final failingEngine = RiskScoringEngine(
@@ -218,9 +218,8 @@ void main() {
         owner: testOwner,
       );
       
-      // Should still return a result with fallback analysis
-      expect(riskScore.aiAnalysis, isNotNull);
-      expect(riskScore.aiAnalysis, contains('Risk Score:'));
+      // Fail-closed invariant: do not fabricate AI analysis content.
+      expect(riskScore.aiAnalysis, anyOf(isNull, isEmpty));
       expect(riskScore.overallScore, greaterThan(0));
     });
     

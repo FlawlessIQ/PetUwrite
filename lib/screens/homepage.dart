@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
 import '../theme/clovara_theme.dart';
 import '../auth/login_screen.dart';
 import '../auth/customer_home_screen.dart';
+import '../services/user_session_service.dart';
+import '../services/draft_service.dart';
+import 'underwriting_followup_documents_screen.dart';
 import '../widgets/clovara_icons.dart';
 
 /// Clovara Homepage - Landing page with navigation options
@@ -33,53 +37,424 @@ class Homepage extends StatelessWidget {
                 constraints: BoxConstraints(
                   minHeight: constraints.maxHeight,
                 ),
-                child: IntrinsicHeight(
-                  child: Column(
-                    children: [
-                      // Header with logo
-                      _buildHeader(context, isMobile),
-                      
-                      // Spacer
-                      const SizedBox(height: 24),
-                      
-                      // Main content (centered)
-                      Expanded(
-                        child: Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isMobile ? 20 : 40,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                // Tagline
-                                _buildTagline(context, isMobile),
-                                
-                                SizedBox(height: isMobile ? 32 : 48),
-                                
-                                // Action Cards
-                                _buildActionCards(context, isSmallScreen, isMobile),
-                                
-                                SizedBox(height: isMobile ? 32 : 48),
-                                
-                                // Features
-                                _buildFeaturesSection(context, isSmallScreen, isMobile),
-                              ],
-                            ),
-                          ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Header with logo
+                    _buildHeader(context, isMobile),
+                    
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 20 : 40,
+                        vertical: 24,
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Tagline
+                            _buildTagline(context, isMobile),
+                            
+                            SizedBox(height: isMobile ? 32 : 48),
+
+                            // Resume via server-side Draft (cross-device)
+                            _buildDraftResumeCard(context, isMobile),
+
+                            if (isMobile)
+                              const SizedBox(height: 12)
+                            else
+                              const SizedBox(height: 16),
+
+                            // Resume underwriting (NEED_MORE_INFO) if available
+                            _buildResumeUnderwritingCard(context, isMobile),
+
+                            if (isMobile)
+                              const SizedBox(height: 12)
+                            else
+                              const SizedBox(height: 16),
+                            
+                            // Action Cards
+                            _buildActionCards(context, isSmallScreen, isMobile),
+                            
+                            SizedBox(height: isMobile ? 32 : 48),
+                            
+                            // Features
+                            _buildFeaturesSection(context, isSmallScreen, isMobile),
+                          ],
                         ),
                       ),
-                      
-                      // Footer
-                      _buildFooter(context, isMobile),
-                    ],
-                  ),
+                    ),
+                    
+                    // Footer
+                    _buildFooter(context, isMobile),
+                  ],
                 ),
               ),
             );
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildDraftResumeCard(BuildContext context, bool isMobile) {
+    return FutureBuilder<String?>(
+      future: DraftService().getLocalResumeKey(),
+      builder: (context, snapshot) {
+        final localKey = snapshot.data;
+
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(isMobile ? 14 : 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.grey.shade200,
+                width: 2,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: ClovaraColors.mist,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Icon(
+                    Icons.restore,
+                    color: ClovaraColors.forest,
+                    size: isMobile ? 20 : 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Continue where you left off',
+                        style: ClovaraTypography.body.copyWith(
+                          color: ClovaraColors.forest,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Resume on this device, or enter a resume code',
+                        style: ClovaraTypography.body.copyWith(
+                          color: ClovaraColors.slate,
+                          fontSize: isMobile ? 13 : 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                if (localKey != null)
+                  ElevatedButton(
+                    onPressed: () => _resumeFromKey(context, localKey),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ClovaraColors.clover,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 14 : 16,
+                        vertical: isMobile ? 10 : 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Continue'),
+                  )
+                else
+                  OutlinedButton(
+                    onPressed: () => _showResumeCodeDialog(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ClovaraColors.forest,
+                      side: BorderSide(color: Colors.grey.shade300),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 14 : 16,
+                        vertical: isMobile ? 10 : 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Enter code'),
+                  ),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: 'Enter resume code',
+                  onPressed: () => _showResumeCodeDialog(context),
+                  icon: const Icon(Icons.key),
+                  color: ClovaraColors.slate,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showResumeCodeDialog(BuildContext context) async {
+    final controller = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Resume with code'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'Paste your resume code',
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final data = await Clipboard.getData('text/plain');
+                final text = (data?.text ?? '').trim();
+                if (text.isNotEmpty) controller.text = text;
+              },
+              child: const Text('Paste'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final key = controller.text.trim();
+                Navigator.pop(context);
+                if (key.isNotEmpty) {
+                  _resumeFromKey(context, key);
+                }
+              },
+              child: const Text('Resume'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _resumeFromKey(BuildContext context, String resumeKey) async {
+    // Lightweight blocking progress UI
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: SizedBox(
+          height: 72,
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Text('Resuming…'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final resolved = await DraftService().resolveAndAdoptDraft(
+        resumeKey: resumeKey,
+      );
+
+      // Restore local pending state so existing screens keep working.
+      if (resolved.draftType == 'quote') {
+        await UserSessionService().savePendingQuote(resolved.snapshot);
+      } else if (resolved.draftType == 'checkout') {
+        await UserSessionService().savePendingCheckout(resolved.snapshot);
+      } else {
+        final caseId = resolved.snapshot['underwritingCaseId']?.toString();
+        if (caseId != null && caseId.trim().isNotEmpty) {
+          await UserSessionService().savePendingUnderwriting(
+            underwritingCaseId: caseId.trim(),
+            petName: (resolved.snapshot['petName'] ?? 'your pet').toString(),
+            riskScore: resolved.snapshot['riskScore'],
+            reason: resolved.snapshot['reason']?.toString(),
+            requiredEvidence:
+                (resolved.snapshot['requiredEvidence'] is List)
+                    ? (resolved.snapshot['requiredEvidence'] as List)
+                        .whereType<Map>()
+                        .map((e) => e.cast<String, dynamic>())
+                        .toList(growable: false)
+                    : const [],
+          );
+        }
+      }
+
+      if (context.mounted) Navigator.pop(context);
+
+      if (resolved.draftType == 'quote') {
+        if (context.mounted) {
+          Navigator.pushNamed(context, '/conversational-quote');
+        }
+        return;
+      }
+
+      if (resolved.draftType == 'checkout') {
+        final pet = resolved.snapshot['pet'];
+        final selectedPlan = resolved.snapshot['selectedPlan'];
+        if (pet != null && selectedPlan != null) {
+          if (context.mounted) {
+            Navigator.pushNamed(
+              context,
+              '/checkout',
+              arguments: {
+                'pet': pet,
+                'selectedPlan': selectedPlan,
+                'underwritingCaseId': resolved.snapshot['underwritingCaseId']?.toString(),
+                'exclusions': resolved.snapshot['exclusions'],
+                'underwritingSnapshot': resolved.snapshot['underwritingSnapshot'],
+              },
+            );
+          }
+          return;
+        }
+      }
+
+      final caseId = resolved.snapshot['underwritingCaseId']?.toString();
+      if (caseId != null && caseId.trim().isNotEmpty) {
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UnderwritingFollowUpDocumentsScreen(
+                underwritingCaseId: caseId.trim(),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Draft restored, but nothing to resume.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to resume: ${e.toString().replaceAll('Exception: ', '')}')),
+        );
+      }
+    }
+  }
+
+  Widget _buildResumeUnderwritingCard(BuildContext context, bool isMobile) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: UserSessionService().getPendingUnderwriting(),
+      builder: (context, snapshot) {
+        final pending = snapshot.data;
+        final caseId = pending?['underwritingCaseId']?.toString().trim();
+        if (caseId == null || caseId.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final petName = pending?['petName']?.toString().trim();
+
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(isMobile ? 14 : 16),
+            decoration: BoxDecoration(
+              color: ClovaraColors.mist,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: ClovaraColors.clover.withOpacity(0.25),
+                width: 2,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Icon(
+                    Icons.upload_file_outlined,
+                    color: ClovaraColors.forest,
+                    size: isMobile ? 20 : 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Finish underwriting',
+                        style: ClovaraTypography.body.copyWith(
+                          color: ClovaraColors.forest,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        petName != null && petName.isNotEmpty
+                            ? 'Upload documents for $petName'
+                            : 'Upload documents to continue',
+                        style: ClovaraTypography.body.copyWith(
+                          color: ClovaraColors.slate,
+                          fontSize: isMobile ? 13 : 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const UnderwritingFollowUpDocumentsScreen(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ClovaraColors.clover,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 14 : 16,
+                      vertical: isMobile ? 10 : 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Continue'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

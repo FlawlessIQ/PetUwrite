@@ -2,7 +2,7 @@
 
 ## 🎉 Mission Accomplished!
 
-Both the **Login Screen** and **Checkout Screen** have been completely redesigned to feature **prominent PetUwrite branding** with the logos you specified!
+Both the **Login Screen** and **Checkout Screen** have been completely redesigned to feature **prominent Clovara branding** with the logos you specified!
 
 ---
 
@@ -12,11 +12,11 @@ Both the **Login Screen** and **Checkout Screen** have been completely redesigne
 **File:** `lib/auth/login_screen.dart`
 
 **Branding Implementation:**
-- 🎨 **Large 140px logo** using `assets/PetUwrite navy background.png`
+- 🎨 **Large 140px logo** using `assets/Clovara navy background.png`
 - 🎨 **Navy background** (#0A2647) matching quote flow
 - 🎨 **Teal glow effect** around logo container
 - 🎨 **Prominent tagline** "Trust powered by intelligence" in teal
-- 🎨 **Fallback** to `assets/petuwrite_logo_transparent.svg` if needed
+- 🎨 **Fallback** to `assets/clovara_logo_transparent.svg` if needed
 
 **UX Improvements:**
 - Tabbed interface (Sign In / Create Account)
@@ -30,7 +30,7 @@ Both the **Login Screen** and **Checkout Screen** have been completely redesigne
 **File:** `lib/screens/checkout_screen.dart`
 
 **Branding Implementation:**
-- 🎨 **Logo in header** using `assets/PetUwrite navy background.png` (50px)
+- 🎨 **Logo in header** using `assets/Clovara navy background.png` (50px)
 - 🎨 **Branded header** with gradient navy background
 - 🎨 **Current step display** with teal accent
 - 🎨 **Fallback** to text if logo fails to load
@@ -89,7 +89,7 @@ Both the **Login Screen** and **Checkout Screen** have been completely redesigne
 ## 🖼️ Logo Usage
 
 ### Primary Logo:
-**File:** `assets/PetUwrite navy background.png`
+**File:** `assets/Clovara navy background.png`
 
 **Used in:**
 - Login screen (140px height, prominent display)
@@ -102,7 +102,7 @@ Both the **Login Screen** and **Checkout Screen** have been completely redesigne
 - Matches overall brand aesthetic
 
 ### Fallback Logo:
-**File:** `assets/petuwrite_logo_transparent.svg`
+**File:** `assets/clovara_logo_transparent.svg`
 
 **Used when:**
 - Primary PNG fails to load
@@ -237,7 +237,7 @@ Rating: 3/5         →     Rating: 5/5 ⭐⭐⭐⭐⭐
 ## ✨ Result
 
 ### What You Got:
-✅ **Prominent PetUwrite branding** throughout  
+✅ **Prominent Clovara branding** throughout  
 ✅ **Consistent design language** across all screens  
 ✅ **Professional, polished appearance**  
 ✅ **Modern, trust-building visuals**  
@@ -259,7 +259,7 @@ Rating: 3/5         →     Rating: 5/5 ⭐⭐⭐⭐⭐
 
 Both the **Login Screen** and **Checkout Screen** now feature:
 
-🎨 **Prominent PetUwrite branding**  
+🎨 **Prominent Clovara branding**  
 📱 **Consistent design language**  
 🏢 **Professional appearance**  
 💎 **Polished user experience**  

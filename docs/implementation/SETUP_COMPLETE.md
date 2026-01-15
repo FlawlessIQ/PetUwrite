@@ -150,7 +150,7 @@ open https://console.firebase.google.com/project/pet-underwriter-ai/firestore
 
 ```bash
 # Created Firebase web app
-firebase apps:create WEB "PetUwrite Web"
+firebase apps:create WEB "Clovara Web"
 
 # Enabled authentication via Node.js script
 node enable_auth.js

@@ -1,5 +1,12 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../ai/ai_service.dart';
+import '../models/owner.dart';
 import '../models/pet.dart';
 import '../models/medical_history.dart';
 import '../models/risk_score.dart';
@@ -7,9 +14,14 @@ import '../models/underwriting_case.dart';
 import '../models/underwriting_decision.dart';
 import '../models/underwriting_medical_history.dart';
 import '../models/policy_exclusion.dart';
+import '../models/underwriting_status.dart';
 import '../services/underwriting_case_service.dart';
-import '../services/underwriting_decision_engine.dart';
-import '../services/underwriting_rules_engine.dart';
+import '../services/underwriting_integrity_engine.dart';
+import '../services/medical_facts_builder.dart';
+import '../services/vet_history_parser.dart' hide Medication;
+import '../services/vet_document_reuse_detector.dart';
+import '../services/user_session_service.dart';
+import '../services/draft_service.dart';
 import '../theme/clovara_theme.dart';
 import '../widgets/underwriting_disclosure_dialog.dart';
 import 'plan_selection_screen.dart';
@@ -33,6 +45,20 @@ class MedicalUnderwritingScreen extends StatefulWidget {
   @override
   State<MedicalUnderwritingScreen> createState() =>
       _MedicalUnderwritingScreenState();
+}
+
+class _VetAutofillResult {
+  final int conditionsAdded;
+  final int medicationsAdded;
+  final int vetVisitsAdded;
+  final int allergiesAdded;
+
+  const _VetAutofillResult({
+    required this.conditionsAdded,
+    required this.medicationsAdded,
+    required this.vetVisitsAdded,
+    required this.allergiesAdded,
+  });
 }
 
 class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
@@ -76,6 +102,44 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   DateTime? _visitDate;
   String _visitType = 'checkup';
 
+  bool _isUploadingVetRecord = false;
+  String? _vetUploadStatus;
+
+  // Raw vet text backstop for deterministic keyword extraction.
+  final List<String> _rawVetTexts = [];
+
+  // Keep a copy of parsed AI vet extraction (if available).
+  final List<VetRecordData> _aiVetExtraction = [];
+  final List<String> _vetDocumentHashes = [];
+
+  bool _aiVetParseFailed = false;
+
+  // Self-serve, zero-human underwriting state.
+  bool _needsMoreInfo = false;
+  List<Map<String, dynamic>> _requiredEvidenceJson = const [];
+  bool _autoReassessInProgress = false;
+
+  Future<void> _autoReassessAfterUpload() async {
+    if (!_needsMoreInfo) return;
+    if (_autoReassessInProgress) return;
+    if (_isUploadingVetRecord) return;
+
+    _autoReassessInProgress = true;
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      if (!mounted) return;
+      _complete();
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    } finally {
+      _autoReassessInProgress = false;
+    }
+  }
+
+  // We keep a local, mutable copy of route args so we can attach a newly
+  // created underwritingCaseId during this screen (e.g. for uploads).
+  late Map<String, dynamic> _routeArguments;
+  String? _underwritingCaseId;
+
   // Conditions that generally require additional medical details before we can
   // responsibly show plans (e.g., chronic or historically high-impact).
   static const Set<String> _highDetailConditions = {
@@ -87,9 +151,20 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     'Arthritis',
   };
 
+  // Deterministic loop-breaker: after N unresolved NEED_MORE_INFO cycles,
+  // we decline (zero-human flow, prevents infinite retries).
+  static const int _maxNeedMoreInfoAttempts = 3;
+
+  // NOTE: We intentionally do not ask customers to self-determine clinical
+  // facts like severity/chronicity. When more detail is needed, underwriting
+  // deterministically requests verifiable evidence (vet records).
+
+
   @override
   void initState() {
     super.initState();
+    _routeArguments = {...?widget.quoteData};
+    _underwritingCaseId = widget.quoteData?['underwritingCaseId']?.toString();
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
@@ -107,7 +182,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     if (widget.pet.preExistingConditions.isNotEmpty) {
       for (final conditionName in widget.pet.preExistingConditions) {
         if (conditionName != 'Pre-existing condition reported') {
-          _conditions.add(
+          _upsertMedicalCondition(
             MedicalCondition(
               id: 'cond_${DateTime.now().millisecondsSinceEpoch}',
               name: conditionName,
@@ -122,6 +197,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     // Copy existing medical data if available
     if (widget.pet.medicalConditions != null) {
       _conditions = List.from(widget.pet.medicalConditions!);
+      _dedupeConditionsInPlace();
     }
     if (widget.pet.medications != null) {
       _medications = List.from(widget.pet.medications!);
@@ -132,6 +208,193 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     if (widget.pet.vetHistory != null) {
       _vetVisits = List.from(widget.pet.vetHistory!);
     }
+  }
+
+  String _normalizeConditionNameForKey(String value) {
+    var v = value.toLowerCase().trim();
+    if (v.isEmpty) return '';
+
+    // Expand common abbreviations seen in vet records.
+    v = v
+        .replaceAll('ccl', 'cranial cruciate ligament')
+        .replaceAll('acl', 'anterior cruciate ligament');
+
+    // Replace punctuation with spaces.
+    v = v.replaceAll(RegExp(r'[^a-z0-9\s]'), ' ');
+    v = v.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    return v;
+  }
+
+  /// Creates a deduplication key for conditions.
+  ///
+  /// Goal: treat "ruptured cruciate ligament" and
+  /// "cranial cruciate ligament rupture (right stifle)" as the same condition.
+  ///
+  /// This is intentionally conservative: it removes laterality and severity
+  /// descriptors but keeps core medical terms.
+  String _conditionDedupKey(String name) {
+    final normalized = _normalizeConditionNameForKey(name);
+    if (normalized.isEmpty) return '';
+
+    const stopwords = <String>{
+      // General descriptors
+      'suspected',
+      'possible',
+      'likely',
+      'history',
+      'hx',
+      'chronic',
+      'acute',
+      'recurrent',
+      'previous',
+      'prior',
+      'old',
+      'new',
+      'mild',
+      'moderate',
+      'severe',
+      'partial',
+      'complete',
+      'resolved',
+      'stable',
+      'managed',
+      // Injury descriptors
+      'rupture',
+      'ruptured',
+      'tear',
+      'torn',
+      'injury',
+      'injured',
+      'sprain',
+      'strain',
+      // Laterality / anatomy qualifiers
+      'left',
+      'right',
+      'bilateral',
+      'cranial',
+      'caudal',
+      'anterior',
+      'posterior',
+      'stifle',
+      'knee',
+      'joint',
+      'leg',
+      'hind',
+      'front',
+      // Noise tokens
+      'status',
+      'post',
+      'op',
+      'postop',
+      'postoperative',
+      'sp',
+    };
+
+    final tokens =
+        normalized
+            .split(' ')
+            .map((t) => t.trim())
+            .where((t) => t.isNotEmpty)
+            .where((t) => t.length > 2)
+            .where((t) => !stopwords.contains(t))
+            .toSet()
+            .toList()
+          ..sort();
+
+    return tokens.join(' ');
+  }
+
+  bool _isPlaceholderDiagnosisDate(DateTime date) {
+    // Quote-flow seeded conditions default to roughly "one year ago".
+    final now = DateTime.now();
+    final diffDays = now.difference(date).inDays.abs();
+    return (diffDays - 365).abs() <= 3;
+  }
+
+  /// Upsert a condition into `_conditions`.
+  /// If a "duplicate" exists (based on dedup key), we merge into the existing
+  /// item and prefer the more detailed name.
+  bool _upsertMedicalCondition(MedicalCondition incoming) {
+    return _upsertMedicalConditionInto(_conditions, incoming);
+  }
+
+  bool _upsertMedicalConditionInto(
+    List<MedicalCondition> conditions,
+    MedicalCondition incoming,
+  ) {
+    final incomingName = incoming.name.trim();
+    if (incomingName.isEmpty) return false;
+
+    final incomingKey = _conditionDedupKey(incomingName);
+    final incomingNorm = _normalizeConditionNameForKey(incomingName);
+
+    int index = -1;
+    for (var i = 0; i < conditions.length; i++) {
+      final existingName = conditions[i].name.trim();
+      if (existingName.isEmpty) continue;
+      final existingKey = _conditionDedupKey(existingName);
+      if (incomingKey.isNotEmpty && existingKey.isNotEmpty) {
+        if (incomingKey == existingKey) {
+          index = i;
+          break;
+        }
+      } else {
+        if (_normalizeConditionNameForKey(existingName) == incomingNorm) {
+          index = i;
+          break;
+        }
+      }
+    }
+
+    if (index == -1) {
+      conditions.add(incoming);
+      return true;
+    }
+
+    final existing = conditions[index];
+
+    final shouldReplaceName =
+        incomingName.length > (existing.name.trim().length + 6);
+
+    DateTime diagnosisDate = existing.diagnosisDate;
+    if (_isPlaceholderDiagnosisDate(existing.diagnosisDate) &&
+        !_isPlaceholderDiagnosisDate(incoming.diagnosisDate)) {
+      diagnosisDate = incoming.diagnosisDate;
+    } else {
+      diagnosisDate = existing.diagnosisDate.isBefore(incoming.diagnosisDate)
+          ? existing.diagnosisDate
+          : incoming.diagnosisDate;
+    }
+
+    final merged = existing.copyWith(
+      name: shouldReplaceName ? incomingName : existing.name,
+      diagnosisDate: diagnosisDate,
+      status: (existing.status == 'resolved' || existing.status == 'managed')
+          ? existing.status
+          : incoming.status,
+      treatment:
+          (existing.treatment == null || existing.treatment!.trim().isEmpty)
+          ? incoming.treatment
+          : existing.treatment,
+      notes: (existing.notes == null || existing.notes!.trim().isEmpty)
+          ? incoming.notes
+          : existing.notes,
+      veterinarian: existing.veterinarian ?? incoming.veterinarian,
+      lastCheckup: existing.lastCheckup ?? incoming.lastCheckup,
+    );
+
+    conditions[index] = merged;
+    return false;
+  }
+
+  void _dedupeConditionsInPlace() {
+    final original = List<MedicalCondition>.from(_conditions);
+    final deduped = <MedicalCondition>[];
+    for (final condition in original) {
+      _upsertMedicalConditionInto(deduped, condition);
+    }
+    _conditions = deduped;
   }
 
   @override
@@ -403,6 +666,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildVetRecordUploadCard(),
+          const SizedBox(height: 16),
           if (_conditions.isEmpty)
             _buildEmptyState(
               icon: Icons.favorite_outline,
@@ -498,6 +763,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildVetRecordUploadCard(),
+          const SizedBox(height: 16),
           if (_vetVisits.isEmpty)
             _buildEmptyState(
               icon: Icons.local_hospital_outlined,
@@ -516,6 +783,785 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         ],
       ),
     );
+  }
+
+  Widget _buildVetRecordUploadCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: ClovaraColors.clover.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.upload_file_rounded,
+                  color: ClovaraColors.clover,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Upload vet records',
+                      style: ClovaraTypography.h3.copyWith(
+                        color: ClovaraColors.forest,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Add PDFs or photos (vet letters, discharge notes, invoices).',
+                      style: ClovaraTypography.body.copyWith(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isUploadingVetRecord
+                      ? null
+                      : _uploadVetRecordPdfs,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ClovaraColors.forest,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isUploadingVetRecord
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Choose PDF(s)'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isUploadingVetRecord
+                      ? null
+                      : _uploadVetRecordImages,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ClovaraColors.forest,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isUploadingVetRecord
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Add photo(s)'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: _isUploadingVetRecord
+                  ? null
+                  : (kIsWeb ? null : _takeVetRecordPhoto),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ClovaraColors.forest,
+                side: BorderSide(color: Colors.grey.shade300),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                kIsWeb ? 'Take photo (not supported on web)' : 'Take photo',
+              ),
+            ),
+          ),
+          if (_vetUploadStatus != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _vetUploadStatus!,
+              style: ClovaraTypography.body.copyWith(
+                color: Colors.grey.shade700,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _uploadVetRecordPdfs() async {
+    setState(() {
+      _isUploadingVetRecord = true;
+      _vetUploadStatus = null;
+    });
+
+    bool looksEmpty(VetRecordData parsed) {
+      return parsed.diagnoses.isEmpty &&
+          parsed.treatments.isEmpty &&
+          parsed.medications.isEmpty &&
+          parsed.vaccinations.isEmpty &&
+          parsed.surgeries.isEmpty &&
+          parsed.allergies.isEmpty &&
+          parsed.previousClaims.isEmpty &&
+          parsed.lastCheckup == null;
+    }
+
+    try {
+      setState(() {
+        _vetUploadStatus = 'Opening file picker…';
+      });
+
+      final result = await FilePicker.platform
+          .pickFiles(
+            type: FileType.custom,
+            allowedExtensions: const ['pdf'],
+            withData: true,
+            allowMultiple: true,
+          )
+          .timeout(const Duration(seconds: 20), onTimeout: () => null);
+
+      if (result == null || result.files.isEmpty) {
+        if (!mounted) return;
+        setState(() => _isUploadingVetRecord = false);
+        return;
+      }
+
+      final parser = VetHistoryParser(
+        aiService: GPTService(),
+      );
+      final caseId = await _ensureUnderwritingCaseId();
+      final petId = widget.pet.id;
+
+      var totalConditions = 0;
+      var totalMedications = 0;
+      var totalVisits = 0;
+      var totalAllergies = 0;
+      final failures = <String, String>{};
+
+      String shorten(String value, {int max = 120}) {
+        final v = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+        if (v.length <= max) return v;
+        return '${v.substring(0, max)}…';
+      }
+
+      for (var i = 0; i < result.files.length; i++) {
+        final file = result.files[i];
+        final bytes = file.bytes;
+        if (bytes == null) {
+          failures[file.name] = 'No bytes available from picker';
+          continue;
+        }
+
+        if (!mounted) return;
+        setState(() {
+          _vetUploadStatus =
+              'Uploading and parsing PDF ${i + 1}/${result.files.length}: ${file.name}…';
+        });
+
+        try {
+          final result = await parser.parseUploadedPdfBytesForCaseLenient(
+            pdfBytes: Uint8List.fromList(bytes),
+            caseId: caseId,
+            petId: petId,
+            filename: file.name,
+          );
+
+          // Backstop keyword extraction always uses extractedText.
+          _rawVetTexts.add(result.extractedText);
+          // If AI parse succeeded, keep structured extraction too.
+          _aiVetExtraction.add(result.parsedData);
+          if (result.documentHash.trim().isNotEmpty) {
+            _vetDocumentHashes.add(result.documentHash);
+          }
+          if (result.aiFailed) _aiVetParseFailed = true;
+
+          final autofill = looksEmpty(result.parsedData)
+              ? const _VetAutofillResult(
+                  conditionsAdded: 0,
+                  medicationsAdded: 0,
+                  vetVisitsAdded: 0,
+                  allergiesAdded: 0,
+                )
+              : _applyVetRecordAutofill(result.parsedData);
+
+          totalConditions += autofill.conditionsAdded;
+          totalMedications += autofill.medicationsAdded;
+          totalVisits += autofill.vetVisitsAdded;
+          totalAllergies += autofill.allergiesAdded;
+        } catch (e) {
+          failures[file.name] = shorten(e.toString());
+          _aiVetParseFailed = true;
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        var failureNote = '';
+        if (failures.isNotEmpty) {
+          final example = failures.entries.first;
+          failureNote =
+              ' (${failures.length} file(s) failed; e.g. ${example.key}: ${example.value})';
+        }
+        _vetUploadStatus =
+            'Vet records applied: $totalConditions condition(s), '
+            '$totalMedications medication(s), '
+            '$totalVisits visit(s), '
+            '$totalAllergies allergy item(s)$failureNote.';
+        _isUploadingVetRecord = false;
+      });
+
+      await _autoReassessAfterUpload();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _vetUploadStatus = 'Upload failed: $e';
+        _isUploadingVetRecord = false;
+        _aiVetParseFailed = true;
+      });
+    }
+  }
+
+  Future<void> _uploadVetRecordImages() async {
+    setState(() {
+      _isUploadingVetRecord = true;
+      _vetUploadStatus = null;
+    });
+
+    bool looksEmpty(VetRecordData parsed) {
+      return parsed.diagnoses.isEmpty &&
+          parsed.treatments.isEmpty &&
+          parsed.medications.isEmpty &&
+          parsed.vaccinations.isEmpty &&
+          parsed.surgeries.isEmpty &&
+          parsed.allergies.isEmpty &&
+          parsed.previousClaims.isEmpty &&
+          parsed.lastCheckup == null;
+    }
+
+    try {
+      setState(() {
+        _vetUploadStatus = 'Opening image picker…';
+      });
+
+      final result = await FilePicker.platform
+          .pickFiles(
+            type: FileType.custom,
+            allowedExtensions: const ['png', 'jpg', 'jpeg'],
+            withData: true,
+            allowMultiple: true,
+          )
+          .timeout(const Duration(seconds: 20), onTimeout: () => null);
+
+      if (result == null || result.files.isEmpty) {
+        if (!mounted) return;
+        setState(() => _isUploadingVetRecord = false);
+        return;
+      }
+
+      final parser = VetHistoryParser(
+        aiService: GPTService(),
+      );
+      final caseId = await _ensureUnderwritingCaseId();
+      final petId = widget.pet.id;
+
+      var totalConditions = 0;
+      var totalMedications = 0;
+      var totalVisits = 0;
+      var totalAllergies = 0;
+      final failures = <String, String>{};
+
+      String shorten(String value, {int max = 120}) {
+        final v = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+        if (v.length <= max) return v;
+        return '${v.substring(0, max)}…';
+      }
+
+      for (var i = 0; i < result.files.length; i++) {
+        final file = result.files[i];
+        final bytes = file.bytes;
+        if (bytes == null) {
+          failures[file.name] = 'No bytes available from picker';
+          continue;
+        }
+
+        if (!mounted) return;
+        setState(() {
+          _vetUploadStatus =
+              'Uploading and parsing image ${i + 1}/${result.files.length}: ${file.name}…';
+        });
+
+        try {
+          final result = await parser.parseUploadedImageBytesForCaseLenient(
+            imageBytes: Uint8List.fromList(bytes),
+            caseId: caseId,
+            petId: petId,
+            filename: file.name,
+          );
+
+          _rawVetTexts.add(result.extractedText);
+          _aiVetExtraction.add(result.parsedData);
+          if (result.documentHash.trim().isNotEmpty) {
+            _vetDocumentHashes.add(result.documentHash);
+          }
+          if (result.aiFailed) _aiVetParseFailed = true;
+
+          final autofill = looksEmpty(result.parsedData)
+              ? const _VetAutofillResult(
+                  conditionsAdded: 0,
+                  medicationsAdded: 0,
+                  vetVisitsAdded: 0,
+                  allergiesAdded: 0,
+                )
+              : _applyVetRecordAutofill(result.parsedData);
+
+          totalConditions += autofill.conditionsAdded;
+          totalMedications += autofill.medicationsAdded;
+          totalVisits += autofill.vetVisitsAdded;
+          totalAllergies += autofill.allergiesAdded;
+        } catch (e) {
+          failures[file.name] = shorten(e.toString());
+          _aiVetParseFailed = true;
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        var failureNote = '';
+        if (failures.isNotEmpty) {
+          final example = failures.entries.first;
+          failureNote =
+              ' (${failures.length} file(s) failed; e.g. ${example.key}: ${example.value})';
+        }
+        _vetUploadStatus =
+            'Vet photos applied: $totalConditions condition(s), '
+            '$totalMedications medication(s), '
+            '$totalVisits visit(s), '
+            '$totalAllergies allergy item(s)$failureNote.';
+        _isUploadingVetRecord = false;
+      });
+
+      await _autoReassessAfterUpload();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _vetUploadStatus = 'Upload failed: $e';
+        _isUploadingVetRecord = false;
+        _aiVetParseFailed = true;
+      });
+    }
+  }
+
+  Future<void> _takeVetRecordPhoto() async {
+    setState(() {
+      _isUploadingVetRecord = true;
+      _vetUploadStatus = null;
+    });
+
+    bool looksEmpty(VetRecordData parsed) {
+      return parsed.diagnoses.isEmpty &&
+          parsed.treatments.isEmpty &&
+          parsed.medications.isEmpty &&
+          parsed.vaccinations.isEmpty &&
+          parsed.surgeries.isEmpty &&
+          parsed.allergies.isEmpty &&
+          parsed.previousClaims.isEmpty &&
+          parsed.lastCheckup == null;
+    }
+
+    try {
+      final picker = ImagePicker();
+      setState(() {
+        _vetUploadStatus = 'Opening camera…';
+      });
+
+      final photo = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+
+      if (photo == null) {
+        if (!mounted) return;
+        setState(() => _isUploadingVetRecord = false);
+        return;
+      }
+
+      final bytes = await photo.readAsBytes();
+
+      final parser = VetHistoryParser(
+        aiService: GPTService(),
+      );
+      final caseId = await _ensureUnderwritingCaseId();
+      final petId = widget.pet.id;
+
+      setState(() {
+        _vetUploadStatus = 'Uploading and parsing photo…';
+      });
+
+      final result = await parser.parseUploadedImageBytesForCaseLenient(
+        imageBytes: Uint8List.fromList(bytes),
+        caseId: caseId,
+        petId: petId,
+        filename: photo.name,
+      );
+
+      _rawVetTexts.add(result.extractedText);
+      _aiVetExtraction.add(result.parsedData);
+      if (result.documentHash.trim().isNotEmpty) {
+        _vetDocumentHashes.add(result.documentHash);
+      }
+      if (result.aiFailed) _aiVetParseFailed = true;
+
+      if (!mounted) return;
+
+      final autofill = looksEmpty(result.parsedData)
+          ? const _VetAutofillResult(
+              conditionsAdded: 0,
+              medicationsAdded: 0,
+              vetVisitsAdded: 0,
+              allergiesAdded: 0,
+            )
+          : _applyVetRecordAutofill(result.parsedData);
+
+      setState(() {
+        _vetUploadStatus = looksEmpty(result.parsedData)
+            ? 'Photo uploaded. Thanks — we’ll process it shortly.'
+            : 'Photo parsed and applied: '
+                  '${autofill.conditionsAdded} condition(s), '
+                  '${autofill.medicationsAdded} medication(s), '
+                  '${autofill.vetVisitsAdded} visit(s), '
+                  '${autofill.allergiesAdded} allergy item(s).';
+        _isUploadingVetRecord = false;
+      });
+
+      await _autoReassessAfterUpload();
+    } on VetHistoryParseException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _vetUploadStatus =
+            'Photo uploaded, but auto-fill failed. Please try uploading a clearer image or a PDF. (${e.toString()})';
+        _isUploadingVetRecord = false;
+        _aiVetParseFailed = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _vetUploadStatus = 'Camera upload failed: $e';
+        _isUploadingVetRecord = false;
+        _aiVetParseFailed = true;
+      });
+    }
+  }
+
+  _VetAutofillResult _applyVetRecordAutofill(VetRecordData parsed) {
+    String norm(String value) => value.trim().toLowerCase();
+
+    final existingMedications = _medications.map((m) => norm(m.name)).toSet();
+    final existingAllergies = _allergies.map(norm).toSet();
+    final existingVisitKeys = <String>{
+      for (final v in _vetVisits)
+        '${v.visitDate.toIso8601String().substring(0, 10)}|'
+            '${norm(v.diagnosis ?? '')}|'
+            '${norm(v.visitType)}',
+    };
+
+    var conditionsAdded = 0;
+    var medicationsAdded = 0;
+    var vetVisitsAdded = 0;
+    var allergiesAdded = 0;
+
+    for (final d in parsed.diagnoses) {
+      final condition = (d.condition).trim();
+      if (condition.isEmpty) continue;
+
+      final statusRaw = norm(d.status);
+      final status = statusRaw == 'resolved'
+          ? 'resolved'
+          : statusRaw == 'chronic'
+          ? 'managed'
+          : 'active';
+
+      final added = _upsertMedicalCondition(
+        MedicalCondition(
+          id: 'ai_cond_${DateTime.now().millisecondsSinceEpoch}_$conditionsAdded',
+          name: condition,
+          diagnosisDate: d.date,
+          status: status,
+          notes: d.notes,
+        ),
+      );
+      if (added) conditionsAdded++;
+    }
+
+    if (parsed.diagnoses.isEmpty) {
+      for (final t in parsed.treatments) {
+        final condition = (t.diagnosis).trim();
+        if (condition.isEmpty) continue;
+        final added = _upsertMedicalCondition(
+          MedicalCondition(
+            id: 'ai_cond_${DateTime.now().millisecondsSinceEpoch}_$conditionsAdded',
+            name: condition,
+            diagnosisDate: t.date,
+            status: 'active',
+            treatment: t.treatment.trim().isEmpty ? null : t.treatment.trim(),
+            notes: t.notes,
+          ),
+        );
+        if (added) conditionsAdded++;
+      }
+    }
+
+    for (final m in parsed.medications) {
+      final name = (m.name).trim();
+      if (name.isEmpty) continue;
+      final key = norm(name);
+      if (existingMedications.contains(key)) continue;
+
+      final dosage = (m.dosage).trim();
+      _medications.add(
+        Medication(
+          id: 'ai_med_${DateTime.now().millisecondsSinceEpoch}_$medicationsAdded',
+          name: name,
+          dosage: dosage.isEmpty ? 'Unknown' : dosage,
+          frequency: 'as directed',
+          startDate: m.startDate,
+          endDate: m.endDate,
+          purpose: m.purpose,
+          isOngoing: m.endDate == null,
+        ),
+      );
+      existingMedications.add(key);
+      medicationsAdded++;
+    }
+
+    for (final a in parsed.allergies) {
+      final value = a.trim();
+      if (value.isEmpty) continue;
+      final key = norm(value);
+      if (existingAllergies.contains(key)) continue;
+      _allergies.add(value);
+      existingAllergies.add(key);
+      allergiesAdded++;
+    }
+
+    void addVisit({
+      required DateTime date,
+      required String visitType,
+      String? diagnosis,
+      String? treatment,
+      String? notes,
+      String? veterinarian,
+      String? clinic,
+      List<String>? procedures,
+    }) {
+      final key =
+          '${date.toIso8601String().substring(0, 10)}|${norm(diagnosis ?? '')}|${norm(visitType)}';
+      if (existingVisitKeys.contains(key)) return;
+
+      _vetVisits.add(
+        VetVisit(
+          id: 'ai_visit_${DateTime.now().millisecondsSinceEpoch}_$vetVisitsAdded',
+          visitDate: date,
+          veterinarian: (veterinarian ?? '').trim().isEmpty
+              ? 'From vet record'
+              : veterinarian!.trim(),
+          clinic: (clinic ?? '').trim().isEmpty
+              ? 'From vet record'
+              : clinic!.trim(),
+          visitType: visitType,
+          diagnosis: diagnosis?.trim().isEmpty == true
+              ? null
+              : diagnosis?.trim(),
+          treatment: treatment?.trim().isEmpty == true
+              ? null
+              : treatment?.trim(),
+          notes: notes?.trim().isEmpty == true ? null : notes?.trim(),
+          procedures: procedures,
+        ),
+      );
+      existingVisitKeys.add(key);
+      vetVisitsAdded++;
+    }
+
+    for (final t in parsed.treatments) {
+      addVisit(
+        date: t.date,
+        visitType: 'checkup',
+        diagnosis: t.diagnosis,
+        treatment: t.treatment,
+        notes: t.notes,
+      );
+    }
+
+    for (final v in parsed.vaccinations) {
+      addVisit(
+        date: v.date,
+        visitType: 'vaccination',
+        diagnosis: 'Vaccination: ${v.name}',
+        notes: v.expiryDate != null
+            ? 'Expiry: ${v.expiryDate!.toIso8601String().substring(0, 10)}'
+            : null,
+        veterinarian: v.veterinarian,
+      );
+    }
+
+    for (final s in parsed.surgeries) {
+      addVisit(
+        date: s.date,
+        visitType: 'surgery',
+        diagnosis: s.procedure,
+        notes: [
+          if ((s.complications ?? '').trim().isNotEmpty)
+            'Complications: ${s.complications}',
+          if ((s.outcome ?? '').trim().isNotEmpty) 'Outcome: ${s.outcome}',
+        ].join(' · '),
+      );
+    }
+
+    if (parsed.lastCheckup != null) {
+      addVisit(
+        date: parsed.lastCheckup!,
+        visitType: 'checkup',
+        diagnosis: 'Routine checkup',
+      );
+    }
+
+    return _VetAutofillResult(
+      conditionsAdded: conditionsAdded,
+      medicationsAdded: medicationsAdded,
+      vetVisitsAdded: vetVisitsAdded,
+      allergiesAdded: allergiesAdded,
+    );
+  }
+
+  Future<void> _ensureAuthenticatedSession() async {
+    final existing = FirebaseAuth.instance.currentUser;
+    if (existing != null) return;
+
+    // Underwriting should work without an explicit sign-in. We use Anonymous
+    // Auth to secure Storage/Firestore writes without asking the customer to
+    // create an account until checkout.
+    await FirebaseAuth.instance.signInAnonymously();
+  }
+
+  Owner? _tryGetOwnerFromRouteArgs() {
+    final owner = _routeArguments['owner'];
+    if (owner is Owner) return owner;
+    if (owner is Map<String, dynamic>) {
+      try {
+        return Owner.fromJson(owner);
+      } catch (_) {
+        return null;
+      }
+    }
+    if (owner is Map) {
+      try {
+        return Owner.fromJson(owner.cast<String, dynamic>());
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  List<String> _buildUnderwritingTriggerReasons() {
+    final reasons = <String>[];
+
+    final hasDeclaredConditions =
+        widget.pet.preExistingConditions.isNotEmpty &&
+        widget.pet.preExistingConditions.any(
+          (c) => c.trim().isNotEmpty && c != 'None',
+        );
+    if (hasDeclaredConditions) reasons.add('pre_existing_conditions');
+
+    final hasExclusions =
+        _routeArguments['hasExclusions'] == true ||
+        (_routeArguments['excludedConditions'] is List &&
+            (_routeArguments['excludedConditions'] as List).isNotEmpty);
+    if (hasExclusions) reasons.add('rule_exclusions');
+
+    if (_routeArguments['needsMedicalUnderwriting'] == true) {
+      reasons.add('needs_medical_underwriting');
+    }
+
+    if (reasons.isEmpty) reasons.add('medical_history_review');
+    return reasons;
+  }
+
+  Future<String> _ensureUnderwritingCaseId() async {
+    final existing = _underwritingCaseId;
+    if (existing != null && existing.isNotEmpty) return existing;
+
+    try {
+      await _ensureAuthenticatedSession();
+    } catch (e) {
+      throw Exception('Unable to start secure session: $e');
+    }
+
+    final owner = _tryGetOwnerFromRouteArgs();
+    if (owner == null) {
+      throw Exception(
+        'Unable to create underwriting case (missing owner data)',
+      );
+    }
+
+    setState(() {
+      _vetUploadStatus = 'Preparing secure upload…';
+    });
+
+    final service = UnderwritingCaseService();
+    final caseId = await service.createCase(
+      pet: widget.pet,
+      owner: owner,
+      quoteId: _routeArguments['quoteId']?.toString(),
+      triggerReasons: _buildUnderwritingTriggerReasons(),
+    );
+
+    if (!mounted) return caseId;
+    setState(() {
+      _underwritingCaseId = caseId;
+      _routeArguments['underwritingCaseId'] = caseId;
+    });
+    return caseId;
   }
 
   Widget _buildEmptyState({
@@ -617,6 +1663,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   }
 
   Widget _buildConditionCard(MedicalCondition condition) {
+    final isOther = condition.name.trim().toLowerCase() == 'other';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -665,6 +1713,17 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                         fontSize: 16,
                       ),
                     ),
+                    if (isOther) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Tap Edit to enter the specific condition name.',
+                        style: ClovaraTypography.body.copyWith(
+                          color: Colors.orange.shade800,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -689,6 +1748,28 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                             ),
                           ),
                         ),
+                        if (isOther) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'NEEDS DETAILS',
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(width: 8),
                         Text(
                           _formatDate(condition.diagnosisDate),
@@ -702,10 +1783,23 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                   ],
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.close_rounded, color: Colors.grey.shade400),
-                onPressed: () => _removeCondition(condition),
-                tooltip: 'Remove',
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.edit_rounded, color: Colors.grey.shade500),
+                    onPressed: () => _showEditConditionDialog(condition),
+                    tooltip: 'Edit',
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: Colors.grey.shade400,
+                    ),
+                    onPressed: () => _removeCondition(condition),
+                    tooltip: 'Remove',
+                  ),
+                ],
               ),
             ],
           ),
@@ -829,6 +1923,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                icon: Icon(Icons.edit_rounded, color: Colors.grey.shade400),
+                onPressed: () => _showEditMedicationDialog(medication),
+                tooltip: 'Edit',
               ),
               IconButton(
                 icon: Icon(Icons.close_rounded, color: Colors.grey.shade400),
@@ -1010,6 +2109,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                icon: Icon(Icons.edit_rounded, color: Colors.grey.shade400),
+                onPressed: () => _showEditVetVisitDialog(visit),
+                tooltip: 'Edit',
               ),
               IconButton(
                 icon: Icon(Icons.close_rounded, color: Colors.grey.shade400),
@@ -1305,6 +2409,19 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   void _complete() async {
     if (!_validateBeforeContinuing(isCompleting: true)) return;
 
+    final riskScore = widget.riskScore;
+    if (riskScore is! RiskScore) {
+      _showBlockingValidationDialog(
+        title: 'Underwriting incomplete',
+        message:
+            'We can\'t show plans yet because a risk score is missing. Please try again.',
+      );
+      return;
+    }
+
+    // We do not block on customer-entered clinical facts.
+    // Underwriting will deterministically request evidence if needed.
+
     // Create updated pet with medical history
     final updatedPet = widget.pet.copyWith(
       medicalConditions: _conditions,
@@ -1314,79 +2431,260 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       isReceivingTreatment: _medications.any((m) => m.isOngoing),
     );
 
-    final caseId = widget.quoteData?['underwritingCaseId']?.toString();
+    String? caseId =
+        _underwritingCaseId ??
+        _routeArguments['underwritingCaseId']?.toString() ??
+        widget.quoteData?['underwritingCaseId']?.toString();
+
+    // Underwriting should be completable without an explicit sign-in.
+    // If we have owner data available, create a case (anonymous-auth if needed)
+    // so we can persist history/decision and pass the caseId to checkout.
+    if (caseId == null || caseId.isEmpty) {
+      final owner = _tryGetOwnerFromRouteArgs();
+      if (owner != null) {
+        try {
+          caseId = await _ensureUnderwritingCaseId();
+        } catch (_) {
+          // If we can't create a case (e.g. anonymous auth disabled), we still
+          // allow the user to proceed to plans.
+        }
+      }
+    }
 
     UnderwritingDecision? computedDecision;
     List<PolicyExclusion>? computedExclusions;
     Map<String, dynamic>? computedSnapshot;
+    UnderwritingStatus? computedStatus;
+    String? computedReason;
+    bool integrityPassed = false;
+    List<Map<String, dynamic>> computedRequiredEvidence = const [];
+    Set<String> computedRuleOutCodes = const {};
+    var computedAiFailureCount = 0;
 
     // Always compute a deterministic decision when we have a RiskScore.
     // Persist it to an underwriting case only when a caseId exists.
     try {
-      final riskScore = widget.riskScore;
-      if (riskScore is RiskScore) {
-        final uwConditions = _conditions
-            .where((c) => c.name.trim().isNotEmpty)
-            .map(
-              (c) => UnderwritingCondition(
-                name: c.name,
-                diagnosisMonthYear:
-                    '${c.diagnosisDate.year.toString().padLeft(4, '0')}-${c.diagnosisDate.month.toString().padLeft(2, '0')}',
-                isResolved: c.isResolved,
-                isManaged: (c.treatment ?? '').trim().isNotEmpty ||
-                    c.status == 'managed' ||
-                    c.status == 'stable',
-                treatmentStatus: c.status,
-                meds: const [],
-                notes: c.notes,
-              ),
-            )
-            .toList();
+      final factsBuilder = MedicalFactsBuilder();
+      final built = factsBuilder.build(
+        userEnteredConditions: _conditions,
+        aiVetExtraction: List<VetRecordData>.from(_aiVetExtraction),
+        rawVetTexts: List<String>.from(_rawVetTexts),
+        aiFailure: _aiVetParseFailed,
+      );
 
-        final rulesEngine = UnderwritingRulesEngine();
-        final eligibility = await rulesEngine.checkEligibility(
-          updatedPet,
-          riskScore,
-          uwConditions.map((c) => c.name).toList(),
-        );
+      computedRuleOutCodes = built.ruleOutConditionCodes;
 
-        final decisionEngine = UnderwritingDecisionEngine();
-        final decision = decisionEngine.buildFromEligibility(
-          eligibility: eligibility,
-        );
+      final vetDocumentHashes = _vetDocumentHashes
+          .map((h) => h.trim())
+          .where((h) => h.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
 
-        computedDecision = decision;
-        computedExclusions = decision.exclusions;
+      // Track AI failure across underwriting attempts so we can deterministically
+      // decline on persistent/unrecoverable failures.
+      final rawCount = _routeArguments['aiFailureCount'];
+      computedAiFailureCount = rawCount is int
+          ? rawCount
+          : int.tryParse((rawCount ?? '').toString()) ?? 0;
+      if (built.aiFailure) {
+        computedAiFailureCount = computedAiFailureCount + 1;
+      }
 
-        computedSnapshot = {
-          'caseId': caseId,
-          'decision': decision.toJson(),
-          'capturedAt': DateTime.now().toIso8601String(),
-          'source': (caseId != null && caseId.isNotEmpty)
-              ? 'underwriting_case'
-              : 'medical_underwriting_client',
-        };
-
-        // Disclosure acknowledgement is required for declines or exclusions,
-        // even when we cannot persist an underwriting case.
-        if (decision.outcome == UnderwritingOutcome.decline ||
-            decision.outcome == UnderwritingOutcome.approveWithExclusions) {
-          final acknowledged = await showDialog<bool>(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => UnderwritingDisclosureDialog(
-              decision: decision,
-              petName: updatedPet.name,
-            ),
+      final integrityEngine = UnderwritingIntegrityEngine(
+        vetDocumentReuseCheck: ({
+          required vetDocumentHashes,
+          underwritingCaseId,
+        }) async {
+          final detector = VetDocumentReuseDetector();
+          return detector.check(
+            vetDocumentHashes: vetDocumentHashes,
+            underwritingCaseId: underwritingCaseId,
           );
+        },
+      );
+      var assessment = await integrityEngine.assess(
+        pet: updatedPet,
+        riskScore: riskScore,
+        medicalFacts: built.facts,
+        medicalFactsRequired: built.facts.isNotEmpty,
+        aiFailure: built.aiFailure,
+        aiFailureCount: computedAiFailureCount,
+        ruleOutConditionCodes: computedRuleOutCodes,
+        vetDocumentHashes: vetDocumentHashes,
+        underwritingCaseId: caseId,
+        aiVetExtractionForIntegrity: List<VetRecordData>.from(_aiVetExtraction),
+        rawVetTextsForIntegrity: List<String>.from(_rawVetTexts),
+      );
 
-          if (acknowledged != true) {
-            return;
+      // Deterministic escalation for repeated unresolved NEED_MORE_INFO.
+      // We persist the counter in local route args to keep behavior stable
+      // within this client session.
+      if (assessment.underwritingStatus == UnderwritingStatus.needMoreInfo &&
+          assessment.requiredEvidence.isNotEmpty) {
+        final evidenceCodes = assessment.requiredEvidence
+            .map((e) => e.code)
+            .where((c) => c.trim().isNotEmpty)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
+
+        int nextAttempts;
+
+        // Prefer persistent case storage when we have a caseId.
+        if (caseId != null && caseId.isNotEmpty) {
+          try {
+            nextAttempts = await UnderwritingCaseService()
+                .incrementNeedMoreInfoAttempts(
+                  caseId: caseId,
+                  reason: assessment.reason,
+                  requiredEvidenceCodes: evidenceCodes,
+                );
+          } catch (_) {
+            // Fall back to local counter if case updates fail.
+            final rawAttempts = _routeArguments['needMoreInfoAttempts'];
+            final previousAttempts = rawAttempts is int
+                ? rawAttempts
+                : int.tryParse((rawAttempts ?? '').toString()) ?? 0;
+            nextAttempts = previousAttempts + 1;
+          }
+        } else {
+          final rawAttempts = _routeArguments['needMoreInfoAttempts'];
+          final previousAttempts = rawAttempts is int
+              ? rawAttempts
+              : int.tryParse((rawAttempts ?? '').toString()) ?? 0;
+          nextAttempts = previousAttempts + 1;
+        }
+
+        _routeArguments['needMoreInfoAttempts'] = nextAttempts;
+        _routeArguments['lastNeedMoreInfoReason'] = assessment.reason;
+        _routeArguments['lastNeedMoreInfoEvidenceCodes'] = evidenceCodes;
+
+        if (nextAttempts >= _maxNeedMoreInfoAttempts) {
+          assessment = await integrityEngine.assess(
+            pet: updatedPet,
+            riskScore: riskScore,
+            medicalFacts: built.facts,
+            medicalFactsRequired: built.facts.isNotEmpty,
+            aiFailure: built.aiFailure,
+            aiFailureCount: computedAiFailureCount,
+            ruleOutConditionCodes: computedRuleOutCodes,
+            userFailedToProvideRequiredEvidence: true,
+            vetDocumentHashes: vetDocumentHashes,
+            underwritingCaseId: caseId,
+            aiVetExtractionForIntegrity: List<VetRecordData>.from(
+              _aiVetExtraction,
+            ),
+            rawVetTextsForIntegrity: List<String>.from(_rawVetTexts),
+          );
+          _routeArguments['needMoreInfoAttempts'] = 0;
+          _routeArguments.remove('lastNeedMoreInfoReason');
+          _routeArguments.remove('lastNeedMoreInfoEvidenceCodes');
+        }
+      } else {
+        _routeArguments['needMoreInfoAttempts'] = 0;
+        _routeArguments.remove('lastNeedMoreInfoReason');
+
+        if (caseId != null && caseId.isNotEmpty) {
+          try {
+            await UnderwritingCaseService().resetNeedMoreInfoAttempts(
+              caseId: caseId,
+            );
+          } catch (_) {
+            // Do not block underwriting completion if the counter can't reset.
           }
         }
       }
+
+      computedDecision = assessment.decision;
+      computedExclusions = assessment.decision?.exclusions;
+      computedStatus = assessment.underwritingStatus;
+      computedReason = assessment.reason;
+      integrityPassed = assessment.underwritingStatus == UnderwritingStatus.approved;
+      computedRequiredEvidence = assessment.requiredEvidence
+          .map((e) => e.toJson())
+          .toList(growable: false);
+
+      computedSnapshot = {
+        'caseId': caseId,
+        if (assessment.decision != null) 'decision': assessment.decision!.toJson(),
+        'underwritingStatus': underwritingStatusToString(
+          assessment.underwritingStatus,
+        ),
+        'reason': assessment.reason,
+        if (computedRequiredEvidence.isNotEmpty)
+          'requiredEvidence': computedRequiredEvidence,
+        'medicalFacts': built.facts.map((f) => f.toJson()).toList(),
+        'aiFailure': built.aiFailure,
+        'aiFailureCount': computedAiFailureCount,
+        'criticalConditionDetected': built.criticalConditionDetected,
+        if (vetDocumentHashes.isNotEmpty) 'vetDocumentHashes': vetDocumentHashes,
+        if (computedRuleOutCodes.isNotEmpty)
+          'ruleOutConditionCodes': computedRuleOutCodes.toList()..sort(),
+        'capturedAt': DateTime.now().toIso8601String(),
+        'source': (caseId != null && caseId.isNotEmpty)
+            ? 'underwriting_case'
+            : 'medical_underwriting_client',
+      };
+
+      // Audit self-serve loops and deterministic escalations when we have a case.
+      if (caseId != null && caseId.isNotEmpty) {
+        try {
+          final service = UnderwritingCaseService();
+          final rawAttempts = _routeArguments['needMoreInfoAttempts'];
+          final attempts = rawAttempts is int
+              ? rawAttempts
+              : int.tryParse((rawAttempts ?? '').toString()) ?? 0;
+
+          if (assessment.underwritingStatus == UnderwritingStatus.needMoreInfo) {
+            await service.logEvent(caseId, 'need_more_info', {
+              'reason': assessment.reason,
+              'attempt': attempts,
+              'requiredEvidenceCodes': assessment.requiredEvidence
+                  .map((e) => e.code)
+                  .toList(growable: false),
+              'loggedAt': DateTime.now().toIso8601String(),
+            });
+          }
+
+          if (assessment.reason == 'REQUIRED_EVIDENCE_NOT_PROVIDED') {
+            await service.logEvent(caseId, 'required_evidence_not_provided', {
+              'attempt': attempts,
+              'loggedAt': DateTime.now().toIso8601String(),
+            });
+          }
+        } catch (_) {
+          // Do not block navigation on audit log failures.
+        }
+      }
+
+      // Disclosure acknowledgement is required for declines or exclusions,
+      // even when we cannot persist an underwriting case.
+      final decisionForDisclosure = assessment.decision;
+      if (decisionForDisclosure != null &&
+          (decisionForDisclosure.outcome == UnderwritingOutcome.decline ||
+              decisionForDisclosure.outcome ==
+                  UnderwritingOutcome.approveWithExclusions)) {
+        final acknowledged = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => UnderwritingDisclosureDialog(
+            decision: decisionForDisclosure,
+            petName: updatedPet.name,
+          ),
+        );
+
+        if (acknowledged != true) {
+          return;
+        }
+      }
     } catch (_) {
-      // Do not block completion if decision computation fails.
+      _showBlockingValidationDialog(
+        title: 'Underwriting incomplete',
+        message:
+            'We can\'t show plans yet because underwriting could not be completed. Please try again.',
+      );
+      return;
     }
 
     if (caseId != null && caseId.isNotEmpty) {
@@ -1400,7 +2698,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 diagnosisMonthYear:
                     '${c.diagnosisDate.year.toString().padLeft(4, '0')}-${c.diagnosisDate.month.toString().padLeft(2, '0')}',
                 isResolved: c.isResolved,
-                isManaged: (c.treatment ?? '').trim().isNotEmpty ||
+                isManaged:
+                    (c.treatment ?? '').trim().isNotEmpty ||
                     c.status == 'managed' ||
                     c.status == 'stable',
                 treatmentStatus: c.status,
@@ -1454,12 +2753,15 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           if (computedDecision.outcome == UnderwritingOutcome.decline ||
               computedDecision.outcome ==
                   UnderwritingOutcome.approveWithExclusions) {
-            await service.logEvent(caseId, 'underwriting_disclosure_acknowledged', {
-              'outcome': underwritingOutcomeToString(computedDecision.outcome),
-              'reasonCodes': computedDecision.reasonCodes,
-              'exclusionsCount': computedDecision.exclusions.length,
-              'acknowledgedAt': DateTime.now().toIso8601String(),
-            });
+            await service
+                .logEvent(caseId, 'underwriting_disclosure_acknowledged', {
+                  'outcome': underwritingOutcomeToString(
+                    computedDecision.outcome,
+                  ),
+                  'reasonCodes': computedDecision.reasonCodes,
+                  'exclusionsCount': computedDecision.exclusions.length,
+                  'acknowledgedAt': DateTime.now().toIso8601String(),
+                });
           }
         }
       } catch (_) {
@@ -1467,7 +2769,122 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       }
     }
 
-    // Navigate to plan selection with updated pet data
+    if (computedStatus != UnderwritingStatus.approved) {
+      // Save & revisit support: persist the underwriting case locally when we
+      // need more information, so the user can come back later to upload docs.
+      if (computedStatus == UnderwritingStatus.needMoreInfo) {
+        final saveCaseId = caseId;
+        if (saveCaseId != null && saveCaseId.isNotEmpty) {
+          try {
+            await UserSessionService().savePendingUnderwriting(
+              underwritingCaseId: saveCaseId,
+              petName: updatedPet.name,
+              riskScore: riskScore,
+              reason: computedReason,
+              requiredEvidence: computedRequiredEvidence,
+            );
+          } catch (_) {
+            // Don't block the flow if local save fails.
+          }
+
+          // Persist a server-side draft under an anonymous session so the user
+          // can resume on another device without explicit signup.
+          try {
+            await DraftService().upsertUnderwritingDraft(
+              underwritingCaseId: saveCaseId,
+              petName: updatedPet.name,
+              riskScore: riskScore,
+              reason: computedReason,
+              requiredEvidence: computedRequiredEvidence,
+            );
+          } catch (_) {
+            // Ignore; local save is the fallback.
+          }
+        }
+      } else {
+        // Terminal outcomes should not be resumable.
+        try {
+          await UserSessionService().clearPendingUnderwriting();
+        } catch (_) {
+          // Ignore.
+        }
+      }
+
+      // Persist NEED_MORE_INFO requirements so re-upload triggers auto re-check.
+      if (computedStatus == UnderwritingStatus.needMoreInfo) {
+        setState(() {
+          _needsMoreInfo = true;
+          _requiredEvidenceJson = computedRequiredEvidence;
+        });
+      } else {
+        setState(() {
+          _needsMoreInfo = false;
+          _requiredEvidenceJson = const [];
+        });
+      }
+
+      final title = computedStatus == UnderwritingStatus.denied
+          ? 'Application declined'
+        : computedStatus == UnderwritingStatus.needMoreInfo
+          ? 'More information needed'
+          : 'Application declined';
+
+      final evidenceLines = computedRequiredEvidence
+          .map((e) => (e['title'] ?? '').toString().trim())
+          .where((t) => t.isNotEmpty)
+          .map((t) => '• $t')
+          .join('\n');
+
+      final message = computedStatus == UnderwritingStatus.denied
+          ? 'Based on the information provided, we can\'t offer a new policy right now.'
+          : computedStatus == UnderwritingStatus.needMoreInfo
+              ? (
+                  'We can\'t show plans yet because we need more medical information to complete underwriting.'
+                  '\n\nYou can upload the requested documents now, or finish later.'
+                  '${evidenceLines.isNotEmpty ? "\n\nPlease provide:\n$evidenceLines" : ''}'
+                )
+              : 'Based on the information provided, we can\'t offer a new policy right now.';
+
+      _showBlockingValidationDialog(
+        title: title,
+        message: message,
+        secondaryLabel:
+            computedStatus == UnderwritingStatus.needMoreInfo ? 'Finish later' : null,
+        onSecondary:
+            computedStatus == UnderwritingStatus.needMoreInfo
+                ? () {
+                    Navigator.pop(context);
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
+                : null,
+        tertiaryLabel:
+            computedStatus == UnderwritingStatus.needMoreInfo ? 'Copy resume code' : null,
+        onTertiary:
+            computedStatus == UnderwritingStatus.needMoreInfo
+                ? () {
+                    unawaited(_copyResumeCodeToClipboard());
+                  }
+                : null,
+      );
+      return;
+    }
+
+    // Approved: clear any prior NEED_MORE_INFO state.
+    if (_needsMoreInfo || _requiredEvidenceJson.isNotEmpty) {
+      setState(() {
+        _needsMoreInfo = false;
+        _requiredEvidenceJson = const [];
+      });
+    }
+
+    // Underwriting completed successfully; clear any saved follow-up.
+    try {
+      await UserSessionService().clearPendingUnderwriting();
+    } catch (_) {
+      // Ignore.
+    }
+
+    // Navigate to plan selection with explicit pricing approval.
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -1476,10 +2893,21 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           arguments: {
             'petData': updatedPet.toJson(),
             'pet': updatedPet,
-            'riskScore': widget.riskScore,
+            'riskScore': riskScore,
+            'pricingEnabled': true,
+            'underwritingStatus': underwritingStatusToString(
+              computedStatus,
+            ),
+            'underwritingReason': computedReason,
+            'integrityPassed': integrityPassed,
+            if (computedRequiredEvidence.isNotEmpty)
+              'requiredEvidence': computedRequiredEvidence,
+            'aiFailureCount': computedAiFailureCount,
+            if (computedSnapshot['vetDocumentHashes'] != null)
+              'vetDocumentHashes': computedSnapshot['vetDocumentHashes'],
             if (computedExclusions != null)
               'exclusions': computedExclusions.map((e) => e.toJson()).toList(),
-            if (computedSnapshot != null) 'underwritingSnapshot': computedSnapshot,
+            'underwritingSnapshot': computedSnapshot,
             if (caseId != null && caseId.isNotEmpty)
               'underwritingCaseId': caseId,
             ...?widget.quoteData,
@@ -1568,8 +2996,16 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   void _showBlockingValidationDialog({
     required String title,
     required String message,
+    String? primaryLabel,
+    VoidCallback? onPrimary,
+    String? secondaryLabel,
+    VoidCallback? onSecondary,
+    String? tertiaryLabel,
+    VoidCallback? onTertiary,
   }) {
     if (!mounted) return;
+
+    final resolvedPrimaryLabel = primaryLabel ?? 'OK';
 
     unawaited(
       showDialog(
@@ -1578,9 +3014,19 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           title: Text(title),
           content: Text(message),
           actions: [
+            if (tertiaryLabel != null && tertiaryLabel.trim().isNotEmpty)
+              TextButton(
+                onPressed: onTertiary,
+                child: Text(tertiaryLabel),
+              ),
+            if (secondaryLabel != null && secondaryLabel.trim().isNotEmpty)
+              TextButton(
+                onPressed: onSecondary ?? () => Navigator.pop(context),
+                child: Text(secondaryLabel),
+              ),
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
+              onPressed: onPrimary ?? () => Navigator.pop(context),
+              child: Text(resolvedPrimaryLabel),
             ),
           ],
         ),
@@ -1588,15 +3034,68 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     );
   }
 
+  Future<void> _copyResumeCodeToClipboard() async {
+    try {
+      final draftService = DraftService();
+      final resumeKey = await draftService.getOrCreateLocalResumeKey();
+      await Clipboard.setData(
+        ClipboardData(text: draftService.encodeForSharing(resumeKey)),
+      );
+
+      if (!mounted) return;
+      final pretty = draftService.prettyCode(resumeKey);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Resume code copied: $pretty')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to copy resume code')),
+      );
+    }
+  }
+
   // Dialog methods
   void _showAddConditionDialog() {
     showDialog(context: context, builder: (context) => _buildConditionDialog());
+  }
+
+  void _showEditConditionDialog(MedicalCondition condition) {
+    setState(() {
+      final isOther = condition.name.trim().toLowerCase() == 'other';
+      _conditionNameController.text = isOther ? '' : condition.name;
+      _conditionDiagnosisDate = condition.diagnosisDate;
+      _conditionStatus = condition.status;
+      _conditionTreatmentController.text = condition.treatment ?? '';
+      _conditionNotesController.text = condition.notes ?? '';
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) => _buildConditionDialog(editing: condition),
+    );
   }
 
   void _showAddMedicationDialog() {
     showDialog(
       context: context,
       builder: (context) => _buildMedicationDialog(),
+    );
+  }
+
+  void _showEditMedicationDialog(Medication medication) {
+    setState(() {
+      _medicationNameController.text = medication.name;
+      _medicationDosageController.text = medication.dosage;
+      _medicationFrequencyController.text = medication.frequency;
+      _medicationPurposeController.text = medication.purpose ?? '';
+      _medicationStartDate = medication.startDate;
+      _medicationIsOngoing = medication.isOngoing;
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) => _buildMedicationDialog(editing: medication),
     );
   }
 
@@ -1608,9 +3107,27 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     showDialog(context: context, builder: (context) => _buildVetVisitDialog());
   }
 
-  Widget _buildConditionDialog() {
+  void _showEditVetVisitDialog(VetVisit visit) {
+    setState(() {
+      _visitDate = visit.visitDate;
+      _visitType = visit.visitType;
+      _vetNameController.text = visit.veterinarian;
+      _clinicNameController.text = visit.clinic;
+      _visitDiagnosisController.text = visit.diagnosis ?? '';
+      _visitTreatmentController.text = visit.treatment ?? '';
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) => _buildVetVisitDialog(editing: visit),
+    );
+  }
+
+  Widget _buildConditionDialog({MedicalCondition? editing}) {
     return AlertDialog(
-      title: const Text('Add Medical Condition'),
+      title: Text(
+        editing == null ? 'Add Medical Condition' : 'Edit Medical Condition',
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1619,6 +3136,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
               controller: _conditionNameController,
               decoration: const InputDecoration(
                 labelText: 'Condition Name *',
+                hintText: 'e.g., Chronic ear infections',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -1641,7 +3159,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 if (date != null) {
                   setState(() => _conditionDiagnosisDate = date);
                   Navigator.pop(context);
-                  _showAddConditionDialog();
+                  if (editing == null) {
+                    _showAddConditionDialog();
+                  } else {
+                    _showEditConditionDialog(editing);
+                  }
                 }
               },
             ),
@@ -1699,19 +3221,23 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           onPressed: () {
             if (_conditionNameController.text.isNotEmpty &&
                 _conditionDiagnosisDate != null) {
-              _addCondition();
+              if (editing == null) {
+                _addCondition();
+              } else {
+                _updateCondition(editing);
+              }
               Navigator.pop(context);
             }
           },
-          child: const Text('Add'),
+          child: Text(editing == null ? 'Add' : 'Save'),
         ),
       ],
     );
   }
 
-  Widget _buildMedicationDialog() {
+  Widget _buildMedicationDialog({Medication? editing}) {
     return AlertDialog(
-      title: const Text('Add Medication'),
+      title: Text(editing == null ? 'Add Medication' : 'Edit Medication'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1756,7 +3282,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
               onChanged: (value) {
                 setState(() => _medicationIsOngoing = value ?? true);
                 Navigator.pop(context);
-                _showAddMedicationDialog();
+                if (editing == null) {
+                  _showAddMedicationDialog();
+                } else {
+                  _showEditMedicationDialog(editing);
+                }
               },
             ),
           ],
@@ -1775,11 +3305,15 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             if (_medicationNameController.text.isNotEmpty &&
                 _medicationDosageController.text.isNotEmpty &&
                 _medicationFrequencyController.text.isNotEmpty) {
-              _addMedication();
+              if (editing == null) {
+                _addMedication();
+              } else {
+                _updateMedication(editing);
+              }
               Navigator.pop(context);
             }
           },
-          child: const Text('Add'),
+          child: Text(editing == null ? 'Add' : 'Save'),
         ),
       ],
     );
@@ -1818,9 +3352,9 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     );
   }
 
-  Widget _buildVetVisitDialog() {
+  Widget _buildVetVisitDialog({VetVisit? editing}) {
     return AlertDialog(
-      title: const Text('Add Vet Visit'),
+      title: Text(editing == null ? 'Add Vet Visit' : 'Edit Vet Visit'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1841,7 +3375,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 if (date != null) {
                   setState(() => _visitDate = date);
                   Navigator.pop(context);
-                  _showAddVetVisitDialog();
+                  if (editing == null) {
+                    _showAddVetVisitDialog();
+                  } else {
+                    _showEditVetVisitDialog(editing);
+                  }
                 }
               },
             ),
@@ -1923,11 +3461,15 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             if (_visitDate != null &&
                 _vetNameController.text.isNotEmpty &&
                 _clinicNameController.text.isNotEmpty) {
-              _addVetVisit();
+              if (editing == null) {
+                _addVetVisit();
+              } else {
+                _updateVetVisit(editing);
+              }
               Navigator.pop(context);
             }
           },
-          child: const Text('Add'),
+          child: Text(editing == null ? 'Add' : 'Save'),
         ),
       ],
     );
@@ -1951,6 +3493,32 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         ),
       );
     });
+    _clearConditionForm();
+  }
+
+  void _updateCondition(MedicalCondition existing) {
+    final updated = MedicalCondition(
+      id: existing.id,
+      name: _conditionNameController.text,
+      diagnosisDate: _conditionDiagnosisDate!,
+      status: _conditionStatus,
+      treatment: _conditionTreatmentController.text.isEmpty
+          ? null
+          : _conditionTreatmentController.text,
+      notes: _conditionNotesController.text.isEmpty
+          ? null
+          : _conditionNotesController.text,
+      veterinarian: existing.veterinarian,
+      lastCheckup: existing.lastCheckup,
+    );
+
+    setState(() {
+      final idx = _conditions.indexWhere((c) => c.id == existing.id);
+      if (idx >= 0) {
+        _conditions[idx] = updated;
+      }
+    });
+
     _clearConditionForm();
   }
 
@@ -1984,6 +3552,29 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         ),
       );
     });
+    _clearMedicationForm();
+  }
+
+  void _updateMedication(Medication existing) {
+    final updated = Medication(
+      id: existing.id,
+      name: _medicationNameController.text,
+      dosage: _medicationDosageController.text,
+      frequency: _medicationFrequencyController.text,
+      startDate: existing.startDate,
+      endDate: existing.endDate,
+      prescribedBy: existing.prescribedBy,
+      purpose: _medicationPurposeController.text.isEmpty
+          ? null
+          : _medicationPurposeController.text,
+      isOngoing: _medicationIsOngoing,
+    );
+
+    setState(() {
+      final idx = _medications.indexWhere((m) => m.id == existing.id);
+      if (idx >= 0) _medications[idx] = updated;
+    });
+
     _clearMedicationForm();
   }
 
@@ -2033,6 +3624,32 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         ),
       );
     });
+    _clearVetVisitForm();
+  }
+
+  void _updateVetVisit(VetVisit existing) {
+    final updated = VetVisit(
+      id: existing.id,
+      visitDate: _visitDate ?? existing.visitDate,
+      veterinarian: _vetNameController.text,
+      clinic: _clinicNameController.text,
+      visitType: _visitType,
+      diagnosis: _visitDiagnosisController.text.isEmpty
+          ? null
+          : _visitDiagnosisController.text,
+      treatment: _visitTreatmentController.text.isEmpty
+          ? null
+          : _visitTreatmentController.text,
+      notes: existing.notes,
+      procedures: existing.procedures,
+      cost: existing.cost,
+    );
+
+    setState(() {
+      final idx = _vetVisits.indexWhere((v) => v.id == existing.id);
+      if (idx >= 0) _vetVisits[idx] = updated;
+    });
+
     _clearVetVisitForm();
   }
 

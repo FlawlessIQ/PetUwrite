@@ -166,7 +166,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
             child: Column(
               children: [
                 Text(
-                  'Welcome to PetUwrite!',
+                  'Welcome to Clovara!',
                   style: ClovaraTypography.h2.copyWith(
                     color: Colors.white,
                     fontSize: 32,

@@ -10,7 +10,7 @@
 
 - **AppBar:**
   - Navy background (#0A2647)
-  - White PetUwrite branding (Poppins)
+  - White Clovara branding (Poppins)
   - Premium badge with gold gradient and star icon
   - White person icon for profile
 
@@ -49,7 +49,7 @@
 
 **After:**
 ```dart
-- PetUwrite navy background
+- Clovara navy background
 - Branded gradient cards with shadows
 - Teal progress and accents
 - Premium branded experience
@@ -359,9 +359,9 @@ IconData _getCategoryIcon(String category) {
 // Severity color coding
 Color _getSeverityColor(dynamic severity) {
   final severityStr = severity.toString().toLowerCase();
-  if (severityStr.contains('low')) return PetUwriteColors.kSuccessMint;
-  if (severityStr.contains('medium')) return PetUwriteColors.kWarning;
-  return PetUwriteColors.kWarmCoral;
+  if (severityStr.contains('low')) return ClovaraColors.kSuccessMint;
+  if (severityStr.contains('medium')) return ClovaraColors.kWarning;
+  return ClovaraColors.kWarmCoral;
 }
 ```
 
@@ -561,7 +561,7 @@ Location: 35/100     (teal bar)
 
 ### Remaining Work
 1. **Admin Dashboard Branding** (Optional)
-   - Apply PetUwrite theme to admin screens
+   - Apply Clovara theme to admin screens
    - Update customer list, analytics views
    - Consistent navy/teal branding
 
@@ -587,7 +587,7 @@ Location: 35/100     (teal bar)
 - 10.5 second auto-navigation
 
 **After:**
-- Complete PetUwrite branding (navy/teal)
+- Complete Clovara branding (navy/teal)
 - Detailed category breakdown
 - Individual risk factor cards
 - AI analysis display
@@ -615,4 +615,4 @@ Location: 35/100     (teal bar)
 **New Widgets:** 3 major insight sections
 **Total Experience:** 12+ seconds (scrollable)
 **Data Displayed:** Category scores, risk factors, AI analysis
-**Branding:** Complete PetUwrite identity throughout
+**Branding:** Complete Clovara identity throughout

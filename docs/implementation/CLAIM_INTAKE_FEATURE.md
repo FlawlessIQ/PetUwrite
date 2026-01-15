@@ -14,7 +14,7 @@ Added conversational AI-powered claim intake screen for First Notice of Loss (FN
 ### 1. Conversational AI Interface
 - **AI Agent:** "Pawla" (empathetic pet insurance assistant)
 - **Model:** GPT-4-mini via ConversationalAIService
-- **Avatar:** PetUwrite icon-only logo
+- **Avatar:** Clovara icon-only logo
 - **Chat UI:** Smooth message bubbles with typing indicator animation
 
 ### 2. Multi-Stage Data Collection
@@ -160,7 +160,7 @@ Added 3 new methods:
 - Message bubble slide-in (implicit)
 
 ### Theme Integration
-- Uses `PetUwriteColors.kSecondaryTeal` for user messages
+- Uses `ClovaraColors.kSecondaryTeal` for user messages
 - Uses `Colors.grey[200]` for AI messages
 - Brand-consistent avatar (icon-only logo)
 - Clean, minimal chat interface
@@ -295,7 +295,7 @@ Navigator.push(
 - `cloud_firestore`
 - ConversationalAIService (GPT-4-mini)
 - ClaimsService
-- PetUwrite theme
+- Clovara theme
 
 ---
 

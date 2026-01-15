@@ -26,7 +26,7 @@ Your Cloud Functions (in `functions/index.js` and `functions/claimsReconciliatio
 **Run this command to set it:**
 
 ```bash
-cd /Users/conorlawless/Development/PetUwrite
+cd /Users/conorlawless/Development/Clovara
 firebase functions:config:set stripe.secret_key="sk_test_your_stripe_test_secret_key_here"
 ```
 

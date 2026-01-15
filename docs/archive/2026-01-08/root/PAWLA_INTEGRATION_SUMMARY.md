@@ -1,6 +1,6 @@
 # Pawla Integration Summary
 
-**Project**: PetUwrite Pet Insurance Platform  
+**Project**: Clovara Pet Insurance Platform  
 **Feature**: Pawla AI Persona Integration  
 **Date**: October 11, 2025  
 **Status**: ✅ Complete
@@ -9,7 +9,7 @@
 
 ## 🎯 Overview
 
-Pawla is the empathetic AI assistant for PetUwrite, transforming the quote flow from a standard form into a warm, conversational experience. This integration adds personality, emotional intelligence, and visual appeal to every customer interaction.
+Pawla is the empathetic AI assistant for Clovara, transforming the quote flow from a standard form into a warm, conversational experience. This integration adds personality, emotional intelligence, and visual appeal to every customer interaction.
 
 ### Key Achievements
 - ✅ **Personalized AI Persona** - Warm, empathetic, pet-friendly personality
@@ -615,7 +615,7 @@ if (condition) {
 
 ## 🎉 Conclusion
 
-Pawla transforms the PetUwrite quote experience from a transactional form into a warm, empathetic conversation. By combining personality-driven language, emotional intelligence, and smooth animations, we create a memorable first interaction that builds trust with pet parents from the start.
+Pawla transforms the Clovara quote experience from a transactional form into a warm, empathetic conversation. By combining personality-driven language, emotional intelligence, and smooth animations, we create a memorable first interaction that builds trust with pet parents from the start.
 
 **Next Steps:**
 1. Monitor user feedback and engagement metrics

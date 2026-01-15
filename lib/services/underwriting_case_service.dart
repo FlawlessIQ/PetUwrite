@@ -143,4 +143,53 @@ class UnderwritingCaseService {
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
+
+  /// Increments the persistent NEED_MORE_INFO attempt counter for a case.
+  ///
+  /// This is used as a deterministic loop-breaker so repeated unresolved
+  /// NEED_MORE_INFO cycles can be escalated to DECLINED without human review.
+  ///
+  /// Returns the updated attempt count.
+  Future<int> incrementNeedMoreInfoAttempts({
+    required String caseId,
+    required String? reason,
+    required List<String> requiredEvidenceCodes,
+  }) async {
+    final docRef = _cases.doc(caseId);
+
+    return _firestore.runTransaction<int>((txn) async {
+      final snap = await txn.get(docRef);
+      final data = snap.data();
+      final current = (data?['needMoreInfoAttempts'] as num?)?.toInt() ?? 0;
+      final next = current + 1;
+
+      txn.set(
+        docRef,
+        {
+          'needMoreInfoAttempts': next,
+          'lastNeedMoreInfoReason': reason,
+          'lastNeedMoreInfoEvidenceCodes': requiredEvidenceCodes,
+          'lastNeedMoreInfoAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+
+      return next;
+    });
+  }
+
+  /// Clears the persistent NEED_MORE_INFO attempt counter and related fields.
+  Future<void> resetNeedMoreInfoAttempts({required String caseId}) async {
+    await _cases.doc(caseId).set(
+      {
+        'needMoreInfoAttempts': 0,
+        'lastNeedMoreInfoReason': null,
+        'lastNeedMoreInfoEvidenceCodes': const <String>[],
+        'lastNeedMoreInfoAt': null,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+  }
 }

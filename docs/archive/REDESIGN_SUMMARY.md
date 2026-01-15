@@ -6,7 +6,7 @@
 **File:** `lib/auth/login_screen.dart`
 
 **Key Changes:**
-- ✅ Prominent logo using `assets/PetUwrite navy background.png` (140px height)
+- ✅ Prominent logo using `assets/Clovara navy background.png` (140px height)
 - ✅ Navy background (#0A2647) matching quote flow
 - ✅ "Trust powered by intelligence" tagline in teal
 - ✅ Tabbed interface (Sign In / Create Account)
@@ -21,7 +21,7 @@
 
 **Key Changes:**
 - ✅ Branded header with logo display
-- ✅ Logo uses `assets/PetUwrite navy background.png` (50px height)
+- ✅ Logo uses `assets/Clovara navy background.png` (50px height)
 - ✅ Gradient progress bar (teal to mint)
 - ✅ Larger step circles (56px) with better shadows
 - ✅ Enhanced error banner with icon
@@ -56,8 +56,8 @@ AFTER:  BRANDED HEADER with LOGO → Gradient progress → Modern steps
 - White: Clean contrast
 
 **Logos:**
-- Primary: `assets/PetUwrite navy background.png`
-- Fallback: `assets/petuwrite_logo_transparent.svg`
+- Primary: `assets/Clovara navy background.png`
+- Fallback: `assets/clovara_logo_transparent.svg`
 
 **Typography:**
 - Logo: 140px (login), 50px (checkout)
@@ -109,7 +109,7 @@ AFTER:  BRANDED HEADER with LOGO → Gradient progress → Modern steps
 ## ✨ Result
 
 Both screens now feature:
-- 🎨 **Prominent PetUwrite branding**
+- 🎨 **Prominent Clovara branding**
 - 📱 **Consistent design language**
 - 🏢 **Professional appearance**
 - 💎 **Polished user experience**

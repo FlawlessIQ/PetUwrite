@@ -196,8 +196,8 @@ Pet updatedPet = pet.copyWith(
   - Blue: Medications
 
 ### Typography
-- **Headers**: PetUwriteTypography.h3, h4
-- **Body**: PetUwriteTypography.bodyLarge
+- **Headers**: ClovaraTypography.h3, h4
+- **Body**: ClovaraTypography.bodyLarge
 - **Cards**: Medium weight for titles
 
 ### Spacing
@@ -368,7 +368,7 @@ Navigator.pushReplacement(
 - `package:flutter/material.dart`
 - `../models/pet.dart`
 - `../models/medical_history.dart`
-- `../theme/petuwrite_theme.dart`
+- `../theme/clovara_theme.dart`
 - `plan_selection_screen.dart`
 
 **Compilation Status**: ✅ No errors
@@ -386,7 +386,7 @@ Navigator.pushReplacement(
 ✅ Add/Edit/Delete functionality for all item types
 ✅ Date pickers for temporal data
 ✅ Dropdown selectors for status/type fields
-✅ Clean, branded UI matching PetUwrite theme
+✅ Clean, branded UI matching Clovara theme
 ✅ Proper data model integration (MedicalCondition, Medication, VetVisit)
 ✅ Navigation to Plan Selection with updated Pet object
 ✅ Backward compatibility with existing data

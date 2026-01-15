@@ -9,7 +9,8 @@ class EligibilityResult {
   final String reason;
   final String? ruleViolated;
   final dynamic violatedValue;
-  final List<String> excludedConditions; // NEW: Conditions that will be excluded from coverage
+  final List<String>
+  excludedConditions; // NEW: Conditions that will be excluded from coverage
   final bool hasExclusions; // NEW: Whether this is a conditional approval
 
   const EligibilityResult({
@@ -39,8 +40,9 @@ class EligibilityResult {
       eligible: true,
       hasExclusions: true,
       excludedConditions: excludedConditions,
-      reason: additionalNotes ?? 
-        'Coverage approved with the following pre-existing condition exclusions: ${excludedConditions.join(", ")}',
+      reason:
+          additionalNotes ??
+          'Coverage approved with the following pre-existing condition exclusions: ${excludedConditions.join(", ")}',
     );
   }
 
@@ -66,17 +68,18 @@ class EligibilityResult {
       if (ruleViolated != null) 'ruleViolated': ruleViolated,
       if (violatedValue != null) 'violatedValue': violatedValue,
       'hasExclusions': hasExclusions,
-      if (excludedConditions.isNotEmpty) 'excludedConditions': excludedConditions,
+      if (excludedConditions.isNotEmpty)
+        'excludedConditions': excludedConditions,
       'timestamp': FieldValue.serverTimestamp(),
     };
   }
 }
 
 /// Underwriting Rules Engine
-/// 
+///
 /// Determines pet eligibility based on admin-defined rules in Firestore.
 /// Rules are stored in: `admin_settings/underwriting_rules`
-/// 
+///
 /// Usage:
 /// ```dart
 /// final engine = UnderwritingRulesEngine();
@@ -89,7 +92,7 @@ class UnderwritingRulesEngine {
   final FirebaseFirestore _firestore;
   final FirebaseFunctions? _functions;
   final bool _enablePublicCallable;
-  
+
   // Cache rules to avoid excessive Firestore reads
   Map<String, dynamic>? _cachedRules;
   DateTime? _cacheTimestamp;
@@ -99,12 +102,23 @@ class UnderwritingRulesEngine {
     FirebaseFirestore? firestore,
     FirebaseFunctions? functions,
     bool enablePublicCallable = true,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _functions = functions,
-        _enablePublicCallable = enablePublicCallable;
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _functions = functions,
+       _enablePublicCallable = enablePublicCallable;
+
+  String _summarizeConditions(List<String> conditions, {int max = 6}) {
+    if (conditions.isEmpty) return '(none)';
+    final trimmed = conditions
+        .map((c) => c.trim())
+        .where((c) => c.isNotEmpty)
+        .toList();
+    if (trimmed.isEmpty) return '(none)';
+    final head = trimmed.take(max).join(', ');
+    return trimmed.length > max ? '$head … (+${trimmed.length - max})' : head;
+  }
 
   /// Load underwriting rules from Firestore
-  /// 
+  ///
   /// Expects document structure:
   /// ```
   /// admin_settings/underwriting_rules:
@@ -139,15 +153,22 @@ class UnderwritingRulesEngine {
         final completeRules = {
           ..._getDefaultRules(),
           ...rules,
+          'rulesAvailable': true,
         };
 
         _cachedRules = completeRules;
         _cacheTimestamp = DateTime.now();
 
+        print(
+          '📚 Underwriting rules loaded (source=callable, enabled=${completeRules['enabled']}, excludedBreeds=${(completeRules['excludedBreeds'] as List?)?.length ?? 0}, critical=${(completeRules['criticalConditions'] as List?)?.length ?? 0}, excludable=${(completeRules['excludableConditions'] as List?)?.length ?? 0})',
+        );
+
         return completeRules;
       } catch (e) {
         // Ignore and try Firestore next.
-        print('ℹ️ getUnderwritingRulesPublic unavailable, falling back to Firestore: $e');
+        print(
+          'ℹ️ getUnderwritingRulesPublic unavailable, falling back to Firestore: $e',
+        );
       }
     }
 
@@ -158,26 +179,37 @@ class UnderwritingRulesEngine {
           .get();
 
       if (!docSnapshot.exists) {
-        print('⚠️ Underwriting rules not found, using defaults');
-        return _getDefaultRules();
+        print('⚠️ Underwriting rules not found; underwriting will fail closed');
+        return {
+          ..._getDefaultRules(),
+          'rulesAvailable': false,
+        };
       }
 
       final rules = docSnapshot.data() ?? {};
-      
+
       // Merge with defaults to ensure all required fields exist
       final completeRules = {
         ..._getDefaultRules(),
         ...rules,
+        'rulesAvailable': true,
       };
 
       // Update cache
       _cachedRules = completeRules;
       _cacheTimestamp = DateTime.now();
 
+      print(
+        '📚 Underwriting rules loaded (source=firestore, enabled=${completeRules['enabled']}, excludedBreeds=${(completeRules['excludedBreeds'] as List?)?.length ?? 0}, critical=${(completeRules['criticalConditions'] as List?)?.length ?? 0}, excludable=${(completeRules['excludableConditions'] as List?)?.length ?? 0})',
+      );
+
       return completeRules;
     } catch (e) {
       print('❌ Error loading underwriting rules: $e');
-      return _getDefaultRules();
+      return {
+        ..._getDefaultRules(),
+        'rulesAvailable': false,
+      };
     }
   }
 
@@ -206,8 +238,27 @@ class UnderwritingRulesEngine {
         'terminal cancer',
         'metastatic cancer',
       ],
-      'excludableConditions': <String>[],
+      // Conditions that are typically excluded as pre-existing (conditional
+      // approval) rather than full declines.
+      'excludableConditions': <String>[
+        // Orthopedic
+        'cruciate',
+        'cranial cruciate ligament',
+        'degenerative joint disease',
+        'djd',
+        'arthritis',
+        'osteoarthritis',
+        'hip dysplasia',
+        'patellar luxation',
+        'luxating patella',
+        'elbow dysplasia',
+        // Spine
+        'intervertebral disc disease',
+        'ivdd',
+      ],
       'enabled': true,
+      // When rules cannot be fetched, we mark them unavailable and fail closed.
+      'rulesAvailable': false,
     };
   }
 
@@ -218,9 +269,9 @@ class UnderwritingRulesEngine {
   }
 
   /// Check pet eligibility against underwriting rules
-  /// 
+  ///
   /// Returns [EligibilityResult] with detailed reasoning
-  /// 
+  ///
   /// Example:
   /// ```dart
   /// final result = await engine.checkEligibility(
@@ -234,74 +285,118 @@ class UnderwritingRulesEngine {
     RiskScore riskScore,
     List<String> conditions,
   ) async {
+    print(
+      '🧾 Underwriting checkEligibility start: pet=${pet.name} breed=${pet.breed} score=${riskScore.overallScore.toStringAsFixed(1)} conditions=${_summarizeConditions(conditions)}',
+    );
+
     // Load rules
     final rules = await getRules();
 
+    final rulesAvailable = rules['rulesAvailable'] == true;
+
     // Check if rules engine is enabled
     if (rules['enabled'] == false) {
-      print('ℹ️ Underwriting rules engine is disabled, approving by default');
-      return EligibilityResult.eligible();
+      print('⚠️ Underwriting rules engine is disabled; failing closed');
+      return EligibilityResult.ineligible(
+        reason: 'Underwriting rules are temporarily unavailable. We can\'t complete underwriting right now.',
+        ruleViolated: 'RULES_UNAVAILABLE',
+      );
+    }
+
+    if (!rulesAvailable) {
+      print('⚠️ Underwriting rules unavailable; failing closed');
+      return EligibilityResult.ineligible(
+        reason: 'Underwriting rules are temporarily unavailable. We can\'t complete underwriting right now.',
+        ruleViolated: 'RULES_UNAVAILABLE',
+      );
     }
 
     // 1. Check risk score threshold
     final maxRiskScore = rules['maxRiskScore'] as int? ?? 90;
     if (riskScore.overallScore > maxRiskScore) {
-      return EligibilityResult.ineligible(
-        reason: 'Risk score of ${riskScore.overallScore.toStringAsFixed(1)} '
+      final result = EligibilityResult.ineligible(
+        reason:
+            'Risk score of ${riskScore.overallScore.toStringAsFixed(1)} '
             'exceeds maximum allowed score of $maxRiskScore. '
             'This pet requires manual underwriting review.',
         ruleViolated: 'maxRiskScore',
         violatedValue: riskScore.overallScore,
       );
+
+      print(
+        '🧾 Underwriting checkEligibility result: eligible=false rule=maxRiskScore value=${riskScore.overallScore}',
+      );
+
+      return result;
     }
 
     // 2. Check excluded breeds
-    final excludedBreeds = (rules['excludedBreeds'] as List?)
-        ?.map((e) => e.toString().toLowerCase())
-        .toList() ?? [];
-    
+    final excludedBreeds =
+        (rules['excludedBreeds'] as List?)
+            ?.map((e) => e.toString().toLowerCase())
+            .toList() ??
+        [];
+
     final petBreedLower = pet.breed.toLowerCase();
     for (final excludedBreed in excludedBreeds) {
       if (petBreedLower.contains(excludedBreed) ||
           excludedBreed.contains(petBreedLower)) {
-        return EligibilityResult.ineligible(
-          reason: 'The breed "${pet.breed}" is not eligible for coverage '
+        final result = EligibilityResult.ineligible(
+          reason:
+              'The breed "${pet.breed}" is not eligible for coverage '
               'under our current underwriting guidelines. '
               'Please contact our underwriting team for alternative options.',
           ruleViolated: 'excludedBreeds',
           violatedValue: pet.breed,
         );
+
+        print(
+          '🧾 Underwriting checkEligibility result: eligible=false rule=excludedBreeds value=${pet.breed}',
+        );
+
+        return result;
       }
     }
 
     // 3. Check critical conditions (DECLINE) vs excludable conditions (EXCLUDE)
-    final criticalConditions = (rules['criticalConditions'] as List?)
-        ?.map((e) => e.toString().toLowerCase())
-        .toList() ?? [];
-    
-    final excludableConditions = (rules['excludableConditions'] as List?)
-        ?.map((e) => e.toString().toLowerCase())
-        .toList() ?? [];
-    
+    final criticalConditions =
+        (rules['criticalConditions'] as List?)
+            ?.map((e) => e.toString().toLowerCase())
+            .toList() ??
+        [];
+
+    final excludableConditions =
+        (rules['excludableConditions'] as List?)
+            ?.map((e) => e.toString().toLowerCase())
+            .toList() ??
+        [];
+
     final List<String> conditionsToExclude = [];
-    
+
     for (final condition in conditions) {
       final conditionLower = condition.toLowerCase();
-      
+
       // Check if it's a CRITICAL condition (auto-decline)
       for (final critical in criticalConditions) {
         if (conditionLower.contains(critical) ||
             critical.contains(conditionLower)) {
-          return EligibilityResult.ineligible(
-            reason: 'The condition "$condition" is classified as a critical '
+          final result = EligibilityResult.ineligible(
+            reason:
+                'The condition "$condition" is classified as a critical '
                 'pre-existing condition and cannot be covered at this time. '
                 'Our team can discuss alternative coverage options.',
             ruleViolated: 'criticalConditions',
             violatedValue: condition,
           );
+
+          print(
+            '🧾 Underwriting checkEligibility result: eligible=false rule=criticalConditions value=$condition',
+          );
+
+          return result;
         }
       }
-      
+
       // Check if it's an EXCLUDABLE condition (conditional approval)
       for (final excludable in excludableConditions) {
         if (conditionLower.contains(excludable) ||
@@ -315,39 +410,74 @@ class UnderwritingRulesEngine {
     // 4. Check minimum age
     final minAgeMonths = rules['minAgeMonths'] as int? ?? 2;
     final petAgeInMonths = _calculateAgeInMonths(pet.dateOfBirth);
-    
+
     if (petAgeInMonths < minAgeMonths) {
       final yearsMonths = _formatAge(minAgeMonths);
-      return EligibilityResult.ineligible(
-        reason: '${pet.name} is too young for coverage. '
+      final result = EligibilityResult.ineligible(
+        reason:
+            '${pet.name} is too young for coverage. '
             'Pets must be at least $yearsMonths old. '
             'Current age: ${_formatAge(petAgeInMonths)}.',
         ruleViolated: 'minAgeMonths',
         violatedValue: petAgeInMonths,
       );
+
+      print(
+        '🧾 Underwriting checkEligibility result: eligible=false rule=minAgeMonths value=$petAgeInMonths',
+      );
+
+      return result;
     }
 
     // 5. Check maximum age
     final maxAgeYears = rules['maxAgeYears'] as int? ?? 14;
     final maxAgeMonths = maxAgeYears * 12;
     if (petAgeInMonths > maxAgeMonths) {
-      return EligibilityResult.ineligible(
-        reason: '${pet.name} is above the maximum age for new coverage. '
+      final result = EligibilityResult.ineligible(
+        reason:
+            '${pet.name} is above the maximum age for new coverage. '
             'Pets must be under $maxAgeYears years old to enroll. '
             'Current age: ${_formatAge(petAgeInMonths)}.',
         ruleViolated: 'maxAgeYears',
         violatedValue: petAgeInMonths,
       );
+
+      print(
+        '🧾 Underwriting checkEligibility result: eligible=false rule=maxAgeYears value=$petAgeInMonths',
+      );
+
+      return result;
     }
 
     // All checks passed - return eligible (with exclusions if any)
     if (conditionsToExclude.isNotEmpty) {
-      return EligibilityResult.eligibleWithExclusions(
+      final result = EligibilityResult.eligibleWithExclusions(
         excludedConditions: conditionsToExclude,
       );
+
+      print(
+        '🧾 Underwriting checkEligibility result: eligible=true exclusions=${_summarizeConditions(conditionsToExclude)}',
+      );
+
+      return result;
     }
-    
-    return EligibilityResult.eligible();
+
+    final result = EligibilityResult.eligible();
+    print(
+      '🧾 Underwriting checkEligibility result: eligible=true exclusions=(none)',
+    );
+    return result;
+  }
+
+  /// Deterministic eligibility check that ignores condition strings.
+  ///
+  /// Medical conditions must be evaluated from strict medical facts elsewhere.
+  Future<EligibilityResult> checkEligibilityDeterministic({
+    required Pet pet,
+    required RiskScore riskScore,
+  }) async {
+    // Delegate to the same rules, but with an empty conditions list.
+    return checkEligibility(pet, riskScore, const <String>[]);
   }
 
   /// Batch check eligibility for multiple pets
@@ -357,7 +487,7 @@ class UnderwritingRulesEngine {
     Map<String, List<String>> conditionsMap,
   ) async {
     final results = <String, EligibilityResult>{};
-    
+
     for (final pet in pets) {
       final petId = pet.id;
       final riskScore = riskScores[petId];
@@ -382,15 +512,29 @@ class UnderwritingRulesEngine {
   Future<EligibilityResult> quickCheck(Pet pet, List<String> conditions) async {
     final rules = await getRules();
 
+    final rulesAvailable = rules['rulesAvailable'] == true;
+
     if (rules['enabled'] == false) {
-      return EligibilityResult.eligible();
+      return EligibilityResult.ineligible(
+        reason: 'Underwriting rules are temporarily unavailable. We can\'t complete underwriting right now.',
+        ruleViolated: 'RULES_UNAVAILABLE',
+      );
+    }
+
+    if (!rulesAvailable) {
+      return EligibilityResult.ineligible(
+        reason: 'Underwriting rules are temporarily unavailable. We can\'t complete underwriting right now.',
+        ruleViolated: 'RULES_UNAVAILABLE',
+      );
     }
 
     // Check excluded breeds
-    final excludedBreeds = (rules['excludedBreeds'] as List?)
-        ?.map((e) => e.toString().toLowerCase())
-        .toList() ?? [];
-    
+    final excludedBreeds =
+        (rules['excludedBreeds'] as List?)
+            ?.map((e) => e.toString().toLowerCase())
+            .toList() ??
+        [];
+
     final petBreedLower = pet.breed.toLowerCase();
     for (final excludedBreed in excludedBreeds) {
       if (petBreedLower.contains(excludedBreed) ||
@@ -404,10 +548,12 @@ class UnderwritingRulesEngine {
     }
 
     // Check critical conditions
-    final criticalConditions = (rules['criticalConditions'] as List?)
-        ?.map((e) => e.toString().toLowerCase())
-        .toList() ?? [];
-    
+    final criticalConditions =
+        (rules['criticalConditions'] as List?)
+            ?.map((e) => e.toString().toLowerCase())
+            .toList() ??
+        [];
+
     for (final condition in conditions) {
       final conditionLower = condition.toLowerCase();
       for (final critical in criticalConditions) {
@@ -430,7 +576,8 @@ class UnderwritingRulesEngine {
 
     if (petAgeInMonths < minAgeMonths) {
       return EligibilityResult.ineligible(
-        reason: '${pet.name} is too young for coverage (minimum: ${_formatAge(minAgeMonths)}).',
+        reason:
+            '${pet.name} is too young for coverage (minimum: ${_formatAge(minAgeMonths)}).',
         ruleViolated: 'minAgeMonths',
         violatedValue: petAgeInMonths,
       );
@@ -438,7 +585,8 @@ class UnderwritingRulesEngine {
 
     if (petAgeInMonths > maxAgeMonths) {
       return EligibilityResult.ineligible(
-        reason: '${pet.name} is too old for new coverage (maximum: $maxAgeYears years).',
+        reason:
+            '${pet.name} is too old for new coverage (maximum: $maxAgeYears years).',
         ruleViolated: 'maxAgeYears',
         violatedValue: petAgeInMonths,
       );
@@ -469,14 +617,14 @@ class UnderwritingRulesEngine {
     final years = now.year - dateOfBirth.year;
     final months = now.month - dateOfBirth.month;
     final days = now.day - dateOfBirth.day;
-    
+
     int totalMonths = (years * 12) + months;
-    
+
     // Adjust if the day hasn't been reached yet
     if (days < 0) {
       totalMonths--;
     }
-    
+
     return totalMonths;
   }
 
@@ -485,14 +633,14 @@ class UnderwritingRulesEngine {
     if (months < 12) {
       return '$months ${months == 1 ? 'month' : 'months'}';
     }
-    
+
     final years = months ~/ 12;
     final remainingMonths = months % 12;
-    
+
     if (remainingMonths == 0) {
       return '$years ${years == 1 ? 'year' : 'years'}';
     }
-    
+
     return '$years ${years == 1 ? 'year' : 'years'} and '
         '$remainingMonths ${remainingMonths == 1 ? 'month' : 'months'}';
   }
@@ -513,7 +661,7 @@ class UnderwritingRulesEngine {
       }
 
       final snapshot = await query.get();
-      
+
       int totalChecks = snapshot.docs.length;
       int eligible = 0;
       int ineligible = 0;
@@ -543,9 +691,7 @@ class UnderwritingRulesEngine {
       };
     } catch (e) {
       print('❌ Error calculating eligibility stats: $e');
-      return {
-        'error': e.toString(),
-      };
+      return {'error': e.toString()};
     }
   }
 }

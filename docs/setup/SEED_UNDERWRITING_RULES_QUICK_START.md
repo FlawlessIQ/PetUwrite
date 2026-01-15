@@ -13,7 +13,7 @@ That's it! The script will automatically use your existing Firebase configuratio
 
 ```
 ═══════════════════════════════════════════════════════════
-  PetUwrite - Underwriting Rules Seeder
+  Clovara - Underwriting Rules Seeder
 ═══════════════════════════════════════════════════════════
 
 🔧 Initializing Firebase Admin SDK...

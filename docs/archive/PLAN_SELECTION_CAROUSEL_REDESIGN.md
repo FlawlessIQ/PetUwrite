@@ -109,8 +109,8 @@ Container(
   decoration: BoxDecoration(
     gradient: LinearGradient(
       colors: [
-        PetUwriteColors.kSecondaryTeal,
-        PetUwriteColors.kSecondaryTeal.withOpacity(0.8),
+        ClovaraColors.kSecondaryTeal,
+        ClovaraColors.kSecondaryTeal.withOpacity(0.8),
       ],
     ),
     borderRadius: BorderRadius.circular(12),
@@ -348,12 +348,12 @@ ElevatedButton(
 Container(
   decoration: BoxDecoration(
     color: isEnabled 
-        ? PetUwriteColors.kSecondaryTeal 
+        ? ClovaraColors.kSecondaryTeal 
         : Colors.white.withOpacity(0.2),
     shape: BoxShape.circle,
     boxShadow: isEnabled ? [
       BoxShadow(
-        color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
+        color: ClovaraColors.kSecondaryTeal.withOpacity(0.3),
         blurRadius: 8,
         offset: const Offset(0, 4),
       ),
@@ -373,7 +373,7 @@ Container(
     shape: BoxShape.circle,
     border: Border.all(
       color: isEnabled
-          ? PetUwriteColors.kSecondaryTeal.withOpacity(0.3)
+          ? ClovaraColors.kSecondaryTeal.withOpacity(0.3)
           : Colors.white.withOpacity(0.2),
       width: 1.5,
     ),
@@ -388,7 +388,7 @@ Container(
   child: Icon(
     icon, 
     color: isEnabled 
-        ? PetUwriteColors.kSecondaryTeal 
+        ? ClovaraColors.kSecondaryTeal 
         : Colors.grey.shade400
   ),
 )
@@ -411,7 +411,7 @@ AnimatedContainer(
   height: 8,
   decoration: BoxDecoration(
     color: _selectedPlanIndex == index
-        ? PetUwriteColors.kSecondaryTeal
+        ? ClovaraColors.kSecondaryTeal
         : Colors.white.withOpacity(0.3),
     borderRadius: BorderRadius.circular(4),
   ),
@@ -428,7 +428,7 @@ AnimatedContainer(
   height: 6,
   decoration: BoxDecoration(
     color: isSelected
-        ? PetUwriteColors.kSecondaryTeal
+        ? ClovaraColors.kSecondaryTeal
         : Colors.white.withOpacity(0.4),
     borderRadius: BorderRadius.circular(3),
   ),
@@ -579,7 +579,7 @@ AnimatedContainer(
 - [ ] Bottom CTA updates immediately when swiping
 - [ ] Checkout navigation passes correct plan data
 - [ ] Visual transition from conversational flow feels cohesive
-- [ ] Colors match PetUwriteColors theme (Navy + Teal)
+- [ ] Colors match ClovaraColors theme (Navy + Teal)
 - [ ] Typography is readable on all device sizes
 - [ ] Shadows and borders render correctly
 - [ ] Stat values format properly (percentages, currency, limits)
@@ -645,7 +645,7 @@ After this redesign:
 ## Maintenance Notes
 
 - Plan colors are dynamic and passed via PlanData.color
-- Typography uses PetUwriteTypography constants where applicable
+- Typography uses ClovaraTypography constants where applicable
 - All spacing values are multiples of 4 for consistency
 - Shadow opacity kept low (< 0.2) for modern flat look
 - Border widths use 1px, 1.5px, 2.5px progression

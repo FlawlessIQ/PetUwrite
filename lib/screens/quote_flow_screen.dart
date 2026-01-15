@@ -771,7 +771,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
       final pet = _createPetFromForm();
       final owner = _createOwnerFromForm();
 
-      final aiService = GPTService(model: 'gpt-5.2');
+      final aiService = GPTService();
       final riskEngine = RiskScoringEngine(aiService: aiService);
 
       final result = await riskEngine.calculateRiskScoreWithEligibility(

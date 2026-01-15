@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pet_underwriter_ai/models/claim.dart';
 import 'package:pet_underwriter_ai/services/claims_service.dart';
 
-/// Concurrency Hardening Tests for PetUwrite Claims System
+/// Concurrency Hardening Tests for Clovara Claims System
 /// 
 /// Tests:
 /// 1. Concurrent payout processing with settling status lock

@@ -454,7 +454,7 @@ After each major milestone:
 
 ## 📞 Resources
 
-- **Your Docs**: All files in PetUwrite repo
+- **Your Docs**: All files in Clovara repo
 - **Flutter**: https://docs.flutter.dev
 - **Firebase**: https://firebase.google.com/docs
 - **Stripe**: https://stripe.com/docs

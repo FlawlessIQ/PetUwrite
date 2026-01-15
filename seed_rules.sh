@@ -2,17 +2,17 @@
 # Quick helper script to run the underwriting rules seeder
 
 echo "═══════════════════════════════════════════════════════════"
-echo "  PetUwrite - Underwriting Rules Seeder Helper"
+echo "  Clovara - Underwriting Rules Seeder Helper"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
 
 # Check if we're in the right directory
 if [ ! -d "functions" ]; then
-    echo "❌ Error: Must run from PetUwrite root directory"
+    echo "❌ Error: Must run from Clovara root directory"
     echo "   Current: $(pwd)"
-    echo "   Expected: /path/to/PetUwrite"
+    echo "   Expected: /path/to/Clovara"
     echo ""
-    echo "📝 Run: cd /path/to/PetUwrite && ./seed_rules.sh"
+    echo "📝 Run: cd /path/to/Clovara && ./seed_rules.sh"
     exit 1
 fi
 

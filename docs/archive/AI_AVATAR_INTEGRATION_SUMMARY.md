@@ -143,9 +143,9 @@ Effect: Wave pattern across 3 dots
 ## 🎨 Brand Consistency
 
 ### Colors Used
-- **Avatar Shadow:** `PetUwriteColors.kSecondaryTeal` (Teal #00C2CB)
+- **Avatar Shadow:** `ClovaraColors.kSecondaryTeal` (Teal #00C2CB)
 - **Shadow Opacity:** 30%
-- **Fallback Gradient:** `PetUwriteColors.brandGradient` (Teal → Navy)
+- **Fallback Gradient:** `ClovaraColors.brandGradient` (Teal → Navy)
 - **Fallback Icon:** White paw (`Icons.pets`)
 
 ### Spacing
@@ -166,7 +166,7 @@ Effect: Wave pattern across 3 dots
 
 1. **Personality:** AI assistant feels more human and approachable
 2. **Visual Cues:** Avatar clearly identifies bot vs. user messages
-3. **Brand Recognition:** Custom avatar reinforces PetUwrite identity
+3. **Brand Recognition:** Custom avatar reinforces Clovara identity
 4. **Engagement:** Animations make interaction feel alive and responsive
 5. **Professionalism:** Polished animations match premium platform quality
 
@@ -223,7 +223,7 @@ TweenAnimationBuilder<double>(
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
+                color: ClovaraColors.kSecondaryTeal.withOpacity(0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -237,7 +237,7 @@ TweenAnimationBuilder<double>(
                 return Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: PetUwriteColors.brandGradient,
+                    gradient: ClovaraColors.brandGradient,
                   ),
                   child: const Icon(
                     Icons.pets,
@@ -301,7 +301,7 @@ The AI avatar is now fully integrated with:
 - 📱 Responsive on all screen sizes
 - 🎭 Professional polish matching platform quality
 
-**The conversational quote flow now feels more personal, engaging, and aligned with PetUwrite's "Trust powered by intelligence" brand promise!** 🐾
+**The conversational quote flow now feels more personal, engaging, and aligned with Clovara's "Trust powered by intelligence" brand promise!** 🐾
 
 ---
 

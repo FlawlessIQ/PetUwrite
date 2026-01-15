@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/checkout_state.dart';
 import '../models/policy_exclusion.dart';
 import '../models/pet.dart';
 import '../services/quote_engine.dart';
 import '../services/product_catalog.dart';
+import '../services/draft_service.dart';
+import '../services/user_session_service.dart';
 import '../theme/clovara_theme.dart';
 import 'review_screen.dart';
 import 'owner_details_screen.dart';
 import 'payment_screen.dart';
 import 'confirmation_screen.dart';
 
-/// Redesigned checkout screen with prominent PetUwrite branding
+/// Redesigned checkout screen with prominent Clovara branding
 class CheckoutScreen extends StatefulWidget {
   final dynamic pet;
   final dynamic selectedPlan;
@@ -146,11 +149,119 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 snapshot: snapshot,
               );
         }
+
+        // Restore pending checkout snapshot (if it matches this pet/plan).
+        () async {
+          try {
+            final pending = await UserSessionService().getPendingCheckout();
+            if (pending == null) return;
+
+            final pendingPet = pending['pet'];
+            final pendingPlan = pending['selectedPlan'];
+
+            final pendingPetName = (pendingPet is Map)
+                ? (pendingPet['name']?.toString() ?? pendingPet['petName']?.toString() ?? '')
+                : '';
+            final pendingPlanName = (pendingPlan is Map)
+                ? (pendingPlan['name']?.toString() ?? '')
+                : '';
+
+            final matchesPet = pendingPetName.trim().isEmpty || pendingPetName.trim() == petObject.name.trim();
+            final matchesPlan = pendingPlanName.trim().isEmpty || pendingPlanName.trim() == planObject.name.trim();
+
+            if (!matchesPet || !matchesPlan) return;
+
+            final provider = context.read<CheckoutProvider>();
+
+            final ownerJson = (pending['ownerDetails'] is Map)
+                ? (pending['ownerDetails'] as Map).cast<String, dynamic>()
+                : null;
+            if (ownerJson != null) {
+              provider.setOwnerDetails(OwnerDetails.fromJson(ownerJson));
+            }
+
+            final underwritingCaseId = pending['underwritingCaseId']?.toString();
+            final exclusionsRaw = pending['exclusions'];
+            final exclusions = (exclusionsRaw is List)
+                ? exclusionsRaw
+                    .whereType<Map>()
+                    .map((e) => PolicyExclusion.fromJson(e.cast<String, dynamic>()))
+                    .toList()
+                : null;
+            final uwSnapshot = (pending['underwritingSnapshot'] as Map?)?.cast<String, dynamic>();
+            if ((underwritingCaseId != null && underwritingCaseId.trim().isNotEmpty) ||
+                (exclusions != null && exclusions.isNotEmpty) ||
+                uwSnapshot != null) {
+              provider.setUnderwritingMetadata(
+                caseId: underwritingCaseId,
+                exclusions: exclusions,
+                snapshot: uwSnapshot,
+              );
+            }
+
+            final stepStr = pending['currentStep']?.toString() ?? '';
+            final canGoPayment = provider.ownerDetails != null;
+            if (stepStr == 'payment' && canGoPayment) {
+              provider.goToStep(CheckoutStep.payment);
+            } else if (stepStr == 'ownerDetails' || stepStr == 'payment') {
+              provider.goToStep(CheckoutStep.ownerDetails);
+            }
+          } catch (e) {
+            print('⚠️ Error restoring pending checkout: $e');
+          }
+        }();
       } catch (e, stackTrace) {
         print('ERROR initializing checkout: $e');
         print('Stack trace: $stackTrace');
       }
     });
+  }
+
+  Map<String, dynamic> _buildCheckoutSnapshot(CheckoutProvider provider) {
+    return {
+      'pet': provider.pet?.toJson(),
+      'selectedPlan': provider.selectedPlan?.toJson(),
+      'ownerDetails': provider.ownerDetails?.toJson(),
+      'underwritingCaseId': provider.underwritingCaseId,
+      'exclusions': provider.exclusions.map((e) => e.toJson()).toList(growable: false),
+      'underwritingSnapshot': provider.underwritingSnapshot,
+      'currentStep': provider.currentStep.toString().split('.').last,
+      'savedAt': DateTime.now().toIso8601String(),
+    };
+  }
+
+  Future<void> _saveAndExitCheckout(BuildContext context) async {
+    final provider = context.read<CheckoutProvider>();
+
+    final snapshot = _buildCheckoutSnapshot(provider);
+    await UserSessionService().savePendingCheckout(snapshot);
+
+    // Save server draft so resume-by-code works.
+    final state = provider.currentStep == CheckoutStep.payment ? 'CHECKOUT_PAYMENT' : 'CHECKOUT_OWNER';
+    await DraftService().upsertCheckoutDraft(state: state, checkoutData: snapshot);
+
+    if (!context.mounted) return;
+    Navigator.pop(context, true);
+  }
+
+  Future<void> _copyResumeCodeToClipboard(BuildContext context) async {
+    try {
+      final draftService = DraftService();
+      final resumeKey = await draftService.getOrCreateLocalResumeKey();
+      await Clipboard.setData(
+        ClipboardData(text: draftService.encodeForSharing(resumeKey)),
+      );
+      if (!context.mounted) return;
+      final pretty = draftService.prettyCode(resumeKey);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Resume code copied: $pretty')),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to copy resume code')),
+      );
+    }
   }
   
   PlanType _getPlanTypeFromName(String name) {
@@ -246,7 +357,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               // Logo/Title
               Expanded(
                 child: Text(
-                  'PetUwrite',
+                  'Clovara',
                   style: ClovaraTypography.h2.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -537,7 +648,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ],
         ),
         content: Text(
-          'Your progress will be lost if you exit now. Are you sure you want to leave?',
+          'Save your progress and finish later, or exit without saving.',
           style: ClovaraTypography.body.copyWith(
             color: Colors.grey.shade700,
           ),
@@ -558,6 +669,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             child: const Text(
               'Stay',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+          TextButton(
+            onPressed: () => _copyResumeCodeToClipboard(context),
+            child: const Text(
+              'Copy resume code',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => _saveAndExitCheckout(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ClovaraColors.clover,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Save & exit',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),

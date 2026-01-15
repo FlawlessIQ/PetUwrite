@@ -87,7 +87,7 @@ if (kIsWeb) {
 Until web payments are implemented, users on web can:
 
 1. **Use TEST100 coupon** for testing (bypasses payment)
-2. **Contact support** via support@petuwrite.com
+2. **Contact support** via support@clovara.com
 3. **Use mobile app** for full payment functionality
 
 ## References

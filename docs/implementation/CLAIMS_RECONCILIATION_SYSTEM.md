@@ -135,7 +135,7 @@ firebase functions:config:set \
   stripe.secret_key="sk_live_..." \
   sendgrid.api_key="SG...." \
   slack.webhook_url="https://hooks.slack.com/services/..." \
-  admin.email="admin@petuwrite.com"
+  admin.email="admin@clovara.com"
 ```
 
 **Verify Config:**
@@ -650,7 +650,7 @@ For issues or questions:
 3. Check System Health widget for real-time status
 4. Review this documentation for troubleshooting steps
 
-**Emergency Contact:** admin@petuwrite.com
+**Emergency Contact:** admin@clovara.com
 
 ---
 

@@ -1,10 +1,10 @@
 # Platform Guide (Source of Truth)
 
-This folder is the authoritative, code-aligned documentation for PetUwrite.
+This folder is the authoritative, code-aligned documentation for Clovara.
 
 ## What this platform is
 
-PetUwrite is a Flutter + Firebase pet insurance platform with:
+Clovara is a Flutter + Firebase pet insurance platform with:
 
 - Customer quote intake and checkout
 - A compliant underwriting lane that is deterministic (rules decide; AI assists only)

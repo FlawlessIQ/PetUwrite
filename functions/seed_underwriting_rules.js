@@ -113,9 +113,21 @@ async function seedUnderwritingRules() {
       "chronic kidney disease",
     ],
     excludableConditions: [
+      // Orthopedic / musculoskeletal
+      "cruciate",
+      "cranial cruciate ligament",
+      "degenerative joint disease",
+      "djd",
+      "osteoarthritis",
       "allergies",
       "arthritis",
       "hip dysplasia",
+      "patellar luxation",
+      "luxating patella",
+      "elbow dysplasia",
+      // Spine
+      "intervertebral disc disease",
+      "ivdd",
       "skin conditions",
       "ear infections",
       "diabetes",
@@ -211,7 +223,7 @@ async function seedUnderwritingRules() {
 // Main execution
 async function main() {
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("  PetUwrite - Underwriting Rules Seeder");
+  console.log("  Clovara - Underwriting Rules Seeder");
   console.log("═══════════════════════════════════════════════════════════\n");
 
   initializeFirebase();

@@ -1,27 +1,10 @@
 #!/bin/bash
 
-# Deploy PetUwrite to Firebase Hosting with OpenAI API key enabled
-# This script builds the Flutter web app with the API key from .env and deploys it
+echo "🚀 Building Flutter web app..."
 
-echo "🚀 Building Flutter web app with OpenAI API key..."
-
-# Load API key from .env file
-if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
-else
-    echo "❌ Error: .env file not found"
-    exit 1
-fi
-
-if [ -z "$OPENAI_API_KEY" ]; then
-    echo "❌ Error: OPENAI_API_KEY not found in .env file"
-    exit 1
-fi
-
-echo "✅ API key loaded from .env"
-
-# Build with the API key as a compile-time constant
-flutter build web --release --dart-define=OPENAI_API_KEY=$OPENAI_API_KEY
+# IMPORTANT: API keys must NOT be injected into the web build.
+# All AI calls go through Firebase Functions, which read keys from Secret Manager.
+flutter build web --release
 
 if [ $? -eq 0 ]; then
     echo "✅ Build successful!"

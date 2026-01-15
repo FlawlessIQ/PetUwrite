@@ -73,10 +73,10 @@ To test the fix:
 7. ✅ The review screen should now load successfully showing pet and plan details
 
 ## Files Changed
-- `/Users/conorlawless/Development/PetUwrite/lib/models/pet.dart`
+- `/Users/conorlawless/Development/Clovara/lib/models/pet.dart`
   - Enhanced `Pet.fromJson` with robust type conversion and fallbacks
   
-- `/Users/conorlawless/Development/PetUwrite/lib/screens/checkout_screen.dart`
+- `/Users/conorlawless/Development/Clovara/lib/screens/checkout_screen.dart`
   - Updated `initState` to handle PlanData objects
   - Added `_getPlanTypeFromName` helper method
   - Improved error handling and logging

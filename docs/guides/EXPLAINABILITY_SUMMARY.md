@@ -2,7 +2,7 @@
 
 ## ✅ Implementation Complete
 
-The Explainable AI feature has been fully implemented and integrated into PetUwrite. This feature provides transparent, visual explanations of how the AI risk scoring engine arrives at its decisions.
+The Explainable AI feature has been fully implemented and integrated into Clovara. This feature provides transparent, visual explanations of how the AI risk scoring engine arrives at its decisions.
 
 ## 📦 Deliverables
 

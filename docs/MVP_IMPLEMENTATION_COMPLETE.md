@@ -203,7 +203,7 @@ Future<String> _createSubscription(...) async {
 7. Claims (filing, processing, denials, appeals)
 8. **AI and Automated Decision-Making** (transparency, limitations)
 9. Privacy and Data Protection (GDPR, CCPA compliance)
-10. Intellectual Property (PetUwrite owns platform, Pawla trademark)
+10. Intellectual Property (Clovara owns platform, Pawla trademark)
 11. Disclaimers and Limitations of Liability
 12. Dispute Resolution (arbitration, class action waiver)
 13. Governing Law
@@ -332,13 +332,13 @@ Future<String> _createSubscription(...) async {
 - Streamlined process for 20+ states
 
 ✅ Product Approval:
-- Carrier files policy forms and rates (not PetUwrite)
+- Carrier files policy forms and rates (not Clovara)
 - 30-90 day review per state
 - $100-$500 filing fee per state
 
 ✅ Alternative Model:
 **Technology Vendor Partnership**
-- PetUwrite provides platform only
+- Clovara provides platform only
 - Licensed carrier handles all insurance transactions
 - **Benefit**: No state-by-state licensing burden
 - **Recommended approach**: Partner with [INSERT CARRIER]

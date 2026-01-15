@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PetUwrite Logo Cropper
+Clovara Logo Cropper
 Removes text from logo image, keeping only the icon/paw portion
 """
 
@@ -9,7 +9,7 @@ import os
 
 def crop_logo_text(input_path, output_path):
     """
-    Crop the PetUwrite logo to remove text, keeping only the icon
+    Crop the Clovara logo to remove text, keeping only the icon
     
     Args:
         input_path: Path to the original logo with text
@@ -63,14 +63,14 @@ def crop_logo_text(input_path, output_path):
 
 def main():
     print("=" * 60)
-    print("  PetUwrite Logo Cropper")
+    print("  Clovara Logo Cropper")
     print("  Removes text, keeps icon only")
     print("=" * 60)
     print()
     
     # Paths
-    input_path = "assets/PetUwrite transparent.png"
-    output_path = "assets/PetUwrite icon only.png"
+    input_path = "assets/Clovara transparent.png"
+    output_path = "assets/Clovara icon only.png"
     
     # Check if input exists
     if not os.path.exists(input_path):
@@ -90,7 +90,7 @@ def main():
         print("✅ SUCCESS! Logo cropped successfully")
         print("=" * 60)
         print()
-        print("📁 Output file: assets/PetUwrite icon only.png")
+        print("📁 Output file: assets/Clovara icon only.png")
         print()
         print("🎯 Next steps:")
         print("   1. Check the cropped image")
@@ -98,7 +98,7 @@ def main():
         print("   3. Re-run the script with adjusted values")
         print()
         print("💡 To use in your app:")
-        print("   Image.asset('assets/PetUwrite icon only.png')")
+        print("   Image.asset('assets/Clovara icon only.png')")
     else:
         print()
         print("✗ Failed to crop logo")

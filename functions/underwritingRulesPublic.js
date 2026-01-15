@@ -40,7 +40,24 @@ function getDefaultRules() {
       "terminal cancer",
       "metastatic cancer",
     ],
-    excludableConditions: [],
+    // Conditions that should typically be excluded as pre-existing (conditional
+    // approval), not full declines.
+    excludableConditions: [
+      // Orthopedic
+      "cruciate",
+      "cranial cruciate ligament",
+      "degenerative joint disease",
+      "djd",
+      "arthritis",
+      "osteoarthritis",
+      "hip dysplasia",
+      "patellar luxation",
+      "luxating patella",
+      "elbow dysplasia",
+      // Spine
+      "intervertebral disc disease",
+      "ivdd",
+    ],
   };
 }
 
@@ -79,9 +96,10 @@ function sanitizeRules(rules) {
 
 exports.getUnderwritingRulesPublic = onCall(
   {
+    invoker: "public",
     maxInstances: 10,
     timeoutSeconds: 20,
-    memory: "128MiB",
+    memory: "256MiB",
   },
   async (request) => {
     try {

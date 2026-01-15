@@ -1,6 +1,6 @@
 # Pricing model review (current product)
 
-This document describes **how pricing is computed today** in the PetUwrite app, what inputs drive it, and which parts you can work on fully offline.
+This document describes **how pricing is computed today** in the Clovara app, what inputs drive it, and which parts you can work on fully offline.
 
 > Scope note: This is the **quote/premium model**, not claims decisioning. The premium calculation is currently implemented **client-side in Flutter** and is intentionally carrier-agnostic / simplified.
 

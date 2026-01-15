@@ -94,7 +94,7 @@ Future<void> _handleSignOut() async {
 
 1. Admin clicks **profile icon** (👤) in top-right corner
 2. Menu opens showing:
-   - Admin email address (e.g., "admin@petuwrite.com")
+   - Admin email address (e.g., "admin@clovara.com")
    - "Administrator" role label
    - Divider
    - "Sign Out" option with logout icon
@@ -148,7 +148,7 @@ Future<void> _handleSignOut() async {
 │                                                              │
 │  Menu when clicked:                                         │
 │  ┌──────────────────────────┐                              │
-│  │ admin@petuwrite.com      │                              │
+│  │ admin@clovara.com      │                              │
 │  │ Administrator            │                              │
 │  ├──────────────────────────┤                              │
 │  │ 🚪 Sign Out             │                              │

@@ -1,8 +1,8 @@
-# PetUwrite Platform - Complete Overview
+# Clovara Platform - Complete Overview
 
 ## 🎯 Platform Summary
 
-**PetUwrite** is an AI-powered pet insurance underwriting platform built with Flutter and Firebase that automates risk assessment for pet insurance applications using traditional actuarial methods combined with advanced AI analysis.
+**Clovara** is an AI-powered pet insurance underwriting platform built with Flutter and Firebase that automates risk assessment for pet insurance applications using traditional actuarial methods combined with advanced AI analysis.
 
 ---
 

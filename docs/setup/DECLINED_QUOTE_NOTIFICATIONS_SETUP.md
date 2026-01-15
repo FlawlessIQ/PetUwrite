@@ -30,7 +30,7 @@
 
 1. Go to: https://app.sendgrid.com/settings/api_keys
 2. Click **"Create API Key"**
-3. Name: "PetUwrite Notifications"
+3. Name: "Clovara Notifications"
 4. Permissions: **Mail Send** (Full Access)
 5. Copy API key (starts with `SG.`)
 
@@ -49,7 +49,7 @@ firebase functions:config:set slack.webhook_url="https://hooks.slack.com/service
 firebase functions:config:set sendgrid.api_key="SG.YOUR_SENDGRID_API_KEY"
 
 # Set notification email
-firebase functions:config:set sendgrid.notification_email="admin@petuwrite.com"
+firebase functions:config:set sendgrid.notification_email="admin@clovara.com"
 
 # View current config
 firebase functions:config:get
@@ -61,7 +61,7 @@ firebase functions:config:get
 # Create .env file in functions directory
 echo 'SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"' > .env
 echo 'SENDGRID_API_KEY="SG.YOUR_SENDGRID_API_KEY"' >> .env
-echo 'NOTIFICATION_EMAIL="admin@petuwrite.com"' >> .env
+echo 'NOTIFICATION_EMAIL="admin@clovara.com"' >> .env
 ```
 
 ---
@@ -140,7 +140,7 @@ Run the eligibility check in your app - it will automatically trigger when a quo
 - Look for message: "🚫 Quote Declined - Eligibility Check Failed"
 
 #### **Check Email** (if configured)
-- Check inbox for: admin@petuwrite.com
+- Check inbox for: admin@clovara.com
 - Subject: "🚫 Quote Declined: Test Dog - maxRiskScore"
 
 #### **Check Firebase Logs**
@@ -183,7 +183,7 @@ If neither is configured, the function will still run but skip notifications.
 firebase functions:config:set sendgrid.notification_email="other@example.com"
 
 # Add multiple recipients (comma-separated)
-firebase functions:config:set sendgrid.notification_email="admin@petuwrite.com,manager@petuwrite.com"
+firebase functions:config:set sendgrid.notification_email="admin@clovara.com,manager@clovara.com"
 ```
 
 ---
@@ -238,7 +238,7 @@ firebase functions:config:set sendgrid.notification_email="admin@petuwrite.com,m
 
 2. Check SendGrid dashboard for bounce/errors
 
-3. Verify sender domain (notifications@petuwrite.com)
+3. Verify sender domain (notifications@clovara.com)
 
 4. Check spam folder
 
@@ -333,7 +333,7 @@ firebase deploy --only functions:onQuoteDeclined
 |----------|----------|---------|---------|
 | `SLACK_WEBHOOK_URL` | No | - | `https://hooks.slack.com/...` |
 | `SENDGRID_API_KEY` | No | - | `SG.abc123...` |
-| `NOTIFICATION_EMAIL` | No | `admin@petuwrite.com` | `admin@petuwrite.com` |
+| `NOTIFICATION_EMAIL` | No | `admin@clovara.com` | `admin@clovara.com` |
 
 **Note:** At least one notification channel (Slack OR SendGrid) should be configured.
 
@@ -351,8 +351,8 @@ Modify `declinedQuoteNotifications.js`:
 
 ```javascript
 const recipients = [
-  { email: "admin@petuwrite.com", name: "Admin" },
-  { email: "underwriter@petuwrite.com", name: "Underwriter" },
+  { email: "admin@clovara.com", name: "Admin" },
+  { email: "underwriter@clovara.com", name: "Underwriter" },
 ];
 
 // In sendEmailNotification function

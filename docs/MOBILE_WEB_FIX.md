@@ -73,7 +73,7 @@ if (_messages.isEmpty && !_isTyping) {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         CircularProgressIndicator(
-          color: PetUwriteColors.kSecondaryTeal,
+          color: ClovaraColors.kSecondaryTeal,
         ),
         const SizedBox(height: 16),
         Text('Pawla is getting ready...'),
@@ -197,7 +197,7 @@ padding: EdgeInsets.symmetric(
 
 ### Image Optimization
 - Pawla avatar: PNG optimized
-- Fallback to lighter PetUwrite logo
+- Fallback to lighter Clovara logo
 - Tree-shaking reduces font sizes by 99%
 
 ### Loading Strategy

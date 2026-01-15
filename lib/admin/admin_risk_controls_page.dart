@@ -431,7 +431,7 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Quotes with risk scores above this threshold will be flagged for manual review.',
+          'Quotes with risk scores above this threshold will be flagged as needing more information.',
           style: ClovaraTypography.bodySmall.copyWith(
             color: ClovaraColors.forest.withOpacity(0.7),
           ),
@@ -628,7 +628,7 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
       icon: Icons.auto_awesome,
       children: [
         Text(
-          'Customize the system prompt sent to GPT-5.2 for risk analysis',
+          'Customize the system prompt sent to the AI model for risk analysis',
           style: ClovaraTypography.bodySmall.copyWith(
             color: ClovaraColors.forest.withOpacity(0.7),
           ),

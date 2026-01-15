@@ -20,7 +20,7 @@
 ### 📂 Directory Structure Created
 
 ```
-PetUwrite/
+Clovara/
 ├── fonts/
 │   ├── Poppins/
 │   │   ├── Poppins-Regular.ttf
@@ -33,8 +33,8 @@ PetUwrite/
 │       └── Inter-SemiBold.ttf
 └── build/
     └── flutter_assets/
-        ├── PetUwrite navy background.png
-        └── PetUwrite transparent.png
+        ├── Clovara navy background.png
+        └── Clovara transparent.png
 ```
 
 ## 📝 Files Updated
@@ -45,8 +45,8 @@ PetUwrite/
 ```yaml
 assets:
   - .env
-  - build/flutter_assets/PetUwrite navy background.png
-  - build/flutter_assets/PetUwrite transparent.png
+  - build/flutter_assets/Clovara navy background.png
+  - build/flutter_assets/Clovara transparent.png
 ```
 
 **Fonts Section:**
@@ -71,15 +71,15 @@ fonts:
         weight: 600
 ```
 
-### lib/theme/petuwrite_theme.dart
+### lib/theme/clovara_theme.dart
 
 **Asset Paths Updated:**
 ```dart
-class PetUwriteAssets {
-  static const String logoNavyBackground = 'build/flutter_assets/PetUwrite navy background.png';
-  static const String logoTransparent = 'build/flutter_assets/PetUwrite transparent.png';
+class ClovaraAssets {
+  static const String logoNavyBackground = 'build/flutter_assets/Clovara navy background.png';
+  static const String logoTransparent = 'build/flutter_assets/Clovara transparent.png';
   
-  static const String appName = 'PetUwrite';
+  static const String appName = 'Clovara';
   static const String tagline = 'Trust powered by intelligence';
   static const String copyright = '© 2025 FlawlessIQ LLC';
 }
@@ -115,10 +115,10 @@ Check that you see:
 The logos should now be accessible via:
 ```dart
 // Navy background logo (for splash, login)
-Image.asset(PetUwriteAssets.logoNavyBackground)
+Image.asset(ClovaraAssets.logoNavyBackground)
 
 // Transparent logo (for app bars)
-Image.asset(PetUwriteAssets.logoTransparent)
+Image.asset(ClovaraAssets.logoTransparent)
 ```
 
 ## 🔍 Troubleshooting
@@ -162,8 +162,8 @@ The core branding system is now fully functional with custom fonts and logo asse
 ### Headings (Poppins)
 ```dart
 Text(
-  'Welcome to PetUwrite',
-  style: PetUwriteTypography.h1, // or h2, h3, h4
+  'Welcome to Clovara',
+  style: ClovaraTypography.h1, // or h2, h3, h4
 )
 ```
 
@@ -171,7 +171,7 @@ Text(
 ```dart
 Text(
   'Your pet insurance quote',
-  style: PetUwriteTypography.bodyLarge, // or bodyMedium, bodySmall
+  style: ClovaraTypography.bodyLarge, // or bodyMedium, bodySmall
 )
 ```
 
@@ -192,4 +192,4 @@ Text(
 
 **Installation completed successfully! 🎉**
 
-All fonts and asset paths are now configured and ready to use in the PetUwrite app.
+All fonts and asset paths are now configured and ready to use in the Clovara app.

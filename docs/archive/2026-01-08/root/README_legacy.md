@@ -1,4 +1,4 @@
-# 🐾 PetUwrite AI# PetUwrite - AI-Powered Pet Insurance Platform# Pet Underwriter AI
+# 🐾 Clovara AI# Clovara - AI-Powered Pet Insurance Platform# Pet Underwriter AI
 
 
 
@@ -16,7 +16,7 @@
 
 ![Status](https://img.shields.io/badge/status-active-success)## Project Structure
 
-PetUwrite transforms the pet insurance experience with AI-powered underwriting, real-time claims processing, and an empathetic user interface featuring **Pawla**, your AI assistant.
+Clovara transforms the pet insurance experience with AI-powered underwriting, real-time claims processing, and an empathetic user interface featuring **Pawla**, your AI assistant.
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.x-blue)
 
@@ -28,7 +28,7 @@ PetUwrite transforms the pet insurance experience with AI-powered underwriting, 
 
 lib/
 
-PetUwrite is a comprehensive pet insurance platform that combines cutting-edge AI technology with human-centered design to make pet insurance simple, transparent, and fair.
+Clovara is a comprehensive pet insurance platform that combines cutting-edge AI technology with human-centered design to make pet insurance simple, transparent, and fair.
 
 ---├── screens/           # UI screens
 
@@ -46,7 +46,7 @@ PetUwrite is a comprehensive pet insurance platform that combines cutting-edge A
 
 - **🔍 Complete Transparency** - Factor analysis showing exactly why AI made each decision
 
-- **📱 Cross-Platform** - Works on web, iOS, Android, and desktopPetUwrite is a modern pet insurance platform that leverages AI to provide:│   ├── checkout_screen.dart
+- **📱 Cross-Platform** - Works on web, iOS, Android, and desktopClovara is a modern pet insurance platform that leverages AI to provide:│   ├── checkout_screen.dart
 
 
 
@@ -214,7 +214,7 @@ PetUwrite is a comprehensive pet insurance platform that combines cutting-edge A
 
 - Provider for state management
 
-   cd PetUwrite### Models
+   cd Clovara### Models
 
 **Backend:**
 
@@ -244,7 +244,7 @@ PetUwrite is a comprehensive pet insurance platform that combines cutting-edge A
 
 ```   ```### Services
 
-PetUwrite/
+Clovara/
 
 ├── lib/- **FirebaseService**: Firebase integration for data persistence
 
@@ -306,7 +306,7 @@ PetUwrite/
 
 │   └── theme/
 
-│       └── petuwrite_theme.dart   firebase deploy --only firestore:rules,firestore:indexes- Flutter SDK (>= 3.8.0)
+│       └── clovara_theme.dart   firebase deploy --only firestore:rules,firestore:indexes- Flutter SDK (>= 3.8.0)
 
 ├── functions/                 # Cloud Functions
 
@@ -372,9 +372,9 @@ PetUwrite/
 
    ```bash3. Configure AI Services
 
-   git clone https://github.com/FlawlessIQ/PetUwrite.git
+   git clone https://github.com/FlawlessIQ/Clovara.git
 
-   cd PetUwrite### Essential Guides   - Add API keys for GPT or Vertex AI
+   cd Clovara### Essential Guides   - Add API keys for GPT or Vertex AI
 
    ```
 
@@ -468,7 +468,7 @@ firebase functions:config:set \- [Ineligible Quotes Management](docs/admin/ADMIN
 
   sendgrid.from_email="analytics@yourdomain.com" \- [Override Eligibility Guide](docs/admin/ADMIN_OVERRIDE_ELIGIBILITY_GUIDE.md)- [ ] Add tests
 
-  sendgrid.from_name="PetUwrite Analytics"
+  sendgrid.from_name="Clovara Analytics"
 
 ```- [ ] Implement claims flow
 
@@ -502,7 +502,7 @@ STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 - **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Cheat sheet for integration```
 
-- **[ROADMAP.md](ROADMAP.md)** - Feature roadmap and prioritiesPetUwrite/
+- **[ROADMAP.md](ROADMAP.md)** - Feature roadmap and prioritiesClovara/
 
 ├── lib/
 
@@ -552,7 +552,7 @@ STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 
 
-PetUwrite is built on the principle that insurance claims are stressful for pet owners. Our emotional intelligence system:Required in `.env` file:
+Clovara is built on the principle that insurance claims are stressful for pet owners. Our emotional intelligence system:Required in `.env` file:
 
 
 
@@ -774,7 +774,7 @@ We welcome contributions! Please see our contributing guidelines:```
 
 - **Frontend:** Flutter 3.x (Web, iOS, Android)
 
-Email security concerns to: security@petuwrite.com- **Backend:** Firebase (Auth, Firestore, Functions)
+Email security concerns to: security@clovara.com- **Backend:** Firebase (Auth, Firestore, Functions)
 
 - **AI:** OpenAI GPT-4
 
@@ -798,7 +798,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Conversational quote flow with AI avatar
 
-Built with ❤️ by the PetUwrite team- Risk scoring engine with explainability
+Built with ❤️ by the Clovara team- Risk scoring engine with explainability
 
 - Admin dashboard (4 tabs)
 
@@ -836,9 +836,9 @@ Built with ❤️ by the PetUwrite team- Risk scoring engine with explainability
 
 - **Documentation**: [docs/](docs/)1. Create a feature branch
 
-- **Issues**: [GitHub Issues](https://github.com/FlawlessIQ/PetUwrite/issues)2. Make your changes
+- **Issues**: [GitHub Issues](https://github.com/FlawlessIQ/Clovara/issues)2. Make your changes
 
-- **Email**: support@petuwrite.com3. Test thoroughly
+- **Email**: support@clovara.com3. Test thoroughly
 
 4. Submit a pull request
 

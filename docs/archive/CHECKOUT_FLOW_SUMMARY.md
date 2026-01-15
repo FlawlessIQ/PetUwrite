@@ -94,7 +94,7 @@ cloud_functions: ^5.0.0  ✅ NEW
 
 Flutter app:
 ```bash
-cd /Users/conorlawless/Development/PetUwrite
+cd /Users/conorlawless/Development/Clovara
 flutter pub get
 ```
 

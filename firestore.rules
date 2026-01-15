@@ -117,6 +117,16 @@ service cloud.firestore {
           allow delete: if false;
         }
     }
+
+    // Drafts (save & revisit) - owned by the authenticated uid.
+    // NOTE: Resume via code/link is handled via Cloud Functions (resolveDraft),
+    // which returns a custom token for the owning uid.
+    match /drafts/{draftId} {
+      allow create: if isAuthenticated() && request.resource.data.ownerUid == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
+    }
     
     // Policies collection - users can access their own policies, admins can access all
     match /policies/{policyId} {
@@ -173,7 +183,9 @@ service cloud.firestore {
 
     // Product catalog switches should be admin-only.
     match /admin_settings/product_catalog {
-      allow read: if isAdmin();
+      // Public read is required for unauthenticated quote flows; writes remain
+      // admin-only.
+      allow read: if true;
       allow write: if isAdmin();
     }
     

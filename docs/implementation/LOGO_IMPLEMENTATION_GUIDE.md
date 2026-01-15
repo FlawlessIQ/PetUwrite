@@ -10,7 +10,7 @@
 │    ┌───────────────────────┐       │
 │    │  ┌───────────────┐    │       │
 │    │  │               │    │       │ ← Subtle glow container
-│    │  │   [PetUwrite  │    │       │
+│    │  │   [Clovara  │    │       │
 │    │  │     LOGO]     │    │       │ ← 140px height
 │    │  │               │    │       │
 │    │  └───────────────┘    │       │
@@ -37,7 +37,7 @@
 ## 🖼️ Logo Assets
 
 ### Primary Logo: Navy Background
-**File:** `assets/PetUwrite navy background.png`
+**File:** `assets/Clovara navy background.png`
 
 **Used For:**
 - Login screen (large, 140px)
@@ -53,14 +53,14 @@
 **Implementation:**
 ```dart
 Image.asset(
-  'assets/PetUwrite navy background.png',
+  'assets/Clovara navy background.png',
   height: 140, // or 50 for header
   fit: BoxFit.contain,
 )
 ```
 
 ### Fallback Logo: Transparent
-**File:** `assets/petuwrite_logo_transparent.svg`
+**File:** `assets/clovara_logo_transparent.svg`
 
 **Used For:**
 - Fallback if PNG fails to load
@@ -76,7 +76,7 @@ Image.asset(
 ```dart
 errorBuilder: (context, error, stackTrace) {
   return Image.asset(
-    'assets/petuwrite_logo_transparent.svg',
+    'assets/clovara_logo_transparent.svg',
     height: 140,
     fit: BoxFit.contain,
   );
@@ -96,14 +96,14 @@ Container(
     borderRadius: BorderRadius.circular(24),   // Rounded corners
     boxShadow: [
       BoxShadow(
-        color: PetUwriteColors.kSecondaryTeal.withOpacity(0.2),
+        color: ClovaraColors.kSecondaryTeal.withOpacity(0.2),
         blurRadius: 30,     // Soft glow
         spreadRadius: 5,    // Spread the glow
       ),
     ],
   ),
   child: Image.asset(
-    'assets/PetUwrite navy background.png',
+    'assets/Clovara navy background.png',
     height: 140,
     fit: BoxFit.contain,
   ),
@@ -126,7 +126,7 @@ Container(
     borderRadius: BorderRadius.circular(12),   // Rounded corners
   ),
   child: Image.asset(
-    'assets/PetUwrite navy background.png',
+    'assets/Clovara navy background.png',
     fit: BoxFit.contain,
   ),
 )

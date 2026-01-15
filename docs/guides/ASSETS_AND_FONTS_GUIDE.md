@@ -7,8 +7,8 @@ flutter:
   
   assets:
     - .env
-    - flutter_assets/PetUwrite navy background.png
-    - flutter_assets/PetUwrite transparent.png
+    - flutter_assets/Clovara navy background.png
+    - flutter_assets/Clovara transparent.png
     # Add more assets as needed
 ```
 
@@ -70,8 +70,8 @@ https://fonts.google.com/specimen/Nunito+Sans
 ```
 your_project/
 ├── flutter_assets/
-│   ├── PetUwrite navy background.png
-│   └── PetUwrite transparent.png
+│   ├── Clovara navy background.png
+│   └── Clovara transparent.png
 ├── fonts/
 │   ├── Poppins/
 │   │   ├── Poppins-Regular.ttf
@@ -87,7 +87,7 @@ your_project/
 │       └── NunitoSans-SemiBold.ttf
 ├── lib/
 │   └── theme/
-│       └── petuwrite_theme.dart
+│       └── clovara_theme.dart
 └── pubspec.yaml
 ```
 
@@ -113,15 +113,15 @@ flutter run
 
 ## Logo Specifications
 
-### PetUwrite Navy Background
-- **File:** `flutter_assets/PetUwrite navy background.png`
+### Clovara Navy Background
+- **File:** `flutter_assets/Clovara navy background.png`
 - **Use:** Splash screen, login, onboarding, marketing
 - **Background:** Navy blue (#0A2647)
 - **Logo:** Full color with text
 - **Recommended size:** 512x512px or 1024x1024px
 
-### PetUwrite Transparent
-- **File:** `flutter_assets/PetUwrite transparent.png`
+### Clovara Transparent
+- **File:** `flutter_assets/Clovara transparent.png`
 - **Use:** App bars, overlays, light backgrounds
 - **Background:** Transparent PNG
 - **Logo:** Full color with text
@@ -132,7 +132,7 @@ flutter run
 ### Navy Background Logo (Full Screen)
 ```dart
 Image.asset(
-  PetUwriteAssets.logoNavyBackground,
+  ClovaraAssets.logoNavyBackground,
   width: 200,
   height: 200,
 )
@@ -141,7 +141,7 @@ Image.asset(
 ### Transparent Logo (App Bar)
 ```dart
 Image.asset(
-  PetUwriteAssets.logoTransparent,
+  ClovaraAssets.logoTransparent,
   width: 120,
   height: 40,
   fit: BoxFit.contain,
@@ -155,7 +155,7 @@ Container(
   height: 80,
   width: 80,
   decoration: BoxDecoration(
-    gradient: PetUwriteColors.brandGradient,
+    gradient: ClovaraColors.brandGradient,
     borderRadius: BorderRadius.circular(16),
   ),
   child: Icon(

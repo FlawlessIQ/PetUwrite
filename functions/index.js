@@ -19,6 +19,9 @@ admin.initializeApp();
 const pdfExtraction = require("./pdfExtraction");
 const pdfExtractionAlerts = require("./pdfExtractionAlerts");
 
+// Import image extraction functions
+const imageExtraction = require("./imageExtraction");
+
 // Import policy email functions
 // const policyEmails = require("./policyEmails"); // Temporarily disabled due to nodemailer issue
 
@@ -488,6 +491,9 @@ async function handleSubscriptionDeleted(subscription) {
 // Export PDF extraction functions
 exports.extractPdfText = pdfExtraction.extractPdfText;
 
+// Export image extraction functions
+exports.extractImageText = imageExtraction.extractImageText;
+
 // Export policy email functions
 // Temporarily disabled due to nodemailer issue
 // exports.sendPolicyEmail = policyEmails.sendPolicyEmail;
@@ -628,3 +634,9 @@ exports.getUnderwritingRulesPublic =
 const productCatalogPublic = require("./productCatalogPublic");
 exports.getProductCatalogPublic =
   productCatalogPublic.getProductCatalogPublic;
+
+// Export draft save/resume (anonymous auth + resume key)
+const drafts = require("./drafts");
+exports.upsertDraft = drafts.upsertDraft;
+exports.resolveDraft = drafts.resolveDraft;
+exports.clearDraft = drafts.clearDraft;

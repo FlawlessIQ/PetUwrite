@@ -1,7 +1,7 @@
 # Checkout Screen Redesign - COMPLETE ✅
 
 ## Overview
-Completely redesigned the Checkout Screen to match the modern Navy/Teal PetUwrite brand with a cleaner, more streamlined interface. The new design features a minimalist header, animated progress indicators, and a cohesive visual hierarchy.
+Completely redesigned the Checkout Screen to match the modern Navy/Teal Clovara brand with a cleaner, more streamlined interface. The new design features a minimalist header, animated progress indicators, and a cohesive visual hierarchy.
 
 ---
 
@@ -19,7 +19,7 @@ Completely redesigned the Checkout Screen to match the modern Navy/Teal PetUwrit
 #### Layout Structure
 ```
 ┌─────────────────────────────────────────┐
-│  ← PetUwrite                        ✕   │  ← Navy Header
+│  ← Clovara                        ✕   │  ← Navy Header
 │                                          │
 │        Review Your Quote                │  ← Current Step
 ├─────────────────────────────────────────┤
@@ -50,7 +50,7 @@ Container(
     // Top bar with back, logo, close
     Row([
       IconButton(back),
-      "PetUwrite" (centered, H2, bold),
+      "Clovara" (centered, H2, bold),
       IconButton(close),
     ]),
     
@@ -64,7 +64,7 @@ Container(
 
 ### Features
 - **Clean layout**: Back button left, close button right
-- **Centered branding**: "PetUwrite" in large white text
+- **Centered branding**: "Clovara" in large white text
 - **Step name**: Teal colored subtitle below
 - **No logo image**: Text-only for simplicity
 - **Equal spacing**: Buttons constrained to same size
@@ -344,11 +344,11 @@ AnimatedContainer(
 
 ## Theme Integration
 
-### PetUwrite Colors Used
+### Clovara Colors Used
 ```dart
-PetUwriteColors.kPrimaryNavy        // Header background
-PetUwriteColors.kSecondaryTeal      // Active steps, progress
-PetUwriteColors.kSuccessMint        // (Removed - using teal only)
+ClovaraColors.kPrimaryNavy        // Header background
+ClovaraColors.kSecondaryTeal      // Active steps, progress
+ClovaraColors.kSuccessMint        // (Removed - using teal only)
 Colors.grey.shade50                 // Content background
 Colors.grey.shade200                // Inactive progress
 Colors.red.shade50/700              // Error states
@@ -357,9 +357,9 @@ Colors.orange.shade100/700          // Warning (exit dialog)
 
 ### Typography
 ```dart
-PetUwriteTypography.h2              // "PetUwrite" logo
-PetUwriteTypography.h3              // Step names, dialog titles
-PetUwriteTypography.bodyLarge       // Dialog body, step labels
+ClovaraTypography.h2              // "Clovara" logo
+ClovaraTypography.h3              // Step names, dialog titles
+ClovaraTypography.bodyLarge       // Dialog body, step labels
 ```
 
 ---
@@ -480,7 +480,7 @@ WillPopScope(
 
 ### Brand Consistency
 1. ✅ **Navy/Teal theme**: Matches rest of app
-2. ✅ **Typography**: Uses PetUwriteTypography
+2. ✅ **Typography**: Uses ClovaraTypography
 3. ✅ **Rounded corners**: 12-20px throughout
 4. ✅ **Subtle shadows**: Teal glow effects
 5. ✅ **Professional polish**: Premium insurance feel
@@ -560,7 +560,7 @@ WillPopScope(
 
 ## Summary
 
-The Checkout Screen has been completely redesigned with a modern, clean interface that perfectly matches the Navy/Teal PetUwrite brand. Key improvements include:
+The Checkout Screen has been completely redesigned with a modern, clean interface that perfectly matches the Navy/Teal Clovara brand. Key improvements include:
 
 - **Minimalist header** with centered text branding
 - **Segmented progress bar** for clearer step visualization

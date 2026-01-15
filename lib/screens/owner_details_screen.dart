@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/checkout_state.dart';
+import '../services/draft_service.dart';
 import '../services/user_session_service.dart';
 
 /// Step 2: Owner details form with e-sign consent
@@ -30,7 +32,106 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    _loadPendingCheckout();
     _loadUserProfile();
+  }
+
+  Future<void> _loadPendingCheckout() async {
+    try {
+      final pending = await UserSessionService().getPendingCheckout();
+      final owner = pending?['ownerDetails'];
+      if (owner is! Map) return;
+
+      if (!mounted) return;
+      setState(() {
+        final data = owner.cast<String, dynamic>();
+        _firstNameController.text = (data['firstName'] ?? '').toString();
+        _lastNameController.text = (data['lastName'] ?? '').toString();
+        _emailController.text = (data['email'] ?? '').toString();
+        _phoneController.text = (data['phone'] ?? '').toString();
+        _addressLine1Controller.text = (data['addressLine1'] ?? '').toString();
+        _addressLine2Controller.text = (data['addressLine2'] ?? '').toString();
+        _cityController.text = (data['city'] ?? '').toString();
+        _stateController.text = (data['state'] ?? '').toString();
+        _zipCodeController.text = (data['zipCode'] ?? '').toString();
+        _hasESignConsent = data['hasESignConsent'] == true;
+        _hasPrivacyConsent = data['hasPrivacyConsent'] == true;
+      });
+    } catch (e) {
+      print('⚠️ Error loading pending checkout: $e');
+    }
+  }
+
+  Map<String, dynamic> _buildOwnerDraft() {
+    return {
+      'firstName': _firstNameController.text.trim(),
+      'lastName': _lastNameController.text.trim(),
+      'email': _emailController.text.trim(),
+      'phone': _phoneController.text.trim(),
+      'addressLine1': _addressLine1Controller.text.trim(),
+      'addressLine2': _addressLine2Controller.text.trim(),
+      'city': _cityController.text.trim(),
+      'state': _stateController.text.trim(),
+      'zipCode': _zipCodeController.text.trim(),
+      'hasESignConsent': _hasESignConsent,
+      'hasPrivacyConsent': _hasPrivacyConsent,
+      'savedAt': DateTime.now().toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> _buildCheckoutSnapshot(CheckoutProvider provider) {
+    return {
+      'pet': provider.pet?.toJson(),
+      'selectedPlan': provider.selectedPlan?.toJson(),
+      'ownerDetails': _buildOwnerDraft(),
+      'underwritingCaseId': provider.underwritingCaseId,
+      'exclusions': provider.exclusions.map((e) => e.toJson()).toList(growable: false),
+      'underwritingSnapshot': provider.underwritingSnapshot,
+      'currentStep': 'ownerDetails',
+      'savedAt': DateTime.now().toIso8601String(),
+    };
+  }
+
+  Future<void> _saveAndFinishLater(BuildContext context) async {
+    final provider = context.read<CheckoutProvider>();
+    final snapshot = _buildCheckoutSnapshot(provider);
+
+    await UserSessionService().savePendingCheckout(snapshot);
+    await DraftService().upsertCheckoutDraft(
+      state: 'CHECKOUT_OWNER',
+      checkoutData: snapshot,
+    );
+
+    if (!mounted) return;
+    final resumeKey = await DraftService().getOrCreateLocalResumeKey();
+    final pretty = DraftService().prettyCode(resumeKey);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved. Resume code: $pretty')),
+    );
+
+    if (!context.mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+  }
+
+  Future<void> _copyResumeCodeToClipboard() async {
+    try {
+      final draftService = DraftService();
+      final resumeKey = await draftService.getOrCreateLocalResumeKey();
+      await Clipboard.setData(
+        ClipboardData(text: draftService.encodeForSharing(resumeKey)),
+      );
+
+      if (!mounted) return;
+      final pretty = draftService.prettyCode(resumeKey);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Resume code copied: $pretty')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to copy resume code')),
+      );
+    }
   }
   
   /// Load user profile and pre-populate form fields
@@ -125,6 +226,25 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SizedBox.shrink(),
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => _saveAndFinishLater(context),
+                      child: const Text('Save & finish later'),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: _copyResumeCodeToClipboard,
+                      child: const Text('Copy resume code'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
             const Text(
               'Owner Information',
               style: TextStyle(
@@ -478,7 +598,7 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
     );
   }
 
-  void _handleContinue(BuildContext context) {
+  Future<void> _handleContinue(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
       if (!_hasESignConsent) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -519,6 +639,32 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
 
       context.read<CheckoutProvider>().setOwnerDetails(ownerDetails);
       context.read<CheckoutProvider>().nextStep();
+
+      // Persist draft at step transition so resume-by-code works even if the
+      // user closes on the payment step.
+      try {
+        final provider = context.read<CheckoutProvider>();
+        final snapshot = {
+          'pet': provider.pet?.toJson(),
+          'selectedPlan': provider.selectedPlan?.toJson(),
+          'ownerDetails': {
+            ...ownerDetails.toJson(),
+            'hasPrivacyConsent': _hasPrivacyConsent,
+          },
+          'underwritingCaseId': provider.underwritingCaseId,
+          'exclusions': provider.exclusions.map((e) => e.toJson()).toList(growable: false),
+          'underwritingSnapshot': provider.underwritingSnapshot,
+          'currentStep': 'payment',
+          'savedAt': DateTime.now().toIso8601String(),
+        };
+        await UserSessionService().savePendingCheckout(snapshot);
+        await DraftService().upsertCheckoutDraft(
+          state: 'CHECKOUT_PAYMENT',
+          checkoutData: snapshot,
+        );
+      } catch (e) {
+        print('⚠️ Unable to persist checkout draft on continue: $e');
+      }
     }
   }
 

@@ -2,7 +2,7 @@
 
 ## 🎯 Executive Summary
 
-PetUwrite is an AI-powered pet insurance underwriting platform that uses a hybrid approach combining **traditional actuarial scoring** with **GPT-4o AI analysis** to assess risk and generate personalized quotes. The system has **7 AI decision points** throughout the customer journey and includes human override capabilities for high-risk cases.
+Clovara is an AI-powered pet insurance underwriting platform that uses a hybrid approach combining **traditional actuarial scoring** with **GPT-4o AI analysis** to assess risk and generate personalized quotes. The system has **7 AI decision points** throughout the customer journey and includes human override capabilities for high-risk cases.
 
 ---
 
@@ -621,7 +621,7 @@ When OpenAI API is unavailable:
 
 ## 📝 Summary
 
-**PetUwrite's AI underwriting system is a sophisticated 7-point decision architecture:**
+**Clovara's AI underwriting system is a sophisticated 7-point decision architecture:**
 
 1. ✅ **Real-time input correction** (GPT-4o-mini)
 2. ✅ **Intelligent breed recognition** (GPT-4o-mini)

@@ -1,8 +1,8 @@
-# PetUwrite UI Overhaul Summary
+# Clovara UI Overhaul Summary
 
 ## Complete Transformation Overview
 
-This document summarizes the comprehensive UI redesign across the PetUwrite pet insurance quote flow, transforming the user experience from traditional form-based interactions to a modern, conversational chatbot interface.
+This document summarizes the comprehensive UI redesign across the Clovara pet insurance quote flow, transforming the user experience from traditional form-based interactions to a modern, conversational chatbot interface.
 
 ---
 
@@ -516,7 +516,7 @@ Elevated: rgba(color,0.15) blur 16px
 
 ## 🙏 Thank You Note
 
-This UI overhaul represents a comprehensive transformation of the PetUwrite user experience. Every pixel has been considered, every animation tuned, and every interaction refined to create a cohesive, modern, and delightful journey from quote inquiry through plan selection.
+This UI overhaul represents a comprehensive transformation of the Clovara user experience. Every pixel has been considered, every animation tuned, and every interaction refined to create a cohesive, modern, and delightful journey from quote inquiry through plan selection.
 
 The chatbot interface makes insurance feel approachable and conversational, while the refined carousel presents plan options with clarity and elegance. Together, they form a user experience that respects the user's time, reduces cognitive load, and guides them confidently toward the best coverage for their beloved pets.
 

@@ -2,7 +2,7 @@
 
 ## 🚀 What Was Built
 
-Complete claims analytics and ML retraining preparation system for PetUwrite.
+Complete claims analytics and ML retraining preparation system for Clovara.
 
 ---
 

@@ -166,7 +166,7 @@ Internationalization: intl ^0.19.0
 
 ```bash
 # Navigate to project
-cd /Users/conorlawless/Development/PetUwrite
+cd /Users/conorlawless/Development/Clovara
 
 # Get dependencies (already done)
 flutter pub get

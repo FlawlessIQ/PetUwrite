@@ -1,9 +1,9 @@
-# 🎨 PetUwrite Branding Implementation Guide
+# 🎨 Clovara Branding Implementation Guide
 
 ## ✅ Completed
 
 ### 1. Theme Configuration Created
-**File:** `lib/theme/petuwrite_theme.dart`
+**File:** `lib/theme/clovara_theme.dart`
 
 **What's included:**
 - ✅ Complete color palette (Navy, Teal, Sky, Mint, Coral)
@@ -19,8 +19,8 @@
 **File:** `lib/main.dart`
 
 **Changes:**
-- ✅ Imported PetUwrite theme
-- ✅ Updated app title to "PetUwrite"
+- ✅ Imported Clovara theme
+- ✅ Updated app title to "Clovara"
 - ✅ Applied light and dark themes
 - ✅ All screens now inherit brand colors automatically
 
@@ -30,7 +30,7 @@
 **New features:**
 - ✅ Dark gradient background (Navy to Dark)
 - ✅ White card with logo placeholder
-- ✅ PetUwrite branding and tagline
+- ✅ Clovara branding and tagline
 - ✅ Teal/Sky color scheme
 - ✅ Rounded corners (12px)
 - ✅ Copyright footer
@@ -79,8 +79,8 @@ LinearGradient(
 
 ### Logo Assets
 ```dart
-logoNavyBackground  = 'flutter_assets/PetUwrite navy background.png'
-logoTransparent     = 'flutter_assets/PetUwrite transparent.png'
+logoNavyBackground  = 'flutter_assets/Clovara navy background.png'
+logoTransparent     = 'flutter_assets/Clovara transparent.png'
 ```
 
 **Usage:**
@@ -103,14 +103,14 @@ logoTransparent     = 'flutter_assets/PetUwrite transparent.png'
 ```dart
 ElevatedButton(
   style: ElevatedButton.styleFrom(
-    backgroundColor: PetUwriteColors.kSecondaryTeal,
+    backgroundColor: ClovaraColors.kSecondaryTeal,
     foregroundColor: Colors.white,
     padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
     ),
   ),
-  child: Text('Button Text', style: PetUwriteTypography.button),
+  child: Text('Button Text', style: ClovaraTypography.button),
 )
 ```
 
@@ -118,14 +118,14 @@ ElevatedButton(
 ```dart
 OutlinedButton(
   style: OutlinedButton.styleFrom(
-    foregroundColor: PetUwriteColors.kSecondaryTeal,
-    side: BorderSide(color: PetUwriteColors.kSecondaryTeal, width: 2),
+    foregroundColor: ClovaraColors.kSecondaryTeal,
+    side: BorderSide(color: ClovaraColors.kSecondaryTeal, width: 2),
     padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
     ),
   ),
-  child: Text('Button Text', style: PetUwriteTypography.button),
+  child: Text('Button Text', style: ClovaraTypography.button),
 )
 ```
 
@@ -151,7 +151,7 @@ BrandGradientCard(
   padding: EdgeInsets.all(20),
   child: Column(
     children: [
-      Text('Title', style: PetUwriteTypography.h3.copyWith(color: Colors.white)),
+      Text('Title', style: ClovaraTypography.h3.copyWith(color: Colors.white)),
       // More content
     ],
   ),
@@ -165,13 +165,13 @@ BrandGradientCard(
 TextFormField(
   decoration: InputDecoration(
     labelText: 'Email',
-    prefixIcon: Icon(Icons.email_outlined, color: PetUwriteColors.kSecondaryTeal),
+    prefixIcon: Icon(Icons.email_outlined, color: ClovaraColors.kSecondaryTeal),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: PetUwriteColors.kSecondaryTeal, width: 2),
+      borderSide: BorderSide(color: ClovaraColors.kSecondaryTeal, width: 2),
     ),
   ),
 )
@@ -183,13 +183,13 @@ TextFormField(
   style: TextStyle(color: Colors.white),
   decoration: InputDecoration(
     labelText: 'Email',
-    labelStyle: TextStyle(color: PetUwriteColors.kAccentSky),
-    prefixIcon: Icon(Icons.email_outlined, color: PetUwriteColors.kSecondaryTeal),
+    labelStyle: TextStyle(color: ClovaraColors.kAccentSky),
+    prefixIcon: Icon(Icons.email_outlined, color: ClovaraColors.kSecondaryTeal),
     filled: true,
-    fillColor: PetUwriteColors.kPrimaryNavy.withOpacity(0.5),
+    fillColor: ClovaraColors.kPrimaryNavy.withOpacity(0.5),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: PetUwriteColors.kSecondaryTeal),
+      borderSide: BorderSide(color: ClovaraColors.kSecondaryTeal),
     ),
   ),
 )
@@ -200,9 +200,9 @@ TextFormField(
 #### Light Theme
 ```dart
 AppBar(
-  backgroundColor: PetUwriteColors.kPrimaryNavy,
+  backgroundColor: ClovaraColors.kPrimaryNavy,
   foregroundColor: Colors.white,
-  title: Text('Title', style: PetUwriteTypography.h3.copyWith(color: Colors.white)),
+  title: Text('Title', style: ClovaraTypography.h3.copyWith(color: Colors.white)),
   leading: Icon(Icons.arrow_back, color: Colors.white),
 )
 ```
@@ -223,7 +223,7 @@ BrandGradientBackground(
 ```dart
 Container(
   decoration: BoxDecoration(
-    gradient: PetUwriteColors.darkGradient,
+    gradient: ClovaraColors.darkGradient,
   ),
   child: // Your content
 )
@@ -246,7 +246,7 @@ Container(
 **Screenshot description:**
 - Navy-to-dark gradient background
 - Centered white card with logo
-- "PetUwrite" in navy, "Trust powered by intelligence" in teal
+- "Clovara" in navy, "Trust powered by intelligence" in teal
 - Form fields with teal accents
 - Teal "Sign In" button, Sky "Create Account" button
 
@@ -257,8 +257,8 @@ Container(
 1. Update AppBar:
    ```dart
    AppBar(
-     backgroundColor: PetUwriteColors.kPrimaryNavy,
-     title: Text('Get a Quote', style: PetUwriteTypography.h3.copyWith(color: Colors.white)),
+     backgroundColor: ClovaraColors.kPrimaryNavy,
+     title: Text('Get a Quote', style: ClovaraTypography.h3.copyWith(color: Colors.white)),
      leading: // Transparent logo image
    )
    ```
@@ -276,14 +276,14 @@ Container(
    ```dart
    Container(
      decoration: BoxDecoration(
-       gradient: PetUwriteColors.brandGradient,
+       gradient: ClovaraColors.brandGradient,
        borderRadius: BorderRadius.circular(16),
      ),
    )
    ```
 3. Update "Most Popular" badge to mint color
 4. Change button colors to teal
-5. Update typography to PetUwrite styles
+5. Update typography to Clovara styles
 
 ### 🔲 Customer Home Screen (`lib/auth/customer_home_screen.dart`)
 **Status:** Needs update
@@ -292,7 +292,7 @@ Container(
 1. Update AppBar:
    ```dart
    AppBar(
-     backgroundColor: PetUwriteColors.kPrimaryNavy,
+     backgroundColor: ClovaraColors.kPrimaryNavy,
      title: // Transparent logo
      actions: // Account menu
    )
@@ -364,8 +364,8 @@ Container(
 ### Logo Files Needed
 ```
 flutter_assets/
-├── PetUwrite navy background.png     # For splash, login, onboarding
-└── PetUwrite transparent.png         # For app bars, overlays
+├── Clovara navy background.png     # For splash, login, onboarding
+└── Clovara transparent.png         # For app bars, overlays
 ```
 
 **Recommended sizes:**
@@ -400,8 +400,8 @@ fonts/
 flutter:
   assets:
     - .env
-    - flutter_assets/PetUwrite navy background.png
-    - flutter_assets/PetUwrite transparent.png
+    - flutter_assets/Clovara navy background.png
+    - flutter_assets/Clovara transparent.png
 ```
 
 ### Fonts Section
@@ -472,13 +472,13 @@ flutter:
 
 ### Import Statement
 ```dart
-import 'package:pet_underwriter_ai/theme/petuwrite_theme.dart';
+import 'package:pet_underwriter_ai/theme/clovara_theme.dart';
 ```
 
 ### Using Theme Colors
 ```dart
 // In a widget
-color: PetUwriteColors.kSecondaryTeal
+color: ClovaraColors.kSecondaryTeal
 
 // From theme
 color: Theme.of(context).colorScheme.primary  // Navy
@@ -487,29 +487,29 @@ color: Theme.of(context).colorScheme.secondary  // Teal
 
 ### Using Typography
 ```dart
-Text('Heading', style: PetUwriteTypography.h2)
-Text('Body', style: PetUwriteTypography.body)
-Text('Button', style: PetUwriteTypography.button)
+Text('Heading', style: ClovaraTypography.h2)
+Text('Body', style: ClovaraTypography.body)
+Text('Button', style: ClovaraTypography.button)
 ```
 
 ### Using Assets
 ```dart
-Image.asset(PetUwriteAssets.logoNavyBackground)
-Image.asset(PetUwriteAssets.logoTransparent)
+Image.asset(ClovaraAssets.logoNavyBackground)
+Image.asset(ClovaraAssets.logoTransparent)
 ```
 
 ### Brand Elements
 ```dart
-PetUwriteAssets.appName    // "PetUwrite"
-PetUwriteAssets.tagline    // "Trust powered by intelligence"
-PetUwriteAssets.copyright  // "© 2025 FlawlessIQ LLC"
+ClovaraAssets.appName    // "Clovara"
+ClovaraAssets.tagline    // "Trust powered by intelligence"
+ClovaraAssets.copyright  // "© 2025 FlawlessIQ LLC"
 ```
 
 ---
 
 ## 🎨 Design Philosophy
 
-**PetUwrite Brand Values:**
+**Clovara Brand Values:**
 1. **Trust** - Deep navy blue conveys stability and reliability
 2. **Intelligence** - Teal accent represents AI-powered innovation
 3. **Care** - Soft sky tones show empathy and support
@@ -554,7 +554,7 @@ PetUwriteAssets.copyright  // "© 2025 FlawlessIQ LLC"
 
 For questions or issues with branding:
 1. Review this guide
-2. Check `lib/theme/petuwrite_theme.dart`
+2. Check `lib/theme/clovara_theme.dart`
 3. Refer to component examples above
 
 **Status:** Theme created, main app updated, login screen partially updated

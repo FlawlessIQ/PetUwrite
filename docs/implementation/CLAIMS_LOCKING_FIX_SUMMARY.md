@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-This document summarizes the implementation of transactional integrity, locking mechanisms, and idempotency controls for the PetUwrite claims processing pipeline. All **3 critical production blockers** identified in the audit report have been resolved.
+This document summarizes the implementation of transactional integrity, locking mechanisms, and idempotency controls for the Clovara claims processing pipeline. All **3 critical production blockers** identified in the audit report have been resolved.
 
 ### ✅ Completed Fixes
 

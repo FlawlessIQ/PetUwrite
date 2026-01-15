@@ -2,7 +2,7 @@
 
 ## 🎉 What Was Done
 
-Successfully restructured the PetUwrite app to support an **unauthenticated quote flow** with authentication only required at checkout.
+Successfully restructured the Clovara app to support an **unauthenticated quote flow** with authentication only required at checkout.
 
 ---
 
@@ -234,7 +234,7 @@ flutter analyze lib/main.dart lib/screens/quote_flow_screen.dart \
 
 ### 1. Run the App
 ```bash
-cd /Users/conorlawross/Development/PetUwrite
+cd /Users/conorlawross/Development/Clovara
 flutter run
 ```
 

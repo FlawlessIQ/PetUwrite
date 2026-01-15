@@ -2418,8 +2418,8 @@ class _IneligibleQuoteDetailsViewState
                     )
                   : const Icon(Icons.rate_review),
               label: Text(_isUpdating
-                  ? 'Requesting Review...'
-                  : 'Request Manual Review'),
+                  ? 'Requesting More Info...'
+                  : 'Request More Info'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: ClovaraColors.clover,

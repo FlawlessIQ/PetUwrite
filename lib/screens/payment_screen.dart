@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/checkout_state.dart';
+import '../services/draft_service.dart';
+import '../services/quote_engine.dart';
 import '../services/stripe_service.dart';
+import '../services/user_session_service.dart';
 
 /// Step 3: Payment screen with Stripe integration
 class PaymentScreen extends StatefulWidget {
@@ -36,6 +40,106 @@ class _PaymentScreenState extends State<PaymentScreen> {
   
   // Stripe card field controller
   stripe.CardFieldInputDetails? _cardFieldDetails;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPendingCheckoutPaymentState();
+  }
+
+  Future<void> _loadPendingCheckoutPaymentState() async {
+    try {
+      final pending = await UserSessionService().getPendingCheckout();
+      final payment = pending?['payment'];
+      if (payment is! Map) return;
+
+      final data = payment.cast<String, dynamic>();
+      final coupon = (data['couponCode'] ?? '').toString();
+      final discount = data['discountAmount'];
+
+      if (!mounted) return;
+      setState(() {
+        if (coupon.trim().isNotEmpty) {
+          _couponController.text = coupon.trim();
+          _appliedCouponCode = coupon.trim().toUpperCase();
+          _isCouponApplied = data['isCouponApplied'] == true;
+        }
+        _discountAmount = (discount is num) ? discount.toDouble() : _discountAmount;
+        _bypassPayment = data['bypassPayment'] == true;
+        _exclusionsAcknowledged = data['exclusionsAcknowledged'] == true;
+      });
+    } catch (e) {
+      print('⚠️ Error loading pending payment state: $e');
+    }
+  }
+
+  Map<String, dynamic> _buildPaymentDraft(CheckoutProvider provider, plan) {
+    return {
+      'couponCode': _appliedCouponCode,
+      'isCouponApplied': _isCouponApplied,
+      'discountAmount': _discountAmount,
+      'bypassPayment': _bypassPayment,
+      'exclusionsAcknowledged': _exclusionsAcknowledged,
+      'exclusionsKey': _exclusionsKey,
+      'planAmount': (plan is Plan) ? plan.monthlyPremium : null,
+      'savedAt': DateTime.now().toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> _buildCheckoutSnapshot(CheckoutProvider provider, plan) {
+    return {
+      'pet': provider.pet?.toJson(),
+      'selectedPlan': provider.selectedPlan?.toJson(),
+      'ownerDetails': provider.ownerDetails?.toJson(),
+      'underwritingCaseId': provider.underwritingCaseId,
+      'exclusions': provider.exclusions.map((e) => e.toJson()).toList(growable: false),
+      'underwritingSnapshot': provider.underwritingSnapshot,
+      'currentStep': 'payment',
+      'payment': _buildPaymentDraft(provider, plan),
+      'savedAt': DateTime.now().toIso8601String(),
+    };
+  }
+
+  Future<void> _saveAndFinishLater(BuildContext context, CheckoutProvider provider, plan) async {
+    final snapshot = _buildCheckoutSnapshot(provider, plan);
+
+    await UserSessionService().savePendingCheckout(snapshot);
+    await DraftService().upsertCheckoutDraft(
+      state: 'CHECKOUT_PAYMENT',
+      checkoutData: snapshot,
+    );
+
+    if (!mounted) return;
+    final resumeKey = await DraftService().getOrCreateLocalResumeKey();
+    final pretty = DraftService().prettyCode(resumeKey);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved. Resume code: $pretty')),
+    );
+
+    if (!context.mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+  }
+
+  Future<void> _copyResumeCodeToClipboard() async {
+    try {
+      final draftService = DraftService();
+      final resumeKey = await draftService.getOrCreateLocalResumeKey();
+      await Clipboard.setData(
+        ClipboardData(text: draftService.encodeForSharing(resumeKey)),
+      );
+
+      if (!mounted) return;
+      final pretty = draftService.prettyCode(resumeKey);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Resume code copied: $pretty')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to copy resume code')),
+      );
+    }
+  }
 
   String _computeExclusionsKey(List exclusions) {
     final names = exclusions
@@ -204,6 +308,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    TextButton(
+                      onPressed: () => _saveAndFinishLater(context, provider, plan),
+                      child: const Text('Save & finish later'),
+                    ),
+                    TextButton(
+                      onPressed: _copyResumeCodeToClipboard,
+                      child: const Text('Copy resume code'),
+                    ),
+                  ],
+                ),
+              ),
               const Text(
                 'Payment',
                 style: TextStyle(
@@ -465,7 +585,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Payment processing on web is currently in development. Please use the mobile app or contact support@petuwrite.com to complete your purchase.',
+                        'Payment processing on web is currently in development. Please use the mobile app or contact support@clovara.com to complete your purchase.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
@@ -478,7 +598,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           // Copy email to clipboard or open email client
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Email: support@petuwrite.com'),
+                              content: Text('Email: support@clovara.com'),
                               duration: Duration(seconds: 3),
                             ),
                           );

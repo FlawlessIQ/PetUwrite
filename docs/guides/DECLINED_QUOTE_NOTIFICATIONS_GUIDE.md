@@ -100,7 +100,7 @@ Admin receives notification
 
 **Configuration:**
 - Set environment variable: `SENDGRID_API_KEY`
-- Set environment variable: `NOTIFICATION_EMAIL` (default: admin@petuwrite.com)
+- Set environment variable: `NOTIFICATION_EMAIL` (default: admin@clovara.com)
 - Get API key from SendGrid: https://sendgrid.com/
 
 **Email Format:**
@@ -159,12 +159,12 @@ firebase functions:config:set slack.webhook_url="https://hooks.slack.com/service
 
 # SendGrid (optional)
 firebase functions:config:set sendgrid.api_key="SG.YOUR_API_KEY"
-firebase functions:config:set sendgrid.notification_email="admin@petuwrite.com"
+firebase functions:config:set sendgrid.notification_email="admin@clovara.com"
 
 # Or set in .env file (local development)
 SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
 SENDGRID_API_KEY="SG.YOUR_API_KEY"
-NOTIFICATION_EMAIL="admin@petuwrite.com"
+NOTIFICATION_EMAIL="admin@clovara.com"
 ```
 
 ### **Access Variables in Code**
@@ -292,7 +292,7 @@ function generateEmailHtml(quoteData, quoteId, eligibility, pet, owner, riskScor
 
 ```html
 <div class="header">
-  <img src="https://petuwrite.com/logo.png" alt="PetUwrite" width="200"/>
+  <img src="https://clovara.com/logo.png" alt="Clovara" width="200"/>
   <h1>Quote Declined</h1>
 </div>
 ```
@@ -648,7 +648,7 @@ firebase functions:config:set \
 # SendGrid
 firebase functions:config:set \
   sendgrid.api_key="YOUR_SENDGRID_API_KEY" \
-  sendgrid.notification_email="admin@petuwrite.com"
+  sendgrid.notification_email="admin@clovara.com"
 ```
 
 ### **3. Deploy**
@@ -697,7 +697,7 @@ firebase functions:list
 **Environment Variables:**
 - `SLACK_WEBHOOK_URL` - Slack incoming webhook
 - `SENDGRID_API_KEY` - SendGrid API key
-- `NOTIFICATION_EMAIL` - Email recipient (default: admin@petuwrite.com)
+- `NOTIFICATION_EMAIL` - Email recipient (default: admin@clovara.com)
 
 **Files:**
 - `functions/declinedQuoteNotifications.js` - Main notification logic

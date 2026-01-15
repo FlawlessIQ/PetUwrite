@@ -1,12 +1,12 @@
-# 🎨 PetUwrite Branding Update - Implementation Summary
+# 🎨 Clovara Branding Update - Implementation Summary
 
 ## ✅ COMPLETED
 
 ### 1. **Theme System Created** ✓
-**File:** `lib/theme/petuwrite_theme.dart`
+**File:** `lib/theme/clovara_theme.dart`
 
 **What was created:**
-- ✅ **PetUwriteColors** class with complete color palette
+- ✅ **ClovaraColors** class with complete color palette
   - Primary Navy (#0A2647)
   - Secondary Teal (#00C2CB)
   - Accent Sky (#A8E6E8)
@@ -15,14 +15,14 @@
   - Background colors (light and dark)
   - Text colors
   
-- ✅ **PetUwriteTypography** class with font styles
+- ✅ **ClovaraTypography** class with font styles
   - Poppins for headings (h1-h4)
   - Inter for body text
   - Button styles
   - Caption and label styles
   - Tagline style
   
-- ✅ **PetUwriteTheme** class with complete themes
+- ✅ **ClovaraTheme** class with complete themes
   - Light theme configuration
   - Dark theme configuration (for admin)
   - Button styles (rounded 12px)
@@ -40,9 +40,9 @@
   - BrandGradientBackground
   - BrandGradientCard
   
-- ✅ **PetUwriteAssets** class
+- ✅ **ClovaraAssets** class
   - Logo paths defined
-  - App name: "PetUwrite"
+  - App name: "Clovara"
   - Tagline: "Trust powered by intelligence"
   - Copyright: "© 2025 FlawlessIQ LLC"
 
@@ -50,23 +50,23 @@
 **File:** `lib/main.dart`
 
 **Changes:**
-- ✅ Imported `petuwrite_theme.dart`
-- ✅ Updated app title to `PetUwriteAssets.appName`
-- ✅ Applied `PetUwriteTheme.lightTheme`
-- ✅ Applied `PetUwriteTheme.darkTheme`
+- ✅ Imported `clovara_theme.dart`
+- ✅ Updated app title to `ClovaraAssets.appName`
+- ✅ Applied `ClovaraTheme.lightTheme`
+- ✅ Applied `ClovaraTheme.darkTheme`
 - ✅ Set theme mode to light by default
 
-**Result:** All screens now automatically inherit the PetUwrite brand colors, typography, and component styles!
+**Result:** All screens now automatically inherit the Clovara brand colors, typography, and component styles!
 
 ### 3. **Login Screen Updated** ✓
 **File:** `lib/auth/login_screen.dart`
 
 **Changes:**
-- ✅ Imported PetUwrite theme
+- ✅ Imported Clovara theme
 - ✅ Added dark gradient background (Navy → Dark)
 - ✅ Created white card for logo and branding
 - ✅ Added logo placeholder with teal gradient
-- ✅ Updated to display "PetUwrite" and tagline
+- ✅ Updated to display "Clovara" and tagline
 - ✅ Styled form fields with teal accents
 - ✅ Updated buttons with brand colors
 - ✅ Added copyright footer
@@ -135,8 +135,8 @@ Because we updated the theme in `main.dart`, these screens already have partial 
 
 **What's needed:**
 1. Logo files:
-   - `flutter_assets/PetUwrite navy background.png`
-   - `flutter_assets/PetUwrite transparent.png`
+   - `flutter_assets/Clovara navy background.png`
+   - `flutter_assets/Clovara transparent.png`
    
 2. Font files:
    - Poppins (Regular, Medium, SemiBold, Bold)
@@ -176,17 +176,17 @@ Because we updated the theme in `main.dart`, these screens already have partial 
 
 #### Import the theme
 ```dart
-import 'package:pet_underwriter_ai/theme/petuwrite_theme.dart';
+import 'package:pet_underwriter_ai/theme/clovara_theme.dart';
 ```
 
 #### Use colors
 ```dart
 // Direct color access
 Container(
-  color: PetUwriteColors.kSecondaryTeal,
+  color: ClovaraColors.kSecondaryTeal,
   child: Text(
     'Hello',
-    style: TextStyle(color: PetUwriteColors.kTextLight),
+    style: TextStyle(color: ClovaraColors.kTextLight),
   ),
 )
 
@@ -204,12 +204,12 @@ Container(
 ```dart
 Text(
   'Heading',
-  style: PetUwriteTypography.h2,
+  style: ClovaraTypography.h2,
 )
 
 Text(
   'Body text',
-  style: PetUwriteTypography.body,
+  style: ClovaraTypography.body,
 )
 
 // Or from theme
@@ -237,7 +237,7 @@ BrandGradientCard(
     children: [
       Text(
         'Premium Plan',
-        style: PetUwriteTypography.h3.copyWith(color: Colors.white),
+        style: ClovaraTypography.h3.copyWith(color: Colors.white),
       ),
       // More content
     ],
@@ -249,18 +249,18 @@ BrandGradientCard(
 ```dart
 // Display logo (when asset is added)
 Image.asset(
-  PetUwriteAssets.logoTransparent,
+  ClovaraAssets.logoTransparent,
   width: 120,
 )
 
 // Show app name
-Text(PetUwriteAssets.appName)  // "PetUwrite"
+Text(ClovaraAssets.appName)  // "Clovara"
 
 // Show tagline
-Text(PetUwriteAssets.tagline)  // "Trust powered by intelligence"
+Text(ClovaraAssets.tagline)  // "Trust powered by intelligence"
 
 // Show copyright
-Text(PetUwriteAssets.copyright)  // "© 2025 FlawlessIQ LLC"
+Text(ClovaraAssets.copyright)  // "© 2025 FlawlessIQ LLC"
 ```
 
 ---
@@ -282,7 +282,7 @@ flutter run
 #### 2. Login Screen
 - ✅ Dark gradient background (Navy → Dark)
 - ✅ White logo card with shadow
-- ✅ "PetUwrite" title in navy
+- ✅ "Clovara" title in navy
 - ✅ "Trust powered by intelligence" in teal
 - ✅ Teal "Sign In" button
 - ✅ Sky "Create Account" button
@@ -374,26 +374,26 @@ flutter run
 - **This Summary:** `BRANDING_SUMMARY.md`
 
 ### Code Files
-- **Theme:** `lib/theme/petuwrite_theme.dart`
+- **Theme:** `lib/theme/clovara_theme.dart`
 - **Main App:** `lib/main.dart`
 - **Login Screen:** `lib/auth/login_screen.dart`
 
 ### Quick Reference
 
 **Colors:**
-- Primary: `PetUwriteColors.kPrimaryNavy` (#0A2647)
-- Secondary: `PetUwriteColors.kSecondaryTeal` (#00C2CB)
-- Accent: `PetUwriteColors.kAccentSky` (#A8E6E8)
+- Primary: `ClovaraColors.kPrimaryNavy` (#0A2647)
+- Secondary: `ClovaraColors.kSecondaryTeal` (#00C2CB)
+- Accent: `ClovaraColors.kAccentSky` (#A8E6E8)
 
 **Typography:**
-- Headings: `PetUwriteTypography.h1` through `h4`
-- Body: `PetUwriteTypography.body`
-- Buttons: `PetUwriteTypography.button`
+- Headings: `ClovaraTypography.h1` through `h4`
+- Body: `ClovaraTypography.body`
+- Buttons: `ClovaraTypography.button`
 
 **Branding:**
-- App Name: `PetUwriteAssets.appName`
-- Tagline: `PetUwriteAssets.tagline`
-- Copyright: `PetUwriteAssets.copyright`
+- App Name: `ClovaraAssets.appName`
+- Tagline: `ClovaraAssets.tagline`
+- Copyright: `ClovaraAssets.copyright`
 
 ---
 
@@ -401,7 +401,7 @@ flutter run
 
 ### What's Working Now
 ✅ **Complete theme system** with all brand colors  
-✅ **Main app** using PetUwrite theme  
+✅ **Main app** using Clovara theme  
 ✅ **Login screen** fully branded  
 ✅ **All screens** automatically get brand colors through theme  
 ✅ **Comprehensive documentation** for future updates  

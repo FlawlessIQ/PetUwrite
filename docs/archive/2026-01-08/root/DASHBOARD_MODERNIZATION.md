@@ -1,4 +1,4 @@
-# PetUwrite Dashboard Modernization
+# Clovara Dashboard Modernization
 
 **Date:** October 14, 2025  
 **Status:** ✅ Complete
@@ -11,7 +11,7 @@ Complete redesign of the `CustomerHomeScreen` with world-class UI/UX, inspired b
 
 ### Visual Aesthetic
 - **Glassmorphism Effects**: Frosted glass cards with backdrop blur for depth
-- **Premium Gradients**: Smooth color transitions using PetUwrite brand palette
+- **Premium Gradients**: Smooth color transitions using Clovara brand palette
 - **Rounded Corners**: Consistent 16-24px border radius across all components
 - **Elevated Shadows**: Subtle multi-layer shadows for card depth
 - **Background Pattern**: Low-opacity paw print watermark for personality
@@ -207,10 +207,10 @@ class _PawPrintPainter extends CustomPainter {
 ### Colors
 ```dart
 Primary Navy:    #0E203E
-Secondary Teal:  PetUwriteColors.kSecondaryTeal
-Success Mint:    PetUwriteColors.kSuccessMint
-Accent Sky:      PetUwriteColors.kAccentSky
-Warm Coral:      PetUwriteColors.kWarmCoral
+Secondary Teal:  ClovaraColors.kSecondaryTeal
+Success Mint:    ClovaraColors.kSuccessMint
+Accent Sky:      ClovaraColors.kAccentSky
+Warm Coral:      ClovaraColors.kWarmCoral
 Premium Gold:    Colors.amber[400] → amber[700]
 ```
 
@@ -434,4 +434,4 @@ TweenAnimationBuilder<double>(
 
 ---
 
-*PetUwrite Dashboard Modernization completed October 14, 2025*
+*Clovara Dashboard Modernization completed October 14, 2025*

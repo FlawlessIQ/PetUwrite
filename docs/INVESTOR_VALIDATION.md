@@ -1,8 +1,8 @@
-# PetUwrite – Technical Validation Extract (for Investors)
+# Clovara – Technical Validation Extract (for Investors)
 
 **Validation Date:** October 13, 2025  
 **Validator:** GitHub Copilot Code Analysis  
-**Repository:** FlawlessIQ/PetUwrite (main branch)  
+**Repository:** FlawlessIQ/Clovara (main branch)  
 **Purpose:** Seed investor due diligence - code-verified evidence
 
 ---
@@ -465,7 +465,7 @@ async function sendAnalyticsEmail(recipientEmail, csvData) {
   await sgMail.send({
     to: recipientEmail,
     from: functions.config().sendgrid.from_email,
-    subject: 'PetUwrite Claims Analytics Report',
+    subject: 'Clovara Claims Analytics Report',
     html: _generateEmailTemplate(csvData),
     attachments: [{filename: 'analytics.csv', content: csvData}],
   });
@@ -482,7 +482,7 @@ async function sendAnalyticsEmail(recipientEmail, csvData) {
 # Firebase Functions config (verified in code comments)
 firebase functions:config:set \
   sendgrid.api_key="YOUR_KEY" \
-  sendgrid.from_email="noreply@petuwrite.com"
+  sendgrid.from_email="noreply@clovara.com"
 ```
 
 ---
@@ -564,7 +564,7 @@ Status:
 android {
     compileSdk = 34
     defaultConfig {
-        applicationId = "com.petuwrite.app"
+        applicationId = "com.clovara.app"
         minSdk = 21
         targetSdk = 34
         versionCode = 1
@@ -1109,11 +1109,11 @@ By Module:
 **Logo Files:**
 ```
 assets/
-├── PetUwrite icon only.png              ✅ App icon (transparent)
-├── PetUwrite navy background.png        ✅ Logo with background
-├── PetUwrite transparent.png            ✅ Full logo (transparent)
-├── petuwrite_logo_navy.svg              ✅ SVG version (navy)
-└── petuwrite_logo_transparent.svg       ✅ SVG version (transparent)
+├── Clovara icon only.png              ✅ App icon (transparent)
+├── Clovara navy background.png        ✅ Logo with background
+├── Clovara transparent.png            ✅ Full logo (transparent)
+├── clovara_logo_navy.svg              ✅ SVG version (navy)
+└── clovara_logo_transparent.svg       ✅ SVG version (transparent)
 ```
 
 **Screenshots:**

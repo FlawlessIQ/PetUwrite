@@ -6,9 +6,9 @@
 
 ## 1. General Insurance Disclaimer
 
-**IMPORTANT: PetUwrite is NOT an insurance company.**
+**IMPORTANT: Clovara is NOT an insurance company.**
 
-PetUwrite is a technology platform that provides:
+Clovara is a technology platform that provides:
 - Insurance quote generation and comparison
 - AI-powered risk assessment
 - Policy management tools
@@ -20,13 +20,13 @@ PetUwrite is a technology platform that provides:
 [INSERT CARRIER LICENSE NUMBERS BY STATE]  
 [INSERT CARRIER CONTACT INFORMATION]
 
-All insurance coverage, terms, conditions, exclusions, and limitations are determined by the insurance carrier, not by PetUwrite.
+All insurance coverage, terms, conditions, exclusions, and limitations are determined by the insurance carrier, not by Clovara.
 
 ---
 
 ## 2. No Insurance License
 
-PetUwrite is not licensed as an insurance company and does not:
+Clovara is not licensed as an insurance company and does not:
 - Underwrite insurance policies
 - Issue insurance certificates
 - Make final coverage determinations
@@ -40,7 +40,7 @@ We act as a **technology service provider** facilitating connections between pet
 ## 3. Quote Disclaimer
 
 ### 3.1 Quotes Are Estimates
-- Quotes provided by PetUwrite are **estimates only**
+- Quotes provided by Clovara are **estimates only**
 - Final premium amounts are subject to underwriting approval by the licensed insurance carrier
 - Actual premiums may differ from quoted amounts based on additional underwriting review
 - Quotes do not guarantee coverage approval
@@ -157,14 +157,14 @@ Certain breeds may have **additional exclusions**:
 
 ## 8. No Guarantee of Coverage
 
-**PetUwrite makes no guarantees regarding:**
+**Clovara makes no guarantees regarding:**
 - Approval of coverage applications
 - Approval of claims
 - Continuation of coverage (policies may be non-renewed)
 - Premium amounts (premiums may increase at renewal)
 - Coverage terms (terms may change at renewal)
 
-All insurance decisions are made by the licensed insurance carrier, not by PetUwrite.
+All insurance decisions are made by the licensed insurance carrier, not by Clovara.
 
 ---
 
@@ -213,20 +213,20 @@ All insurance decisions are made by the licensed insurance carrier, not by PetUw
 
 ## 11. Medical and Veterinary Disclaimer
 
-**PetUwrite is not a veterinary medical service.**
+**Clovara is not a veterinary medical service.**
 
 ### 11.1 Not Medical Advice
 - Information on the platform is for **educational and insurance purposes only**
-- Do not rely on PetUwrite for medical diagnosis or treatment recommendations
+- Do not rely on Clovara for medical diagnosis or treatment recommendations
 - Always consult a licensed veterinarian for pet health concerns
 
 ### 11.2 Emergency Care
 - **In case of emergency, contact your veterinarian or emergency vet clinic immediately**
-- Do not delay treatment to submit a claim or contact PetUwrite
-- PetUwrite cannot provide emergency veterinary services
+- Do not delay treatment to submit a claim or contact Clovara
+- Clovara cannot provide emergency veterinary services
 
 ### 11.3 No Veterinarian-Client-Patient Relationship
-- Using PetUwrite does not create a veterinarian-client-patient relationship
+- Using Clovara does not create a veterinarian-client-patient relationship
 - Our AI assistant "Pawla" is not a licensed veterinarian
 - AI-generated information is not a substitute for professional veterinary care
 
@@ -234,7 +234,7 @@ All insurance decisions are made by the licensed insurance carrier, not by PetUw
 
 ## 12. Third-Party Links and Recommendations
 
-- PetUwrite may provide links to third-party websites (veterinary clinics, pet care resources)
+- Clovara may provide links to third-party websites (veterinary clinics, pet care resources)
 - We do not endorse, guarantee, or assume responsibility for third-party content
 - Review third-party terms and privacy policies before engaging with their services
 - Veterinarian recommendations (if provided) are not endorsements of quality or competence
@@ -246,7 +246,7 @@ All insurance decisions are made by the licensed insurance carrier, not by PetUw
 **This section is for potential investors:**
 
 ### 13.1 No Investment Advice
-- Information about PetUwrite's business, financials, or growth is not investment advice
+- Information about Clovara's business, financials, or growth is not investment advice
 - Consult a financial advisor before making investment decisions
 - Past performance does not guarantee future results
 
@@ -267,14 +267,14 @@ All insurance decisions are made by the licensed insurance carrier, not by PetUw
 ### 14.2 Data Accuracy
 - While we strive for accuracy, errors may occur in quotes, risk scores, or policy information
 - Always verify information with the licensed insurance carrier
-- Report errors to support@petuwrite.com
+- Report errors to support@clovara.com
 
 ---
 
 ## 15. Limitation of Liability
 
 **To the maximum extent permitted by law:**
-- PetUwrite is not liable for any indirect, incidental, or consequential damages
+- Clovara is not liable for any indirect, incidental, or consequential damages
 - Our total liability is limited to the premiums you paid in the past 12 months
 - We are not liable for decisions made by insurance carriers (coverage denials, claim rejections)
 - We are not liable for veterinary malpractice or pet health outcomes
@@ -283,7 +283,7 @@ All insurance decisions are made by the licensed insurance carrier, not by PetUw
 
 ## 16. Regulatory Compliance
 
-PetUwrite complies with:
+Clovara complies with:
 - **Insurance Regulations**: State insurance codes and regulations
 - **Data Protection**: GDPR, CCPA, VCDPA, and other privacy laws
 - **Consumer Protection**: FTC guidelines, state consumer protection laws
@@ -295,11 +295,11 @@ PetUwrite complies with:
 ## 17. Contact Information
 
 ### 17.1 General Inquiries
-Email: support@petuwrite.com  
+Email: support@clovara.com  
 Phone: [INSERT PHONE NUMBER]
 
 ### 17.2 Legal and Compliance
-Email: legal@petuwrite.com  
+Email: legal@clovara.com  
 Address: [INSERT PHYSICAL ADDRESS]
 
 ### 17.3 Insurance Carrier Contact
@@ -309,7 +309,7 @@ Website: [INSERT CARRIER WEBSITE]
 
 ---
 
-**By using PetUwrite, you acknowledge that you have read and understood these disclaimers.**
+**By using Clovara, you acknowledge that you have read and understood these disclaimers.**
 
 **Last Updated:** [INSERT DATE]  
 **Version:** 1.0

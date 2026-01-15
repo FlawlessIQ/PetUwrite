@@ -1,4 +1,4 @@
-# PetUwrite Homepage - Visual Design Specification
+# Clovara Homepage - Visual Design Specification
 
 ## 🎨 Layout Structure
 
@@ -11,12 +11,12 @@
 │                                                            │
 │              ┌─────────────────────┐                       │
 │              │                     │                       │
-│              │   PetUwrite Logo    │  ← Large (280-400px)  │
+│              │   Clovara Logo    │  ← Large (280-400px)  │
 │              │   (Transparent PNG) │                       │
 │              │                     │                       │
 │              └─────────────────────┘                       │
 │                                                            │
-│                   PetUwrite                                │
+│                   Clovara                                │
 │              (Large white text, 36-48px)                   │
 │                                                            │
 │         "Trust powered by intelligence"                    │
@@ -59,7 +59,7 @@
 ```
 Main Background: #0A2647 (Navy)
 - Solid color for consistency and performance
-- Alternative: Could use assets/PetUwrite navy background.png
+- Alternative: Could use assets/Clovara navy background.png
 ```
 
 ### Action Cards
@@ -286,7 +286,7 @@ All text meets WCAG 2.1 standards
 ✅ **Trust:** Navy background conveys professionalism  
 ✅ **Intelligence:** Clean modern layout shows sophistication  
 ✅ **Clarity:** Clear action cards guide user journey  
-✅ **Brand:** Uses PetUwrite colors and typography consistently  
+✅ **Brand:** Uses Clovara colors and typography consistently  
 ✅ **Accessibility:** High contrast, clear focus states  
 ✅ **Responsive:** Works perfectly on mobile and desktop  
 ✅ **Performance:** Fast loading with optimized assets  
@@ -325,7 +325,7 @@ All text meets WCAG 2.1 standards
 
 ---
 
-**Design System:** PetUwrite Brand Guidelines  
+**Design System:** Clovara Brand Guidelines  
 **Framework:** Flutter Material 3  
 **Status:** ✅ Implemented  
 **Last Updated:** October 10, 2025

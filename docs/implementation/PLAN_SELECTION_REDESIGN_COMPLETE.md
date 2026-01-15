@@ -1,7 +1,7 @@
 # Plan Selection Screen Redesign - COMPLETE ✅
 
 ## Overview
-Completely redesigned the Plan Selection Screen to match the PetUwrite brand with a stunning carousel interface. The new design features a swipeable card carousel with smooth transitions, prominent branding in Navy/Teal colors, and an intuitive user experience.
+Completely redesigned the Plan Selection Screen to match the Clovara brand with a stunning carousel interface. The new design features a swipeable card carousel with smooth transitions, prominent branding in Navy/Teal colors, and an intuitive user experience.
 
 ---
 
@@ -297,19 +297,19 @@ else if (isPopular)
 
 ## Theme Integration
 
-### PetUwrite Colors Used
+### Clovara Colors Used
 ```dart
-PetUwriteColors.kPrimaryNavy        // Background
-PetUwriteColors.kSecondaryTeal      // Accents, CTA
-PetUwriteColors.kAccentSky          // Basic plan
-PetUwriteColors.kWarmCoral          // Elite plan
+ClovaraColors.kPrimaryNavy        // Background
+ClovaraColors.kSecondaryTeal      // Accents, CTA
+ClovaraColors.kAccentSky          // Basic plan
+ClovaraColors.kWarmCoral          // Elite plan
 ```
 
 ### Typography
 ```dart
-PetUwriteTypography.h2              // Plan names
-PetUwriteTypography.h4              // Section headers
-PetUwriteTypography.bodyLarge       // Descriptions
+ClovaraTypography.h2              // Plan names
+ClovaraTypography.h4              // Section headers
+ClovaraTypography.bodyLarge       // Descriptions
 ```
 
 ### Brand Consistency
@@ -419,7 +419,7 @@ Selected Plan: Plus - $49.99
 
 ### Brand Alignment
 1. **Navy Background**: Matches conversational quote flow
-2. **Teal Accents**: Consistent with PetUwrite brand
+2. **Teal Accents**: Consistent with Clovara brand
 3. **Modern Design**: Premium feel appropriate for insurance
 4. **Professional**: Clean, polished appearance
 
@@ -533,7 +533,7 @@ Selected Plan: Plus - $49.99
 
 ## Summary
 
-The Plan Selection Screen has been completely redesigned with a beautiful carousel interface that matches the PetUwrite brand. The new design features:
+The Plan Selection Screen has been completely redesigned with a beautiful carousel interface that matches the Clovara brand. The new design features:
 
 - **Interactive carousel** with 3D scaling effects
 - **Clickable navigation arrows** for easy browsing
@@ -544,6 +544,6 @@ The Plan Selection Screen has been completely redesigned with a beautiful carous
 - **Smooth animations** (300ms transitions)
 - **Prominent CTA** with plan summary
 
-The result is a professional, engaging interface that makes plan selection intuitive and visually appealing while maintaining perfect consistency with the PetUwrite brand identity.
+The result is a professional, engaging interface that makes plan selection intuitive and visually appealing while maintaining perfect consistency with the Clovara brand identity.
 
 **Status**: COMPLETE ✅

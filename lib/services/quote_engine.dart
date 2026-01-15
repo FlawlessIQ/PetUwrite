@@ -63,24 +63,6 @@ class QuoteEngine {
       );
     }
 
-    // Safety: always return at least Basic.
-    if (plans.isEmpty) {
-      plans.add(
-        buildPlan(
-          tier: PlanType.basic,
-          basePremium: discountedBasePremium,
-          riskBand: riskBand,
-          numberOfPets: numberOfPets,
-          discount: discount,
-          regionalMultiplier: regional.multiplier,
-          regionalKey: regional.key,
-          reimbursementPercent: 70,
-          annualDeductible: 500,
-          annualLimit: 10000,
-        ),
-      );
-    }
-
     return plans;
   }
 

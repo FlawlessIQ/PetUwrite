@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
+import 'package:flutter/rendering.dart';
 import '../theme/clovara_theme.dart';
 import '../auth/login_screen.dart';
 import '../auth/customer_home_screen.dart';
@@ -10,12 +13,13 @@ import '../models/owner.dart';
 import '../services/risk_scoring_engine.dart';
 import '../services/conversational_ai_service.dart';
 import '../services/user_session_service.dart';
+import '../services/draft_service.dart';
 import '../services/underwriting_rules_engine.dart';
 import '../services/breed_size_guide.dart';
+import '../data/breed_catalog.dart';
 import '../ai/ai_service.dart';
 import '../ai/clover_persona.dart';
 import '../ai/clover_response_adapter.dart';
-import 'plan_selection_screen.dart';
 import 'ai_analysis_screen_v2.dart';
 
 /// Chatbot-style conversational quote flow with streaming text
@@ -32,6 +36,11 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+
+  final GlobalKey _activeInlineOptionsKey = GlobalKey();
+  final GlobalKey _activeBotPromptKey = GlobalKey();
+
+  int? _lastAutofocusQuestionIndex;
 
   int _currentQuestion = 0;
   final Map<String, dynamic> _answers = {};
@@ -75,67 +84,11 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       placeholder: "Pet's name",
     ),
     QuestionData(
-      id: 'species',
-      question: "Tell me about {petName}. Are they a dog or cat?",
-      type: QuestionType.choice,
-      field: 'species',
-      options: [
-        ChoiceOption(value: 'dog', label: 'Dog', icon: Icons.pets),
-        ChoiceOption(value: 'cat', label: 'Cat', icon: Icons.pets),
-      ],
-    ),
-    QuestionData(
-      id: 'breed',
-      question: "What breed is {petName}?",
-      type: QuestionType.text,
-      field: 'breed',
-      placeholder: 'e.g., Golden Retriever, Mixed Breed',
-    ),
-    QuestionData(
-      id: 'age',
-      question: "How old is {petName}?",
-      type: QuestionType.ageSlider,
-      field: 'age',
-      placeholder: 'Select age',
-    ),
-    QuestionData(
-      id: 'weight',
-      question: "What's {petName}'s weight?",
-      type: QuestionType.number,
-      field: 'weight',
-      placeholder: 'Weight in lbs',
-      suffix: 'lbs',
-    ),
-    QuestionData(
-      id: 'gender',
-      question: "Is {petName} male or female?",
-      type: QuestionType.choice,
-      field: 'gender',
-      options: [
-        ChoiceOption(value: 'male', label: 'Male', icon: Icons.male),
-        ChoiceOption(value: 'female', label: 'Female', icon: Icons.female),
-      ],
-    ),
-    QuestionData(
-      id: 'neutered',
-      question: "Is {petName} spayed or neutered?",
-      type: QuestionType.choice,
-      field: 'isNeutered',
-      options: [
-        ChoiceOption(value: true, label: 'Yes', icon: Icons.check_circle),
-        ChoiceOption(value: false, label: 'No', icon: Icons.cancel),
-      ],
-    ),
-    QuestionData(
-      id: 'preExisting',
-      question: "Does {petName} have any pre-existing health conditions?",
-      type: QuestionType.choice,
-      field: 'hasPreExistingConditions',
-      subtitle: "This helps us provide accurate coverage options",
-      options: [
-        ChoiceOption(value: false, label: 'No', icon: Icons.check_circle),
-        ChoiceOption(value: true, label: 'Yes', icon: Icons.warning),
-      ],
+      id: 'petQuickDetails',
+      question:
+          "Perfect — let’s grab the basics for {petName}. This takes about 10 seconds.",
+      type: QuestionType.petQuickDetails,
+      field: 'petQuickDetails',
     ),
     // Conditional follow-up: Which conditions?
     QuestionData(
@@ -189,6 +142,21 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
         ChoiceOption(value: 'Other', label: 'Other', icon: Icons.more_horiz),
       ],
     ),
+
+    // Conditional follow-up: capture the actual condition when 'Other' selected.
+    QuestionData(
+      id: 'conditionOtherText',
+      question: "What condition should we list?",
+      type: QuestionType.text,
+      field: 'preExistingConditionOtherText',
+      placeholder: 'e.g., Chronic ear infections, Seizures, GI issues',
+      subtitle: 'This helps our underwriter review the right details',
+      condition: (answers) {
+        if (answers['hasPreExistingConditions'] != true) return false;
+        final selected = answers['preExistingConditionTypes'];
+        return selected is List && selected.contains('Other');
+      },
+    ),
     // Conditional follow-up: Currently being treated?
     QuestionData(
       id: 'conditionTreatment',
@@ -238,11 +206,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     super.initState();
     print('🚀 ConversationalQuoteFlow: initState called');
     try {
-      // Initialize AI service with API key from compile-time environment
-      const apiKey = String.fromEnvironment('OPENAI_API_KEY');
-      _aiService = ConversationalAIService(
-        apiKey: apiKey.isEmpty ? null : apiKey,
-      );
+      // AI runs via Firebase Functions proxy (no client-side keys).
+      _aiService = ConversationalAIService();
       print('✅ ConversationalAIService initialized');
 
       // Set up auth state listener to save pending quotes
@@ -291,6 +256,15 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       // Save to local storage first
       await UserSessionService().savePendingQuote(quoteData);
 
+      // Also persist a server-side draft under an anonymous session so users
+      // can resume without explicit signup.
+      try {
+        await DraftService().upsertQuoteDraft(quoteData: quoteData);
+      } catch (e) {
+        // Do not block UX if server draft save fails.
+        print('⚠️ Draft save failed (quote): $e');
+      }
+
       // Also save to Firestore if user is authenticated
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -301,6 +275,40 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       print('✅ Pending quote saved successfully');
     } catch (e) {
       print('⚠️ Error saving pending quote: $e');
+    }
+  }
+
+  Future<void> _copyResumeCode() async {
+    if (_answers.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Answer a couple questions to get a resume code'),
+        ),
+      );
+      return;
+    }
+
+    // Ensure there's a server-side draft saved for cross-device resume.
+    await _savePendingQuote();
+
+    try {
+      final draftService = DraftService();
+      final resumeKey = await draftService.getOrCreateLocalResumeKey();
+      await Clipboard.setData(
+        ClipboardData(text: draftService.encodeForSharing(resumeKey)),
+      );
+
+      if (!mounted) return;
+      final pretty = draftService.prettyCode(resumeKey);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Resume code copied: $pretty')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to copy resume code')),
+      );
     }
   }
 
@@ -496,12 +504,11 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
         _isTyping = true;
       });
     }
-    _scrollToBottom();
+    _scrollToBottom(immediate: true);
 
-    // Simulate typing delay
-    await Future.delayed(
-      Duration(milliseconds: 800 + (question.question.length * 8)),
-    );
+    // Keep the UI snappy: the streaming effect already conveys "typing".
+    final baseDelayMs = question.id == 'welcome' ? 250 : 180;
+    await Future.delayed(Duration(milliseconds: baseDelayMs));
 
     // Generate AI-powered conversational question with Clover's personality
     String questionText;
@@ -510,48 +517,70 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       print('🤔 Generating question text for: ${question.id}');
 
       if (_currentQuestion > 0 && _messages.isNotEmpty) {
-        try {
-          final previousAnswer =
-              _messages.where((m) => !m.isBot).lastOrNull?.text ?? '';
-          final baseQuestion = _formatQuestion(question.question);
+        final previousAnswer =
+            _messages.where((m) => !m.isBot).lastOrNull?.text ?? '';
+        final baseQuestion = _formatQuestion(question.question);
 
-          print('🤖 Calling AI service with timeout...');
-          // Get AI response with timeout to prevent hanging
-          final aiResponse = await _aiService
-              .generateBotResponse(
-                questionId: question.id,
-                baseQuestion: baseQuestion,
-                userAnswer: previousAnswer,
-                conversationContext: _answers,
-              )
-              .timeout(
-                const Duration(seconds: 5),
-                onTimeout: () {
-                  print('⏱️ AI service timed out, using fallback');
-                  return baseQuestion;
-                },
-              );
+        // Critical perf optimization:
+        // - Non-text questions and early deterministic questions should not
+        //   incur network/AI latency.
+        // - Web debug mode in particular suffers with network + streaming.
+        final bool shouldUseAi =
+            !kIsWeb &&
+            question.type == QuestionType.text &&
+            !{
+              'welcome',
+              'petName',
+              'email',
+            }.contains(question.id);
 
-          print('✅ AI response received: ${aiResponse.substring(0, 50)}...');
-
-          // Adapt with Clover's personality
-          questionText = _cloverAdapter.adaptResponse(
-            aiResponse,
-            context: _getQuestionContext(question),
-            petName: _answers['petName'] as String?,
-            userInput: previousAnswer,
-            detectEmotions: true,
-          );
-        } catch (e) {
-          print('⚠️ AI service error: $e, using fallback');
-          // Fallback to formatted base question with Clover formatting
-          final baseQuestion = _formatQuestion(question.question);
+        if (!shouldUseAi) {
           questionText = _cloverAdapter.formatQuestion(
             baseQuestion,
             petName: _answers['petName'] as String?,
             context: _getQuestionContext(question),
             addTransition: _currentQuestion > 1,
           );
+        } else {
+          try {
+            print('🤖 Calling AI service with timeout...');
+            // Keep this short; a slow network should not block the quote flow.
+            final aiResponse = await _aiService
+                .generateBotResponse(
+                  questionId: question.id,
+                  baseQuestion: baseQuestion,
+                  userAnswer: previousAnswer,
+                  conversationContext: _answers,
+                )
+                .timeout(
+                  const Duration(seconds: 2),
+                  onTimeout: () {
+                    print('⏱️ AI service timed out, using fallback');
+                    return baseQuestion;
+                  },
+                );
+
+            final preview = aiResponse.length <= 50
+                ? aiResponse
+                : aiResponse.substring(0, 50);
+            print('✅ AI response received: $preview...');
+
+            questionText = _cloverAdapter.adaptResponse(
+              aiResponse,
+              context: _getQuestionContext(question),
+              petName: _answers['petName'] as String?,
+              userInput: previousAnswer,
+              detectEmotions: true,
+            );
+          } catch (e) {
+            print('⚠️ AI service error: $e, using fallback');
+            questionText = _cloverAdapter.formatQuestion(
+              baseQuestion,
+              petName: _answers['petName'] as String?,
+              context: _getQuestionContext(question),
+              addTransition: _currentQuestion > 1,
+            );
+          }
         }
       } else {
         // First question or when we have no messages yet
@@ -608,6 +637,23 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
           _isTyping = false;
           _isWaitingForInput = true;
         });
+
+        // Inline options can appear "below" the bot message bubble. The
+        // streaming loop tends to pin the viewport to the very bottom,
+        // which can land users halfway down a large panel.
+        //
+        // For quick-details specifically, we want the viewport anchored around
+        // the bot prompt + last user reply, letting users scroll down into the
+        // panel rather than jumping straight to (e.g.) Spayed/Neutered.
+        if (_shouldAutoScrollToInlineOptions(question)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (question.type == QuestionType.petQuickDetails) {
+              _scrollToKeyTop(_activeBotPromptKey, alignment: 0.90);
+              return;
+            }
+            _scrollToKeyTop(_activeInlineOptionsKey, alignment: 0.10);
+          });
+        }
       }
       print('✅ Question display complete');
     } catch (e, stackTrace) {
@@ -644,27 +690,95 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       _messages.add(message);
     });
 
-    // Stream text character by character
-    for (int i = 0; i < text.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 15));
+    // Stream text in throttled chunks to avoid hundreds of rebuilds/scroll
+    // animations (which are especially slow on web).
+    final total = text.length;
+    if (total == 0) return;
+
+    // Target a small number of UI updates (<= ~50) for smoothness.
+    final targetUpdates = kIsWeb ? 28 : 40;
+    final updates = total < targetUpdates ? total : targetUpdates;
+    final chunkSize = (total / updates).ceil().clamp(1, total);
+    final tickDelay = kIsWeb
+        ? const Duration(milliseconds: 12)
+        : const Duration(milliseconds: 16);
+
+    int i = 0;
+    int tick = 0;
+    while (i < total) {
+      await Future.delayed(tickDelay);
+      if (!mounted) return;
+
+      i = (i + chunkSize).clamp(0, total);
       setState(() {
         _messages[_messages.length - 1] = ChatMessage(
-          text: text.substring(0, i + 1),
+          text: text.substring(0, i),
           isBot: true,
           timestamp: message.timestamp,
           questionData: question,
         );
       });
-      _scrollToBottom();
+
+      // Keep the newest text visible without queuing tons of animations.
+      if (tick % 4 == 0 || i == total) {
+        _scrollToBottom(immediate: true);
+      }
+      tick++;
     }
+
+    // One smooth settle at the end.
+    _scrollToBottom();
   }
 
-  void _scrollToBottom() {
+  bool _shouldAutoScrollToInlineOptions(QuestionData question) {
+    return question.type == QuestionType.petQuickDetails ||
+        question.type == QuestionType.choice ||
+        question.type == QuestionType.multiSelect;
+  }
+
+  void _scrollToKeyTop(GlobalKey key, {double alignment = 0.0}) {
+    if (!_scrollController.hasClients) return;
+    final ctx = key.currentContext;
+    if (ctx == null) return;
+
+    final renderObject = ctx.findRenderObject();
+    if (renderObject is RenderBox) {
+      try {
+        final viewport = RenderAbstractViewport.of(renderObject);
+        final reveal = viewport.getOffsetToReveal(renderObject, alignment);
+        final max = _scrollController.position.maxScrollExtent;
+        final target = reveal.offset.clamp(0.0, max);
+        _scrollController.animateTo(
+          target,
+          duration: const Duration(milliseconds: 380),
+          curve: Curves.easeOutCubic,
+        );
+        return;
+      } catch (_) {
+        // Fall through to ensureVisible.
+      }
+    }
+
+    // Fallback: ensure visible (may not perfectly align if already partially visible).
+    Scrollable.ensureVisible(
+      ctx,
+      alignment: alignment,
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _scrollToBottom({bool immediate = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
+        final max = _scrollController.position.maxScrollExtent;
+        if (immediate) {
+          _scrollController.jumpTo(max);
+          return;
+        }
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+          max,
+          duration: const Duration(milliseconds: 220),
           curve: Curves.easeOut,
         );
       }
@@ -677,6 +791,26 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     setState(() {
       _isWaitingForInput = false;
     });
+
+    // Fast-path: quick pet details panel submits multiple fields at once.
+    if (question.type == QuestionType.petQuickDetails) {
+      final msgText = (displayText ?? '').trim().isNotEmpty
+          ? displayText!.trim()
+          : 'Done';
+
+      setState(() {
+        _messages.add(
+          ChatMessage(text: msgText, isBot: false, timestamp: DateTime.now()),
+        );
+        _answers[question.field] = answer;
+      });
+      _scrollToBottom();
+
+      await Future.delayed(const Duration(milliseconds: 400));
+      _currentQuestion++;
+      _showNextQuestion();
+      return;
+    }
 
     // Check if we're waiting for YES/NO confirmation
     if (_awaitingConfirmation && answer is String) {
@@ -972,12 +1106,16 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       // Create Pet model from answers
       final pet = _createPetFromAnswers();
 
+      print(
+        '🩺 QuoteFlow preExistingConditions: ${pet.preExistingConditions.isEmpty ? '(none)' : pet.preExistingConditions.join(', ')}',
+      );
+
       // Create Owner model from answers
       final owner = _createOwnerFromAnswers();
 
       // Initialize AI service and calculate risk score
       // Using Cloud Functions - no API key needed
-      final aiService = GPTService(model: 'gpt-5.2');
+      final aiService = GPTService();
       final riskEngine = RiskScoringEngine(aiService: aiService);
 
       // Calculate risk score WITH eligibility check
@@ -1117,16 +1255,6 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  // Navigate to plans with null risk score
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PlanSelectionScreen(),
-                      settings: RouteSettings(
-                        arguments: {'petData': _answers, 'riskScore': null},
-                      ),
-                    ),
-                  );
                 },
                 style: TextButton.styleFrom(
                   backgroundColor: ClovaraColors.clover,
@@ -1136,7 +1264,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                     vertical: 12,
                   ),
                 ),
-                child: const Text('Continue Anyway'),
+                child: const Text('Back'),
               ),
             ],
           ),
@@ -1159,18 +1287,50 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
               0.453592 // lbs to kg
         : (weightValue as num).toDouble() * 0.453592;
 
-    // Get pre-existing conditions
+    // Get pre-existing conditions.
+    // NOTE: We treat either the explicit boolean, selected types, or free-text
+    // as a signal that medical underwriting is needed.
     List<String> conditions = [];
-    if (_answers['hasPreExistingConditions'] == true) {
-      // Use the specific conditions if selected, otherwise generic
-      final conditionTypes = _answers['preExistingConditionTypes'];
-      if (conditionTypes != null &&
-          conditionTypes is List &&
-          conditionTypes.isNotEmpty) {
-        conditions = List<String>.from(conditionTypes);
-      } else {
+    final hasPreExistingFlag = _answers['hasPreExistingConditions'] == true;
+    final conditionTypesRaw = _answers['preExistingConditionTypes'];
+    final otherTextRaw = _answers['preExistingConditionOtherText'];
+    final otherText = otherTextRaw is String ? otherTextRaw.trim() : '';
+
+    final hasTypedConditions =
+        conditionTypesRaw is List && conditionTypesRaw.isNotEmpty;
+    final inferredHasConditions =
+        hasPreExistingFlag || hasTypedConditions || otherText.isNotEmpty;
+
+    if (inferredHasConditions) {
+      if (hasTypedConditions) {
+        conditions = List<String>.from(conditionTypesRaw);
+      }
+
+      // Replace 'Other' with the user-provided condition text when available.
+      if (otherText.isNotEmpty) {
+        if (conditions.isEmpty) {
+          conditions = [otherText];
+        } else {
+          conditions = conditions
+              .map((c) => c == 'Other' ? otherText : c)
+              .toList();
+          if (!conditions.contains(otherText) &&
+              conditions.any((c) => c == 'Other')) {
+            conditions.add(otherText);
+          }
+        }
+      }
+
+      // If we still don't have a specific condition, keep a generic marker.
+      if (conditions.isEmpty) {
         conditions = ['Pre-existing condition reported'];
       }
+
+      // Remove empty / placeholder strings.
+      conditions = conditions
+          .map((c) => c.toString().trim())
+          .where((c) => c.isNotEmpty)
+          .toList();
     }
 
     final treatmentAnswer = _answers['isReceivingTreatment'];
@@ -1273,6 +1433,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   Widget build(BuildContext context) {
     print('🎨 Building ConversationalQuoteFlow, messages: ${_messages.length}');
 
+    _scheduleAutofocusIfNeeded();
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       body: SafeArea(
@@ -1338,6 +1500,38 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
         ),
       ),
     );
+  }
+
+  void _scheduleAutofocusIfNeeded() {
+    if (!mounted) return;
+    if (!_isWaitingForInput || _isTyping) return;
+    if (_currentQuestion < 0 || _currentQuestion >= _questions.length) return;
+
+    final question = _questions[_currentQuestion];
+    if (question.type == QuestionType.choice ||
+        question.type == QuestionType.multiSelect ||
+        question.type == QuestionType.petQuickDetails) {
+      return; // no text box on these
+    }
+
+    // If we're already focused for this prompt, do nothing.
+    if (_focusNode.hasFocus &&
+        _lastAutofocusQuestionIndex == _currentQuestion) {
+      return;
+    }
+
+    // Avoid hammering focus requests every build; re-run when question changes
+    // (or if focus was lost).
+    _lastAutofocusQuestionIndex = _currentQuestion;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!_isWaitingForInput || _isTyping) return;
+      if (!_focusNode.canRequestFocus) return;
+
+      // Put the cursor in the prompt box automatically.
+      FocusScope.of(context).requestFocus(_focusNode);
+    });
   }
 
   Widget _buildChatHeader() {
@@ -1410,6 +1604,18 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                   ],
                 ),
               ),
+              if (_answers.isNotEmpty)
+                IconButton(
+                  tooltip: 'Copy resume code',
+                  onPressed: () {
+                    unawaited(_copyResumeCode());
+                  },
+                  icon: const Icon(
+                    Icons.content_copy,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
               // Account button
               StreamBuilder<User?>(
                 stream: FirebaseAuth.instance.authStateChanges(),
@@ -1643,40 +1849,58 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                     ? CrossAxisAlignment.start
                     : CrossAxisAlignment.end,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: message.isBot
-                          ? null
-                          : ClovaraColors.brandGradient,
-                      color: message.isBot ? Colors.white : null,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(20),
-                        topRight: const Radius.circular(20),
-                        bottomLeft: Radius.circular(message.isBot ? 4 : 20),
-                        bottomRight: Radius.circular(message.isBot ? 20 : 4),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+                  Builder(
+                    builder: (context) {
+                      final isActiveBotPrompt =
+                          message.isBot &&
+                          message.questionData != null &&
+                          _isWaitingForInput &&
+                          _messages.indexOf(message) == _messages.length - 1;
+
+                      final bubble = Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
                         ),
-                      ],
-                    ),
-                    child: Text(
-                      message.text,
-                      style: ClovaraTypography.body.copyWith(
-                        color: message.isBot
-                            ? ClovaraColors.forest
-                            : Colors.white,
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                    ),
+                        decoration: BoxDecoration(
+                          gradient: message.isBot
+                              ? null
+                              : ClovaraColors.brandGradient,
+                          color: message.isBot ? Colors.white : null,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft: Radius.circular(message.isBot ? 4 : 20),
+                            bottomRight: Radius.circular(
+                              message.isBot ? 20 : 4,
+                            ),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          message.text,
+                          style: ClovaraTypography.body.copyWith(
+                            color: message.isBot
+                                ? ClovaraColors.forest
+                                : Colors.white,
+                            fontSize: 15,
+                            height: 1.4,
+                          ),
+                        ),
+                      );
+
+                      if (!isActiveBotPrompt) return bubble;
+                      return KeyedSubtree(
+                        key: _activeBotPromptKey,
+                        child: bubble,
+                      );
+                    },
                   ),
                   // Show input options for current question
                   if (message.isBot &&
@@ -1684,7 +1908,10 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                       _isWaitingForInput &&
                       _messages.indexOf(message) == _messages.length - 1) ...[
                     const SizedBox(height: 12),
-                    _buildInlineOptions(message.questionData!),
+                    KeyedSubtree(
+                      key: _activeInlineOptionsKey,
+                      child: _buildInlineOptions(message.questionData!),
+                    ),
                     if (message.questionData!.type == QuestionType.text ||
                         message.questionData!.type == QuestionType.number ||
                         message.questionData!.type ==
@@ -1697,16 +1924,60 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
               ),
             ),
           ),
-          if (!message.isBot)
-            const SizedBox(width: 54)
-          else
-            const SizedBox(width: 40),
+
+          // Symmetry: bot messages have an avatar on the left; user messages
+          // show an avatar on the right (instead of reserving unused space).
+          if (!message.isBot) ...[
+            const SizedBox(width: 10),
+            _buildUserAvatar(),
+          ] else ...[
+            const SizedBox(width: 54),
+          ],
         ],
       ),
     );
   }
 
+  Widget _buildUserAvatar() {
+    final ownerName = (_answers['ownerName'] as String?)?.trim();
+    final initial = (ownerName != null && ownerName.isNotEmpty)
+        ? ownerName.characters.first.toUpperCase()
+        : null;
+
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: ClovaraColors.brandGradient,
+        boxShadow: [
+          BoxShadow(
+            color: ClovaraColors.clover.withOpacity(0.18),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: initial == null
+            ? const Icon(Icons.person, color: Colors.white, size: 22)
+            : Text(
+                initial,
+                style: ClovaraTypography.h3.copyWith(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+      ),
+    );
+  }
+
   Widget _buildInlineOptions(QuestionData question) {
+    if (question.type == QuestionType.petQuickDetails) {
+      return _buildPetQuickDetailsPanel(question);
+    }
+
     if (question.type == QuestionType.choice) {
       return _buildOptionCardsGrid(
         question.options!.map((option) {
@@ -1775,6 +2046,910 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
               .toList(),
         );
       },
+    );
+  }
+
+  Widget _buildPetQuickDetailsPanel(QuestionData question) {
+    final petName = (_answers['petName'] as String?)?.trim();
+
+    final species = (_answers['species'] as String?)?.toLowerCase();
+    final gender = (_answers['gender'] as String?)?.toLowerCase();
+    final breed = (_answers['breed'] as String?)?.trim();
+
+    final ageRaw = _answers['age'];
+    final ageYears = ageRaw is num
+        ? ageRaw.toInt()
+        : ageRaw is String
+        ? int.tryParse(ageRaw)
+        : null;
+
+    final weightRaw = _answers['weight'];
+    final weightLbs = weightRaw is num
+        ? weightRaw.toDouble()
+        : weightRaw is String
+        ? double.tryParse(weightRaw)
+        : null;
+
+    final isNeutered = _answers['isNeutered'] as bool?;
+    final hasConditions = _answers['hasPreExistingConditions'] as bool?;
+
+    final bool isComplete =
+        species != null &&
+        species.isNotEmpty &&
+        gender != null &&
+        gender.isNotEmpty &&
+        (breed != null && breed.isNotEmpty) &&
+        ageYears != null &&
+        weightLbs != null &&
+        isNeutered != null &&
+        hasConditions != null;
+
+    final String petNameLabel = (petName == null || petName.isEmpty)
+        ? 'your pet'
+        : petName;
+
+    final double weightMin = (species == 'cat') ? 4 : 5;
+    final double weightMax = (species == 'cat') ? 25 : 200;
+    final double weightDefault = (species == 'cat') ? 10 : 45;
+    final double safeWeight = (weightLbs ?? weightDefault).clamp(
+      weightMin,
+      weightMax,
+    );
+
+    final int ageDefault = 3;
+    final int safeAge = (ageYears ?? ageDefault).clamp(0, 20);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: ClovaraColors.clover.withOpacity(0.18),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Quick details',
+                  style: ClovaraTypography.h3.copyWith(
+                    color: ClovaraColors.forest,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: ClovaraColors.clover.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '10 sec',
+                  style: ClovaraTypography.bodySmall.copyWith(
+                    color: ClovaraColors.forest,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tap once for each choice — you can adjust anything before continuing.',
+            style: ClovaraTypography.bodySmall.copyWith(
+              color: Colors.grey.shade700,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 520;
+              final gap = isWide ? 14.0 : 12.0;
+              final colWidth = isWide
+                  ? (constraints.maxWidth - gap) / 2
+                  : constraints.maxWidth;
+
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: [
+                  SizedBox(
+                    width: colWidth,
+                    child: _buildQuickBinaryGroup(
+                      label: 'Pet',
+                      options: const [
+                        (value: 'dog', label: 'Dog', icon: Icons.pets),
+                        (value: 'cat', label: 'Cat', icon: Icons.pets),
+                      ],
+                      selected: species,
+                      onChanged: (v) {
+                        setState(() {
+                          _answers['species'] = v;
+
+                          // Reset weight into a sensible range when species changes.
+                          final newMin = (v == 'cat') ? 4 : 5;
+                          final newMax = (v == 'cat') ? 25 : 200;
+                          final currentWeight = _answers['weight'];
+                          final current = currentWeight is num
+                              ? currentWeight.toDouble()
+                              : currentWeight is String
+                              ? double.tryParse(currentWeight)
+                              : null;
+                          if (current == null ||
+                              current < newMin ||
+                              current > newMax) {
+                            _answers['weight'] = (v == 'cat') ? 10 : 45;
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: colWidth,
+                    child: _buildQuickBinaryGroup(
+                      label: 'Sex',
+                      options: const [
+                        (value: 'male', label: 'Male', icon: Icons.male),
+                        (value: 'female', label: 'Female', icon: Icons.female),
+                      ],
+                      selected: gender,
+                      onChanged: (v) => setState(() => _answers['gender'] = v),
+                    ),
+                  ),
+                  SizedBox(
+                    width: colWidth,
+                    child: _buildQuickBinaryGroupBool(
+                      label: 'Spayed / Neutered',
+                      leftLabel: 'Yes',
+                      rightLabel: 'No',
+                      selected: isNeutered,
+                      onChanged: (v) =>
+                          setState(() => _answers['isNeutered'] = v),
+                    ),
+                  ),
+                  SizedBox(
+                    width: colWidth,
+                    child: _buildQuickBinaryGroupBool(
+                      label: 'Pre-existing conditions',
+                      leftLabel: 'None',
+                      rightLabel: 'Yes',
+                      invertLabels: true,
+                      selected: hasConditions,
+                      onChanged: (v) => setState(
+                        () => _answers['hasPreExistingConditions'] = v,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+
+          const SizedBox(height: 14),
+
+          _buildBreedPickerRow(
+            species: species,
+            breed: breed,
+            onPick: _showBreedPicker,
+          ),
+
+          const SizedBox(height: 14),
+
+          _buildRangedPicker(
+            label: 'Age',
+            valueLabel: safeAge == 0 ? '< 1 year' : '$safeAge years',
+            min: 0,
+            max: 20,
+            divisions: 20,
+            value: safeAge.toDouble(),
+            chips: const [
+              (value: 0, label: '<1'),
+              (value: 1, label: '1'),
+              (value: 2, label: '2'),
+              (value: 3, label: '3'),
+              (value: 5, label: '5'),
+              (value: 8, label: '8'),
+              (value: 12, label: '12+'),
+            ],
+            onChanged: (v) => setState(() => _answers['age'] = v.round()),
+          ),
+
+          const SizedBox(height: 14),
+
+          _buildRangedPicker(
+            label: 'Weight',
+            valueLabel: '${safeWeight.round()} lbs',
+            min: weightMin,
+            max: weightMax,
+            divisions: (weightMax - weightMin).round(),
+            value: safeWeight,
+            chips: (species == 'cat')
+                ? const [
+                    (value: 7, label: '7'),
+                    (value: 10, label: '10'),
+                    (value: 12, label: '12'),
+                    (value: 15, label: '15'),
+                  ]
+                : const [
+                    (value: 15, label: '15'),
+                    (value: 35, label: '35'),
+                    (value: 65, label: '65'),
+                    (value: 110, label: '110+'),
+                  ],
+            helperText: _weightHelperText(species: species, breed: breed),
+            onChanged: species == null
+                ? null
+                : (v) => setState(() => _answers['weight'] = v.round()),
+          ),
+
+          const SizedBox(height: 16),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: isComplete
+                  ? () {
+                      final summary = _formatQuickDetailsSummary(
+                        petName: petNameLabel,
+                        species: species,
+                        breed: breed,
+                        ageYears: safeAge,
+                        weightLbs: safeWeight.round(),
+                        gender: gender,
+                        isNeutered: isNeutered,
+                        hasConditions: hasConditions,
+                      );
+
+                      _handleUserResponse(true, displayText: summary);
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ClovaraColors.clover,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                disabledForegroundColor: Colors.grey.shade600,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.check_circle_outline, size: 18),
+                  const SizedBox(width: 10),
+                  Text(
+                    isComplete ? 'Continue' : 'Pick a few details to continue',
+                    style: ClovaraTypography.body.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          if (!isComplete) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Required: dog/cat, breed, age, weight, sex, spayed/neutered, and conditions.',
+              style: ClovaraTypography.bodySmall.copyWith(
+                color: Colors.grey.shade700,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String? _weightHelperText({
+    required String? species,
+    required String? breed,
+  }) {
+    if (species == null) return 'Select dog or cat first';
+    if (species == 'cat') return 'Most adult cats are 7–15 lbs';
+
+    final range = BreedSizeGuide.expectedAdultWeightLbs(breed);
+    if (range == null) return 'A rough estimate is fine — we’ll adjust later.';
+    return 'Typical adult range: ${range.minLbs.round()}–${range.maxLbs.round()} lbs';
+  }
+
+  String _formatQuickDetailsSummary({
+    required String petName,
+    required String? species,
+    required String? breed,
+    required int ageYears,
+    required int weightLbs,
+    required String? gender,
+    required bool? isNeutered,
+    required bool? hasConditions,
+  }) {
+    final parts = <String>[];
+    if (species != null) {
+      parts.add(species == 'cat' ? 'Cat' : 'Dog');
+    }
+    if (breed != null && breed.trim().isNotEmpty) parts.add(breed.trim());
+    parts.add(ageYears == 0 ? '<1 yr' : '$ageYears yrs');
+    parts.add('$weightLbs lbs');
+    if (gender != null) parts.add(gender == 'female' ? 'Female' : 'Male');
+    if (isNeutered != null)
+      parts.add(isNeutered ? 'Spayed/Neutered' : 'Not spayed/neutered');
+    if (hasConditions != null)
+      parts.add(hasConditions ? 'Has conditions' : 'No conditions');
+    return '$petName: ${parts.join(' • ')}';
+  }
+
+  Widget _buildBreedPickerRow({
+    required String? species,
+    required String? breed,
+    required Future<void> Function() onPick,
+  }) {
+    final isSet = breed != null && breed.trim().isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Breed',
+          style: ClovaraTypography.body.copyWith(
+            color: ClovaraColors.forest,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: onPick,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: ClovaraColors.clover.withOpacity(0.20),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.search,
+                  color: ClovaraColors.forest.withOpacity(0.7),
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    isSet
+                        ? breed
+                        : (species == null
+                              ? 'Select dog/cat first'
+                              : 'Search breeds…'),
+                    style: ClovaraTypography.body.copyWith(
+                      color: isSet
+                          ? ClovaraColors.forest
+                          : Colors.grey.shade700,
+                      fontWeight: isSet ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: Colors.grey.shade700),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showBreedPicker() async {
+    final species = (_answers['species'] as String?)?.toLowerCase();
+    if (species == null || species.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Select dog or cat first.')));
+      return;
+    }
+
+    final allBreeds = BreedCatalog.breedsForSpecies(species);
+    final mixedBuckets = BreedCatalog.mixedBucketsForSpecies(species);
+    final popular = BreedCatalog.popularBreedsForSpecies(species);
+
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        String query = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final q = query.trim().toLowerCase();
+            final filtered = q.isEmpty
+                ? allBreeds
+                : allBreeds
+                      .where((b) => b.toLowerCase().contains(q))
+                      .toList(growable: false);
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.86,
+              minChildSize: 0.55,
+              maxChildSize: 0.95,
+              builder: (context, scrollController) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 18,
+                        offset: const Offset(0, -6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 10),
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'Choose breed',
+                          style: ClovaraTypography.h3.copyWith(
+                            color: ClovaraColors.forest,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: TextField(
+                          autofocus: true,
+                          decoration: InputDecoration(
+                            hintText: 'Search breeds…',
+                            prefixIcon: const Icon(Icons.search),
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          onChanged: (v) =>
+                              setModalState(() => query = v.trim()),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      if (q.isEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'Mixed / unknown',
+                            style: ClovaraTypography.body.copyWith(
+                              color: Colors.grey.shade800,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: mixedBuckets.map((b) {
+                              return InkWell(
+                                onTap: () => Navigator.pop(context, b),
+                                borderRadius: BorderRadius.circular(999),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                      width: 1.1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    b,
+                                    style: ClovaraTypography.bodySmall.copyWith(
+                                      color: ClovaraColors.forest,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Divider(height: 1, color: Colors.grey.shade200),
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'Popular',
+                            style: ClovaraTypography.body.copyWith(
+                              color: Colors.grey.shade800,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: popular.map((b) {
+                              return InkWell(
+                                onTap: () => Navigator.pop(context, b),
+                                borderRadius: BorderRadius.circular(999),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: ClovaraColors.clover.withOpacity(
+                                      0.10,
+                                    ),
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                      color: ClovaraColors.clover.withOpacity(
+                                        0.25,
+                                      ),
+                                      width: 1.25,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    b,
+                                    style: ClovaraTypography.bodySmall.copyWith(
+                                      color: ClovaraColors.forest,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Divider(height: 1, color: Colors.grey.shade200),
+                      ],
+
+                      Expanded(
+                        child: ListView.separated(
+                          controller: scrollController,
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) =>
+                              Divider(height: 1, color: Colors.grey.shade200),
+                          itemBuilder: (context, index) {
+                            final b = filtered[index];
+                            return ListTile(
+                              title: Text(
+                                b,
+                                style: ClovaraTypography.body.copyWith(
+                                  color: ClovaraColors.forest,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => Navigator.pop(context, b),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted) return;
+    if (selected == null) return;
+
+    setState(() {
+      _answers['breed'] = selected;
+
+      // If weight hasn't been set yet, gently auto-fill from a typical range.
+      final weightExisting = _answers['weight'];
+      final existing = weightExisting is num
+          ? weightExisting.toDouble()
+          : weightExisting is String
+          ? double.tryParse(weightExisting)
+          : null;
+      if (existing == null) {
+        final range = BreedSizeGuide.expectedAdultWeightLbs(selected);
+        if (range != null) {
+          _answers['weight'] = ((range.minLbs + range.maxLbs) / 2).round();
+        }
+      }
+    });
+  }
+
+  Widget _buildRangedPicker({
+    required String label,
+    required String valueLabel,
+    required double min,
+    required double max,
+    required int divisions,
+    required double value,
+    required List<({num value, String label})> chips,
+    required void Function(double)? onChanged,
+    String? helperText,
+  }) {
+    final disabled = onChanged == null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: ClovaraTypography.body.copyWith(
+                  color: ClovaraColors.forest,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                valueLabel,
+                style: ClovaraTypography.bodySmall.copyWith(
+                  color: ClovaraColors.forest,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Opacity(
+          opacity: disabled ? 0.55 : 1,
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: ClovaraColors.clover,
+              inactiveTrackColor: ClovaraColors.clover.withOpacity(0.15),
+              thumbColor: ClovaraColors.clover,
+              overlayColor: ClovaraColors.clover.withOpacity(0.15),
+              trackHeight: 4,
+            ),
+            child: Slider(
+              value: value.clamp(min, max),
+              min: min,
+              max: max,
+              divisions: divisions,
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: chips.map((c) {
+              final v = c.value.toDouble();
+              final selected = (value - v).abs() < 0.51;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: InkWell(
+                  onTap: disabled ? null : () => onChanged(v),
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? ClovaraColors.clover.withOpacity(0.14)
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: selected
+                            ? ClovaraColors.clover
+                            : Colors.grey.shade300,
+                        width: selected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      c.label,
+                      style: ClovaraTypography.bodySmall.copyWith(
+                        color: ClovaraColors.forest,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        if (helperText != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            helperText,
+            style: ClovaraTypography.bodySmall.copyWith(
+              color: Colors.grey.shade700,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildQuickBinaryGroup({
+    required String label,
+    required List<({String value, String label, IconData icon})> options,
+    required String? selected,
+    required void Function(String value) onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: ClovaraTypography.body.copyWith(
+            color: ClovaraColors.forest,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final itemWidth = (constraints.maxWidth - 10) / 2;
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: options.map((o) {
+                final isSelected = selected == o.value;
+                return SizedBox(
+                  width: itemWidth,
+                  child: InkWell(
+                    onTap: () => onChanged(o.value),
+                    borderRadius: BorderRadius.circular(14),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? ClovaraColors.clover.withOpacity(0.14)
+                            : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isSelected
+                              ? ClovaraColors.clover
+                              : Colors.grey.shade300,
+                          width: isSelected ? 1.6 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            o.icon,
+                            size: 18,
+                            color: isSelected
+                                ? ClovaraColors.clover
+                                : Colors.grey.shade700,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              o.label,
+                              style: ClovaraTypography.body.copyWith(
+                                color: ClovaraColors.forest,
+                                fontWeight: isSelected
+                                    ? FontWeight.w800
+                                    : FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickBinaryGroupBool({
+    required String label,
+    required String leftLabel,
+    required String rightLabel,
+    required bool? selected,
+    required void Function(bool value) onChanged,
+    bool invertLabels = false,
+  }) {
+    // When invertLabels=true, left chip represents false and right represents true.
+    final leftValue = invertLabels ? false : true;
+    final rightValue = invertLabels ? true : false;
+
+    return _buildQuickBinaryGroup(
+      label: label,
+      options: [
+        (
+          value: leftValue ? 'true' : 'false',
+          label: leftLabel,
+          icon: leftValue ? Icons.check_circle : Icons.cancel,
+        ),
+        (
+          value: rightValue ? 'true' : 'false',
+          label: rightLabel,
+          icon: rightValue ? Icons.warning_rounded : Icons.cancel,
+        ),
+      ],
+      selected: selected == null ? null : (selected ? 'true' : 'false'),
+      onChanged: (v) => onChanged(v == 'true'),
     );
   }
 
@@ -2020,7 +3195,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     final question = _questions[_currentQuestion];
 
     if (question.type == QuestionType.choice ||
-        question.type == QuestionType.multiSelect) {
+        question.type == QuestionType.multiSelect ||
+        question.type == QuestionType.petQuickDetails) {
       return const SizedBox.shrink(); // Handled inline
     }
 
@@ -2096,7 +3272,14 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
 }
 
 // Data models for questions
-enum QuestionType { text, number, choice, ageSlider, multiSelect }
+enum QuestionType {
+  text,
+  number,
+  choice,
+  ageSlider,
+  multiSelect,
+  petQuickDetails,
+}
 
 class QuestionData {
   final String id;

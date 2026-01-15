@@ -248,4 +248,4 @@ Before overriding a quote:
 
 ---
 
-**Made with ❤️ for PetUwrite Admins**
+**Made with ❤️ for Clovara Admins**

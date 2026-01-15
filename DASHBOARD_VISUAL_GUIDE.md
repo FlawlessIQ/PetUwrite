@@ -1,4 +1,4 @@
-# PetUwrite Dashboard - Quick Visual Guide
+# Clovara Dashboard - Quick Visual Guide
 
 ## 🎨 Before & After
 
@@ -306,7 +306,7 @@ Minimum Size: 44x44px (Accessibility)
 
 ✅ **Premium Aesthetic** - Glassmorphism + gradients  
 ✅ **Smooth Animations** - 60fps, staggered timing  
-✅ **Brand Consistency** - PetUwrite color palette  
+✅ **Brand Consistency** - Clovara color palette  
 ✅ **Tactile Feedback** - Press states on all buttons  
 ✅ **Personality** - Paw prints, emoji, friendly copy  
 ✅ **Accessibility** - Min touch targets, semantic colors  

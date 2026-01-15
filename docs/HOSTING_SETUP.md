@@ -1,4 +1,4 @@
-# Firebase Hosting Setup - PetUwrite
+# Firebase Hosting Setup - Clovara
 
 **Date:** October 11, 2025  
 **Status:** ✅ Deployed  
@@ -348,7 +348,7 @@ git push origin main
 
 ## Next Steps
 
-- [ ] Set up custom domain (e.g., petuwrite.com)
+- [ ] Set up custom domain (e.g., clovara.com)
 - [ ] Configure CDN caching strategy
 - [ ] Enable Firebase App Check
 - [ ] Set up monitoring and alerts

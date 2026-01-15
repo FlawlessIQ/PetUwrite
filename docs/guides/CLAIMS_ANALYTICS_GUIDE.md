@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-PetUwrite's Claims Analytics system provides **real-time insights** into claims patterns, risk accuracy, and model performance. The system automatically collects training data from every filed claim to enable **supervised fine-tuning** of the AI risk scoring model.
+Clovara's Claims Analytics system provides **real-time insights** into claims patterns, risk accuracy, and model performance. The system automatically collects training data from every filed claim to enable **supervised fine-tuning** of the AI risk scoring model.
 
 ---
 
@@ -670,7 +670,7 @@ claimsByMonth.forEach((month, count) {
 
 ## 📝 Summary
 
-**PetUwrite's Claims Analytics system provides:**
+**Clovara's Claims Analytics system provides:**
 
 1. **Real-Time Analytics**: Risk band breakdown, claim frequencies, avg amounts
 2. **Heatmap Visualization**: Visual correlation between risk scores and claims

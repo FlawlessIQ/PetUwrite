@@ -49,6 +49,31 @@ Future<void> main() async {
         'seizure disorder',
         'chronic kidney disease',
       ],
+      'excludableConditions': [
+        // Orthopedic / musculoskeletal
+        'cruciate',
+        'cranial cruciate ligament',
+        'degenerative joint disease',
+        'djd',
+        'arthritis',
+        'osteoarthritis',
+        'hip dysplasia',
+        'patellar luxation',
+        'luxating patella',
+        'elbow dysplasia',
+        // Spine
+        'intervertebral disc disease',
+        'ivdd',
+        // Other common exclusions
+        'allergies',
+        'skin conditions',
+        'ear infections',
+        'diabetes',
+        'asthma',
+        'dental disease',
+        'obesity',
+        'anxiety',
+      ],
       'rejectionRules': [
         {
           'ruleId': 'AGE_TOO_YOUNG',
@@ -107,24 +132,45 @@ Future<void> main() async {
     print('   Collection: admin_settings');
     print('   Document: underwriting_rules');
     print('   Max Risk Score: ${underwritingRules['maxRiskScore']}');
-    print('   Age Range: ${underwritingRules['minAgeMonths']} months - ${underwritingRules['maxAgeYears']} years');
-    print('   Excluded Breeds: ${(underwritingRules['excludedBreeds'] as List).length}');
-    print('   Critical Conditions: ${(underwritingRules['criticalConditions'] as List).length}');
-    print('   Rejection Rules: ${(underwritingRules['rejectionRules'] as List).length}');
+    print(
+      '   Age Range: ${underwritingRules['minAgeMonths']} months - ${underwritingRules['maxAgeYears']} years',
+    );
+    print(
+      '   Excluded Breeds: ${(underwritingRules['excludedBreeds'] as List).length}',
+    );
+    print(
+      '   Critical Conditions: ${(underwritingRules['criticalConditions'] as List).length}',
+    );
+    print(
+      '   Excludable Conditions: ${(underwritingRules['excludableConditions'] as List).length}',
+    );
+    print(
+      '   Rejection Rules: ${(underwritingRules['rejectionRules'] as List).length}',
+    );
     print('\n🎯 Next Steps:');
-    print('   1. Verify in Firebase Console: Firestore → admin_settings → underwriting_rules');
+    print(
+      '   1. Verify in Firebase Console: Firestore → admin_settings → underwriting_rules',
+    );
     print('   2. Run your app - permission errors should be resolved');
-    print('   3. Test underwriting flow with excluded breeds and critical conditions');
+    print(
+      '   3. Test underwriting flow with excluded breeds and critical conditions',
+    );
 
     exit(0);
   } catch (e) {
     print('\n❌ Error seeding underwriting rules: $e');
     print('\n🔍 Troubleshooting:');
     print('   1. Ensure Firebase is configured in your project');
-    print('   2. Update Firebase options in this script with your project config');
-    print('   3. Ensure firestore.rules allow authenticated writes to admin_settings');
+    print(
+      '   2. Update Firebase options in this script with your project config',
+    );
+    print(
+      '   3. Ensure firestore.rules allow authenticated writes to admin_settings',
+    );
     print('   4. Check Firebase Console for any authentication errors');
-    print('\n💡 Alternative: Use the Node.js version (seed_underwriting_rules.js) with Admin SDK');
+    print(
+      '\n💡 Alternative: Use the Node.js version (seed_underwriting_rules.js) with Admin SDK',
+    );
     exit(1);
   }
 }

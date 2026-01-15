@@ -13,7 +13,16 @@ class BreedSizeGuide {
     if (breed == null) return null;
 
     // Avoid overconfident validation for mixed breeds.
-    if (breed.contains('mixed')) return null;
+    if (breed.contains('mixed')) {
+      // Support common mixed-breed size buckets.
+      if (breed.contains('small')) return (minLbs: 0, maxLbs: 25);
+      if (breed.contains('medium')) return (minLbs: 25, maxLbs: 55);
+      if (breed.contains('large')) return (minLbs: 55, maxLbs: 90);
+      if (breed.contains('giant')) return (minLbs: 90, maxLbs: 200);
+      return null;
+    }
+
+    if (breed.contains('unknown') || breed.contains('not sure')) return null;
 
     // Giant breeds
     if (_matches(breed, ['irish wolfhound'])) return (minLbs: 100, maxLbs: 180);

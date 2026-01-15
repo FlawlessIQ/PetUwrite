@@ -1,8 +1,8 @@
-# PetUwrite - Visual Development Roadmap
+# Clovara - Visual Development Roadmap
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    PETUWRITE AI PET UNDERWRITING PLATFORM                    │
+│                     CLOVARA AI PET UNDERWRITING PLATFORM                     │
 │                         Development Status Overview                          │
 └─────────────────────────────────────────────────────────────────────────────┘
 

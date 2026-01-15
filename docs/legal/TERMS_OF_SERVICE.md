@@ -1,22 +1,22 @@
-# PetUwrite Terms of Service
+# Clovara Terms of Service
 
 **Effective Date:** [INSERT DATE]  
 **Last Updated:** [INSERT DATE]
 
 ## 1. Agreement to Terms
 
-By accessing or using PetUwrite ("Service," "Platform," "we," "us," or "our"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of the terms, you may not access the Service.
+By accessing or using Clovara ("Service," "Platform," "we," "us," or "our"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of the terms, you may not access the Service.
 
 ## 2. Description of Service
 
-PetUwrite is an AI-powered pet insurance quoting and policy management platform that connects pet owners with insurance coverage options. We provide:
+Clovara is an AI-powered pet insurance quoting and policy management platform that connects pet owners with insurance coverage options. We provide:
 
 - **Quote Generation**: AI-guided conversational flow to collect pet information and generate insurance quotes
 - **Risk Assessment**: Transparent, explainable AI risk scoring
 - **Policy Management**: Digital policy issuance, claims submission, and account management
 - **Administrative Tools**: Dashboard for insurance administrators to review and override decisions
 
-**IMPORTANT**: PetUwrite is a technology platform only. We are NOT an insurance company. Insurance policies are underwritten and issued by [INSERT LICENSED CARRIER NAME], a licensed insurance provider.
+**IMPORTANT**: Clovara is a technology platform only. We are NOT an insurance company. Insurance policies are underwritten and issued by [INSERT LICENSED CARRIER NAME], a licensed insurance provider.
 
 ## 3. Eligibility
 
@@ -198,7 +198,7 @@ See our full Privacy Policy for details: [INSERT PRIVACY POLICY LINK]
 ## 10. Intellectual Property
 
 ### 10.1 Our Rights
-- PetUwrite, our logo, and all content are owned by us or our licensors
+- Clovara, our logo, and all content are owned by us or our licensors
 - You may not copy, modify, distribute, or create derivative works
 - "Pawla" avatar and associated branding are our trademarks
 
@@ -235,7 +235,7 @@ You agree to indemnify and hold us harmless from claims arising from:
 ## 12. Dispute Resolution
 
 ### 12.1 Informal Resolution
-- Contact us first to resolve disputes: support@petuwrite.com
+- Contact us first to resolve disputes: support@clovara.com
 - We will attempt good-faith resolution within 30 days
 
 ### 12.2 Arbitration
@@ -269,12 +269,12 @@ If any provision of these Terms is found to be unenforceable, the remaining prov
 
 ## 16. Entire Agreement
 
-These Terms, along with our Privacy Policy and any other legal notices, constitute the entire agreement between you and PetUwrite.
+These Terms, along with our Privacy Policy and any other legal notices, constitute the entire agreement between you and Clovara.
 
 ## 17. Contact Information
 
-**PetUwrite**  
-Email: legal@petuwrite.com  
+**Clovara**  
+Email: legal@clovara.com  
 Address: [INSERT PHYSICAL ADDRESS]  
 Phone: [INSERT PHONE NUMBER]
 
@@ -283,7 +283,7 @@ For insurance policy questions, contact:
 
 ---
 
-**By using PetUwrite, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.**
+**By using Clovara, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.**
 
 **Last Updated:** [INSERT DATE]  
 **Version:** 1.0

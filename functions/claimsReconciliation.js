@@ -22,7 +22,7 @@ const https = require("https");
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@petuwrite.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@clovara.com";
 
 // Maximum retry attempts before escalation
 const MAX_RETRY_ATTEMPTS = 3;
@@ -825,7 +825,7 @@ async function sendPayoutNotification(options) {
         to: [{email: options.to}],
         subject: `Payment Processed - Claim ${options.claimId}`,
       }],
-      from: {email: "noreply@petuwrite.com", name: "PetUwrite"},
+      from: {email: "noreply@clovara.com", name: "Clovara"},
       content: [{
         type: "text/html",
         value: `
@@ -834,7 +834,7 @@ async function sendPayoutNotification(options) {
           <p><strong>Claim ID:</strong> ${options.claimId}</p>
           <p><strong>Amount:</strong> ${options.currency} ${options.amount.toFixed(2)}</p>
           <p>The payment should appear in your account within 5-7 business days.</p>
-          <p>Thank you for choosing PetUwrite!</p>
+          <p>Thank you for choosing Clovara!</p>
         `,
       }],
     });
@@ -1012,7 +1012,7 @@ async function sendAdminEmail(options) {
       to: [{email: options.to}],
       subject: options.subject,
     }],
-    from: {email: "alerts@petuwrite.com", name: "PetUwrite Alerts"},
+    from: {email: "alerts@clovara.com", name: "Clovara Alerts"},
     content: [{
       type: "text/html",
       value: options.content,

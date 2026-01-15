@@ -13,7 +13,7 @@ import '../services/claims_service.dart';
 import '../services/claim_decision_engine.dart';
 import '../models/claim.dart';
 
-/// PetUwrite Customer Dashboard - Premium, modern UI
+/// Clovara Customer Dashboard - Premium, modern UI
 /// World-class design with glassmorphism, animations, and brand aesthetics
 class CustomerHomeScreen extends StatefulWidget {
   final bool isPremium;
@@ -2218,13 +2218,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             ListTile(
               leading: Icon(Icons.email),
               title: Text('Email'),
-              subtitle: Text('support@petuwrite.com'),
+              subtitle: Text('support@clovara.com'),
               contentPadding: EdgeInsets.zero,
             ),
             ListTile(
               leading: Icon(Icons.phone),
               title: Text('Phone'),
-              subtitle: Text('1-800-PET-WRITE'),
+              subtitle: Text('1-800-CLOVARA'),
               contentPadding: EdgeInsets.zero,
             ),
             ListTile(

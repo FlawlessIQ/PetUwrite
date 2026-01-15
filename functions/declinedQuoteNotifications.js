@@ -98,7 +98,7 @@ async function sendSlackNotification(quoteData, quoteId, eligibility) {
                 text: "View in Admin Dashboard",
                 emoji: true,
               },
-              url: `https://petuwrite.com/admin/quotes/${quoteId}`,
+              url: `https://app.clovara.com/admin/quotes/${quoteId}`,
               style: "primary",
             },
             {
@@ -108,7 +108,7 @@ async function sendSlackNotification(quoteData, quoteId, eligibility) {
                 text: "Request Review",
                 emoji: true,
               },
-              url: `https://petuwrite.com/admin/quotes/${quoteId}?action=review`,
+              url: `https://app.clovara.com/admin/quotes/${quoteId}?action=review`,
               style: "danger",
             },
           ],
@@ -150,7 +150,7 @@ async function sendSlackNotification(quoteData, quoteId, eligibility) {
  */
 async function sendEmailNotification(quoteData, quoteId, eligibility) {
   const sendGridApiKey = process.env.SENDGRID_API_KEY;
-  const notificationEmail = process.env.NOTIFICATION_EMAIL || "admin@petuwrite.com";
+  const notificationEmail = process.env.NOTIFICATION_EMAIL || "admin@clovara.com";
 
   if (!sendGridApiKey) {
     logger.warn("SENDGRID_API_KEY not configured, skipping email notification");
@@ -176,8 +176,8 @@ async function sendEmailNotification(quoteData, quoteId, eligibility) {
         },
       ],
       from: {
-        email: "notifications@petuwrite.com",
-        name: "PetUwrite Alerts",
+        email: "notifications@clovara.com",
+        name: "Clovara Alerts",
       },
       content: [
         {
@@ -383,10 +383,10 @@ function generateEmailHtml(quoteData, quoteId, eligibility, pet, owner, riskScor
     </div>
 
     <div style="text-align: center; margin-top: 30px;">
-      <a href="https://petuwrite.com/admin/quotes/${quoteId}" class="button">
+      <a href="https://app.clovara.com/admin/quotes/${quoteId}" class="button">
         📊 View in Admin Dashboard
       </a>
-      <a href="https://petuwrite.com/admin/quotes/${quoteId}?action=review" class="button button-danger">
+      <a href="https://app.clovara.com/admin/quotes/${quoteId}?action=review" class="button button-danger">
         📝 Request Manual Review
       </a>
     </div>
@@ -394,7 +394,7 @@ function generateEmailHtml(quoteData, quoteId, eligibility, pet, owner, riskScor
 
   <div class="footer">
     <p>
-      This is an automated notification from PetUwrite.<br/>
+      This is an automated notification from Clovara.<br/>
       You're receiving this because a quote was declined by the eligibility system.
     </p>
   </div>

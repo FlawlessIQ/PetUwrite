@@ -13,7 +13,7 @@ class ConversationalAIService {
 
   ConversationalAIService._internal()
       : _aiService = GPTService(
-          model: 'gpt-5.2',
+          model: 'gemini-pro-latest',
         );
 
   /// Generate an empathetic, contextual bot message based on user input

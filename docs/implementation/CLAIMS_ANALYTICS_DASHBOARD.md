@@ -69,7 +69,7 @@ The Claims Analytics Dashboard provides comprehensive data visualization and ins
 ### **Step 1: Install Dependencies**
 
 ```bash
-cd /Users/conorlawless/Development/PetUwrite
+cd /Users/conorlawless/Development/Clovara
 flutter pub get
 ```
 
@@ -267,7 +267,7 @@ Widget _buildMyNewChart(Map<String, dynamic> data) {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          Text('My Chart Title', style: PetUwriteTypography.h3),
+          Text('My Chart Title', style: ClovaraTypography.h3),
           SizedBox(height: 20),
           // Your fl_chart implementation
           LineChart(...),
@@ -318,7 +318,7 @@ _buildDropdownFilter(
 Update color constants:
 ```dart
 // In chart widgets, replace:
-color: PetUwriteColors.kSecondaryTeal,
+color: ClovaraColors.kSecondaryTeal,
 
 // With your custom color:
 color: Colors.purple,

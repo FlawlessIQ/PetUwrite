@@ -29,8 +29,10 @@ class AuthGate extends StatelessWidget {
           );
         }
 
-        // User not logged in - show homepage (unauthenticated access)
-        if (!snapshot.hasData) {
+        // Treat anonymous sessions as unauthenticated for routing purposes.
+        // We use anonymous auth to secure Storage/Firestore writes during
+        // underwriting, but we don't want to force a full account/profile.
+        if (!snapshot.hasData || snapshot.data?.isAnonymous == true) {
           return const Homepage();
         }
 

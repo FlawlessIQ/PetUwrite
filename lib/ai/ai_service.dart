@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http; // Still needed for VertexAIService
 
 /// Interface for AI API integrations
@@ -13,10 +15,17 @@ class GPTService implements AIService {
   final String apiKey; // No longer used, kept for compatibility
   final String model;
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  String? _lastModelUsed;
+  String? _lastProvider;
+
+  String? get lastModelUsed => _lastModelUsed;
+  String? get lastProvider => _lastProvider;
   
   GPTService({
     String? apiKey,
-    this.model = 'gpt-5.2',
+    this.model = 'gemini-pro-latest',
   }) : apiKey = apiKey ?? '' {
     // API key no longer required since we use Cloud Functions
     print('✅ GPTService initialized with Cloud Functions proxy');
@@ -25,6 +34,18 @@ class GPTService implements AIService {
   @override
   Future<String> generateText(String prompt, {Map<String, dynamic>? options}) async {
     try {
+      // Keep Cloud Function invoker locked down (recommended) while still
+      // supporting a no-account UX by using Firebase Anonymous Auth.
+      if (_auth.currentUser == null) {
+        try {
+          await _auth.signInAnonymously();
+        } catch (e) {
+          throw AIServiceException(
+            'Anonymous sign-in failed (required for AI calls): $e',
+          );
+        }
+      }
+
       // Call Firebase Cloud Function instead of OpenAI directly
       final callable = _functions.httpsCallable('chatCompletion');
       
@@ -34,10 +55,51 @@ class GPTService implements AIService {
         ],
         'model': model,
         'temperature': options?['temperature'] ?? 0.7,
-        'maxTokens': options?['max_tokens'] ?? 500,
+        // Support both snake_case and camelCase option keys.
+        'maxTokens': options?['max_tokens'] ?? options?['maxTokens'] ?? 500,
+        if (options?['response_format'] != null) 'response_format': options!['response_format'],
+        if (options?['allowOpenAIFallback'] != null)
+          'allowOpenAIFallback': options!['allowOpenAIFallback'],
       });
-      
-      return result.data['content'] as String;
+
+      // Cloud Function response shape (see functions/openaiProxy.js):
+      // { success: true, message: "...", usage, modelUsed }
+      // Keep backwards compatibility with any older `content` field.
+      final data = result.data;
+      if (data is Map) {
+        final modelUsed = data['modelUsed'];
+        if (modelUsed is String) {
+          _lastModelUsed = modelUsed;
+        }
+        final provider = data['provider'];
+        if (provider is String) {
+          _lastProvider = provider;
+        }
+
+        // Log routing decisions in debug so it's always obvious which provider
+        // and model actually answered.
+        if (kDebugMode) {
+          final used = _lastModelUsed ?? '(unknown)';
+          final prov = _lastProvider ?? '(unknown)';
+          if (used != model) {
+            print('ℹ️ AI routing: requestedModel=$model provider=$prov modelUsed=$used');
+          } else {
+            // Keep the happy-path quieter, but still visible when debugging.
+            print('ℹ️ AI routing: provider=$prov modelUsed=$used');
+          }
+        }
+
+        final message = data['message'] ?? data['content'];
+        if (message is String) return message;
+      }
+      if (data is String) return data;
+      throw AIServiceException('Unexpected chatCompletion response: ${data.runtimeType}');
+    } on FirebaseFunctionsException catch (e) {
+      final details = e.details;
+      final detailsString = details == null ? '' : ' details=$details';
+      throw AIServiceException(
+        'Cloud Function chatCompletion failed: code=${e.code} message=${e.message}$detailsString',
+      );
     } catch (e) {
       throw AIServiceException(
         'Cloud Function chatCompletion failed: $e',

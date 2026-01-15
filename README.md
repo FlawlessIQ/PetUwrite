@@ -1,6 +1,6 @@
-# PetUwrite
+# Clovara
 
-PetUwrite is a Flutter + Firebase pet insurance platform.
+Clovara is a Flutter + Firebase pet insurance platform.
 
 ## What’s in this repo
 

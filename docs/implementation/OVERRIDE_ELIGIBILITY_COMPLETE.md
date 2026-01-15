@@ -538,5 +538,5 @@ This feature provides essential human oversight for AI-driven underwriting, ensu
 
 ---
 
-**Made with ❤️ for PetUwrite**  
+**Made with ❤️ for Clovara**  
 **October 10, 2025**

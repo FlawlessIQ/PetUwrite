@@ -27,8 +27,8 @@ lib/
 
 ### Visual Elements
 - ✅ Navy background (#0A2647)
-- ✅ Large centered logo (assets/PetUwrite transparent.png)
-- ✅ App name "PetUwrite" in large white text
+- ✅ Large centered logo (assets/Clovara transparent.png)
+- ✅ App name "Clovara" in large white text
 - ✅ Tagline "Trust powered by intelligence"
 - ✅ 3 gradient action cards
 - ✅ Professional footer with copyright
@@ -110,7 +110,7 @@ home: const Homepage()  // Was: ConversationalQuoteFlow()
 ```dart
 // In homepage.dart, line ~25
 decoration: const BoxDecoration(
-  color: PetUwriteColors.kPrimaryNavy,  // Change this
+  color: ClovaraColors.kPrimaryNavy,  // Change this
 ),
 ```
 
@@ -150,7 +150,7 @@ _buildActionCard(
 
 ### Logo Not Showing
 **Issue:** Image.asset can't find logo  
-**Fix:** Verify `assets/PetUwrite transparent.png` exists  
+**Fix:** Verify `assets/Clovara transparent.png` exists  
 **Check:** pubspec.yaml includes assets folder
 
 ### Cards Not Clickable
@@ -194,7 +194,7 @@ home: const ConversationalQuoteFlow(),  // Change from Homepage()
 
 - `HOMEPAGE_IMPLEMENTATION_SUMMARY.md` - Complete implementation details
 - `HOMEPAGE_VISUAL_DESIGN_SPEC.md` - Full design specifications
-- `lib/theme/petuwrite_theme.dart` - Brand colors and typography
+- `lib/theme/clovara_theme.dart` - Brand colors and typography
 - `lib/screens/homepage.dart` - Homepage source code
 
 ## 🎯 Next Steps

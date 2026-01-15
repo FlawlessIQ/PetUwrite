@@ -71,9 +71,10 @@ function sanitizeAvailability(data) {
 
 exports.getProductCatalogPublic = onCall(
   {
+    invoker: "public",
     maxInstances: 10,
     timeoutSeconds: 20,
-    memory: "128MiB",
+    memory: "256MiB",
   },
   async () => {
     try {

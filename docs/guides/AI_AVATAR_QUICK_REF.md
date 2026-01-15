@@ -137,7 +137,7 @@ BoxDecoration(
   shape: BoxShape.circle,
   boxShadow: [
     BoxShadow(
-      color: PetUwriteColors.kSecondaryTeal.withOpacity(0.3),
+      color: ClovaraColors.kSecondaryTeal.withOpacity(0.3),
       blurRadius: 8,
       offset: Offset(0, 2),
     ),
@@ -150,7 +150,7 @@ BoxDecoration(
 Container(
   decoration: BoxDecoration(
     shape: BoxShape.circle,
-    gradient: PetUwriteColors.brandGradient,
+    gradient: ClovaraColors.brandGradient,
   ),
   child: Icon(
     Icons.pets,

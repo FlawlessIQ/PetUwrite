@@ -2,7 +2,7 @@
 
 ## Overview
 
-The PetUwrite web app now has full OpenAI API integration enabled, allowing Pawla (the conversational AI) to work on the live website at https://pet-underwriter-ai.web.app.
+The Clovara web app now has full OpenAI API integration enabled, allowing Pawla (the conversational AI) to work on the live website at https://pet-underwriter-ai.web.app.
 
 ## How It Works
 

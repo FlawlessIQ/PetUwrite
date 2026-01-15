@@ -17,7 +17,7 @@ is not true
 
 The relevant error-causing widget was:
   TweenAnimationBuilder<double>
-  file:///Users/conorlawless/Development/PetUwrite/lib/screens/ai_analysis_screen_v2.dart:205:12
+  file:///Users/conorlawless/Development/Clovara/lib/screens/ai_analysis_screen_v2.dart:205:12
 ```
 
 ### Root Cause:

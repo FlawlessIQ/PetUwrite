@@ -40,7 +40,7 @@ class PhoneNumberFormatter extends TextInputFormatter {
   }
 }
 
-/// PetUwrite branded login screen with prominent logo
+/// Clovara branded login screen with prominent logo
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 

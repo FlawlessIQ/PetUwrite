@@ -484,5 +484,5 @@ Your Firestore security rules now provide:
 
 ---
 
-**Made with ❤️ for PetUwrite**  
+**Made with ❤️ for Clovara**  
 **October 10, 2025**

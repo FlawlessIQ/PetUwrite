@@ -1,11 +1,11 @@
-# PetUwrite Privacy Policy
+# Clovara Privacy Policy
 
 **Effective Date:** [INSERT DATE]  
 **Last Updated:** [INSERT DATE]
 
 ## 1. Introduction
 
-PetUwrite ("we," "us," or "our") respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our pet insurance platform ("Service").
+Clovara ("we," "us," or "our") respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our pet insurance platform ("Service").
 
 **Please read this Privacy Policy carefully.** By using the Service, you agree to the collection and use of information in accordance with this policy.
 
@@ -142,7 +142,7 @@ We may disclose your information if required by law:
 - **Emergency Situations**: To protect health, safety, or rights
 
 ### 6.4 Business Transfers
-If PetUwrite is acquired or merged with another company:
+If Clovara is acquired or merged with another company:
 - Your information may be transferred to the new entity
 - You will be notified via email and/or prominent notice on the website
 - The acquiring company must honor this Privacy Policy
@@ -223,7 +223,7 @@ In the event of a data breach:
 - Contest AI decisions that resulted in coverage denial
 
 ### 9.8 Complaints
-- File a complaint with us: privacy@petuwrite.com
+- File a complaint with us: privacy@clovara.com
 - File a complaint with your data protection authority:
   - **EU**: Your local Data Protection Authority
   - **California**: California Attorney General
@@ -233,7 +233,7 @@ In the event of a data breach:
 
 - **Age Requirement**: Our Service is NOT intended for children under 18
 - **No Knowing Collection**: We do not knowingly collect data from children under 13
-- **Parental Discovery**: If you believe we have collected data from a child, contact us immediately at privacy@petuwrite.com
+- **Parental Discovery**: If you believe we have collected data from a child, contact us immediately at privacy@clovara.com
 
 ## 11. Third-Party Links
 
@@ -265,7 +265,7 @@ In the event of a data breach:
 
 ### 13.2 California Shine the Light Law
 - Request information about data shared with third parties for marketing purposes
-- Contact privacy@petuwrite.com with "California Shine the Light Request"
+- Contact privacy@clovara.com with "California Shine the Light Request"
 
 ## 14. Virginia Privacy Rights (VCDPA)
 
@@ -277,7 +277,7 @@ In the event of a data breach:
 ## 15. Nevada Privacy Rights
 
 - **Right to Opt-Out of Sale**: We do NOT sell your data
-- Nevada residents may submit opt-out requests to privacy@petuwrite.com
+- Nevada residents may submit opt-out requests to privacy@clovara.com
 
 ## 16. Changes to This Privacy Policy
 
@@ -289,16 +289,16 @@ In the event of a data breach:
 ## 17. Contact Us
 
 ### 17.1 Privacy Inquiries
-Email: privacy@petuwrite.com  
+Email: privacy@clovara.com  
 Phone: [INSERT PHONE NUMBER]  
 Address: [INSERT PHYSICAL ADDRESS]
 
 ### 17.2 Data Protection Officer (DPO)
 If required by law, we will appoint a Data Protection Officer:  
-Email: dpo@petuwrite.com
+Email: dpo@clovara.com
 
 ### 17.3 Exercising Your Rights
-To exercise any of your privacy rights, email us at: privacy@petuwrite.com
+To exercise any of your privacy rights, email us at: privacy@clovara.com
 
 Include:
 - Your full name and email address
@@ -307,7 +307,7 @@ Include:
 
 ---
 
-**By using PetUwrite, you acknowledge that you have read and understood this Privacy Policy.**
+**By using Clovara, you acknowledge that you have read and understood this Privacy Policy.**
 
 **Last Updated:** [INSERT DATE]  
 **Version:** 1.0

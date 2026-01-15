@@ -20,7 +20,7 @@ const db = admin.firestore();
 const storage = new Storage();
 
 // Configuration
-const BUCKET_NAME = "petuwrite-ai-training"; // TODO: Update with actual bucket name
+const BUCKET_NAME = "clovara-ai-training"; // TODO: Update with actual bucket name
 const TRAINING_DATA_COLLECTION = "ai_training_data";
 const BATCHES_COLLECTION = "ai_training_batches";
 const EXPORTS_COLLECTION = "ai_training_exports";

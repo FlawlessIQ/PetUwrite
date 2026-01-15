@@ -26,7 +26,7 @@ class ClaimDocumentAIService {
     OCRProvider ocrProvider = OCRProvider.googleVision,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _gptService = gptService ?? GPTService(
-          model: 'gpt-5.2',
+          model: 'gemini-pro-latest',
         ),
         _googleVisionApiKey = googleVisionApiKey,
         _awsAccessKey = awsAccessKey,
@@ -71,13 +71,13 @@ class ClaimDocumentAIService {
       );
       print('✅ Validation: ${amountValidation['status']} (${amountValidation['message']})');
 
-      // Step 4: Send to gpt-5.2 for contextual analysis
-      print('🤖 Step 4: Running gpt-5.2 analysis...');
+      // Step 4: Run AI contextual analysis
+      print('🤖 Step 4: Running AI analysis...');
       final gptAnalysis = await _analyzeWithGPT4(
         extractedText: extractedText,
         parsedData: parsedData,
       );
-      print('✅ gpt-5.2 analysis complete. Category: ${gptAnalysis['category']}');
+      print('✅ AI analysis complete. Category: ${gptAnalysis['category']}');
 
       // Step 5: Calculate overall confidence score
       final confidenceScore = _calculateConfidenceScore(
@@ -466,7 +466,7 @@ License #: CA-VET-98765
     };
   }
 
-  /// Analyze document with gpt-5.2 for legitimacy and classification
+  /// Analyze document with AI for legitimacy and classification
   Future<Map<String, dynamic>> _analyzeWithGPT4({
     required String extractedText,
     required Map<String, dynamic> parsedData,
