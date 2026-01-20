@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../admin_console/components/admin_kpi_card.dart';
+import '../../admin_console/components/admin_section_card.dart';
 import '../../theme/clovara_theme.dart';
+import 'claims_review_tab.dart';
 
 /// Claims Analytics Tab for Admin Dashboard
 /// 
@@ -14,7 +17,12 @@ import '../../theme/clovara_theme.dart';
 /// - Filters: breed, age range, region, vet provider
 /// - Data fetched from Firestore with Cloud Functions aggregation
 class ClaimsAnalyticsTab extends StatefulWidget {
-  const ClaimsAnalyticsTab({super.key});
+  final VoidCallback? onOpenInbox;
+
+  const ClaimsAnalyticsTab({
+    super.key,
+    this.onOpenInbox,
+  });
 
   @override
   State<ClaimsAnalyticsTab> createState() => _ClaimsAnalyticsTabState();
@@ -296,106 +304,34 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
   }
 
   Widget _buildFilters() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return AdminSectionCard(
+      title: 'Filters',
+      icon: Icons.filter_list,
+      actions: [
+        TextButton.icon(
+          onPressed: widget.onOpenInbox ??
+              () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ClaimsReviewTab()),
+                );
+              },
+          icon: const Icon(Icons.open_in_new, size: 18),
+          label: const Text('Open inbox'),
+        ),
+        TextButton.icon(
+          onPressed: _clearFilters,
+          icon: const Icon(Icons.clear, size: 18),
+          label: const Text('Clear'),
+        ),
+        FilledButton.icon(
+          onPressed: _loadAnalytics,
+          icon: const Icon(Icons.refresh, size: 18),
+          label: const Text('Refresh'),
+        ),
+      ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isMobile = constraints.maxWidth < 600;
-              
-              if (isMobile) {
-                // Stack vertically on mobile
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.filter_list, color: ClovaraColors.forest, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Filters',
-                          style: ClovaraTypography.h3.copyWith(
-                            color: ClovaraColors.forest,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _clearFilters,
-                            icon: const Icon(Icons.clear, size: 18),
-                            label: const Text('Clear'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _loadAnalytics,
-                            icon: const Icon(Icons.refresh, size: 18),
-                            label: const Text('Refresh'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: ClovaraColors.clover,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              } else {
-                // Horizontal on desktop
-                return Row(
-                  children: [
-                    Icon(Icons.filter_list, color: ClovaraColors.forest),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Filters',
-                      style: ClovaraTypography.h3.copyWith(
-                        color: ClovaraColors.forest,
-                      ),
-                    ),
-                    const Spacer(),
-                    TextButton.icon(
-                      onPressed: _clearFilters,
-                      icon: const Icon(Icons.clear),
-                      label: const Text('Clear All'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: _loadAnalytics,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Refresh'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: ClovaraColors.clover,
-                      ),
-                    ),
-                  ],
-                );
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-          
           // Filter chips
           Wrap(
             spacing: 8,
@@ -447,12 +383,17 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
         final dateFormat = isMobile ? DateFormat('M/d/yy') : DateFormat('MMM d, yyyy');
+        final theme = Theme.of(context);
         
         return ActionChip(
           avatar: const Icon(Icons.calendar_today, size: 16),
           label: Text(
             '${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}',
-            style: TextStyle(fontSize: isMobile ? 12 : 14),
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 8),
           onPressed: () async {
@@ -487,37 +428,39 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
+        final theme = Theme.of(context);
         
-        return Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 8 : 12,
-            vertical: 4,
-          ),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButton<String>(
+        return SizedBox(
+          width: isMobile ? 200 : 240,
+          child: DropdownButtonFormField<String?>(
             value: value,
-            hint: Text(
-              label,
-              style: TextStyle(fontSize: isMobile ? 12 : 14),
+            isExpanded: true,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
             ),
-            underline: const SizedBox(),
-            isDense: isMobile,
-            style: TextStyle(
-              fontSize: isMobile ? 12 : 14,
-              color: Colors.black87,
+            decoration: InputDecoration(
+              labelText: label,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              labelStyle: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurface.withOpacity(0.70),
+              ),
             ),
+            icon: const Icon(Icons.expand_more, size: 18),
             items: [
-              DropdownMenuItem<String>(
+              DropdownMenuItem<String?>(
                 value: null,
                 child: Text('All $label'),
               ),
-              ...items.map((item) => DropdownMenuItem(
-                    value: item,
-                    child: Text(item),
-                  )),
+              ...items.map(
+                (item) => DropdownMenuItem<String?>(
+                  value: item,
+                  child: Text(item),
+                ),
+              ),
             ],
             onChanged: (newValue) {
               onChanged(newValue);
@@ -566,7 +509,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
     final data = _analyticsData!;
     
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -618,102 +561,53 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
   }
 
   Widget _buildSummaryCards(Map<String, dynamic> data) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 768;
-        final isTablet = constraints.maxWidth < 1024;
-        
-        // On mobile: 1 column, on tablet: 2 columns, on desktop: 4 columns
-        final crossAxisCount = isMobile ? 1 : (isTablet ? 2 : 4);
-        
-        final cards = [
-          _buildSummaryCard(
-            'Total Claims',
-            data['totalClaims'].toString(),
-            Icons.description,
-            ClovaraColors.clover,
-          ),
-          _buildSummaryCard(
-            'Average Amount',
-            '\$${data['averageAmount'].toStringAsFixed(2)}',
-            Icons.attach_money,
-            ClovaraColors.kSuccessMint,
-          ),
-          _buildSummaryCard(
-            'Total Paid Out',
-            '\$${data['totalPaidOut'].toStringAsFixed(2)}',
-            Icons.paid,
-            ClovaraColors.forest,
-          ),
-          _buildSummaryCard(
-            'Auto-Approval Rate',
-            '${((data['autoApproved'] / (data['autoApproved'] + data['manualApproved'] + 0.01)) * 100).toStringAsFixed(1)}%',
-            Icons.auto_awesome,
-            ClovaraColors.sunset,
-          ),
-        ];
-        
-        if (crossAxisCount == 1) {
-          // Single column for mobile
-          return Column(
-            children: cards.map((card) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: card,
-            )).toList(),
-          );
-        } else {
-          // Grid layout for tablet/desktop
-          return Wrap(
-            spacing: 16,
-            runSpacing: 12,
-            children: cards.map((card) => SizedBox(
-              width: (constraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount,
-              child: card,
-            )).toList(),
-          );
-        }
-      },
-    );
-  }
+    final autoApproved = (data['autoApproved'] as int?) ?? 0;
+    final manualApproved = (data['manualApproved'] as int?) ?? 0;
+    final denom = (autoApproved + manualApproved).clamp(1, 1 << 31);
+    final autoRate = (autoApproved / denom) * 100;
 
-  Widget _buildSummaryCard(String label, String value, IconData icon, Color color) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 24),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(Icons.trending_up, color: color, size: 16),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              value,
-              style: ClovaraTypography.h2.copyWith(
-                color: ClovaraColors.forest,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: ClovaraTypography.bodySmall.copyWith(
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
+    final cards = [
+      AdminKpiCard(
+        label: 'Total claims',
+        value: '${data['totalClaims']}',
+        icon: Icons.description_outlined,
+        color: ClovaraColors.clover,
+      ),
+      AdminKpiCard(
+        label: 'Average amount',
+        value: '\$${data['averageAmount'].toStringAsFixed(2)}',
+        icon: Icons.attach_money,
+        color: ClovaraColors.kSuccessMint,
+      ),
+      AdminKpiCard(
+        label: 'Total paid out',
+        value: '\$${data['totalPaidOut'].toStringAsFixed(2)}',
+        icon: Icons.paid_outlined,
+        color: ClovaraColors.forest,
+      ),
+      AdminKpiCard(
+        label: 'Auto-approval rate',
+        value: '${autoRate.toStringAsFixed(1)}%',
+        icon: Icons.auto_awesome_outlined,
+        color: ClovaraColors.sunset,
+      ),
+    ];
+
+    return AdminSectionCard(
+      title: 'Summary',
+      icon: Icons.insights_outlined,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final perRow = width >= 1100 ? 4 : (width >= 760 ? 2 : 1);
+          final cardWidth = perRow == 1 ? width : (width - ((perRow - 1) * 12)) / perRow;
+
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: cards.map((c) => SizedBox(width: cardWidth, child: c)).toList(),
+          );
+        },
       ),
     );
   }
@@ -726,87 +620,73 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
     }
 
     final entries = claimsByMonth.entries.toList();
-    
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Claims by Month',
-              style: ClovaraTypography.h3.copyWith(
-                color: ClovaraColors.forest,
+
+    return AdminSectionCard(
+      title: 'Claims by Month',
+      icon: Icons.show_chart,
+      child: SizedBox(
+        height: 250,
+        child: LineChart(
+          LineChartData(
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: false,
+              horizontalInterval: 1,
+              getDrawingHorizontalLine: (value) => FlLine(
+                color: Colors.grey[300]!,
+                strokeWidth: 1,
               ),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 250,
-              child: LineChart(
-                LineChartData(
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 1,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: Colors.grey[300]!,
-                      strokeWidth: 1,
-                    ),
-                  ),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 40,
-                        getTitlesWidget: (value, meta) {
-                          return Text(
-                            value.toInt().toString(),
-                            style: ClovaraTypography.bodySmall,
-                          );
-                        },
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 30,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index < 0 || index >= entries.length) return const SizedBox();
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              entries[index].key,
-                              style: ClovaraTypography.bodySmall,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: entries.asMap().entries.map((e) {
-                        return FlSpot(e.key.toDouble(), e.value.value.toDouble());
-                      }).toList(),
-                      isCurved: true,
-                      color: ClovaraColors.clover,
-                      barWidth: 3,
-                      dotData: const FlDotData(show: true),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: ClovaraColors.clover.withOpacity(0.2),
-                      ),
-                    ),
-                  ],
+            titlesData: FlTitlesData(
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 40,
+                  getTitlesWidget: (value, meta) {
+                    return Text(
+                      value.toInt().toString(),
+                      style: ClovaraTypography.bodySmall,
+                    );
+                  },
                 ),
               ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 30,
+                  getTitlesWidget: (value, meta) {
+                    final index = value.toInt();
+                    if (index < 0 || index >= entries.length) return const SizedBox();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        entries[index].key,
+                        style: ClovaraTypography.bodySmall,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
-          ],
+            borderData: FlBorderData(show: false),
+            lineBarsData: [
+              LineChartBarData(
+                spots: entries.asMap().entries.map((e) {
+                  return FlSpot(e.key.toDouble(), e.value.value.toDouble());
+                }).toList(),
+                isCurved: true,
+                color: ClovaraColors.clover,
+                barWidth: 3,
+                dotData: const FlDotData(show: true),
+                belowBarData: BarAreaData(
+                  show: true,
+                  color: ClovaraColors.clover.withOpacity(0.2),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -821,170 +701,147 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
     final total = autoApproved + manualApproved + denied + pending;
     if (total == 0) return const SizedBox.shrink();
 
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Decision Distribution',
-              style: ClovaraTypography.h3.copyWith(
-                color: ClovaraColors.forest,
+    return AdminSectionCard(
+      title: 'Decision Distribution',
+      icon: Icons.pie_chart_outline,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 200,
+            child: PieChart(
+              PieChartData(
+                sectionsSpace: 2,
+                centerSpaceRadius: 40,
+                sections: [
+                  if (autoApproved > 0)
+                    PieChartSectionData(
+                      value: autoApproved.toDouble(),
+                      title: '${((autoApproved / total) * 100).toInt()}%',
+                      color: ClovaraColors.kSuccessMint,
+                      radius: 60,
+                      titleStyle: ClovaraTypography.bodySmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  if (manualApproved > 0)
+                    PieChartSectionData(
+                      value: manualApproved.toDouble(),
+                      title: '${((manualApproved / total) * 100).toInt()}%',
+                      color: ClovaraColors.sunset,
+                      radius: 60,
+                      titleStyle: ClovaraTypography.bodySmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  if (denied > 0)
+                    PieChartSectionData(
+                      value: denied.toDouble(),
+                      title: '${((denied / total) * 100).toInt()}%',
+                      color: ClovaraColors.kError,
+                      radius: 60,
+                      titleStyle: ClovaraTypography.bodySmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  if (pending > 0)
+                    PieChartSectionData(
+                      value: pending.toDouble(),
+                      title: '${((pending / total) * 100).toInt()}%',
+                      color: ClovaraColors.kWarmCoral,
+                      radius: 60,
+                      titleStyle: ClovaraTypography.bodySmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 200,
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 40,
-                  sections: [
-                    if (autoApproved > 0)
-                      PieChartSectionData(
-                        value: autoApproved.toDouble(),
-                        title: '${((autoApproved / total) * 100).toInt()}%',
-                        color: ClovaraColors.kSuccessMint,
-                        radius: 60,
-                        titleStyle: ClovaraTypography.bodySmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    if (manualApproved > 0)
-                      PieChartSectionData(
-                        value: manualApproved.toDouble(),
-                        title: '${((manualApproved / total) * 100).toInt()}%',
-                        color: ClovaraColors.sunset,
-                        radius: 60,
-                        titleStyle: ClovaraTypography.bodySmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    if (denied > 0)
-                      PieChartSectionData(
-                        value: denied.toDouble(),
-                        title: '${((denied / total) * 100).toInt()}%',
-                        color: ClovaraColors.kError,
-                        radius: 60,
-                        titleStyle: ClovaraTypography.bodySmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    if (pending > 0)
-                      PieChartSectionData(
-                        value: pending.toDouble(),
-                        title: '${((pending / total) * 100).toInt()}%',
-                        color: ClovaraColors.kWarmCoral,
-                        radius: 60,
-                        titleStyle: ClovaraTypography.bodySmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _buildLegend([
-              if (autoApproved > 0) ('Auto-Approved', ClovaraColors.kSuccessMint, autoApproved),
-              if (manualApproved > 0) ('Manual Approved', ClovaraColors.sunset, manualApproved),
-              if (denied > 0) ('Denied', ClovaraColors.kError, denied),
-              if (pending > 0) ('Pending', ClovaraColors.kWarmCoral, pending),
-            ]),
-          ],
-        ),
+          ),
+          const SizedBox(height: 14),
+          _buildLegend([
+            if (autoApproved > 0) ('Auto-Approved', ClovaraColors.kSuccessMint, autoApproved),
+            if (manualApproved > 0) ('Manual Approved', ClovaraColors.sunset, manualApproved),
+            if (denied > 0) ('Denied', ClovaraColors.kError, denied),
+            if (pending > 0) ('Pending', ClovaraColors.kWarmCoral, pending),
+          ]),
+        ],
       ),
     );
   }
 
   Widget _buildConfidenceDistributionChart(Map<String, dynamic> data) {
     final confidenceBuckets = data['confidenceBuckets'] as Map<String, int>;
-    
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'AI Confidence Distribution',
-              style: ClovaraTypography.h3.copyWith(
-                color: ClovaraColors.forest,
+
+    return AdminSectionCard(
+      title: 'AI Confidence Distribution',
+      icon: Icons.bar_chart_outlined,
+      child: SizedBox(
+        height: 200,
+        child: BarChart(
+          BarChartData(
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: false,
+              horizontalInterval: 5,
+              getDrawingHorizontalLine: (value) => FlLine(
+                color: Colors.grey[300]!,
+                strokeWidth: 1,
               ),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 200,
-              child: BarChart(
-                BarChartData(
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 5,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: Colors.grey[300]!,
-                      strokeWidth: 1,
-                    ),
-                  ),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 40,
-                        getTitlesWidget: (value, meta) {
-                          return Text(
-                            value.toInt().toString(),
-                            style: ClovaraTypography.bodySmall,
-                          );
-                        },
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 30,
-                        getTitlesWidget: (value, meta) {
-                          final labels = confidenceBuckets.keys.toList();
-                          final index = value.toInt();
-                          if (index < 0 || index >= labels.length) return const SizedBox();
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              labels[index],
-                              style: ClovaraTypography.bodySmall,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  barGroups: confidenceBuckets.entries.toList().asMap().entries.map((e) {
-                    return BarChartGroupData(
-                      x: e.key,
-                      barRods: [
-                        BarChartRodData(
-                          toY: e.value.value.toDouble(),
-                          color: _getConfidenceColor(e.value.key),
-                          width: 30,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                        ),
-                      ],
+            titlesData: FlTitlesData(
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 40,
+                  getTitlesWidget: (value, meta) {
+                    return Text(
+                      value.toInt().toString(),
+                      style: ClovaraTypography.bodySmall,
                     );
-                  }).toList(),
+                  },
                 ),
               ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 30,
+                  getTitlesWidget: (value, meta) {
+                    final labels = confidenceBuckets.keys.toList();
+                    final index = value.toInt();
+                    if (index < 0 || index >= labels.length) return const SizedBox();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        labels[index],
+                        style: ClovaraTypography.bodySmall,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
-          ],
+            borderData: FlBorderData(show: false),
+            barGroups: confidenceBuckets.entries.toList().asMap().entries.map((e) {
+              return BarChartGroupData(
+                x: e.key,
+                barRods: [
+                  BarChartRodData(
+                    toY: e.value.value.toDouble(),
+                    color: _getConfidenceColor(e.value.key),
+                    width: 30,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
@@ -1003,84 +860,70 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
       return MapEntry(e.key, avgAmount);
     }).toList();
 
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Average Claim Amount by Month',
-              style: ClovaraTypography.h3.copyWith(
-                color: ClovaraColors.forest,
+    return AdminSectionCard(
+      title: 'Average Claim Amount by Month',
+      icon: Icons.stacked_bar_chart,
+      child: SizedBox(
+        height: 250,
+        child: BarChart(
+          BarChartData(
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: false,
+              horizontalInterval: 100,
+              getDrawingHorizontalLine: (value) => FlLine(
+                color: Colors.grey[300]!,
+                strokeWidth: 1,
               ),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 250,
-              child: BarChart(
-                BarChartData(
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 100,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: Colors.grey[300]!,
-                      strokeWidth: 1,
-                    ),
-                  ),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 50,
-                        getTitlesWidget: (value, meta) {
-                          return Text(
-                            '\$${value.toInt()}',
-                            style: ClovaraTypography.bodySmall,
-                          );
-                        },
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 30,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index < 0 || index >= entries.length) return const SizedBox();
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              entries[index].key,
-                              style: ClovaraTypography.bodySmall,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  barGroups: entries.asMap().entries.map((e) {
-                    return BarChartGroupData(
-                      x: e.key,
-                      barRods: [
-                        BarChartRodData(
-                          toY: e.value.value,
-                          color: ClovaraColors.kSuccessMint,
-                          width: 40,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                        ),
-                      ],
+            titlesData: FlTitlesData(
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 50,
+                  getTitlesWidget: (value, meta) {
+                    return Text(
+                      '\$${value.toInt()}',
+                      style: ClovaraTypography.bodySmall,
                     );
-                  }).toList(),
+                  },
                 ),
               ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 30,
+                  getTitlesWidget: (value, meta) {
+                    final index = value.toInt();
+                    if (index < 0 || index >= entries.length) return const SizedBox();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        entries[index].key,
+                        style: ClovaraTypography.bodySmall,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
-          ],
+            borderData: FlBorderData(show: false),
+            barGroups: entries.asMap().entries.map((e) {
+              return BarChartGroupData(
+                x: e.key,
+                barRods: [
+                  BarChartRodData(
+                    toY: e.value.value,
+                    color: ClovaraColors.kSuccessMint,
+                    width: 40,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
         ),
       ),
     );

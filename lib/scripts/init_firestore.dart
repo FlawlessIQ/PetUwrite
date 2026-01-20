@@ -15,35 +15,9 @@ Future<void> main() async {
     
     final firestore = FirebaseFirestore.instance;
     
-    // Initialize underwriting rules
-    print('📋 Creating admin_settings/underwriting_rules...');
-    await firestore.collection('admin_settings').doc('underwriting_rules').set({
-      'maxRiskScore': 90,
-      'minAgeMonths': 2,
-      'maxAgeYears': 14,
-      'excludedBreeds': [
-        'Wolf Hybrid',
-        'Wolf Dog',
-        'Pit Bull Terrier',
-        'American Pit Bull Terrier',
-        'Staffordshire Bull Terrier',
-        'Presa Canario',
-        'Dogo Argentino',
-      ],
-      'criticalConditions': [
-        'cancer',
-        'terminal illness',
-        'end stage kidney disease',
-        'end stage liver disease',
-        'congestive heart failure',
-        'malignant tumor',
-        'terminal cancer',
-        'metastatic cancer',
-      ],
-      'enabled': true,
-      'lastUpdated': FieldValue.serverTimestamp(),
-    });
-    print('✅ Underwriting rules created\n');
+    // Underwriting rules are authored in the repo and published via tooling.
+    // See: tools/underwriting_rules/publish_underwriting_rules.js
+    print('ℹ️ Skipping underwriting rules initialization (canonical publish pipeline required)\n');
 
     // Initialize product catalog availability
     print('📦 Creating admin_settings/product_catalog...');
@@ -71,7 +45,7 @@ Future<void> main() async {
     
     print('✅ Firestore initialization complete!');
     print('\n📝 Next steps:');
-    print('   1. Verify rules in Firebase Console: Firestore → admin_settings → underwriting_rules');
+    print('   1. Publish underwriting rules: node tools/underwriting_rules/publish_underwriting_rules.js --env dev');
     print('   1b. Verify product config: Firestore → admin_settings → product_catalog');
     print('   2. Re-run your app - permission errors should be resolved');
     

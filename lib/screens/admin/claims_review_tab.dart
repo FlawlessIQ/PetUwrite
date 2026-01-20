@@ -5,6 +5,11 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:intl/intl.dart';
 import '../../models/claim.dart';
 import '../../services/claim_document_ai_service.dart';
+import '../../admin_console/components/admin_kpi_card.dart';
+import '../../admin_console/components/admin_bulk_actions_bar.dart';
+import '../../admin_console/components/admin_selectable_data_table.dart';
+import '../../admin_console/components/admin_filters_row.dart';
+import '../../admin_console/components/admin_section_card.dart';
 import '../../theme/clovara_theme.dart';
 
 /// Claims Review tab for admin dashboard
@@ -19,38 +24,42 @@ class ClaimsReviewTab extends StatefulWidget {
 class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  final Map<String, String> _petNameCache = <String, String>{};
+  final Map<String, Future<String>> _petNameFutures = <String, Future<String>>{};
+  final Set<String> _petNamePrewarmed = <String>{};
+
   String _selectedFilter = 'all';
   String _searchQuery = '';
+  final Set<String> _selectedClaimIds = <String>{};
+
+  int _sortColumnIndex = 5; // Date
+  bool _sortAscending = false;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Analytics Summary
         _buildAnalyticsSummary(),
-        const SizedBox(height: 24),
-
-        // Filters and Search
+        const SizedBox(height: 12),
         _buildFiltersBar(),
-        const SizedBox(height: 16),
-
-        // Claims List
-        Expanded(
-          child: _buildClaimsList(),
-        ),
+        const SizedBox(height: 12),
+        Expanded(child: _buildClaimsList()),
       ],
     );
   }
 
   /// Build analytics summary widget
   Widget _buildAnalyticsSummary() {
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month, 1);
+
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
           .collection('claims')
-          .where('createdAt',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(
-                DateTime(DateTime.now().year, DateTime.now().month, 1),
-              ))
+          .where(
+            'createdAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart),
+          )
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -74,7 +83,6 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
           return data['status'] == 'processing';
         }).length;
 
-        // Calculate average processing time
         final processingTimes = claims
             .where((doc) {
               final data = doc.data() as Map<String, dynamic>;
@@ -92,222 +100,102 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
             ? processingTimes.reduce((a, b) => a + b) / processingTimes.length
             : 0.0;
 
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.analytics,
-                      color: ClovaraColors.clover, size: 28),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Claims Analytics - This Month',
-                    style: ClovaraTypography.h3.copyWith(
-                      color: ClovaraColors.forest,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isMobile = constraints.maxWidth < 768;
-                  final isTablet = constraints.maxWidth < 1024;
-                  
-                  final statCards = [
-                    _buildStatCard(
-                      icon: Icons.folder_open,
-                      label: 'Total Claims',
-                      value: totalClaims.toString(),
-                      color: ClovaraColors.forest,
-                    ),
-                    _buildStatCard(
-                      icon: Icons.check_circle,
-                      label: 'Auto-Approved',
-                      value: autoApproved.toString(),
-                      subtitle:
-                          '${totalClaims > 0 ? ((autoApproved / totalClaims) * 100).toStringAsFixed(1) : 0}%',
-                      color: ClovaraColors.kSuccessMint,
-                    ),
-                    _buildStatCard(
-                      icon: Icons.person,
-                      label: 'Human Reviewed',
-                      value: humanReviewed.toString(),
-                      subtitle:
-                          '${totalClaims > 0 ? ((humanReviewed / totalClaims) * 100).toStringAsFixed(1) : 0}%',
-                      color: ClovaraColors.clover,
-                    ),
-                    _buildStatCard(
-                      icon: Icons.pending_actions,
-                      label: 'Pending Review',
-                      value: pending.toString(),
-                      color: ClovaraColors.kWarning,
-                    ),
-                    _buildStatCard(
-                      icon: Icons.schedule,
-                      label: 'Avg Processing',
-                      value: '${avgProcessingTime.toStringAsFixed(1)}h',
-                      color: ClovaraColors.kTextGrey,
-                    ),
-                  ];
-                  
-                  if (isMobile) {
-                    // Single column on mobile
-                    return Column(
-                      children: statCards.map((card) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: card,
-                      )).toList(),
-                    );
-                  } else if (isTablet) {
-                    // 2-3 columns on tablet
-                    return Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(child: statCards[0]),
-                            const SizedBox(width: 16),
-                            Expanded(child: statCards[1]),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(child: statCards[2]),
-                            const SizedBox(width: 16),
-                            Expanded(child: statCards[3]),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: constraints.maxWidth / 2 - 8,
-                          child: statCards[4],
-                        ),
-                      ],
-                    );
-                  } else {
-                    // All in one row on desktop
-                    return Row(
-                      children: [
-                        Expanded(child: statCards[0]),
-                        const SizedBox(width: 16),
-                        Expanded(child: statCards[1]),
-                        const SizedBox(width: 16),
-                        Expanded(child: statCards[2]),
-                        const SizedBox(width: 16),
-                        Expanded(child: statCards[3]),
-                        const SizedBox(width: 16),
-                        Expanded(child: statCards[4]),
-                      ],
-                    );
-                  }
-                },
-              ),
-            ],
+        return AdminSectionCard(
+          title: 'Claims KPIs (This Month)',
+          icon: Icons.query_stats_outlined,
+          padding: const EdgeInsets.all(16),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final cards = [
+                AdminKpiCard(
+                  label: 'Total claims',
+                  value: '$totalClaims',
+                  icon: Icons.folder_open,
+                  color: ClovaraColors.forest,
+                ),
+                AdminKpiCard(
+                  label: 'Auto-approved',
+                  value: '$autoApproved',
+                  delta:
+                      '${totalClaims > 0 ? ((autoApproved / totalClaims) * 100).toStringAsFixed(1) : 0}%',
+                  icon: Icons.check_circle,
+                  color: ClovaraColors.kSuccessMint,
+                ),
+                AdminKpiCard(
+                  label: 'Human reviewed',
+                  value: '$humanReviewed',
+                  delta:
+                      '${totalClaims > 0 ? ((humanReviewed / totalClaims) * 100).toStringAsFixed(1) : 0}%',
+                  icon: Icons.person,
+                  color: ClovaraColors.clover,
+                ),
+                AdminKpiCard(
+                  label: 'Pending review',
+                  value: '$pending',
+                  icon: Icons.pending_actions,
+                  color: ClovaraColors.kWarning,
+                ),
+                AdminKpiCard(
+                  label: 'Avg processing',
+                  value: '${avgProcessingTime.toStringAsFixed(1)}h',
+                  icon: Icons.schedule,
+                  color: ClovaraColors.kTextGrey,
+                ),
+              ];
+
+              if (constraints.maxWidth >= 1100) {
+                return Row(
+                  children: [
+                    for (final card in cards) ...[
+                      Expanded(child: card),
+                      const SizedBox(width: 12),
+                    ],
+                  ]..removeLast(),
+                );
+              }
+
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: cards.map((c) => SizedBox(width: 360, child: c)).toList(),
+              );
+            },
           ),
         );
       },
     );
   }
 
-  /// Build stat card
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    String? subtitle,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: ClovaraColors.kTextGrey,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 12,
-                color: ClovaraColors.slate,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   /// Build filters bar
   Widget _buildFiltersBar() {
-    return Container(
+    final theme = Theme.of(context);
+
+    return AdminSectionCard(
+      title: 'Filters',
+      icon: Icons.tune,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Filter dropdown
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[300]!),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: DropdownButton<String>(
+      child: AdminFiltersRow(
+        leading: [
+          SizedBox(
+            width: 240,
+            child: DropdownButtonFormField<String>(
               value: _selectedFilter,
-              underline: const SizedBox(),
+              isExpanded: true,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurface,
+              ),
+              decoration: InputDecoration(
+                labelText: 'Queue',
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                labelStyle: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface.withOpacity(0.70),
+                ),
+              ),
+              icon: const Icon(Icons.expand_more, size: 18),
               items: const [
                 DropdownMenuItem(value: 'all', child: Text('All Pending')),
                 DropdownMenuItem(value: 'escalated', child: Text('AI Escalated')),
@@ -315,37 +203,25 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
                 DropdownMenuItem(value: 'low_confidence', child: Text('Low Confidence')),
               ],
               onChanged: (value) {
-                setState(() {
-                  _selectedFilter = value!;
-                });
-              },
-            ),
-          ),
-          const SizedBox(width: 16),
-
-          // Search bar
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search by claim ID, pet name, or policy ID...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
+                if (value == null) return;
+                setState(() => _selectedFilter = value);
               },
             ),
           ),
         ],
+        search: TextField(
+          style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+          decoration: InputDecoration(
+            hintText: 'Search by claim ID, pet name, or policy ID…',
+            prefixIcon: const Icon(Icons.search),
+            isDense: true,
+          ),
+          onChanged: (value) {
+            setState(() {
+              _searchQuery = value.toLowerCase();
+            });
+          },
+        ),
       ),
     );
   }
@@ -395,50 +271,157 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
             })
             .toList();
 
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+        final sortedClaims = [...claims];
+        _sortClaims(sortedClaims);
+
+        _prewarmPetNames(sortedClaims.map((c) => c.petId));
+
+        return AdminSectionCard(
+          title: 'Claims Inbox',
+          icon: Icons.fact_check_outlined,
+          expandChild: true,
           child: Column(
             children: [
-              // Table header
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: ClovaraColors.forest.withOpacity(0.05),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    topRight: Radius.circular(12),
+              AdminBulkActionsBar(
+                resultsCount: sortedClaims.length,
+                selectedCount: _selectedClaimIds.length,
+                onSelectVisible: sortedClaims.isEmpty
+                    ? null
+                    : () => setState(() => _selectedClaimIds.addAll(sortedClaims.map((c) => c.claimId))),
+                onClearSelection: () => setState(() => _selectedClaimIds.clear()),
+                actions: [
+                  TextButton.icon(
+                    onPressed: _selectedClaimIds.isEmpty
+                        ? null
+                        : () {
+                            showDialog<void>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Bulk Actions'),
+                                content: const Text(
+                                  'Bulk actions are scaffolded for: approve/deny/request-info with a required note and audit logging.\n\n'
+                                  'For now, open a claim to review and decide.',
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+                                ],
+                              ),
+                            );
+                          },
+                    icon: const Icon(Icons.playlist_add_check, size: 18),
+                    label: const Text('Bulk actions'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: AdminSelectableDataTable<Claim>(
+                  items: sortedClaims,
+            getId: (c) => c.claimId,
+            selectedIds: _selectedClaimIds,
+            onSelectedIdsChanged: (next) => setState(() {
+              _selectedClaimIds
+                ..clear()
+                ..addAll(next);
+            }),
+            sortColumnIndex: _sortColumnIndex,
+            sortAscending: _sortAscending,
+            columns: [
+              const DataColumn(label: Text('Pet Name')),
+              const DataColumn(label: Text('Claim ID')),
+              DataColumn(
+                label: const Text('Amount'),
+                numeric: true,
+                onSort: (index, asc) => setState(() {
+                  _sortColumnIndex = index;
+                  _sortAscending = asc;
+                }),
+              ),
+              DataColumn(
+                label: const Text('AI Confidence'),
+                numeric: true,
+                onSort: (index, asc) => setState(() {
+                  _sortColumnIndex = index;
+                  _sortAscending = asc;
+                }),
+              ),
+              const DataColumn(label: Text('Status')),
+              DataColumn(
+                label: const Text('Date'),
+                onSort: (index, asc) => setState(() {
+                  _sortColumnIndex = index;
+                  _sortAscending = asc;
+                }),
+              ),
+              const DataColumn(label: Text('Actions')),
+            ],
+            buildCells: (context, claim) {
+              final confidence = claim.aiConfidenceScore;
+              final confidencePercent = confidence != null ? (confidence * 100).toStringAsFixed(1) : 'N/A';
+
+              return [
+                DataCell(
+                  FutureBuilder<String>(
+                    future: _getPetNameCached(claim.petId),
+                    builder: (context, snapshot) {
+                      return Text(
+                        snapshot.data ?? 'Loading…',
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      );
+                    },
+                  ),
+                  onTap: () => _openClaimDetail(claim),
+                ),
+                DataCell(
+                  Text(
+                    claim.claimId,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: ClovaraColors.kTextGrey,
+                    ),
+                  ),
+                  onTap: () => _openClaimDetail(claim),
+                ),
+                DataCell(
+                  Text(
+                    '\$${claim.claimAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  onTap: () => _openClaimDetail(claim),
+                ),
+                DataCell(
+                  _buildConfidenceBadge(confidencePercent: confidencePercent, confidence: confidence),
+                  onTap: () => _openClaimDetail(claim),
+                ),
+                DataCell(
+                  _buildStatusBadge(claim.status),
+                  onTap: () => _openClaimDetail(claim),
+                ),
+                DataCell(
+                  Text(
+                    DateFormat('MMM d').format(claim.createdAt),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: ClovaraColors.kTextGrey,
+                    ),
+                  ),
+                  onTap: () => _openClaimDetail(claim),
+                ),
+                DataCell(
+                  ElevatedButton(
+                    onPressed: () => _openClaimDetail(claim),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ClovaraColors.clover,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Review', style: TextStyle(fontSize: 12)),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(flex: 2, child: _buildHeaderCell('Pet Name')),
-                    Expanded(flex: 2, child: _buildHeaderCell('Claim ID')),
-                    Expanded(flex: 1, child: _buildHeaderCell('Amount')),
-                    Expanded(flex: 1, child: _buildHeaderCell('AI Confidence')),
-                    Expanded(flex: 1, child: _buildHeaderCell('Status')),
-                    Expanded(flex: 1, child: _buildHeaderCell('Date')),
-                    Expanded(flex: 1, child: _buildHeaderCell('Actions')),
-                  ],
-                ),
-              ),
-
-              // Table rows
-              Expanded(
-                child: ListView.builder(
-                  itemCount: claims.length,
-                  itemBuilder: (context, index) {
-                    return _buildClaimRow(claims[index]);
-                  },
+              ];
+            },
                 ),
               ),
             ],
@@ -478,141 +461,61 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
     return query.snapshots();
   }
 
-  /// Build table header cell
-  Widget _buildHeaderCell(String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 13,
-        color: ClovaraColors.forest,
-      ),
-    );
+  void _sortClaims(List<Claim> claims) {
+    int compareNum(num a, num b) => a.compareTo(b);
+
+    int cmp(Claim a, Claim b) {
+      switch (_sortColumnIndex) {
+        case 2: // Amount
+          return compareNum(a.claimAmount, b.claimAmount);
+        case 3: // AI Confidence
+          final av = a.aiConfidenceScore ?? -1;
+          final bv = b.aiConfidenceScore ?? -1;
+          return compareNum(av, bv);
+        case 5: // Date
+        default:
+          return a.createdAt.compareTo(b.createdAt);
+      }
+    }
+
+    claims.sort((a, b) {
+      final result = cmp(a, b);
+      return _sortAscending ? result : -result;
+    });
   }
 
-  /// Build claim row
-  Widget _buildClaimRow(Claim claim) {
-    final confidencePercent = claim.aiConfidenceScore != null
-        ? (claim.aiConfidenceScore! * 100).toStringAsFixed(1)
-        : 'N/A';
-
+  Widget _buildConfidenceBadge({required String confidencePercent, required double? confidence}) {
     Color confidenceColor = ClovaraColors.kTextGrey;
-    if (claim.aiConfidenceScore != null) {
-      if (claim.aiConfidenceScore! >= 0.85) {
+    if (confidence != null) {
+      if (confidence >= 0.85) {
         confidenceColor = ClovaraColors.kSuccessMint;
-      } else if (claim.aiConfidenceScore! >= 0.60) {
+      } else if (confidence >= 0.60) {
         confidenceColor = ClovaraColors.kWarning;
       } else {
         confidenceColor = ClovaraColors.kError;
       }
     }
 
-    return InkWell(
-      onTap: () => _openClaimDetail(claim),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.grey[200]!),
-          ),
-        ),
-        child: Row(
-          children: [
-            // Pet Name
-            Expanded(
-              flex: 2,
-              child: FutureBuilder<String>(
-                future: _getPetName(claim.petId),
-                builder: (context, snapshot) {
-                  return Text(
-                    snapshot.data ?? 'Loading...',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  );
-                },
-              ),
-            ),
-
-            // Claim ID
-            Expanded(
-              flex: 2,
-              child: Text(
-                claim.claimId,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: ClovaraColors.kTextGrey,
-                ),
-              ),
-            ),
-
-            // Amount
-            Expanded(
-              flex: 1,
-              child: Text(
-                '\$${claim.claimAmount.toStringAsFixed(2)}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-
-            // AI Confidence
-            Expanded(
-              flex: 1,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: confidenceColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: confidenceColor.withOpacity(0.3)),
-                ),
-                child: Text(
-                  confidencePercent == 'N/A' ? 'N/A' : '$confidencePercent%',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: confidenceColor,
-                  ),
-                ),
-              ),
-            ),
-
-            // Status
-            Expanded(
-              flex: 1,
-              child: _buildStatusBadge(claim.status),
-            ),
-
-            // Date
-            Expanded(
-              flex: 1,
-              child: Text(
-                DateFormat('MMM d').format(claim.createdAt),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: ClovaraColors.kTextGrey,
-                ),
-              ),
-            ),
-
-            // Actions
-            Expanded(
-              flex: 1,
-              child: ElevatedButton(
-                onPressed: () => _openClaimDetail(claim),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ClovaraColors.clover,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text('Review', style: TextStyle(fontSize: 12)),
-              ),
-            ),
-          ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: confidenceColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: confidenceColor.withOpacity(0.3)),
+      ),
+      child: Text(
+        confidencePercent == 'N/A' ? 'N/A' : '$confidencePercent%',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: confidenceColor,
         ),
       ),
     );
   }
+
+
 
   /// Build status badge
   Widget _buildStatusBadge(ClaimStatus status) {
@@ -669,17 +572,53 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
     );
   }
 
+  Future<String> _getPetNameCached(String petId) {
+    final cached = _petNameCache[petId];
+    if (cached != null) return Future<String>.value(cached);
+
+    final existingFuture = _petNameFutures[petId];
+    if (existingFuture != null) return existingFuture;
+
+    final future = _getPetName(petId).whenComplete(() {
+      _petNameFutures.remove(petId);
+    });
+    _petNameFutures[petId] = future;
+    return future;
+  }
+
+  void _prewarmPetNames(Iterable<String> petIds) {
+    // Prewarm a bounded set of visible petIds to reduce per-row FutureBuilder churn.
+    // Safe to call every build; it dedupes.
+    final ids = petIds.where((id) => id.isNotEmpty).take(75).toList(growable: false);
+    if (ids.isEmpty) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final id in ids) {
+        if (_petNameCache.containsKey(id)) continue;
+        if (_petNamePrewarmed.contains(id)) continue;
+        _petNamePrewarmed.add(id);
+        _getPetNameCached(id);
+      }
+    });
+  }
+
   /// Get pet name from Firestore
   Future<String> _getPetName(String petId) async {
+    const fallback = 'Unknown Pet';
     try {
       final doc = await _firestore.collection('pets').doc(petId).get();
       if (doc.exists) {
-        return doc.data()?['name'] ?? 'Unknown';
+        final name = (doc.data()?['name'] ?? 'Unknown Pet').toString();
+        _petNameCache[petId] = name;
+        return name;
       }
-      return 'Unknown';
     } catch (e) {
-      return 'Unknown';
+      debugPrint('Error fetching pet name ($petId): $e');
     }
+
+    _petNameCache[petId] = fallback;
+    return fallback;
   }
 
   /// Open claim detail dialog

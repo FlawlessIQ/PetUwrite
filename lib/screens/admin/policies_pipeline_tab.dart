@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../../admin_console/components/admin_kpi_card.dart';
+import '../../admin_console/components/admin_bulk_actions_bar.dart';
+import '../../admin_console/components/admin_selectable_data_table.dart';
+import '../../admin_console/components/admin_section_card.dart';
+import '../../admin_console/components/admin_status_chip.dart';
 import '../../theme/clovara_theme.dart';
 
 /// Clovara Policies Pipeline Tab - Comprehensive policy management and analytics
@@ -13,10 +19,18 @@ class PoliciesPipelineTab extends StatefulWidget {
 
 class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _policiesTableKey = GlobalKey();
   
   String _statusFilter = 'all';
   String _dateFilter = '30'; // days
   String _sortBy = 'date_desc';
+  String _searchQuery = '';
+  final Set<String> _selectedPolicyIds = <String>{};
+
+  int? _sortColumnIndex = 5; // created
+  bool _sortAscending = false; // newest first
   
   /// Helper to parse date from either Timestamp or String format
   DateTime? _parseDate(dynamic value) {
@@ -37,7 +51,8 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
     return RefreshIndicator(
       onRefresh: () async => setState(() {}),
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        controller: _scrollController,
+        padding: EdgeInsets.zero,
         children: [
           // KPI Dashboard
           _buildKPIDashboard(),
@@ -98,203 +113,75 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
         final arr = mrr * 12;
         final avgPolicyValue = activePolicies > 0 ? mrr / activePolicies : 0;
 
-        return Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.dashboard, 
-                        color: Theme.of(context).primaryColor, size: 28),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Policy Metrics',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+        return AdminSectionCard(
+          title: 'Policy Metrics',
+          icon: Icons.dashboard_outlined,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final cards = [
+                AdminKpiCard(
+                  label: 'Total policies',
+                  value: '${policies.length}',
+                  icon: Icons.policy_outlined,
+                  color: ClovaraColors.clover,
                 ),
-                const SizedBox(height: 20),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isMobile = constraints.maxWidth < 768;
-                    final isTablet = constraints.maxWidth < 1024;
-                    
-                    final metricCards = [
-                      _buildMetricCard(
-                        'Total Policies',
-                        policies.length.toString(),
-                        Icons.policy,
-                        ClovaraColors.clover,
-                        '${policies.length} total',
-                      ),
-                      _buildMetricCard(
-                        'Active Policies',
-                        activePolicies.toString(),
-                        Icons.check_circle,
-                        ClovaraColors.clover,
-                        '$activePolicies active',
-                      ),
-                      _buildMetricCard(
-                        'New (30d)',
-                        newPolicies.toString(),
-                        Icons.fiber_new,
-                        ClovaraColors.sunset,
-                        'Last 30 days',
-                      ),
-                      _buildMetricCard(
-                        'MRR',
-                        '\$${mrr.toStringAsFixed(0)}',
-                        Icons.attach_money,
-                        ClovaraColors.clover,
-                        'Monthly Recurring',
-                      ),
-                      _buildMetricCard(
-                        'ARR',
-                        '\$${arr.toStringAsFixed(0)}',
-                        Icons.trending_up,
-                        ClovaraColors.clover,
-                        'Annual Recurring',
-                      ),
-                      _buildMetricCard(
-                        'Avg Premium',
-                        '\$${avgPolicyValue.toStringAsFixed(2)}',
-                        Icons.calculate,
-                        Colors.indigo,
-                        'Per policy/month',
-                      ),
-                    ];
-                    
-                    if (isMobile) {
-                      // Single column on mobile
-                      return Column(
-                        children: metricCards.map((card) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: card,
-                        )).toList(),
-                      );
-                    } else if (isTablet) {
-                      // 2 columns on tablet
-                      return Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(child: metricCards[0]),
-                              const SizedBox(width: 12),
-                              Expanded(child: metricCards[1]),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(child: metricCards[2]),
-                              const SizedBox(width: 12),
-                              Expanded(child: metricCards[3]),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(child: metricCards[4]),
-                              const SizedBox(width: 12),
-                              Expanded(child: metricCards[5]),
-                            ],
-                          ),
-                        ],
-                      );
-                    } else {
-                      // 3 columns on desktop
-                      return Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(child: metricCards[0]),
-                              const SizedBox(width: 12),
-                              Expanded(child: metricCards[1]),
-                              const SizedBox(width: 12),
-                              Expanded(child: metricCards[2]),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(child: metricCards[3]),
-                              const SizedBox(width: 12),
-                              Expanded(child: metricCards[4]),
-                              const SizedBox(width: 12),
-                              Expanded(child: metricCards[5]),
-                            ],
-                          ),
-                        ],
-                      );
-                    }
+                AdminKpiCard(
+                  label: 'Active',
+                  value: '$activePolicies',
+                  icon: Icons.check_circle_outline,
+                  color: ClovaraColors.clover,
+                  onTap: () {
+                    setState(() => _statusFilter = 'active');
+                    _scrollToPoliciesTable();
                   },
                 ),
-              ],
-            ),
+                AdminKpiCard(
+                  label: 'New (30d)',
+                  value: '$newPolicies',
+                  icon: Icons.fiber_new_outlined,
+                  color: ClovaraColors.sunset,
+                  onTap: () {
+                    setState(() => _dateFilter = '30');
+                    _scrollToPoliciesTable();
+                  },
+                ),
+                AdminKpiCard(
+                  label: 'MRR',
+                  value: '\$${mrr.toStringAsFixed(0)}',
+                  icon: Icons.attach_money,
+                  color: Colors.indigo,
+                ),
+                AdminKpiCard(
+                  label: 'ARR',
+                  value: '\$${arr.toStringAsFixed(0)}',
+                  icon: Icons.trending_up,
+                  color: Colors.indigo,
+                ),
+                AdminKpiCard(
+                  label: 'Avg premium',
+                  value: '\$${avgPolicyValue.toStringAsFixed(2)}',
+                  icon: Icons.calculate_outlined,
+                  color: ClovaraColors.forest,
+                ),
+              ];
+
+              if (constraints.maxWidth >= 1100) {
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: cards.map((c) => SizedBox(width: 320, child: c)).toList(),
+                );
+              }
+
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: cards.map((c) => SizedBox(width: 360, child: c)).toList(),
+              );
+            },
           ),
         );
       },
-    );
-  }
-
-  Widget _buildMetricCard(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-    String subtitle,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -316,82 +203,36 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
           statusCounts[status] = (statusCounts[status] ?? 0) + 1;
         }
 
-        return Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Policy Status Breakdown',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    ...statusCounts.entries.map((entry) {
-                      final color = _getStatusColor(entry.key);
-                      final percentage = policies.isNotEmpty
-                          ? (entry.value / policies.length * 100)
-                          : 0;
-                      
-                      return Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Column(
-                            children: [
-                              Container(
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  color: color.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: color),
-                                ),
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        entry.value.toString(),
-                                        style: TextStyle(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.bold,
-                                          color: color,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${percentage.toStringAsFixed(0)}%',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: color,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _formatStatus(entry.key),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ],
-            ),
+        return AdminSectionCard(
+          title: 'Policy Status Breakdown',
+          icon: Icons.donut_small_outlined,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: statusCounts.entries.map((entry) {
+                  final color = _getStatusColor(entry.key);
+                  final percentage = policies.isNotEmpty ? (entry.value / policies.length * 100) : 0;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: () {
+                      setState(() {
+                        _statusFilter = entry.key;
+                        _selectedPolicyIds.clear();
+                      });
+                      _scrollToPoliciesTable();
+                    },
+                    child: AdminStatusChip(
+                      label: '${_formatStatus(entry.key)} • ${entry.value} (${percentage.toStringAsFixed(0)}%)',
+                      color: color,
+                      icon: Icons.circle,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
           ),
         );
       },
@@ -423,54 +264,44 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
             ? (activePolicies / totalPolicies * 100).toDouble()
             : 0.0;
 
-        return Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Conversion Funnel',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _buildFunnelStage(
-                  'Total Quotes',
-                  totalQuotes,
-                  100,
-                  ClovaraColors.clover,
-                  null,
-                ),
-                _buildFunnelArrow(eligibleRate),
-                _buildFunnelStage(
-                  'Eligible Quotes',
-                  eligibleQuotes,
-                  eligibleRate,
-                  ClovaraColors.clover,
-                  totalQuotes,
-                ),
-                _buildFunnelArrow(conversionRate),
-                _buildFunnelStage(
-                  'Policies Created',
-                  totalPolicies,
-                  conversionRate,
-                  ClovaraColors.sunset,
-                  eligibleQuotes,
-                ),
-                _buildFunnelArrow(retentionRate),
-                _buildFunnelStage(
-                  'Active Policies',
-                  activePolicies,
-                  retentionRate,
-                  ClovaraColors.clover,
-                  totalPolicies,
-                ),
-              ],
-            ),
+        return AdminSectionCard(
+          title: 'Conversion Funnel',
+          icon: Icons.filter_alt_outlined,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildFunnelStage(
+                'Total Quotes',
+                totalQuotes,
+                100,
+                ClovaraColors.clover,
+                null,
+              ),
+              _buildFunnelArrow(eligibleRate),
+              _buildFunnelStage(
+                'Eligible Quotes',
+                eligibleQuotes,
+                eligibleRate,
+                ClovaraColors.clover,
+                totalQuotes,
+              ),
+              _buildFunnelArrow(conversionRate),
+              _buildFunnelStage(
+                'Policies Created',
+                totalPolicies,
+                conversionRate,
+                ClovaraColors.sunset,
+                eligibleQuotes,
+              ),
+              _buildFunnelArrow(retentionRate),
+              _buildFunnelStage(
+                'Active Policies',
+                activePolicies,
+                retentionRate,
+                ClovaraColors.clover,
+                totalPolicies,
+              ),
+            ],
           ),
         );
       },
@@ -553,75 +384,167 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
 
   /// Filters section
   Widget _buildFilters() {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        // Status filter
-        SizedBox(
-          width: 200,
-          child: DropdownButtonFormField<String>(
-            value: _statusFilter,
-            decoration: const InputDecoration(
-              labelText: 'Status',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              isDense: true,
-            ),
-            isExpanded: true,
-            items: const [
-              DropdownMenuItem(value: 'all', child: Text('All Statuses')),
-              DropdownMenuItem(value: 'active', child: Text('Active')),
-              DropdownMenuItem(value: 'pending', child: Text('Pending')),
-              DropdownMenuItem(value: 'expired', child: Text('Expired')),
-              DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
-            ],
-            onChanged: (value) => setState(() => _statusFilter = value!),
-          ),
-        ),
-        // Date filter
-        SizedBox(
-          width: 200,
-          child: DropdownButtonFormField<String>(
-            value: _dateFilter,
-            decoration: const InputDecoration(
-              labelText: 'Date Range',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              isDense: true,
-            ),
-            isExpanded: true,
-            items: const [
-              DropdownMenuItem(value: '7', child: Text('Last 7 days')),
-              DropdownMenuItem(value: '30', child: Text('Last 30 days')),
-              DropdownMenuItem(value: '90', child: Text('Last 90 days')),
-              DropdownMenuItem(value: 'all', child: Text('All time')),
-            ],
-            onChanged: (value) => setState(() => _dateFilter = value!),
-          ),
-        ),
-        // Sort
-        SizedBox(
-          width: 200,
-          child: DropdownButtonFormField<String>(
-            value: _sortBy,
-            decoration: const InputDecoration(
-              labelText: 'Sort By',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              isDense: true,
-            ),
-            isExpanded: true,
-            items: const [
-              DropdownMenuItem(value: 'date_desc', child: Text('Newest First')),
-              DropdownMenuItem(value: 'date_asc', child: Text('Oldest First')),
-              DropdownMenuItem(value: 'premium_desc', child: Text('Highest Premium')),
-              DropdownMenuItem(value: 'premium_asc', child: Text('Lowest Premium')),
-            ],
-            onChanged: (value) => setState(() => _sortBy = value!),
-          ),
+    final statusOptions = <String, String>{
+      'all': 'All Statuses',
+      'active': 'Active',
+      'pending': 'Pending',
+      'expired': 'Expired',
+      'cancelled': 'Cancelled',
+      'lapsed': 'Lapsed',
+      'unknown': 'Unknown',
+    };
+
+    if (!statusOptions.containsKey(_statusFilter)) {
+      statusOptions[_statusFilter] = _formatStatus(_statusFilter);
+    }
+
+    return AdminSectionCard(
+      title: 'Filters',
+      icon: Icons.tune,
+      actions: [
+        TextButton.icon(
+          onPressed: () => setState(() {
+            _statusFilter = 'all';
+            _dateFilter = '30';
+            _applySort('date_desc');
+            _searchQuery = '';
+            _selectedPolicyIds.clear();
+          }),
+          icon: const Icon(Icons.clear_all, size: 18),
+          label: const Text('Reset'),
         ),
       ],
+      child: Column(
+        children: [
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: 220,
+                child: DropdownButtonFormField<String>(
+                  value: _statusFilter,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                  decoration: InputDecoration(
+                    labelText: 'Status',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    isDense: true,
+                    labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.70),
+                        ),
+                  ),
+                  isExpanded: true,
+                  items: statusOptions.entries
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e.key,
+                          child: Text(e.value),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => setState(() => _statusFilter = value!),
+                ),
+              ),
+              SizedBox(
+                width: 220,
+                child: DropdownButtonFormField<String>(
+                  value: _dateFilter,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                  decoration: InputDecoration(
+                    labelText: 'Date Range',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    isDense: true,
+                    labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.70),
+                        ),
+                  ),
+                  isExpanded: true,
+                  items: const [
+                    DropdownMenuItem(value: '7', child: Text('Last 7 days')),
+                    DropdownMenuItem(value: '30', child: Text('Last 30 days')),
+                    DropdownMenuItem(value: '90', child: Text('Last 90 days')),
+                    DropdownMenuItem(value: 'all', child: Text('All time')),
+                  ],
+                  onChanged: (value) => setState(() => _dateFilter = value!),
+                ),
+              ),
+              SizedBox(
+                width: 220,
+                child: DropdownButtonFormField<String>(
+                  value: _sortBy,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                  decoration: InputDecoration(
+                    labelText: 'Sort By',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    isDense: true,
+                    labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.70),
+                        ),
+                  ),
+                  isExpanded: true,
+                  items: const [
+                    DropdownMenuItem(value: 'date_desc', child: Text('Newest First')),
+                    DropdownMenuItem(value: 'date_asc', child: Text('Oldest First')),
+                    DropdownMenuItem(value: 'premium_desc', child: Text('Highest Premium')),
+                    DropdownMenuItem(value: 'premium_asc', child: Text('Lowest Premium')),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _applySort(value));
+                  },
+                ),
+              ),
+              SizedBox(
+                width: 360,
+                child: TextField(
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13),
+                  decoration: InputDecoration(
+                    labelText: 'Search',
+                    hintText: 'Policy #, pet, owner, plan, policyId…',
+                    isDense: true,
+                    prefixIcon: Icon(Icons.search),
+                    labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.70),
+                        ),
+                  ),
+                  onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
+                ),
+              ),
+            ],
+          ),
+          if (_selectedPolicyIds.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                AdminStatusChip(
+                  label: 'Selected: ${_selectedPolicyIds.length}',
+                  color: ClovaraColors.forest,
+                  icon: Icons.select_all,
+                ),
+                const SizedBox(width: 10),
+                TextButton.icon(
+                  onPressed: () => setState(() => _selectedPolicyIds.clear()),
+                  icon: const Icon(Icons.clear, size: 18),
+                  label: const Text('Clear selection'),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -667,6 +590,20 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
 
         // Apply client-side filtering and sorting
         final policies = _filterAndSortPolicies(snapshot.data!.docs);
+
+        // Keep selection consistent with current result set (without mutating during build)
+        final visibleIds = policies.map((d) => d.id).toSet();
+        final effectiveSelectedIds = _selectedPolicyIds.where(visibleIds.contains).toSet();
+        if (effectiveSelectedIds.length != _selectedPolicyIds.length) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() {
+              _selectedPolicyIds
+                ..clear()
+                ..addAll(effectiveSelectedIds);
+            });
+          });
+        }
         
         if (policies.isEmpty) {
           return Card(
@@ -688,52 +625,179 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
           );
         }
 
-        return Card(
+        final anySelected = effectiveSelectedIds.isNotEmpty;
+        final selectedDocs = anySelected ? policies.where((d) => effectiveSelectedIds.contains(d.id)).toList() : const <QueryDocumentSnapshot>[];
+
+        return AdminSectionCard(
+          title: 'Policies',
+          icon: Icons.policy_outlined,
+          actions: [
+            AdminStatusChip(
+              label: '${policies.length} results',
+              color: ClovaraColors.slate,
+              icon: Icons.list_alt,
+            ),
+          ],
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Policies',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+              Container(key: _policiesTableKey),
+              AdminBulkActionsBar(
+                resultsCount: policies.length,
+                selectedCount: effectiveSelectedIds.length,
+                onSelectVisible: policies.isEmpty
+                    ? null
+                    : () => setState(() => _selectedPolicyIds.addAll(policies.map((d) => d.id))),
+                onClearSelection: () => setState(() => _selectedPolicyIds.clear()),
+                actions: [
+                  TextButton.icon(
+                    onPressed: policies.isEmpty
+                        ? null
+                        : () async {
+                            final csv = _buildPoliciesCsv(policies);
+                            await Clipboard.setData(ClipboardData(text: csv));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Copied CSV for ${policies.length} visible policies'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
+                    icon: const Icon(Icons.table_view, size: 18),
+                    label: const Text('Copy CSV (visible)'),
+                  ),
+                  if (anySelected)
+                    FilledButton.icon(
+                      onPressed: () async {
+                        final csv = _buildPoliciesCsv(selectedDocs);
+                        await Clipboard.setData(ClipboardData(text: csv));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Copied CSV for ${selectedDocs.length} selected policies'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.table_view, size: 18),
+                      label: const Text('Copy CSV (selected)'),
                     ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: ClovaraColors.clover.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${policies.length} total',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: ClovaraColors.clover,
-                        ),
-                      ),
+                  if (anySelected)
+                    TextButton.icon(
+                      onPressed: () async {
+                        final ids = effectiveSelectedIds.toList()..sort();
+                        await Clipboard.setData(ClipboardData(text: ids.join('\n')));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Copied ${ids.length} policy IDs'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.copy, size: 18),
+                      label: const Text('Copy IDs'),
                     ),
-                  ],
-                ),
+                  if (anySelected)
+                    FilledButton.icon(
+                      onPressed: () {
+                        final firstId = effectiveSelectedIds.first;
+                        final firstDoc = policies.firstWhere(
+                          (d) => d.id == firstId,
+                          orElse: () => policies.first,
+                        );
+                        final data = firstDoc.data() as Map<String, dynamic>;
+                        _showPolicyDetails(firstDoc.id, data);
+                      },
+                      icon: const Icon(Icons.open_in_new, size: 18),
+                      label: const Text('Open selected'),
+                    ),
+                ],
               ),
+              const SizedBox(height: 12),
               const Divider(height: 1),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: policies.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final doc = policies[index];
-                  return _buildPolicyListItem(doc);
+              const SizedBox(height: 12),
+
+              AdminSelectableDataTable<QueryDocumentSnapshot>(
+                items: policies,
+                getId: (d) => d.id,
+                selectedIds: _selectedPolicyIds,
+                onSelectedIdsChanged: (next) => setState(() {
+                  _selectedPolicyIds
+                    ..clear()
+                    ..addAll(next);
+                }),
+                sortAscending: _sortAscending,
+                sortColumnIndex: _sortColumnIndex,
+                columns: [
+                  const DataColumn(label: Text('Policy #')),
+                  const DataColumn(label: Text('Pet')),
+                  const DataColumn(label: Text('Owner')),
+                  const DataColumn(label: Text('Status')),
+                  DataColumn(
+                    label: const Text('Premium'),
+                    numeric: true,
+                    onSort: (columnIndex, ascending) {
+                      setState(() => _applySort(ascending ? 'premium_asc' : 'premium_desc'));
+                    },
+                  ),
+                  DataColumn(
+                    label: const Text('Created'),
+                    onSort: (columnIndex, ascending) {
+                      setState(() => _applySort(ascending ? 'date_asc' : 'date_desc'));
+                    },
+                  ),
+                ],
+                buildCells: (context, doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final policyNumber = (data['policyNumber'] as String?) ?? '—';
+                  final pet = data['pet'] as Map<String, dynamic>?;
+                  final owner = data['owner'] as Map<String, dynamic>?;
+                  final plan = data['plan'] as Map<String, dynamic>?;
+                  final status = (data['status'] as String?) ?? 'unknown';
+                  final createdAt = _parseDate(data['createdAt']);
+                  final monthlyPremium = (plan?['monthlyPremium'] as num?)?.toDouble() ?? 0;
+
+                  return [
+                    DataCell(
+                      Text(policyNumber),
+                      onTap: () => _showPolicyDetails(doc.id, data),
+                    ),
+                    DataCell(
+                      Row(
+                        children: [
+                          Icon(
+                            pet?['species'] == 'Dog' ? Icons.pets : Icons.cruelty_free,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                          const SizedBox(width: 8),
+                          Text((pet?['name'] ?? 'Unknown').toString()),
+                        ],
+                      ),
+                      onTap: () => _showPolicyDetails(doc.id, data),
+                    ),
+                    DataCell(
+                      Text('${owner?['firstName'] ?? ''} ${owner?['lastName'] ?? ''}'.trim()),
+                      onTap: () => _showPolicyDetails(doc.id, data),
+                    ),
+                    DataCell(
+                      AdminStatusChip(label: _formatStatus(status), color: _getStatusColor(status)),
+                      onTap: () => _showPolicyDetails(doc.id, data),
+                    ),
+                    DataCell(
+                      Text('\$${monthlyPremium.toStringAsFixed(2)}'),
+                      onTap: () => _showPolicyDetails(doc.id, data),
+                    ),
+                    DataCell(
+                      Text(createdAt == null ? '—' : _formatDate(createdAt)),
+                      onTap: () => _showPolicyDetails(doc.id, data),
+                    ),
+                  ];
                 },
               ),
             ],
@@ -743,75 +807,97 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
     );
   }
 
-  Widget _buildPolicyListItem(QueryDocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    final policyNumber = data['policyNumber'] as String? ?? 'N/A';
-    final pet = data['pet'] as Map<String, dynamic>?;
-    final owner = data['owner'] as Map<String, dynamic>?;
-    final plan = data['plan'] as Map<String, dynamic>?;
-    final status = data['status'] as String? ?? 'unknown';
-    final createdAt = _parseDate(data['createdAt']);
-    // final effectiveDate = data['effectiveDate'];
-    // final expirationDate = data['expirationDate'];
+  void _applySort(String sortBy) {
+    _sortBy = sortBy;
 
-    final monthlyPremium = (plan?['monthlyPremium'] as num?)?.toDouble() ?? 0;
-    final planName = plan?['name'] as String? ?? 'Unknown';
-    // effectiveDate and expirationDate available if needed for future features
+    switch (sortBy) {
+      case 'premium_asc':
+        _sortColumnIndex = 4;
+        _sortAscending = true;
+        break;
+      case 'premium_desc':
+        _sortColumnIndex = 4;
+        _sortAscending = false;
+        break;
+      case 'date_asc':
+        _sortColumnIndex = 5;
+        _sortAscending = true;
+        break;
+      case 'date_desc':
+      default:
+        _sortColumnIndex = 5;
+        _sortAscending = false;
+        break;
+    }
+  }
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: CircleAvatar(
-        backgroundColor: _getStatusColor(status).withOpacity(0.2),
-        child: Icon(
-          pet?['species'] == 'Dog' ? Icons.pets : Icons.cruelty_free,
-          color: _getStatusColor(status),
-        ),
-      ),
-      title: Row(
-        children: [
-          Text(
-            pet?['name'] ?? 'Unknown Pet',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: _getStatusColor(status).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _getStatusColor(status)),
-            ),
-            child: Text(
-              _formatStatus(status),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: _getStatusColor(status),
-              ),
-            ),
-          ),
-        ],
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Policy #$policyNumber • ${owner?['firstName']} ${owner?['lastName']}'),
-          Text(
-            '$planName - \$${monthlyPremium.toStringAsFixed(2)}/mo',
-            style: const TextStyle(fontSize: 12),
-          ),
-          if (createdAt != null)
-            Text(
-              'Created ${_formatDate(createdAt)}',
-              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-            ),
-        ],
-      ),
-      trailing: IconButton(
-        icon: const Icon(Icons.arrow_forward_ios, size: 16),
-        onPressed: () => _showPolicyDetails(doc.id, data),
-      ),
-    );
+  void _scrollToPoliciesTable() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _policiesTableKey.currentContext;
+      if (ctx == null) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        alignment: 0.1,
+      );
+    });
+  }
+
+  String _buildPoliciesCsv(List<QueryDocumentSnapshot> docs) {
+    final rows = <List<String>>[];
+
+    rows.add([
+      'policyId',
+      'policyNumber',
+      'status',
+      'createdAt',
+      'petName',
+      'species',
+      'breed',
+      'ownerFirstName',
+      'ownerLastName',
+      'ownerEmail',
+      'planName',
+      'monthlyPremium',
+    ]);
+
+    for (final doc in docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final pet = data['pet'] as Map<String, dynamic>?;
+      final owner = data['owner'] as Map<String, dynamic>?;
+      final plan = data['plan'] as Map<String, dynamic>?;
+      final createdAt = _parseDate(data['createdAt']);
+      final monthlyPremium = (plan?['monthlyPremium'] as num?)?.toDouble() ?? 0;
+
+      rows.add([
+        doc.id,
+        (data['policyNumber'] ?? '').toString(),
+        (data['status'] ?? '').toString(),
+        createdAt == null ? '' : createdAt.toIso8601String(),
+        (pet?['name'] ?? '').toString(),
+        (pet?['species'] ?? '').toString(),
+        (pet?['breed'] ?? '').toString(),
+        (owner?['firstName'] ?? '').toString(),
+        (owner?['lastName'] ?? '').toString(),
+        (owner?['email'] ?? '').toString(),
+        (plan?['name'] ?? '').toString(),
+        monthlyPremium.toStringAsFixed(2),
+      ]);
+    }
+
+    final b = StringBuffer();
+    for (final row in rows) {
+      b.writeln(row.map(_csvEscape).join(','));
+    }
+    return b.toString();
+  }
+
+  String _csvEscape(String value) {
+    final needsQuotes = value.contains(',') || value.contains('"') || value.contains('\n') || value.contains('\r');
+    if (!needsQuotes) return value;
+    final escaped = value.replaceAll('"', '""');
+    return '"$escaped"';
   }
 
   Color _getStatusColor(String status) {
@@ -856,6 +942,29 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
   /// Apply client-side filtering and sorting to handle mixed data types
   List<QueryDocumentSnapshot> _filterAndSortPolicies(List<QueryDocumentSnapshot> docs) {
     var filtered = docs;
+
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final policyNumber = (data['policyNumber'] ?? '').toString().toLowerCase();
+        final pet = data['pet'] as Map<String, dynamic>?;
+        final owner = data['owner'] as Map<String, dynamic>?;
+        final plan = data['plan'] as Map<String, dynamic>?;
+
+        final petName = (pet?['name'] ?? '').toString().toLowerCase();
+        final ownerName = '${owner?['firstName'] ?? ''} ${owner?['lastName'] ?? ''}'.toLowerCase();
+        final planName = (plan?['name'] ?? '').toString().toLowerCase();
+        final status = (data['status'] ?? '').toString().toLowerCase();
+        final id = doc.id.toLowerCase();
+
+        return policyNumber.contains(_searchQuery) ||
+            petName.contains(_searchQuery) ||
+            ownerName.contains(_searchQuery) ||
+            planName.contains(_searchQuery) ||
+            status.contains(_searchQuery) ||
+            id.contains(_searchQuery);
+      }).toList();
+    }
     
     // Client-side date filtering
     if (_dateFilter != 'all') {

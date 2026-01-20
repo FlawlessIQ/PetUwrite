@@ -54,6 +54,9 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
+    // TODO: Configure Android via FlutterFire CLI.
+    // Kept as placeholders because this workspace doesn't include
+    // `android/app/google-services.json`.
     apiKey: 'YOUR_ANDROID_API_KEY',
     appId: '1:984654950987:android:YOUR_APP_ID',
     messagingSenderId: '984654950987',
@@ -62,20 +65,20 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_IOS_API_KEY',
-    appId: '1:984654950987:ios:YOUR_APP_ID',
+    apiKey: 'AIzaSyDdkRf16WBtP3wTpHJgO6RvhgAeOLtW6_I',
+    appId: '1:984654950987:ios:eaf95d2270b12f7ba193ce',
     messagingSenderId: '984654950987',
     projectId: 'pet-underwriter-ai',
     storageBucket: 'pet-underwriter-ai.firebasestorage.app',
-    iosBundleId: 'com.petunderwriter.petUnderwriterAi',
+    iosBundleId: 'com.clovara.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'YOUR_MACOS_API_KEY',
-    appId: '1:984654950987:ios:YOUR_APP_ID',
+    apiKey: 'AIzaSyDdkRf16WBtP3wTpHJgO6RvhgAeOLtW6_I',
+    appId: '1:984654950987:ios:eaf95d2270b12f7ba193ce',
     messagingSenderId: '984654950987',
     projectId: 'pet-underwriter-ai',
     storageBucket: 'pet-underwriter-ai.firebasestorage.app',
-    iosBundleId: 'com.petunderwriter.petUnderwriterAi',
+    iosBundleId: 'com.clovara.app',
   );
 }

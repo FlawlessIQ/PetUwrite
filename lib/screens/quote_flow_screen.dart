@@ -7,6 +7,7 @@ import '../ai/ai_service.dart';
 import '../models/owner.dart';
 import '../models/pet.dart';
 import '../services/risk_scoring_engine.dart';
+import '../services/marketing_attribution_service.dart';
 import 'medical_underwriting_screen.dart';
 
 /// Quote flow screen for getting insurance quotes
@@ -24,10 +25,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
 
   bool _isSubmitting = false;
 
-  final Map<String, dynamic> _formData = {
-    'species': null,
-    'dateOfBirth': null,
-  };
+  final Map<String, dynamic> _formData = {'species': null, 'dateOfBirth': null};
 
   final _petFormKey = GlobalKey<FormState>();
   final _ownerFormKey = GlobalKey<FormState>();
@@ -47,6 +45,10 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Best-effort marketing attribution
+    MarketingAttributionService().trackQuoteStartedOnce();
+
     _petNameController = TextEditingController();
     _breedController = TextEditingController();
     _dobController = TextEditingController();
@@ -79,7 +81,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
     _conditionsController.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final stepMeta = _stepMeta(_currentStep);
@@ -87,10 +89,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Get a Quote'),
-        actions: [
-          _buildAccountAction(context),
-          const SizedBox(width: 8),
-        ],
+        actions: [_buildAccountAction(context), const SizedBox(width: 8)],
       ),
       body: SafeArea(
         bottom: true,
@@ -132,7 +131,9 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                             SizedBox(
                               width: 22,
                               height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2.6),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.6,
+                              ),
                             ),
                             SizedBox(width: 12),
                             Text('Generating your plans...'),
@@ -162,7 +163,8 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const CustomerHomeScreen(isPremium: false),
+                    builder: (context) =>
+                        const CustomerHomeScreen(isPremium: false),
                   ),
                 );
               } else if (value == 'logout') {
@@ -198,16 +200,11 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const LoginScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
             );
           },
           icon: Icon(Icons.login, color: ClovaraColors.forest),
-          label: Text(
-            'Login',
-            style: TextStyle(color: ClovaraColors.forest),
-          ),
+          label: Text('Login', style: TextStyle(color: ClovaraColors.forest)),
         );
       },
     );
@@ -222,9 +219,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       decoration: const BoxDecoration(
         color: ClovaraColors.white,
-        border: Border(
-          bottom: BorderSide(color: ClovaraColors.border),
-        ),
+        border: Border(bottom: BorderSide(color: ClovaraColors.border)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +239,8 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
               ),
               const SizedBox(width: 12),
               TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/conversational-quote'),
+                onPressed: () =>
+                    Navigator.pushNamed(context, '/conversational-quote'),
                 child: const Text('Chat instead'),
               ),
             ],
@@ -296,7 +292,10 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Let\'s start with the basics.', style: ClovaraTypography.body),
+                Text(
+                  'Let\'s start with the basics.',
+                  style: ClovaraTypography.body,
+                ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _petNameController,
@@ -305,7 +304,8 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                   onChanged: (value) => _formData['petName'] = value.trim(),
                   validator: (value) {
                     final trimmed = value?.trim() ?? '';
-                    if (trimmed.isEmpty) return 'Please enter your pet\'s name.';
+                    if (trimmed.isEmpty)
+                      return 'Please enter your pet\'s name.';
                     return null;
                   },
                 ),
@@ -314,11 +314,20 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                 const SizedBox(height: 8),
                 SegmentedButton<String>(
                   segments: const [
-                    ButtonSegment<String>(value: 'Dog', label: Text('Dog'), icon: Icon(Icons.pets)),
-                    ButtonSegment<String>(value: 'Cat', label: Text('Cat'), icon: Icon(Icons.pets)),
+                    ButtonSegment<String>(
+                      value: 'Dog',
+                      label: Text('Dog'),
+                      icon: Icon(Icons.pets),
+                    ),
+                    ButtonSegment<String>(
+                      value: 'Cat',
+                      label: Text('Cat'),
+                      icon: Icon(Icons.pets),
+                    ),
                   ],
                   selected: {
-                    if (_formData['species'] != null) _formData['species'] as String,
+                    if (_formData['species'] != null)
+                      _formData['species'] as String,
                   },
                   onSelectionChanged: (values) {
                     setState(() {
@@ -330,7 +339,9 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Please select Dog or Cat.',
-                    style: ClovaraTypography.bodySmall.copyWith(color: ClovaraColors.error),
+                    style: ClovaraTypography.bodySmall.copyWith(
+                      color: ClovaraColors.error,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 14),
@@ -367,8 +378,8 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
   Widget _buildDobField() {
     final date = _formData['dateOfBirth'] as DateTime?;
     _dobController.text = date == null
-      ? ''
-      : '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        ? ''
+        : '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
     return InkWell(
       onTap: () async {
@@ -415,16 +426,22 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Where should we send your quote?', style: ClovaraTypography.body),
+                Text(
+                  'Where should we send your quote?',
+                  style: ClovaraTypography.body,
+                ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
                       child: TextFormField(
                         controller: _firstNameController,
-                        decoration: const InputDecoration(labelText: 'First name'),
+                        decoration: const InputDecoration(
+                          labelText: 'First name',
+                        ),
                         textInputAction: TextInputAction.next,
-                        onChanged: (value) => _formData['firstName'] = value.trim(),
+                        onChanged: (value) =>
+                            _formData['firstName'] = value.trim(),
                         validator: (value) {
                           final trimmed = value?.trim() ?? '';
                           if (trimmed.isEmpty) return 'Required';
@@ -436,9 +453,12 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: _lastNameController,
-                        decoration: const InputDecoration(labelText: 'Last name'),
+                        decoration: const InputDecoration(
+                          labelText: 'Last name',
+                        ),
                         textInputAction: TextInputAction.next,
-                        onChanged: (value) => _formData['lastName'] = value.trim(),
+                        onChanged: (value) =>
+                            _formData['lastName'] = value.trim(),
                         validator: (value) {
                           final trimmed = value?.trim() ?? '';
                           if (trimmed.isEmpty) return 'Required';
@@ -487,10 +507,13 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                         onChanged: (value) {
                           final upper = value.toUpperCase();
                           if (upper != value) {
-                            _stateController.value = _stateController.value.copyWith(
-                              text: upper,
-                              selection: TextSelection.collapsed(offset: upper.length),
-                            );
+                            _stateController.value = _stateController.value
+                                .copyWith(
+                                  text: upper,
+                                  selection: TextSelection.collapsed(
+                                    offset: upper.length,
+                                  ),
+                                );
                           }
                           _formData['state'] = upper.trim();
                         },
@@ -511,11 +534,14 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                           hintText: 'e.g., 94107',
                         ),
                         keyboardType: TextInputType.number,
-                        onChanged: (value) => _formData['zipCode'] = value.trim(),
+                        onChanged: (value) =>
+                            _formData['zipCode'] = value.trim(),
                         validator: (value) {
                           final trimmed = (value ?? '').trim();
                           if (trimmed.isEmpty) return 'Required';
-                          final ok = RegExp(r'^\d{5}(-\d{4})?$').hasMatch(trimmed);
+                          final ok = RegExp(
+                            r'^\d{5}(-\d{4})?$',
+                          ).hasMatch(trimmed);
                           if (!ok) return 'Invalid ZIP';
                           return null;
                         },
@@ -560,7 +586,10 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                   label: const Text('Upload records (optional)'),
                 ),
                 const SizedBox(height: 18),
-                Text('Known conditions (optional)', style: ClovaraTypography.label),
+                Text(
+                  'Known conditions (optional)',
+                  style: ClovaraTypography.label,
+                ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _conditionsController,
@@ -594,7 +623,9 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
         ? 'N/A'
         : '${dob.year.toString().padLeft(4, '0')}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}';
 
-    final ownerName = '${(_formData['firstName'] ?? '').toString()} ${(_formData['lastName'] ?? '').toString()}'.trim();
+    final ownerName =
+        '${(_formData['firstName'] ?? '').toString()} ${(_formData['lastName'] ?? '').toString()}'
+            .trim();
     final email = (_formData['email'] ?? '').toString();
     final phone = (_formData['phone'] ?? '').toString();
     final state = (_formData['state'] ?? '').toString();
@@ -609,15 +640,24 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
             children: [
               Text('Review', style: ClovaraTypography.h3),
               const SizedBox(height: 8),
-              Text('Make sure everything looks right.', style: ClovaraTypography.bodySmall),
+              Text(
+                'Make sure everything looks right.',
+                style: ClovaraTypography.bodySmall,
+              ),
               const SizedBox(height: 18),
               _ReviewSection(
                 title: 'Pet',
                 onEdit: () => setState(() => _currentStep = 0),
                 rows: [
-                  _ReviewRow(label: 'Name', value: petName.isEmpty ? 'N/A' : petName),
+                  _ReviewRow(
+                    label: 'Name',
+                    value: petName.isEmpty ? 'N/A' : petName,
+                  ),
                   _ReviewRow(label: 'Species', value: species),
-                  _ReviewRow(label: 'Breed', value: breed.isEmpty ? 'N/A' : breed),
+                  _ReviewRow(
+                    label: 'Breed',
+                    value: breed.isEmpty ? 'N/A' : breed,
+                  ),
                   _ReviewRow(label: 'Birthday', value: dobText),
                 ],
               ),
@@ -626,10 +666,24 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                 title: 'Owner',
                 onEdit: () => setState(() => _currentStep = 1),
                 rows: [
-                  _ReviewRow(label: 'Name', value: ownerName.isEmpty ? 'N/A' : ownerName),
-                  _ReviewRow(label: 'Email', value: email.isEmpty ? 'N/A' : email),
-                  _ReviewRow(label: 'Phone', value: phone.isEmpty ? '—' : phone),
-                  _ReviewRow(label: 'Location', value: (state.isEmpty || zip.isEmpty) ? 'N/A' : '$state $zip'),
+                  _ReviewRow(
+                    label: 'Name',
+                    value: ownerName.isEmpty ? 'N/A' : ownerName,
+                  ),
+                  _ReviewRow(
+                    label: 'Email',
+                    value: email.isEmpty ? 'N/A' : email,
+                  ),
+                  _ReviewRow(
+                    label: 'Phone',
+                    value: phone.isEmpty ? '—' : phone,
+                  ),
+                  _ReviewRow(
+                    label: 'Location',
+                    value: (state.isEmpty || zip.isEmpty)
+                        ? 'N/A'
+                        : '$state $zip',
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -637,7 +691,10 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                 title: 'Health',
                 onEdit: () => setState(() => _currentStep = 2),
                 rows: [
-                  _ReviewRow(label: 'Conditions', value: conditions.isEmpty ? '—' : conditions),
+                  _ReviewRow(
+                    label: 'Conditions',
+                    value: conditions.isEmpty ? '—' : conditions,
+                  ),
                 ],
               ),
             ],
@@ -660,9 +717,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       decoration: const BoxDecoration(
         color: ClovaraColors.white,
-        border: Border(
-          top: BorderSide(color: ClovaraColors.border),
-        ),
+        border: Border(top: BorderSide(color: ClovaraColors.border)),
       ),
       child: Row(
         children: [
@@ -676,7 +731,9 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: _isSubmitting ? null : (isLast ? _submitQuote : _onContinue),
+              onPressed: _isSubmitting
+                  ? null
+                  : (isLast ? _submitQuote : _onContinue),
               child: Text(isLast ? 'See Plans' : 'Continue'),
             ),
           ),
@@ -745,7 +802,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
         return const _StepMeta(title: 'Quote', subtitle: '');
     }
   }
-  
+
   Future<void> _submitQuote() async {
     if (_isSubmitting) return;
 
@@ -785,7 +842,8 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
       if (!result.isEligible && mounted) {
         await _showDeclineDialog(
           petName: pet.name,
-          reason: result.rejectionReason ??
+          reason:
+              result.rejectionReason ??
               'This application does not meet our current underwriting guidelines.',
         );
         return;
@@ -835,11 +893,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
       Navigator.pushNamed(
         context,
         '/plan-selection',
-        arguments: {
-          ..._formData,
-          'petData': _formData,
-          'riskScore': null,
-        },
+        arguments: {..._formData, 'petData': _formData, 'riskScore': null},
       );
     } finally {
       if (mounted) {
@@ -883,7 +937,8 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
       name: petName.isEmpty ? 'Pet' : petName,
       species: species,
       breed: breed.isEmpty ? 'Mixed Breed' : breed,
-      dateOfBirth: dob ?? DateTime.now().subtract(const Duration(days: 365 * 2)),
+      dateOfBirth:
+          dob ?? DateTime.now().subtract(const Duration(days: 365 * 2)),
       gender: 'unknown',
       weight: 10.0,
       isNeutered: false,
@@ -926,8 +981,10 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
     return cleaned;
   }
 
-
-  Future<void> _showDeclineDialog({required String petName, required String reason}) async {
+  Future<void> _showDeclineDialog({
+    required String petName,
+    required String reason,
+  }) async {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -992,10 +1049,7 @@ class _StepCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }
@@ -1029,7 +1083,12 @@ class _InfoStrip extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: ClovaraTypography.label.copyWith(color: ClovaraColors.forest)),
+                Text(
+                  title,
+                  style: ClovaraTypography.label.copyWith(
+                    color: ClovaraColors.forest,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(body, style: ClovaraTypography.bodySmall),
               ],
@@ -1076,13 +1135,12 @@ class _ReviewSection extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: ClovaraTypography.label.copyWith(color: ClovaraColors.forest),
+                  style: ClovaraTypography.label.copyWith(
+                    color: ClovaraColors.forest,
+                  ),
                 ),
               ),
-              TextButton(
-                onPressed: onEdit,
-                child: const Text('Edit'),
-              ),
+              TextButton(onPressed: onEdit, child: const Text('Edit')),
             ],
           ),
           const SizedBox(height: 8),
@@ -1105,7 +1163,9 @@ class _ReviewSection extends StatelessWidget {
                     child: Text(
                       row.value,
                       textAlign: TextAlign.right,
-                      style: ClovaraTypography.bodySmall.copyWith(color: ClovaraColors.forest),
+                      style: ClovaraTypography.bodySmall.copyWith(
+                        color: ClovaraColors.forest,
+                      ),
                     ),
                   ),
                 ],

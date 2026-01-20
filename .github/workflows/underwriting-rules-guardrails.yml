@@ -1,0 +1,31 @@
+name: Underwriting rules guardrails
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate-and-drift-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install underwriting rules tooling deps
+        working-directory: tools/underwriting_rules
+        run: npm install --no-audit --no-fund
+
+      - name: Validate canonical underwriting rules
+        working-directory: tools/underwriting_rules
+        run: node validate_rules.js
+
+      - name: Drift scan (code)
+        working-directory: tools/underwriting_rules
+        run: node drift_scan.js

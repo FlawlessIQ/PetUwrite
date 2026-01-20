@@ -8,6 +8,7 @@ import '../services/draft_service.dart';
 import '../services/policy_service.dart';
 import '../services/user_session_service.dart';
 import '../services/underwriting_case_service.dart';
+import '../services/marketing_attribution_service.dart';
 
 /// Step 4: Confirmation screen with policy details and PDF download
 class ConfirmationScreen extends StatefulWidget {
@@ -49,22 +50,23 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
   Future<void> _createPolicy() async {
     try {
       final provider = context.read<CheckoutProvider>();
-      
+
       // Debug: Check if user is authenticated
       final user = FirebaseAuth.instance.currentUser;
       print('🔍 Creating policy for user: ${user?.uid} (${user?.email})');
-      
+
       if (user == null) {
         throw Exception('User not authenticated - cannot create policy');
       }
-      
+
       // Generate policy number
       final policyNumber = _generatePolicyNumber();
       print('🔍 Generated policy number: $policyNumber');
 
       // Phase 5: Fetch underwriting decision snapshot if caseId present.
       // Otherwise, use the snapshot carried forward from medical underwriting.
-      Map<String, dynamic>? underwritingSnapshot = provider.underwritingSnapshot;
+      Map<String, dynamic>? underwritingSnapshot =
+          provider.underwritingSnapshot;
       List<PolicyExclusion>? decisionExclusions;
       final caseId = provider.underwritingCaseId;
       if (caseId != null && caseId.isNotEmpty) {
@@ -84,8 +86,10 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
         };
       }
 
-      final hasDeclaredConditions = (provider.pet?.preExistingConditions ?? const <String>[])
-          .any((c) => c.trim().isNotEmpty && c.trim() != 'None');
+      final hasDeclaredConditions =
+          (provider.pet?.preExistingConditions ?? const <String>[]).any(
+            (c) => c.trim().isNotEmpty && c.trim() != 'None',
+          );
 
       if ((hasDeclaredConditions || provider.exclusions.isNotEmpty) &&
           underwritingSnapshot == null) {
@@ -97,11 +101,13 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
       // Stamp exclusions acknowledgement evidence (if present) onto snapshot.
       if (underwritingSnapshot != null) {
         final updated = Map<String, dynamic>.from(underwritingSnapshot);
-        final ack = provider.underwritingSnapshot?['exclusionsAcknowledgements'];
+        final ack =
+            provider.underwritingSnapshot?['exclusionsAcknowledgements'];
         if (ack is Map) {
           updated['exclusionsAcknowledgements'] = ack;
         }
-        final ackAt = provider.underwritingSnapshot?['exclusionsAcknowledgedAt'];
+        final ackAt =
+            provider.underwritingSnapshot?['exclusionsAcknowledgedAt'];
         if (ackAt != null) {
           updated['exclusionsAcknowledgedAt'] = ackAt;
         }
@@ -112,7 +118,9 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
       // This is separate from the plan persisted on the policy, and supports auditability.
       final selectedPlan = provider.selectedPlan;
       if (selectedPlan != null) {
-        final updated = Map<String, dynamic>.from(underwritingSnapshot ?? <String, dynamic>{});
+        final updated = Map<String, dynamic>.from(
+          underwritingSnapshot ?? <String, dynamic>{},
+        );
         updated['pricingAtBind'] = {
           'capturedAt': DateTime.now().toIso8601String(),
           'plan': selectedPlan.toJson(),
@@ -120,7 +128,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
         };
         underwritingSnapshot = updated;
       }
-      
+
       // Create policy document
       final policy = await _policyService.createPolicy(
         pet: provider.pet!,
@@ -136,13 +144,28 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
       // Update provider with policy
       provider.setPolicy(policy);
 
-        // Clear any saved checkout progress / resume key on successful bind.
-        try {
-          await UserSessionService().clearPendingCheckout();
-          await DraftService().clearAll();
-        } catch (_) {
-          // Ignore cleanup errors.
-        }
+      // Best-effort marketing attribution
+      try {
+        final premium = provider.selectedPlan?.monthlyPremium;
+        final payment = provider.paymentInfo;
+        await MarketingAttributionService().trackEvent(
+          'purchase_completed',
+          policyId: policy.policyId,
+          premium: premium,
+          code: payment?.couponCode,
+          discountAmount: payment?.discountAmount,
+        );
+      } catch (_) {
+        // Best-effort only.
+      }
+
+      // Clear any saved checkout progress / resume key on successful bind.
+      try {
+        await UserSessionService().clearPendingCheckout();
+        await DraftService().clearAll();
+      } catch (_) {
+        // Ignore cleanup errors.
+      }
 
       // Send email notification
       await _policyService.sendPolicyEmail(policy);
@@ -154,19 +177,22 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
     } catch (e) {
       print('❌ Policy creation failed: $e');
       print('❌ Policy creation failed: $e');
-      
+
       // Extract more specific error information
       String errorMessage = e.toString();
       if (errorMessage.contains('permission-denied')) {
-        errorMessage = 'Permission denied: Unable to create policy. Please ensure you are signed in and try again.';
+        errorMessage =
+            'Permission denied: Unable to create policy. Please ensure you are signed in and try again.';
       } else if (errorMessage.contains('Failed to create policy:')) {
         // Extract the inner error
-        final match = RegExp(r'Failed to create policy: (.+)').firstMatch(errorMessage);
+        final match = RegExp(
+          r'Failed to create policy: (.+)',
+        ).firstMatch(errorMessage);
         if (match != null) {
           errorMessage = match.group(1) ?? errorMessage;
         }
       }
-      
+
       setState(() {
         _isCreatingPolicy = false;
         _errorMessage = errorMessage;
@@ -177,7 +203,10 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
   String _generatePolicyNumber() {
     final now = DateTime.now();
     final year = now.year.toString().substring(2);
-    final random = (now.millisecondsSinceEpoch % 10000).toString().padLeft(4, '0');
+    final random = (now.millisecondsSinceEpoch % 10000).toString().padLeft(
+      4,
+      '0',
+    );
     return 'PU$year$random';
   }
 
@@ -211,18 +240,12 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
           const SizedBox(height: 24),
           const Text(
             'Creating your policy...',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
             'Please wait while we finalize your coverage',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -236,27 +259,17 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red.shade400,
-            ),
+            Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
             const SizedBox(height: 24),
             const Text(
               'Oops! Something went wrong',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             Text(
               _errorMessage ?? 'Failed to create policy',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade700,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -271,7 +284,10 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
               icon: const Icon(Icons.refresh),
               label: const Text('Try Again'),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
               ),
             ),
           ],
@@ -307,19 +323,13 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
           // Success Message
           const Text(
             'Coverage Activated!',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             'Your pet insurance policy is now active',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade700,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -360,10 +370,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
                 const SizedBox(width: 12),
                 const Text(
                   'Policy Details',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -409,10 +416,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
                 const SizedBox(width: 12),
                 const Text(
                   'Coverage Summary',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -471,14 +475,15 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
           children: [
             Row(
               children: [
-                Icon(Icons.lightbulb_outline, size: 24, color: Colors.orange.shade700),
+                Icon(
+                  Icons.lightbulb_outline,
+                  size: 24,
+                  color: Colors.orange.shade700,
+                ),
                 const SizedBox(width: 12),
                 const Text(
                   'What\'s Next?',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -590,10 +595,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey.shade700,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
         ),
         Text(
           value,
@@ -619,18 +621,12 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             textAlign: TextAlign.center,
           ),
         ],
@@ -638,7 +634,12 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
     );
   }
 
-  Widget _buildNextStepItem(String number, String title, String description, IconData icon) {
+  Widget _buildNextStepItem(
+    String number,
+    String title,
+    String description,
+    IconData icon,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -682,10 +683,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
               const SizedBox(height: 4),
               Text(
                 description,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
               ),
             ],
           ),

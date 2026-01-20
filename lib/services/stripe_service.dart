@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart' show MissingPluginException;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -16,8 +17,14 @@ class StripeService {
   
   /// Initialize Stripe with publishable key
   static Future<void> init() async {
-    Stripe.publishableKey = _publishableKey;
-    await Stripe.instance.applySettings();
+    try {
+      Stripe.publishableKey = _publishableKey;
+      await Stripe.instance.applySettings();
+    } on MissingPluginException {
+      // Desktop platforms (e.g., macOS) don't implement flutter_stripe.
+      // Call sites should avoid calling init() there, but this prevents
+      // hard crashes if it happens.
+    }
   }
   
   /// Create a payment intent for one-time payment

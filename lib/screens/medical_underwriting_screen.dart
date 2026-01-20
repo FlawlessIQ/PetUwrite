@@ -16,6 +16,7 @@ import '../models/underwriting_medical_history.dart';
 import '../models/policy_exclusion.dart';
 import '../models/underwriting_status.dart';
 import '../services/underwriting_case_service.dart';
+import '../services/marketing_attribution_service.dart';
 import '../services/underwriting_integrity_engine.dart';
 import '../services/medical_facts_builder.dart';
 import '../services/vet_history_parser.dart' hide Medication;
@@ -158,7 +159,6 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   // NOTE: We intentionally do not ask customers to self-determine clinical
   // facts like severity/chronicity. When more detail is needed, underwriting
   // deterministically requests verifiable evidence (vet records).
-
 
   @override
   void initState() {
@@ -966,9 +966,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         return;
       }
 
-      final parser = VetHistoryParser(
-        aiService: GPTService(),
-      );
+      final parser = VetHistoryParser(aiService: GPTService());
       final caseId = await _ensureUnderwritingCaseId();
       final petId = widget.pet.id;
 
@@ -1098,9 +1096,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         return;
       }
 
-      final parser = VetHistoryParser(
-        aiService: GPTService(),
-      );
+      final parser = VetHistoryParser(aiService: GPTService());
       final caseId = await _ensureUnderwritingCaseId();
       final petId = widget.pet.id;
 
@@ -1227,9 +1223,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
       final bytes = await photo.readAsBytes();
 
-      final parser = VetHistoryParser(
-        aiService: GPTService(),
-      );
+      final parser = VetHistoryParser(aiService: GPTService());
       final caseId = await _ensureUnderwritingCaseId();
       final petId = widget.pet.id;
 
@@ -2474,12 +2468,13 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
       computedRuleOutCodes = built.ruleOutConditionCodes;
 
-      final vetDocumentHashes = _vetDocumentHashes
-          .map((h) => h.trim())
-          .where((h) => h.isNotEmpty)
-          .toSet()
-          .toList()
-        ..sort();
+      final vetDocumentHashes =
+          _vetDocumentHashes
+              .map((h) => h.trim())
+              .where((h) => h.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
 
       // Track AI failure across underwriting attempts so we can deterministically
       // decline on persistent/unrecoverable failures.
@@ -2492,16 +2487,14 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       }
 
       final integrityEngine = UnderwritingIntegrityEngine(
-        vetDocumentReuseCheck: ({
-          required vetDocumentHashes,
-          underwritingCaseId,
-        }) async {
-          final detector = VetDocumentReuseDetector();
-          return detector.check(
-            vetDocumentHashes: vetDocumentHashes,
-            underwritingCaseId: underwritingCaseId,
-          );
-        },
+        vetDocumentReuseCheck:
+            ({required vetDocumentHashes, underwritingCaseId}) async {
+              final detector = VetDocumentReuseDetector();
+              return detector.check(
+                vetDocumentHashes: vetDocumentHashes,
+                underwritingCaseId: underwritingCaseId,
+              );
+            },
       );
       var assessment = await integrityEngine.assess(
         pet: updatedPet,
@@ -2522,12 +2515,13 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       // within this client session.
       if (assessment.underwritingStatus == UnderwritingStatus.needMoreInfo &&
           assessment.requiredEvidence.isNotEmpty) {
-        final evidenceCodes = assessment.requiredEvidence
-            .map((e) => e.code)
-            .where((c) => c.trim().isNotEmpty)
-            .toSet()
-            .toList(growable: false)
-          ..sort();
+        final evidenceCodes =
+            assessment.requiredEvidence
+                .map((e) => e.code)
+                .where((c) => c.trim().isNotEmpty)
+                .toSet()
+                .toList(growable: false)
+              ..sort();
 
         int nextAttempts;
 
@@ -2600,14 +2594,16 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       computedExclusions = assessment.decision?.exclusions;
       computedStatus = assessment.underwritingStatus;
       computedReason = assessment.reason;
-      integrityPassed = assessment.underwritingStatus == UnderwritingStatus.approved;
+      integrityPassed =
+          assessment.underwritingStatus == UnderwritingStatus.approved;
       computedRequiredEvidence = assessment.requiredEvidence
           .map((e) => e.toJson())
           .toList(growable: false);
 
       computedSnapshot = {
         'caseId': caseId,
-        if (assessment.decision != null) 'decision': assessment.decision!.toJson(),
+        if (assessment.decision != null)
+          'decision': assessment.decision!.toJson(),
         'underwritingStatus': underwritingStatusToString(
           assessment.underwritingStatus,
         ),
@@ -2618,7 +2614,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         'aiFailure': built.aiFailure,
         'aiFailureCount': computedAiFailureCount,
         'criticalConditionDetected': built.criticalConditionDetected,
-        if (vetDocumentHashes.isNotEmpty) 'vetDocumentHashes': vetDocumentHashes,
+        if (vetDocumentHashes.isNotEmpty)
+          'vetDocumentHashes': vetDocumentHashes,
         if (computedRuleOutCodes.isNotEmpty)
           'ruleOutConditionCodes': computedRuleOutCodes.toList()..sort(),
         'capturedAt': DateTime.now().toIso8601String(),
@@ -2636,7 +2633,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
               ? rawAttempts
               : int.tryParse((rawAttempts ?? '').toString()) ?? 0;
 
-          if (assessment.underwritingStatus == UnderwritingStatus.needMoreInfo) {
+          if (assessment.underwritingStatus ==
+              UnderwritingStatus.needMoreInfo) {
             await service.logEvent(caseId, 'need_more_info', {
               'reason': assessment.reason,
               'attempt': attempts,
@@ -2718,6 +2716,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 : _clinicNameController.text.trim(),
             userAttestation: false,
           ),
+        );
+
+        // Best-effort marketing attribution
+        MarketingAttributionService().trackUnderwritingSubmittedOnce(
+          underwritingCaseId: caseId,
         );
 
         if (computedDecision != null) {
@@ -2825,7 +2828,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
       final title = computedStatus == UnderwritingStatus.denied
           ? 'Application declined'
-        : computedStatus == UnderwritingStatus.needMoreInfo
+          : computedStatus == UnderwritingStatus.needMoreInfo
           ? 'More information needed'
           : 'Application declined';
 
@@ -2838,33 +2841,31 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       final message = computedStatus == UnderwritingStatus.denied
           ? 'Based on the information provided, we can\'t offer a new policy right now.'
           : computedStatus == UnderwritingStatus.needMoreInfo
-              ? (
-                  'We can\'t show plans yet because we need more medical information to complete underwriting.'
-                  '\n\nYou can upload the requested documents now, or finish later.'
-                  '${evidenceLines.isNotEmpty ? "\n\nPlease provide:\n$evidenceLines" : ''}'
-                )
-              : 'Based on the information provided, we can\'t offer a new policy right now.';
+          ? ('We can\'t show plans yet because we need more medical information to complete underwriting.'
+                '\n\nYou can upload the requested documents now, or finish later.'
+                '${evidenceLines.isNotEmpty ? "\n\nPlease provide:\n$evidenceLines" : ''}')
+          : 'Based on the information provided, we can\'t offer a new policy right now.';
 
       _showBlockingValidationDialog(
         title: title,
         message: message,
-        secondaryLabel:
-            computedStatus == UnderwritingStatus.needMoreInfo ? 'Finish later' : null,
-        onSecondary:
-            computedStatus == UnderwritingStatus.needMoreInfo
-                ? () {
-                    Navigator.pop(context);
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                  }
-                : null,
-        tertiaryLabel:
-            computedStatus == UnderwritingStatus.needMoreInfo ? 'Copy resume code' : null,
-        onTertiary:
-            computedStatus == UnderwritingStatus.needMoreInfo
-                ? () {
-                    unawaited(_copyResumeCodeToClipboard());
-                  }
-                : null,
+        secondaryLabel: computedStatus == UnderwritingStatus.needMoreInfo
+            ? 'Finish later'
+            : null,
+        onSecondary: computedStatus == UnderwritingStatus.needMoreInfo
+            ? () {
+                Navigator.pop(context);
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }
+            : null,
+        tertiaryLabel: computedStatus == UnderwritingStatus.needMoreInfo
+            ? 'Copy resume code'
+            : null,
+        onTertiary: computedStatus == UnderwritingStatus.needMoreInfo
+            ? () {
+                unawaited(_copyResumeCodeToClipboard());
+              }
+            : null,
       );
       return;
     }
@@ -2895,9 +2896,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             'pet': updatedPet,
             'riskScore': riskScore,
             'pricingEnabled': true,
-            'underwritingStatus': underwritingStatusToString(
-              computedStatus,
-            ),
+            'underwritingStatus': underwritingStatusToString(computedStatus),
             'underwritingReason': computedReason,
             'integrityPassed': integrityPassed,
             if (computedRequiredEvidence.isNotEmpty)
@@ -3015,10 +3014,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           content: Text(message),
           actions: [
             if (tertiaryLabel != null && tertiaryLabel.trim().isNotEmpty)
-              TextButton(
-                onPressed: onTertiary,
-                child: Text(tertiaryLabel),
-              ),
+              TextButton(onPressed: onTertiary, child: Text(tertiaryLabel)),
             if (secondaryLabel != null && secondaryLabel.trim().isNotEmpty)
               TextButton(
                 onPressed: onSecondary ?? () => Navigator.pop(context),
@@ -3044,9 +3040,9 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
       if (!mounted) return;
       final pretty = draftService.prettyCode(resumeKey);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Resume code copied: $pretty')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Resume code copied: $pretty')));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

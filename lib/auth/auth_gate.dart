@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'customer_home_screen.dart';
-import '../screens/admin_dashboard.dart';
+import '../screens/admin_console_screen.dart';
 import '../screens/homepage.dart';
 
 /// AuthGate handles routing users based on authentication status and role
@@ -137,7 +137,7 @@ class RoleBasedRouter extends StatelessWidget {
         switch (userRole) {
           case 2: // Underwriter
           case 3: // Super Admin
-            return const AdminDashboard();
+            return const AdminConsoleScreen();
 
           case 1: // Premium Customer
             // Could route to premium features screen

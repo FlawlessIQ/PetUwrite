@@ -54,7 +54,13 @@ app.*.map.json
 **/firebase-service-account.json
 firebase-service-account*.json
 
+# Firebase local state (CLI/emulators) - DO NOT COMMIT
+.firebase/
+
 # Quote collector tooling
 /tools/quote_collector/output/
 /tools/quote_collector/node_modules/
 /tools/quote_collector/dist/
+
+# Underwriting rules tooling
+/tools/underwriting_rules/node_modules/

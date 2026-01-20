@@ -12,10 +12,77 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Helper function to check if user is an admin (userRole == 2)
+    // Helper function to check if user is an admin (userRole == 2 or 3)
     function isAdmin() {
-      return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userRole == 2;
+      return isAuthenticated() && (
+        // Preferred: custom claim set by backend tooling.
+        request.auth.token.admin == true ||
+        // Fallback: role stored in Firestore user profile.
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          (
+            // Accept either numeric roles (preferred) or string roles (legacy).
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userRole in [2, 3] ||
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userRole in ['2', '3']
+          )
+        )
+      );
+    }
+
+    // Marketing: intake channels managed in admin console
+    match /intake_channels/{channelId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Marketing: discount code mirrors + restrictions managed in admin console
+    match /discount_codes/{code} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Marketing: attribution sessions/events/rollups are server-written.
+    // Admins may read for reporting; clients never write.
+    match /attribution_sessions/{sessionId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /marketing_events/{eventId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /marketing_rollups_daily/{dayId} {
+      allow read: if isAdmin();
+      allow write: if false;
+
+      match /{subcollection}/{docId} {
+        allow read: if isAdmin();
+        allow write: if false;
+      }
+    }
+
+    match /channel_spend_daily/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Pricing: versioned pricing configs managed in admin console.
+    // Clients never read raw pricing configs; they use callable pricing endpoints.
+    match /pricing_versions/{versionId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /pricing_meta/{docId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /pricing_audit/{auditId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
     
     // Users collection - users can only read/write their own data
@@ -179,6 +246,13 @@ service cloud.firestore {
     match /admin_settings/underwriting_rules {
       allow read: if true; // Public read access for quote eligibility checks
       allow write: if isAdmin();
+    }
+
+    // Underwriting rules history (immutable, admin-only)
+    match /underwriting_rules_history/{version} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
     }
 
     // Product catalog switches should be admin-only.

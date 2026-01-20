@@ -94,12 +94,12 @@ class _AnonymousCheckoutBootstrapState extends State<_AnonymousCheckoutBootstrap
       await DraftService().ensureAnonymousSession();
     } catch (e) {
       _error = e.toString();
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
     }
+
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+    });
   }
 
   @override

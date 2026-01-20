@@ -4,13 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../models/checkout_state.dart';
 import '../services/draft_service.dart';
 import '../services/quote_engine.dart';
 import '../services/stripe_service.dart';
 import '../services/user_session_service.dart';
+import '../services/marketing_attribution_service.dart';
 
 /// Step 3: Payment screen with Stripe integration
 class PaymentScreen extends StatefulWidget {
@@ -31,13 +31,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // Exclusions acknowledgement (if any exclusions exist)
   bool _exclusionsAcknowledged = false;
   String _exclusionsKey = '';
-  
+
   // Coupon state
   bool _isCouponApplied = false;
   double _discountAmount = 0.0;
   String? _appliedCouponCode;
   bool _bypassPayment = false; // For TEST100 coupon
-  
+
   // Stripe card field controller
   stripe.CardFieldInputDetails? _cardFieldDetails;
 
@@ -64,7 +64,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _appliedCouponCode = coupon.trim().toUpperCase();
           _isCouponApplied = data['isCouponApplied'] == true;
         }
-        _discountAmount = (discount is num) ? discount.toDouble() : _discountAmount;
+        _discountAmount = (discount is num)
+            ? discount.toDouble()
+            : _discountAmount;
         _bypassPayment = data['bypassPayment'] == true;
         _exclusionsAcknowledged = data['exclusionsAcknowledged'] == true;
       });
@@ -92,7 +94,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'selectedPlan': provider.selectedPlan?.toJson(),
       'ownerDetails': provider.ownerDetails?.toJson(),
       'underwritingCaseId': provider.underwritingCaseId,
-      'exclusions': provider.exclusions.map((e) => e.toJson()).toList(growable: false),
+      'exclusions': provider.exclusions
+          .map((e) => e.toJson())
+          .toList(growable: false),
       'underwritingSnapshot': provider.underwritingSnapshot,
       'currentStep': 'payment',
       'payment': _buildPaymentDraft(provider, plan),
@@ -100,7 +104,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     };
   }
 
-  Future<void> _saveAndFinishLater(BuildContext context, CheckoutProvider provider, plan) async {
+  Future<void> _saveAndFinishLater(
+    BuildContext context,
+    CheckoutProvider provider,
+    plan,
+  ) async {
     final snapshot = _buildCheckoutSnapshot(provider, plan);
 
     await UserSessionService().savePendingCheckout(snapshot);
@@ -112,9 +120,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (!mounted) return;
     final resumeKey = await DraftService().getOrCreateLocalResumeKey();
     final pretty = DraftService().prettyCode(resumeKey);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved. Resume code: $pretty')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Saved. Resume code: $pretty')));
 
     if (!context.mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
@@ -130,9 +138,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       if (!mounted) return;
       final pretty = draftService.prettyCode(resumeKey);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Resume code copied: $pretty')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Resume code copied: $pretty')));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -142,25 +150,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   String _computeExclusionsKey(List exclusions) {
-    final names = exclusions
-        .map((e) {
-          if (e is String) return e;
-          try {
-            final conditionName = (e as dynamic).conditionName?.toString();
-            if (conditionName != null && conditionName.trim().isNotEmpty) {
-              return conditionName;
-            }
-          } catch (_) {
-            // ignore
-          }
-          return e.toString();
-        })
-        .whereType<String>()
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final names =
+        exclusions
+            .map((e) {
+              if (e is String) return e;
+              try {
+                final conditionName = (e as dynamic).conditionName?.toString();
+                if (conditionName != null && conditionName.trim().isNotEmpty) {
+                  return conditionName;
+                }
+              } catch (_) {
+                // ignore
+              }
+              return e.toString();
+            })
+            .whereType<String>()
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return names.join('|');
   }
 
@@ -172,7 +181,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _applyCoupon() async {
     final code = _couponController.text.trim().toUpperCase();
-    
+
     if (code.isEmpty) {
       setState(() {
         _couponError = 'Please enter a coupon code';
@@ -186,82 +195,74 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
 
     try {
-      // Check for TEST100 special code
-      if (code == 'TEST100') {
-        setState(() {
-          _isCouponApplied = true;
-          _appliedCouponCode = code;
-          _bypassPayment = true;
-          _discountAmount = 0.0; // Not used when bypassing
-          _isValidatingCoupon = false;
-        });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
-                Text('Test coupon applied - Payment bypassed'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
-        return;
-      }
-
-      // Validate coupon with Stripe via Cloud Function
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not authenticated');
 
-      final response = await http.post(
-        Uri.parse('https://us-central1-pet-underwriter-ai.cloudfunctions.net/validateCoupon'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'couponCode': code,
-          'userId': user.uid,
-        }),
+      final provider = context.read<CheckoutProvider>();
+      final plan = provider.selectedPlan;
+      final owner = provider.ownerDetails;
+      final amount = (plan is Plan) ? plan.monthlyPremium : null;
+
+      await MarketingAttributionService().ensureSessionStarted();
+
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'validatePromotionCode',
       );
+      final response = await callable.call({
+        'code': code,
+        if (amount != null) 'amount': amount,
+        'currency': 'usd',
+        'sessionId': MarketingAttributionService().sessionId,
+        if (owner != null) 'state': owner.state,
+      });
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        
-        if (data['valid'] == true) {
-          setState(() {
-            _isCouponApplied = true;
-            _appliedCouponCode = code;
-            _discountAmount = (data['discountAmount'] ?? 0.0).toDouble();
-            _bypassPayment = false;
-            _isValidatingCoupon = false;
-          });
+      final data = (response.data is Map)
+          ? (response.data as Map).cast<String, dynamic>()
+          : <String, dynamic>{};
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Text('Coupon applied! Save \$${_discountAmount.toStringAsFixed(2)}'),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
+      if (data['valid'] == true) {
+        final bypassPayment = data['bypassPayment'] == true;
+        final discount = (data['discountAmount'] is num)
+            ? (data['discountAmount'] as num).toDouble()
+            : 0.0;
+
+        setState(() {
+          _isCouponApplied = true;
+          _appliedCouponCode = code;
+          _bypassPayment = bypassPayment;
+          _discountAmount = bypassPayment ? 0.0 : discount;
+          _isValidatingCoupon = false;
+        });
+
+        final message = (data['message'] ?? '').toString().trim();
+        final snackText = message.isNotEmpty
+            ? message
+            : (bypassPayment
+                  ? 'Promo code applied - Payment bypassed'
+                  : 'Promo code applied! Save \$${_discountAmount.toStringAsFixed(2)}');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text(snackText)),
+              ],
             ),
-          );
-        } else {
-          setState(() {
-            _couponError = data['message'] ?? 'Invalid coupon code';
-            _isValidatingCoupon = false;
-          });
-        }
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       } else {
-        throw Exception('Failed to validate coupon');
+        setState(() {
+          _couponError = (data['message'] ?? 'Invalid promo code').toString();
+          _isValidatingCoupon = false;
+        });
       }
     } catch (e) {
       setState(() {
-        _couponError = 'Error validating coupon. Please try again.';
+        _couponError = 'Error validating promo code. Please try again.';
         _isValidatingCoupon = false;
       });
     }
@@ -314,7 +315,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   spacing: 8,
                   children: [
                     TextButton(
-                      onPressed: () => _saveAndFinishLater(context, provider, plan),
+                      onPressed: () =>
+                          _saveAndFinishLater(context, provider, plan),
                       child: const Text('Save & finish later'),
                     ),
                     TextButton(
@@ -326,18 +328,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               const Text(
                 'Payment',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
                 'Secure payment powered by Stripe',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade700,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
               ),
               const SizedBox(height: 24),
 
@@ -411,11 +407,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildOrderSummary(plan, ownerDetails) {
-    final double finalAmount = _bypassPayment ? 0.0 : (plan.monthlyPremium - _discountAmount);
+    final double finalAmount = _bypassPayment
+        ? 0.0
+        : (plan.monthlyPremium - _discountAmount);
 
     String annualLimitLabel() {
       try {
-        if (plan.isUnlimitedAnnualCoverage == true || (plan.maxAnnualCoverage as double).isInfinite) {
+        if (plan.isUnlimitedAnnualCoverage == true ||
+            (plan.maxAnnualCoverage as double).isInfinite) {
           return 'Unlimited';
         }
         final v = (plan.maxAnnualCoverage as double).toDouble();
@@ -424,7 +423,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         return '—';
       }
     }
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -435,22 +434,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
           children: [
             const Text(
               'Order Summary',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             _buildSummaryRow('Plan', plan.name),
             const SizedBox(height: 8),
             _buildSummaryRow('Reimbursement', '${plan.reimbursementPercent}%'),
             const SizedBox(height: 8),
-            _buildSummaryRow('Annual Deductible', '\$${plan.annualDeductible.toStringAsFixed(0)}'),
+            _buildSummaryRow(
+              'Annual Deductible',
+              '\$${plan.annualDeductible.toStringAsFixed(0)}',
+            ),
             const SizedBox(height: 8),
             _buildSummaryRow('Annual Limit', annualLimitLabel()),
             if ((plan.selectedAddOns as List).isNotEmpty) ...[
               const SizedBox(height: 8),
-              _buildSummaryRow('Add-ons', (plan.selectedAddOns as List).join(', ')),
+              _buildSummaryRow(
+                'Add-ons',
+                (plan.selectedAddOns as List).join(', '),
+              ),
             ],
             const SizedBox(height: 12),
             _buildSummaryRow('Policy Holder', ownerDetails.fullName),
@@ -481,7 +483,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const Divider(height: 32),
             _buildSummaryRow(
               'Total Due Today',
-              _bypassPayment ? '\$0.00 (Waived)' : '\$${finalAmount.toStringAsFixed(2)}',
+              _bypassPayment
+                  ? '\$0.00 (Waived)'
+                  : '\$${finalAmount.toStringAsFixed(2)}',
               isTotal: true,
             ),
             const SizedBox(height: 16),
@@ -493,7 +497,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.blue.shade700,
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -528,19 +536,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 const SizedBox(width: 12),
                 const Text(
                   'Payment Method',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Coupon Code Field
             _buildCouponCodeField(),
             const SizedBox(height: 20),
-            
+
             // Only show card input if not bypassing payment
             if (!_bypassPayment) ...[
               // Stripe Card Field (Native only - not supported on web yet)
@@ -551,7 +556,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.grey.shade300),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   child: stripe.CardField(
                     onCardChanged: (card) {
                       setState(() {
@@ -573,7 +581,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      Icon(Icons.credit_card, size: 48, color: Colors.blue.shade700),
+                      Icon(
+                        Icons.credit_card,
+                        size: 48,
+                        color: Colors.blue.shade700,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         'Web Payment Coming Soon',
@@ -617,24 +629,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.credit_card, size: 20, color: Colors.grey.shade600),
+                  Icon(
+                    Icons.credit_card,
+                    size: 20,
+                    color: Colors.grey.shade600,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Visa • Mastercard • Amex • Discover',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               Text(
                 'Stripe will securely collect your payment information. Your card details are never stored on our servers.',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
             ] else ...[
               // Show message when payment is bypassed
@@ -647,7 +657,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle, color: Colors.green.shade700, size: 32),
+                    Icon(
+                      Icons.check_circle,
+                      color: Colors.green.shade700,
+                      size: 32,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -711,7 +725,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   filled: true,
-                  fillColor: _isCouponApplied ? Colors.green.shade50 : Colors.grey.shade50,
+                  fillColor: _isCouponApplied
+                      ? Colors.green.shade50
+                      : Colors.grey.shade50,
                   errorText: _couponError,
                   suffixIcon: _isCouponApplied
                       ? IconButton(
@@ -727,9 +743,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(width: 12),
             ElevatedButton(
-              onPressed: _isCouponApplied || _isValidatingCoupon ? null : _applyCoupon,
+              onPressed: _isCouponApplied || _isValidatingCoupon
+                  ? null
+                  : _applyCoupon,
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 backgroundColor: _isCouponApplied ? Colors.green : Colors.blue,
               ),
               child: _isValidatingCoupon
@@ -756,7 +777,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green.shade700, size: 20),
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.green.shade700,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -805,10 +830,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Your payment is encrypted and secure. We use industry-standard SSL encryption and are PCI DSS compliant.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.green.shade800,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.green.shade800),
                 ),
               ],
             ),
@@ -853,11 +875,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildNavigationButtons(BuildContext context, CheckoutProvider provider, plan) {
-    final double finalAmount = _bypassPayment ? 0.0 : (plan.monthlyPremium - _discountAmount);
+  Widget _buildNavigationButtons(
+    BuildContext context,
+    CheckoutProvider provider,
+    plan,
+  ) {
+    final double finalAmount = _bypassPayment
+        ? 0.0
+        : (plan.monthlyPremium - _discountAmount);
     final requiresExclusionsAck = provider.exclusions.isNotEmpty;
     final isPayEnabled = !requiresExclusionsAck || _exclusionsAcknowledged;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -886,10 +914,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text(
-                  'Back',
-                  style: TextStyle(fontSize: 16),
-                ),
+                child: const Text('Back', style: TextStyle(fontSize: 16)),
               ),
             ),
             const SizedBox(width: 16),
@@ -909,16 +934,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(_bypassPayment ? Icons.check_circle_outline : Icons.lock_outline),
+                          Icon(
+                            _bypassPayment
+                                ? Icons.check_circle_outline
+                                : Icons.lock_outline,
+                          ),
                           const SizedBox(width: 8),
                           Text(
-                            _bypassPayment ? 'Complete Setup' : 'Pay \$${finalAmount.toStringAsFixed(2)}',
+                            _bypassPayment
+                                ? 'Complete Setup'
+                                : 'Pay \$${finalAmount.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -938,10 +971,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const SizedBox(width: 6),
             Text(
               'Secure payment powered by Stripe',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -949,7 +979,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool isBold = false, bool isTotal = false, bool isDiscount = false}) {
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    bool isTotal = false,
+    bool isDiscount = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -976,25 +1012,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildExclusionsSummaryCard(List exclusions) {
-    final exclusionNames = exclusions
-        .map((e) {
-          if (e is String) return e;
-          try {
-            final conditionName = (e as dynamic).conditionName?.toString();
-            if (conditionName != null && conditionName.trim().isNotEmpty) {
-              return conditionName;
-            }
-          } catch (_) {
-            // ignore
-          }
-          return e.toString();
-        })
-        .whereType<String>()
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final exclusionNames =
+        exclusions
+            .map((e) {
+              if (e is String) return e;
+              try {
+                final conditionName = (e as dynamic).conditionName?.toString();
+                if (conditionName != null && conditionName.trim().isNotEmpty) {
+                  return conditionName;
+                }
+              } catch (_) {
+                // ignore
+              }
+              return e.toString();
+            })
+            .whereType<String>()
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
     if (exclusionNames.isEmpty) return const SizedBox.shrink();
 
@@ -1013,10 +1050,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 const Expanded(
                   child: Text(
                     'Coverage exclusions',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -1059,7 +1093,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Future<void> _handlePayment(BuildContext context, CheckoutProvider provider, plan) async {
+  Future<void> _handlePayment(
+    BuildContext context,
+    CheckoutProvider provider,
+    plan,
+  ) async {
     setState(() {
       _isProcessing = true;
       _errorMessage = null;
@@ -1084,10 +1122,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
           last4: '0000',
           brand: 'Test',
           couponCode: _appliedCouponCode,
+          discountAmount: _discountAmount,
         );
 
         provider.setPaymentInfo(paymentInfo);
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -1111,9 +1150,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       // On web, payment is not yet supported - show error
       if (kIsWeb) {
-        throw Exception('Payment processing is not yet available on web. Please use the mobile app or contact support.');
+        throw Exception(
+          'Payment processing is not yet available on web. Please use the mobile app or contact support.',
+        );
       }
-      
+
       // Validate card details are entered (mobile only)
       if (_cardFieldDetails == null || !_cardFieldDetails!.complete) {
         throw Exception('Please enter complete card details');
@@ -1123,7 +1164,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final double finalAmount = plan.monthlyPremium - _discountAmount;
 
       // Create payment intent
-      final policyId = 'policy_${user.uid}_${DateTime.now().millisecondsSinceEpoch}';
+      final policyId =
+          'policy_${user.uid}_${DateTime.now().millisecondsSinceEpoch}';
       final paymentIntentData = await _stripeService.createPaymentIntent(
         amount: finalAmount,
         currency: 'usd',
@@ -1139,9 +1181,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           customerEphemeralKeySecret: paymentIntentData['ephemeralKey'],
           style: ThemeMode.system,
           appearance: const stripe.PaymentSheetAppearance(
-            colors: stripe.PaymentSheetAppearanceColors(
-              primary: Colors.blue,
-            ),
+            colors: stripe.PaymentSheetAppearanceColors(primary: Colors.blue),
           ),
         ),
       );
@@ -1164,7 +1204,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
 
       provider.setPaymentInfo(paymentInfo);
-      
+
       // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1185,7 +1225,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       // Move to next step
       await Future.delayed(const Duration(milliseconds: 500));
       provider.nextStep();
-
     } on stripe.StripeException catch (e) {
       setState(() {
         _errorMessage = e.error.message ?? 'Payment failed. Please try again.';

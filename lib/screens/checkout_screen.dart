@@ -8,6 +8,7 @@ import '../services/quote_engine.dart';
 import '../services/product_catalog.dart';
 import '../services/draft_service.dart';
 import '../services/user_session_service.dart';
+import '../services/marketing_attribution_service.dart';
 import '../theme/clovara_theme.dart';
 import 'review_screen.dart';
 import 'owner_details_screen.dart';
@@ -42,6 +43,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     // Initialize checkout provider with pet and plan
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
+        // Best-effort marketing attribution
+        MarketingAttributionService().trackCheckoutStartedOnce();
+
         // Convert dynamic pet to Pet object if needed
         Pet petObject;
         if (widget.pet is Pet) {
@@ -54,51 +58,65 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           print('Pet data: ${widget.pet}');
           return;
         }
-        
+
         // Convert dynamic plan to Plan object if needed
         Plan planObject;
         if (widget.selectedPlan is Plan) {
           planObject = widget.selectedPlan as Plan;
         } else if (widget.selectedPlan is Map<String, dynamic>) {
-          planObject = Plan.fromJson(widget.selectedPlan as Map<String, dynamic>);
+          planObject = Plan.fromJson(
+            widget.selectedPlan as Map<String, dynamic>,
+          );
         } else {
           // Check if it's a PlanData object (from static plans in plan_selection_screen)
           try {
             final planData = widget.selectedPlan;
             // Convert PlanData to Plan
-            final monthlyPrice = planData.monthlyPrice ?? planData.monthlyPremium ?? 0.0;
+            final monthlyPrice =
+                planData.monthlyPrice ?? planData.monthlyPremium ?? 0.0;
             final reimbursement = planData.reimbursement ?? 80;
-            final annualLimitRaw = planData.annualLimit ?? planData.maxAnnualCoverage;
+            final annualLimitRaw =
+                planData.annualLimit ?? planData.maxAnnualCoverage;
             final maxAnnualCoverage = (annualLimitRaw ?? 10000);
 
             planObject = Plan(
               type: _getPlanTypeFromName(planData.name ?? 'Basic'),
               name: planData.name ?? 'Unknown Plan',
               description: 'Pet insurance coverage',
-              pricingBasePremium: monthlyPrice is num ? monthlyPrice.toDouble() : 0.0,
-              monthlyPremium: monthlyPrice is num ? monthlyPrice.toDouble() : 0.0,
+              pricingBasePremium: monthlyPrice is num
+                  ? monthlyPrice.toDouble()
+                  : 0.0,
+              monthlyPremium: monthlyPrice is num
+                  ? monthlyPrice.toDouble()
+                  : 0.0,
               annualDeductible: (planData.annualDeductible ?? 500).toDouble(),
               coPayPercentage: (100 - reimbursement).toDouble(),
-              maxAnnualCoverage: maxAnnualCoverage is num ? maxAnnualCoverage.toDouble() : 10000.0,
+              maxAnnualCoverage: maxAnnualCoverage is num
+                  ? maxAnnualCoverage.toDouble()
+                  : 10000.0,
               maxLifetimeCoverage: null,
               numberOfPets: 1,
               multiPetDiscount: 0.0,
-              reimbursementPercent: reimbursement is num ? reimbursement.toInt() : 80,
+              reimbursementPercent: reimbursement is num
+                  ? reimbursement.toInt()
+                  : 80,
               features: List<String>.from(planData.features ?? []),
               exclusions: [],
             );
           } catch (e) {
-            print('ERROR: Invalid plan type: ${widget.selectedPlan.runtimeType}');
+            print(
+              'ERROR: Invalid plan type: ${widget.selectedPlan.runtimeType}',
+            );
             print('Plan data: ${widget.selectedPlan}');
             print('Error: $e');
             return;
           }
         }
-        
+
         context.read<CheckoutProvider>().initialize(
-              pet: petObject,
-              plan: planObject,
-            );
+          pet: petObject,
+          plan: planObject,
+        );
 
         // Phase 5: Set underwriting metadata if present
         final rawExclusions = widget.exclusions;
@@ -118,9 +136,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   );
                 }
                 if (e is Map) {
-                  return PolicyExclusion.fromJson(
-                    e.cast<String, dynamic>(),
-                  );
+                  return PolicyExclusion.fromJson(e.cast<String, dynamic>());
                 }
                 return null;
               })
@@ -128,7 +144,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               .toList();
         }
 
-        final snapshot = widget.underwritingSnapshot ??
+        final snapshot =
+            widget.underwritingSnapshot ??
             ((parsedExclusions != null && parsedExclusions.isNotEmpty)
                 ? {
                     'capturedAt': DateTime.now().toIso8601String(),
@@ -144,10 +161,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             (parsedExclusions != null && parsedExclusions.isNotEmpty) ||
             snapshot != null) {
           context.read<CheckoutProvider>().setUnderwritingMetadata(
-                caseId: widget.underwritingCaseId,
-                exclusions: parsedExclusions,
-                snapshot: snapshot,
-              );
+            caseId: widget.underwritingCaseId,
+            exclusions: parsedExclusions,
+            snapshot: snapshot,
+          );
         }
 
         // Restore pending checkout snapshot (if it matches this pet/plan).
@@ -160,14 +177,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             final pendingPlan = pending['selectedPlan'];
 
             final pendingPetName = (pendingPet is Map)
-                ? (pendingPet['name']?.toString() ?? pendingPet['petName']?.toString() ?? '')
+                ? (pendingPet['name']?.toString() ??
+                      pendingPet['petName']?.toString() ??
+                      '')
                 : '';
             final pendingPlanName = (pendingPlan is Map)
                 ? (pendingPlan['name']?.toString() ?? '')
                 : '';
 
-            final matchesPet = pendingPetName.trim().isEmpty || pendingPetName.trim() == petObject.name.trim();
-            final matchesPlan = pendingPlanName.trim().isEmpty || pendingPlanName.trim() == planObject.name.trim();
+            final matchesPet =
+                pendingPetName.trim().isEmpty ||
+                pendingPetName.trim() == petObject.name.trim();
+            final matchesPlan =
+                pendingPlanName.trim().isEmpty ||
+                pendingPlanName.trim() == planObject.name.trim();
 
             if (!matchesPet || !matchesPlan) return;
 
@@ -180,16 +203,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               provider.setOwnerDetails(OwnerDetails.fromJson(ownerJson));
             }
 
-            final underwritingCaseId = pending['underwritingCaseId']?.toString();
+            final underwritingCaseId = pending['underwritingCaseId']
+                ?.toString();
             final exclusionsRaw = pending['exclusions'];
             final exclusions = (exclusionsRaw is List)
                 ? exclusionsRaw
-                    .whereType<Map>()
-                    .map((e) => PolicyExclusion.fromJson(e.cast<String, dynamic>()))
-                    .toList()
+                      .whereType<Map>()
+                      .map(
+                        (e) =>
+                            PolicyExclusion.fromJson(e.cast<String, dynamic>()),
+                      )
+                      .toList()
                 : null;
-            final uwSnapshot = (pending['underwritingSnapshot'] as Map?)?.cast<String, dynamic>();
-            if ((underwritingCaseId != null && underwritingCaseId.trim().isNotEmpty) ||
+            final uwSnapshot = (pending['underwritingSnapshot'] as Map?)
+                ?.cast<String, dynamic>();
+            if ((underwritingCaseId != null &&
+                    underwritingCaseId.trim().isNotEmpty) ||
                 (exclusions != null && exclusions.isNotEmpty) ||
                 uwSnapshot != null) {
               provider.setUnderwritingMetadata(
@@ -223,7 +252,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       'selectedPlan': provider.selectedPlan?.toJson(),
       'ownerDetails': provider.ownerDetails?.toJson(),
       'underwritingCaseId': provider.underwritingCaseId,
-      'exclusions': provider.exclusions.map((e) => e.toJson()).toList(growable: false),
+      'exclusions': provider.exclusions
+          .map((e) => e.toJson())
+          .toList(growable: false),
       'underwritingSnapshot': provider.underwritingSnapshot,
       'currentStep': provider.currentStep.toString().split('.').last,
       'savedAt': DateTime.now().toIso8601String(),
@@ -237,8 +268,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     await UserSessionService().savePendingCheckout(snapshot);
 
     // Save server draft so resume-by-code works.
-    final state = provider.currentStep == CheckoutStep.payment ? 'CHECKOUT_PAYMENT' : 'CHECKOUT_OWNER';
-    await DraftService().upsertCheckoutDraft(state: state, checkoutData: snapshot);
+    final state = provider.currentStep == CheckoutStep.payment
+        ? 'CHECKOUT_PAYMENT'
+        : 'CHECKOUT_OWNER';
+    await DraftService().upsertCheckoutDraft(
+      state: state,
+      checkoutData: snapshot,
+    );
 
     if (!context.mounted) return;
     Navigator.pop(context, true);
@@ -253,9 +289,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       if (!context.mounted) return;
       final pretty = draftService.prettyCode(resumeKey);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Resume code copied: $pretty')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Resume code copied: $pretty')));
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -263,7 +299,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
     }
   }
-  
+
   PlanType _getPlanTypeFromName(String name) {
     switch (name.toLowerCase()) {
       case 'basic':
@@ -286,18 +322,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return WillPopScope(
       onWillPop: () async {
         final provider = context.read<CheckoutProvider>();
-        
+
         // If on confirmation screen, allow back
         if (provider.currentStep == CheckoutStep.confirmation) {
           return true;
         }
-        
+
         // Show confirmation dialog if not on first step
         if (provider.currentStep != CheckoutStep.review) {
           final shouldExit = await _showExitConfirmation(context);
           return shouldExit ?? false;
         }
-        
+
         return true;
       },
       child: Scaffold(
@@ -308,11 +344,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               return Column(
                 children: [
                   _buildBrandedHeader(provider),
-                  if (provider.error != null) _buildErrorBanner(provider.error!),
+                  if (provider.error != null)
+                    _buildErrorBanner(provider.error!),
                   _buildStepIndicator(provider),
-                  Expanded(
-                    child: _buildStepContent(provider),
-                  ),
+                  Expanded(child: _buildStepContent(provider)),
                 ],
               );
             },
@@ -344,7 +379,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               // Back Button
               if (provider.currentStep != CheckoutStep.confirmation)
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
+                    size: 24,
+                  ),
                   onPressed: () {
                     Navigator.pop(context);
                   },
@@ -353,7 +392,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 )
               else
                 const SizedBox(width: 24),
-              
+
               // Logo/Title
               Expanded(
                 child: Text(
@@ -366,7 +405,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   textAlign: TextAlign.center,
                 ),
               ),
-              
+
               // Close Button
               if (provider.currentStep != CheckoutStep.confirmation)
                 IconButton(
@@ -379,9 +418,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 const SizedBox(width: 24),
             ],
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Current Step Title
           Text(
             provider.getStepName(provider.currentStep),
@@ -418,7 +457,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               final isCurrent = provider.currentStep == step;
               final isPast = provider.currentStepIndex > index;
               final isActive = isCurrent || isPast;
-              
+
               return Expanded(
                 child: Row(
                   children: [
@@ -441,9 +480,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               );
             }),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Step circles
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -507,21 +546,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           decoration: BoxDecoration(
             color: circleColor,
             shape: BoxShape.circle,
-            boxShadow: isCurrent ? [
-              BoxShadow(
-                color: ClovaraColors.clover.withOpacity(0.4),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ] : [],
+            boxShadow: isCurrent
+                ? [
+                    BoxShadow(
+                      color: ClovaraColors.clover.withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [],
           ),
           child: Center(
             child: isPast
-                ? Icon(
-                    Icons.check_rounded,
-                    color: iconColor,
-                    size: 24,
-                  )
+                ? Icon(Icons.check_rounded, color: iconColor, size: 24)
                 : Text(
                     stepIcon,
                     style: TextStyle(
@@ -554,18 +591,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       decoration: BoxDecoration(
         color: Colors.red.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.red.shade300,
-          width: 1,
-        ),
+        border: Border.all(color: Colors.red.shade300, width: 1),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.error_outline,
-            color: Colors.red.shade700,
-            size: 24,
-          ),
+          Icon(Icons.error_outline, color: Colors.red.shade700, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -594,7 +624,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildStepContent(CheckoutProvider provider) {
     // Wrap content in white background container for consistency
     Widget content;
-    
+
     switch (provider.currentStep) {
       case CheckoutStep.review:
         content = const ReviewScreen();
@@ -609,20 +639,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         content = const ConfirmationScreen();
         break;
     }
-    
-    return Container(
-      color: Colors.grey.shade50,
-      child: content,
-    );
+
+    return Container(color: Colors.grey.shade50, child: content);
   }
 
   Future<bool?> _showExitConfirmation(BuildContext context) {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.all(24),
         title: Column(
           children: [
@@ -641,17 +666,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const SizedBox(height: 16),
             Text(
               'Exit Checkout?',
-              style: ClovaraTypography.h3.copyWith(
-                color: ClovaraColors.forest,
-              ),
+              style: ClovaraTypography.h3.copyWith(color: ClovaraColors.forest),
             ),
           ],
         ),
         content: Text(
           'Save your progress and finish later, or exit without saving.',
-          style: ClovaraTypography.body.copyWith(
-            color: Colors.grey.shade700,
-          ),
+          style: ClovaraTypography.body.copyWith(color: Colors.grey.shade700),
           textAlign: TextAlign.center,
         ),
         actionsAlignment: MainAxisAlignment.spaceEvenly,

@@ -617,6 +617,19 @@ exports.sendAnalyticsEmail = analyticsEmail.sendAnalyticsEmail;
 const validateCouponModule = require("./validateCoupon");
 exports.validateCoupon = validateCouponModule.validateCoupon;
 
+// Export marketing / attribution / promo code functions
+const marketing = require("./marketing");
+exports.startAttributionSession = marketing.startAttributionSession;
+exports.trackMarketingEvent = marketing.trackMarketingEvent;
+exports.createPromotionCode = marketing.createPromotionCode;
+exports.setPromotionCodeActive = marketing.setPromotionCodeActive;
+exports.validatePromotionCode = marketing.validatePromotionCode;
+exports.recordSpend = marketing.recordSpend;
+exports.importChannelSpendCsv = marketing.importChannelSpendCsv;
+
+// Firestore trigger: roll up marketing events
+exports.onMarketingEventCreated = marketing.onMarketingEventCreated;
+
 // Export OpenAI proxy functions
 const openaiProxy = require("./openaiProxy");
 exports.chatCompletion = openaiProxy.chatCompletion;
@@ -634,6 +647,12 @@ exports.getUnderwritingRulesPublic =
 const productCatalogPublic = require("./productCatalogPublic");
 exports.getProductCatalogPublic =
   productCatalogPublic.getProductCatalogPublic;
+
+// Export versioned pricing functions
+const pricing = require("./pricing");
+exports.getPricingQuotePublic = pricing.getPricingQuotePublic;
+exports.upsertPricingVersionAdmin = pricing.upsertPricingVersionAdmin;
+exports.setActivePricingVersionAdmin = pricing.setActivePricingVersionAdmin;
 
 // Export draft save/resume (anonymous auth + resume key)
 const drafts = require("./drafts");

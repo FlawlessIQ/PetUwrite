@@ -16,6 +16,7 @@ import '../services/user_session_service.dart';
 import '../services/draft_service.dart';
 import '../services/underwriting_rules_engine.dart';
 import '../services/breed_size_guide.dart';
+import '../services/marketing_attribution_service.dart';
 import '../data/breed_catalog.dart';
 import '../ai/ai_service.dart';
 import '../ai/clover_persona.dart';
@@ -205,6 +206,10 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   void initState() {
     super.initState();
     print('🚀 ConversationalQuoteFlow: initState called');
+
+    // Best-effort marketing attribution
+    MarketingAttributionService().trackQuoteStartedOnce();
+
     try {
       // AI runs via Firebase Functions proxy (no client-side keys).
       _aiService = ConversationalAIService();
@@ -301,9 +306,9 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
 
       if (!mounted) return;
       final pretty = draftService.prettyCode(resumeKey);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Resume code copied: $pretty')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Resume code copied: $pretty')));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -528,11 +533,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
         final bool shouldUseAi =
             !kIsWeb &&
             question.type == QuestionType.text &&
-            !{
-              'welcome',
-              'petName',
-              'email',
-            }.contains(question.id);
+            !{'welcome', 'petName', 'email'}.contains(question.id);
 
         if (!shouldUseAi) {
           questionText = _cloverAdapter.formatQuestion(

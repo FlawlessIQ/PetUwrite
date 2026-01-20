@@ -1,0 +1,60 @@
+# Canonical underwriting rules (single source of truth)
+# Edit this file, then run:
+#   node tools/underwriting_rules/render_docs.js
+#   node tools/underwriting_rules/publish_underwriting_rules.js --env dev|stage|prod
+
+version: 1
+# YYYY-MM-DD
+effectiveDate: "2026-01-19"
+updatedBy: ""
+changeNotes: "Initial canonicalization from prior defaults"
+
+enabled: true
+
+ageLimits:
+  # Minimum pet age at enrollment (months)
+  minAgeMonths: 2
+  # Maximum pet age at enrollment (years)
+  maxAgeYears: 14
+
+risk:
+  # Max acceptable overall risk score (0-100). Higher declines.
+  maxOverallScore: 90
+
+# Breeds that are automatically declined.
+# Matching in the app is substring/case-insensitive.
+excludedBreeds:
+  - "American Pit Bull Terrier"
+  - "Dogo Argentino"
+  - "Pit Bull Terrier"
+  - "Presa Canario"
+  - "Staffordshire Bull Terrier"
+  - "Wolf Dog"
+  - "Wolf Hybrid"
+
+# Pre-existing conditions that trigger a full decline.
+criticalConditions:
+  - "cancer"
+  - "congestive heart failure"
+  - "end stage kidney disease"
+  - "end stage liver disease"
+  - "malignant tumor"
+  - "metastatic cancer"
+  - "terminal cancer"
+  - "terminal illness"
+
+# Pre-existing conditions that should typically be excluded (conditional approval),
+# not full declines.
+excludableConditions:
+  - "arthritis"
+  - "cranial cruciate ligament"
+  - "cruciate"
+  - "degenerative joint disease"
+  - "djd"
+  - "elbow dysplasia"
+  - "hip dysplasia"
+  - "intervertebral disc disease"
+  - "ivdd"
+  - "luxating patella"
+  - "osteoarthritis"
+  - "patellar luxation"

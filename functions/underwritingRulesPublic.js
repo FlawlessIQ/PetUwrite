@@ -8,58 +8,9 @@
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
+const {loadUnderwritingRules} = require("./underwritingRulesLoader");
+
 if (!admin.apps.length) admin.initializeApp();
-
-// Simple in-memory cache per function instance.
-let cached = null;
-let cachedAtMs = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-function getDefaultRules() {
-  return {
-    enabled: true,
-    maxRiskScore: 90,
-    minAgeMonths: 2,
-    maxAgeYears: 14,
-    excludedBreeds: [
-      "Wolf Hybrid",
-      "Wolf Dog",
-      "Pit Bull Terrier",
-      "American Pit Bull Terrier",
-      "Staffordshire Bull Terrier",
-      "Presa Canario",
-      "Dogo Argentino",
-    ],
-    criticalConditions: [
-      "cancer",
-      "terminal illness",
-      "end stage kidney disease",
-      "end stage liver disease",
-      "congestive heart failure",
-      "malignant tumor",
-      "terminal cancer",
-      "metastatic cancer",
-    ],
-    // Conditions that should typically be excluded as pre-existing (conditional
-    // approval), not full declines.
-    excludableConditions: [
-      // Orthopedic
-      "cruciate",
-      "cranial cruciate ligament",
-      "degenerative joint disease",
-      "djd",
-      "arthritis",
-      "osteoarthritis",
-      "hip dysplasia",
-      "patellar luxation",
-      "luxating patella",
-      "elbow dysplasia",
-      // Spine
-      "intervertebral disc disease",
-      "ivdd",
-    ],
-  };
-}
 
 function sanitizeRules(rules) {
   const allowedKeys = [
@@ -70,6 +21,11 @@ function sanitizeRules(rules) {
     "excludedBreeds",
     "criticalConditions",
     "excludableConditions",
+    "rulesVersion",
+    "effectiveDate",
+    "changeNotes",
+    "publishedAt",
+    "publishedBy",
     "lastUpdated",
     "updatedBy",
   ];
@@ -103,28 +59,19 @@ exports.getUnderwritingRulesPublic = onCall(
   },
   async (request) => {
     try {
-      const now = Date.now();
-      if (cached && now - cachedAtMs < CACHE_TTL_MS) {
-        return cached;
+      const loaded = await loadUnderwritingRules({cache: true});
+
+      if (!loaded.ok) {
+        throw new HttpsError(
+          "failed-precondition",
+          loaded.errorMessage,
+          {code: loaded.errorCode},
+        );
       }
 
-      const snap = await admin
-        .firestore()
-        .collection("admin_settings")
-        .doc("underwriting_rules")
-        .get();
-
-      const defaults = getDefaultRules();
-      const rules = {
-        ...defaults,
-        ...(snap.exists ? (snap.data() || {}) : {}),
-      };
-
-      const sanitized = sanitizeRules(rules);
-      cached = sanitized;
-      cachedAtMs = now;
-      return sanitized;
+      return sanitizeRules(loaded.rules);
     } catch (e) {
+      if (e instanceof HttpsError) throw e;
       throw new HttpsError(
         "internal",
         `Failed to load underwriting rules: ${e?.message || e}`,

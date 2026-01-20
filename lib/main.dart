@@ -18,28 +18,36 @@ import 'models/checkout_state.dart';
 import 'services/firebase_service.dart';
 import 'services/user_session_service.dart';
 import 'services/stripe_service.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'services/marketing_attribution_service.dart';
+import 'package:flutter/foundation.dart'
+  show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'config/emulator_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Optional: connect to local Firebase emulators when enabled.
   // Enable with: --dart-define=USE_FIREBASE_EMULATORS=true
   await EmulatorConfig.configureFirebaseEmulators();
-  
-  // Initialize Stripe (skip on web - not fully supported)
-  if (!kIsWeb) {
+
+  // Initialize Stripe only where `flutter_stripe` is supported.
+  // macOS builds don't have a Stripe plugin implementation.
+  final supportsStripe = !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
+  if (supportsStripe) {
     await StripeService.init();
   }
-  
+
   // Setup auth state listener to handle pending quote migration on sign-in
   UserSessionService().setupAuthStateListener();
+
+  // Best-effort: start attribution session early (captures web UTMs/referrer).
+  // Do not block app startup on this network call.
+  MarketingAttributionService().ensureSessionStarted();
 
   runApp(const PetUnderwriterAI());
 }
@@ -50,7 +58,7 @@ class PetUnderwriterAI extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firebaseService = FirebaseService();
-    
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => QuoteProvider()),
@@ -60,9 +68,7 @@ class PetUnderwriterAI extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => PolicyProvider(firebaseService: firebaseService),
         ),
-        ChangeNotifierProvider(
-          create: (_) => CheckoutProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => CheckoutProvider()),
       ],
       child: MaterialApp(
         title: 'Clovara',
@@ -85,14 +91,19 @@ class PetUnderwriterAI extends StatelessWidget {
           // Handle checkout route with authentication check
           if (settings.name == '/checkout') {
             final args = settings.arguments as Map<String, dynamic>?;
-            if (args != null && args.containsKey('pet') && args.containsKey('selectedPlan')) {
+            if (args != null &&
+                args.containsKey('pet') &&
+                args.containsKey('selectedPlan')) {
               return MaterialPageRoute(
                 builder: (context) => AuthRequiredCheckout(
                   pet: args['pet'],
                   selectedPlan: args['selectedPlan'],
                   underwritingCaseId: args['underwritingCaseId']?.toString(),
-                  exclusions: args['exclusions'] is List ? (args['exclusions'] as List) : null,
-                  underwritingSnapshot: (args['underwritingSnapshot'] as Map?)?.cast<String, dynamic>(),
+                  exclusions: args['exclusions'] is List
+                      ? (args['exclusions'] as List)
+                      : null,
+                  underwritingSnapshot: (args['underwritingSnapshot'] as Map?)
+                      ?.cast<String, dynamic>(),
                 ),
               );
             }

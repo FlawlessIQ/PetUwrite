@@ -7,6 +7,7 @@ import '../models/owner.dart';
 import '../services/quote_engine.dart';
 import '../services/product_catalog.dart';
 import '../services/product_catalog_availability_engine.dart';
+import '../services/pricing_quote_service.dart';
 import '../services/pricing_gate.dart';
 import '../theme/clovara_theme.dart';
 
@@ -243,10 +244,58 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
     _pricingAllowed = true;
 
-    if (riskScore != null && owner != null) {
+    if (riskScore == null || owner == null) {
+      setState(() => _isLoadingPlans = false);
+      return;
+    }
+
+    final ageYears = _resolveAgeYearsFromRoute();
+
+    Future<void> applyPlans(List<Plan> plans) async {
+      final filtered = _filterPlansByAvailability(plans);
+      if (filtered.isEmpty) {
+        setState(() {
+          _dynamicPlans = const <Plan>[];
+          _isLoadingPlans = false;
+        });
+        return;
+      }
+
+      final recommendedPlanType =
+          filtered.any((p) => p.type == PlanType.standard)
+          ? PlanType.standard
+          : filtered.first.type;
+      final recommendedIndex = filtered.indexWhere((p) => p.type == recommendedPlanType);
+
+      setState(() {
+        _dynamicPlans = filtered;
+        _isLoadingPlans = false;
+        _selectedPlanIndex = recommendedIndex >= 0 ? recommendedIndex : 0;
+        _baselineMonthlyPremium =
+            filtered.isNotEmpty ? filtered[_selectedPlanIndex].monthlyPremium : null;
+      });
+    }
+
+    () async {
+      // Prefer server-side pricing (versioned).
+      try {
+        final svc = PricingQuoteService();
+        final plans = await svc.getDayOnePlans(
+          riskBand: riskScore.riskLevel.name,
+          zipCode: owner.address.zipCode,
+          state: owner.address.state,
+          numberOfPets: 1,
+          addOns: const <String>[],
+        );
+
+        await applyPlans(plans);
+        return;
+      } catch (_) {
+        // Fall back to local pricing to keep UX unblocked.
+      }
+
       try {
         final quoteEngine = QuoteEngine();
-        final ageYears = _resolveAgeYearsFromRoute();
         final plans = quoteEngine.generateQuote(
           riskScore: riskScore,
           zipCode: owner.address.zipCode,
@@ -254,37 +303,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           numberOfPets: 1,
           ageYears: ageYears,
         );
-
-        final filtered = _filterPlansByAvailability(plans);
-        if (filtered.isEmpty) {
-          setState(() {
-            _dynamicPlans = const <Plan>[];
-            _isLoadingPlans = false;
-          });
-          return;
-        }
-        // Recommended defaults: Standard if available, else first.
-        final recommendedPlanType =
-            filtered.any((p) => p.type == PlanType.standard)
-            ? PlanType.standard
-            : filtered.first.type;
-        final recommendedIndex = filtered.indexWhere(
-          (p) => p.type == recommendedPlanType,
-        );
-
-        setState(() {
-          _dynamicPlans = filtered;
-          _isLoadingPlans = false;
-          _selectedPlanIndex = recommendedIndex >= 0 ? recommendedIndex : 0;
-          _baselineMonthlyPremium =
-              filtered.isNotEmpty ? filtered[_selectedPlanIndex].monthlyPremium : null;
-        });
+        await applyPlans(plans);
       } catch (e) {
         setState(() => _isLoadingPlans = false);
       }
-    } else {
-      setState(() => _isLoadingPlans = false);
-    }
+    }();
   }
 
   Widget _buildPricingBlocked() {
@@ -1308,12 +1331,40 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 900;
 
-    Plan rebuild({
+    Future<Plan> rebuild({
       int? reimbursementPercent,
       int? annualDeductible,
       int? annualLimit,
+      bool annualLimitProvided = false,
       Set<AddOnType>? addOns,
-    }) {
+    }) async {
+      final nextReimb = reimbursementPercent ?? currentReimbursement;
+      final nextDed = annualDeductible ?? currentDeductible;
+      final nextLimit = annualLimitProvided ? annualLimit : currentAnnualLimit;
+      final nextAddOns = (addOns ?? selectedAddOns).toList();
+
+      // Prefer server-side pricing so admin versions take effect immediately.
+      try {
+        final owner = _routeArguments?['owner'] as Owner?;
+        if (owner != null) {
+          final svc = PricingQuoteService();
+          final priced = await svc.priceSku(
+            riskBand: plan.riskBand.name,
+            zipCode: owner.address.zipCode,
+            state: owner.address.state,
+            numberOfPets: plan.numberOfPets,
+            tier: plan.type.name,
+            reimbursementPercent: nextReimb,
+            annualDeductible: nextDed,
+            annualLimit: nextLimit,
+            addOns: nextAddOns.map((e) => e.name).toList(growable: false),
+          );
+          if (priced != null) return priced;
+        }
+      } catch (_) {
+        // Fall back to local pricing to keep UX unblocked.
+      }
+
       final engine = QuoteEngine();
       return engine.buildPlan(
         tier: plan.type,
@@ -1324,10 +1375,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         regionalMultiplier: plan.pricingBreakdown?.regionalMultiplier ?? 1.0,
         regionalKey: plan.pricingBreakdown?.regionalKey ?? 'DEFAULT',
         ageYears: ageYears,
-        reimbursementPercent: reimbursementPercent ?? currentReimbursement,
-        annualDeductible: annualDeductible ?? currentDeductible,
-        annualLimit: annualLimit ?? currentAnnualLimit,
-        addOns: (addOns ?? selectedAddOns).toList(),
+        reimbursementPercent: nextReimb,
+        annualDeductible: nextDed,
+        annualLimit: nextLimit,
+        addOns: nextAddOns,
       );
     }
 
@@ -1339,7 +1390,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         labelFor: (v) => '$v%',
       );
       if (picked == null) return;
-      _updateSelectedPlan(rebuild(reimbursementPercent: picked));
+      _updateSelectedPlan(await rebuild(reimbursementPercent: picked));
     }
 
     Future<void> pickDeductible() async {
@@ -1350,7 +1401,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         labelFor: (v) => '\$$v',
       );
       if (picked == null) return;
-      _updateSelectedPlan(rebuild(annualDeductible: picked));
+      _updateSelectedPlan(await rebuild(annualDeductible: picked));
     }
 
     Future<void> pickAnnualLimit() async {
@@ -1362,7 +1413,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             v == null ? 'Unlimited' : '\$${(v / 1000).toStringAsFixed(0)}k',
       );
       if (picked == null) return;
-      _updateSelectedPlan(rebuild(annualLimit: picked));
+      _updateSelectedPlan(await rebuild(annualLimit: picked, annualLimitProvided: true));
     }
 
     final visibleAddOns = AddOn.all.where((addon) {
@@ -1539,14 +1590,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         _buildAddOnTile(
                           addon: addon,
                           selected: selectedAddOns.contains(addon.type),
-                          onToggle: (nextSelected) {
+                          onToggle: (nextSelected) async {
                             final next = Set<AddOnType>.from(selectedAddOns);
                             if (nextSelected) {
                               next.add(addon.type);
                             } else {
                               next.remove(addon.type);
                             }
-                            _updateSelectedPlan(rebuild(addOns: next));
+                            _updateSelectedPlan(await rebuild(addOns: next));
                           },
                         ),
                     ],
@@ -1615,12 +1666,39 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       currentAnnualLimit = coerced;
     }
 
-    Plan rebuild({
+    Future<Plan> rebuild({
       int? reimbursementPercent,
       int? annualDeductible,
       int? annualLimit,
+      bool annualLimitProvided = false,
       Set<AddOnType>? addOns,
-    }) {
+    }) async {
+      final nextReimb = reimbursementPercent ?? currentReimbursement;
+      final nextDed = annualDeductible ?? currentDeductible;
+      final nextLimit = annualLimitProvided ? annualLimit : currentAnnualLimit;
+      final nextAddOns = (addOns ?? selectedAddOns).toList();
+
+      try {
+        final owner = _routeArguments?['owner'] as Owner?;
+        if (owner != null) {
+          final svc = PricingQuoteService();
+          final priced = await svc.priceSku(
+            riskBand: plan.riskBand.name,
+            zipCode: owner.address.zipCode,
+            state: owner.address.state,
+            numberOfPets: plan.numberOfPets,
+            tier: plan.type.name,
+            reimbursementPercent: nextReimb,
+            annualDeductible: nextDed,
+            annualLimit: nextLimit,
+            addOns: nextAddOns.map((e) => e.name).toList(growable: false),
+          );
+          if (priced != null) return priced;
+        }
+      } catch (_) {
+        // Ignore.
+      }
+
       final engine = QuoteEngine();
       return engine.buildPlan(
         tier: plan.type,
@@ -1631,10 +1709,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         regionalMultiplier: plan.pricingBreakdown?.regionalMultiplier ?? 1.0,
         regionalKey: plan.pricingBreakdown?.regionalKey ?? 'DEFAULT',
         ageYears: ageYears,
-        reimbursementPercent: reimbursementPercent ?? currentReimbursement,
-        annualDeductible: annualDeductible ?? currentDeductible,
-        annualLimit: annualLimit ?? currentAnnualLimit,
-        addOns: (addOns ?? selectedAddOns).toList(),
+        reimbursementPercent: nextReimb,
+        annualDeductible: nextDed,
+        annualLimit: nextLimit,
+        addOns: nextAddOns,
       );
     }
 
@@ -1646,7 +1724,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         labelFor: (v) => '$v%',
       );
       if (picked == null) return;
-      _updateSelectedPlan(rebuild(reimbursementPercent: picked));
+      _updateSelectedPlan(await rebuild(reimbursementPercent: picked));
     }
 
     Future<void> pickDeductible() async {
@@ -1657,7 +1735,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         labelFor: (v) => '\$$v',
       );
       if (picked == null) return;
-      _updateSelectedPlan(rebuild(annualDeductible: picked));
+      _updateSelectedPlan(await rebuild(annualDeductible: picked));
     }
 
     Future<void> pickAnnualLimit() async {
@@ -1669,7 +1747,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             v == null ? 'Unlimited' : '\$${(v / 1000).toStringAsFixed(0)}k',
       );
       if (picked == null) return;
-      _updateSelectedPlan(rebuild(annualLimit: picked));
+      _updateSelectedPlan(await rebuild(annualLimit: picked, annualLimitProvided: true));
     }
 
     final visibleAddOns = AddOn.all.where((addon) {
@@ -1928,7 +2006,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                                 _buildAddOnTile(
                                   addon: addon,
                                   selected: selectedAddOns.contains(addon.type),
-                                  onToggle: (nextSelected) {
+                                  onToggle: (nextSelected) async {
                                     final next = Set<AddOnType>.from(
                                       selectedAddOns,
                                     );
@@ -1937,7 +2015,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                                     } else {
                                       next.remove(addon.type);
                                     }
-                                    _updateSelectedPlan(rebuild(addOns: next));
+                                    _updateSelectedPlan(await rebuild(addOns: next));
                                   },
                                 ),
                             ],
@@ -4134,12 +4212,39 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       currentAnnualLimit = coerced;
     }
 
-    Plan rebuild({
+    Future<Plan> rebuild({
       int? reimbursementPercent,
       int? annualDeductible,
       int? annualLimit,
+      bool annualLimitProvided = false,
       Set<AddOnType>? addOns,
-    }) {
+    }) async {
+      final nextReimb = reimbursementPercent ?? currentReimbursement;
+      final nextDed = annualDeductible ?? currentDeductible;
+      final nextLimit = annualLimitProvided ? annualLimit : currentAnnualLimit;
+      final nextAddOns = (addOns ?? selectedAddOns).toList();
+
+      try {
+        final owner = _routeArguments?['owner'] as Owner?;
+        if (owner != null) {
+          final svc = PricingQuoteService();
+          final priced = await svc.priceSku(
+            riskBand: plan.riskBand.name,
+            zipCode: owner.address.zipCode,
+            state: owner.address.state,
+            numberOfPets: plan.numberOfPets,
+            tier: plan.type.name,
+            reimbursementPercent: nextReimb,
+            annualDeductible: nextDed,
+            annualLimit: nextLimit,
+            addOns: nextAddOns.map((e) => e.name).toList(growable: false),
+          );
+          if (priced != null) return priced;
+        }
+      } catch (_) {
+        // Ignore.
+      }
+
       final engine = QuoteEngine();
       return engine.buildPlan(
         tier: plan.type,
@@ -4150,10 +4255,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         regionalMultiplier: plan.pricingBreakdown?.regionalMultiplier ?? 1.0,
         regionalKey: plan.pricingBreakdown?.regionalKey ?? 'DEFAULT',
         ageYears: ageYears,
-        reimbursementPercent: reimbursementPercent ?? currentReimbursement,
-        annualDeductible: annualDeductible ?? currentDeductible,
-        annualLimit: annualLimit ?? currentAnnualLimit,
-        addOns: (addOns ?? selectedAddOns).toList(),
+        reimbursementPercent: nextReimb,
+        annualDeductible: nextDed,
+        annualLimit: nextLimit,
+        addOns: nextAddOns,
       );
     }
 
@@ -4270,9 +4375,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             options: allowedReimbursements,
             selected: currentReimbursement,
             labelFor: (v) => '$v%',
-            onSelected: (v) {
+            onSelected: (v) async {
               currentReimbursement = v;
-              apply(rebuild(reimbursementPercent: v));
+              apply(await rebuild(reimbursementPercent: v));
             },
           ),
           const SizedBox(height: 12),
@@ -4282,9 +4387,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             options: allowedDeductibles,
             selected: currentDeductible,
             labelFor: (v) => '\$$v',
-            onSelected: (v) {
+            onSelected: (v) async {
               currentDeductible = v;
-              apply(rebuild(annualDeductible: v));
+              apply(await rebuild(annualDeductible: v));
             },
           ),
           const SizedBox(height: 12),
@@ -4294,9 +4399,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             options: allowedAnnualLimits,
             selected: currentAnnualLimit,
             labelFor: (v) => v == null ? 'Unlimited' : '\$${(v / 1000).toStringAsFixed(0)}k',
-            onSelected: (v) {
+            onSelected: (v) async {
               currentAnnualLimit = v;
-              apply(rebuild(annualLimit: v));
+              apply(await rebuild(annualLimit: v, annualLimitProvided: true));
             },
           ),
           if (visibleAddOns.isNotEmpty) ...[
@@ -4330,14 +4435,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 ),
                 child: SwitchListTile.adaptive(
                   value: selected,
-                  onChanged: (nextSelected) {
+                  onChanged: (nextSelected) async {
                     final next = Set<AddOnType>.from(selectedAddOns);
                     if (nextSelected) {
                       next.add(addon.type);
                     } else {
                       next.remove(addon.type);
                     }
-                    apply(rebuild(addOns: next));
+                    apply(await rebuild(addOns: next));
                   },
                   contentPadding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
                   title: Row(
@@ -4704,14 +4809,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                             priceLabel: addOnLoads[addon.type.name] == null
                                 ? null
                                 : '+ \$${addOnLoads[addon.type.name]!.toStringAsFixed(2)}/mo',
-                            onChanged: (nextSelected) {
+                            onChanged: (nextSelected) async {
                               final next = Set<AddOnType>.from(selectedAddOns);
                               if (nextSelected) {
                                 next.add(addon.type);
                               } else {
                                 next.remove(addon.type);
                               }
-                              _updateSelectedPlan(rebuild(addOns: next));
+                              _updateSelectedPlan(await rebuild(addOns: next));
                             },
                           ),
                         const SizedBox(height: 8),
@@ -4914,12 +5019,39 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       currentAnnualLimit = coerced;
     }
 
-    Plan rebuild({
+    Future<Plan> rebuild({
       int? reimbursementPercent,
       int? annualDeductible,
       int? annualLimit,
+      bool annualLimitProvided = false,
       Set<AddOnType>? addOns,
-    }) {
+    }) async {
+      final nextReimb = reimbursementPercent ?? currentReimbursement;
+      final nextDed = annualDeductible ?? currentDeductible;
+      final nextLimit = annualLimitProvided ? annualLimit : currentAnnualLimit;
+      final nextAddOns = (addOns ?? selectedAddOns).toList();
+
+      try {
+        final owner = _routeArguments?['owner'] as Owner?;
+        if (owner != null) {
+          final svc = PricingQuoteService();
+          final priced = await svc.priceSku(
+            riskBand: workingPlan.riskBand.name,
+            zipCode: owner.address.zipCode,
+            state: owner.address.state,
+            numberOfPets: workingPlan.numberOfPets,
+            tier: workingPlan.type.name,
+            reimbursementPercent: nextReimb,
+            annualDeductible: nextDed,
+            annualLimit: nextLimit,
+            addOns: nextAddOns.map((e) => e.name).toList(growable: false),
+          );
+          if (priced != null) return priced;
+        }
+      } catch (_) {
+        // Ignore.
+      }
+
       final engine = QuoteEngine();
       return engine.buildPlan(
         tier: workingPlan.type,
@@ -4927,15 +5059,13 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         riskBand: workingPlan.riskBand,
         numberOfPets: workingPlan.numberOfPets,
         discount: workingPlan.multiPetDiscount,
-        regionalMultiplier: workingPlan.pricingBreakdown?.regionalMultiplier ??
-            1.0,
-        regionalKey:
-            workingPlan.pricingBreakdown?.regionalKey ?? 'DEFAULT',
+        regionalMultiplier: workingPlan.pricingBreakdown?.regionalMultiplier ?? 1.0,
+        regionalKey: workingPlan.pricingBreakdown?.regionalKey ?? 'DEFAULT',
         ageYears: ageYears,
-        reimbursementPercent: reimbursementPercent ?? currentReimbursement,
-        annualDeductible: annualDeductible ?? currentDeductible,
-        annualLimit: annualLimit ?? currentAnnualLimit,
-        addOns: (addOns ?? selectedAddOns).toList(),
+        reimbursementPercent: nextReimb,
+        annualDeductible: nextDed,
+        annualLimit: nextLimit,
+        addOns: nextAddOns,
       );
     }
 
@@ -5047,9 +5177,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           options: allowedReimbursements,
           selected: currentReimbursement,
           labelFor: (v) => '$v%',
-          onSelected: (v) {
+          onSelected: (v) async {
             currentReimbursement = v;
-            apply(rebuild(reimbursementPercent: v));
+            apply(await rebuild(reimbursementPercent: v));
           },
         ),
         const SizedBox(height: 12),
@@ -5059,9 +5189,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           options: allowedDeductibles,
           selected: currentDeductible,
           labelFor: (v) => '\$$v',
-          onSelected: (v) {
+          onSelected: (v) async {
             currentDeductible = v;
-            apply(rebuild(annualDeductible: v));
+            apply(await rebuild(annualDeductible: v));
           },
         ),
         const SizedBox(height: 12),
@@ -5072,9 +5202,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           selected: currentAnnualLimit,
           labelFor: (v) =>
               v == null ? 'Unlimited' : '\$${(v / 1000).toStringAsFixed(0)}k',
-          onSelected: (v) {
+          onSelected: (v) async {
             currentAnnualLimit = v;
-            apply(rebuild(annualLimit: v));
+            apply(await rebuild(annualLimit: v, annualLimitProvided: true));
           },
         ),
         if (visibleAddOns.isNotEmpty) ...[
@@ -5109,14 +5239,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               ),
               child: SwitchListTile.adaptive(
                 value: selected,
-                onChanged: (nextSelected) {
+                onChanged: (nextSelected) async {
                   final next = Set<AddOnType>.from(selectedAddOns);
                   if (nextSelected) {
                     next.add(addon.type);
                   } else {
                     next.remove(addon.type);
                   }
-                  apply(rebuild(addOns: next));
+                  apply(await rebuild(addOns: next));
                 },
                 contentPadding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
                 title: Row(
