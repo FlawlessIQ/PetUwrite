@@ -8,8 +8,8 @@ Do not edit this document manually.
 ## Current Version
 
 - Version: 1
-- Effective date: 2026-01-19
-- Change notes: Initial canonicalization from prior defaults
+- Effective date: 2026-01-21
+- Change notes: Add market-aligned excluded/restricted breeds and excluded condition categories (additive)
 
 ## Enrollment Limits
 
@@ -22,9 +22,11 @@ Do not edit this document manually.
 
 ## Excluded Breeds (Auto-Decline)
 
+- American Bully
 - American Pit Bull Terrier
+- American Staffordshire Terrier
+- Cane Corso
 - Dogo Argentino
-- Pit Bull Terrier
 - Presa Canario
 - Staffordshire Bull Terrier
 - Wolf Dog

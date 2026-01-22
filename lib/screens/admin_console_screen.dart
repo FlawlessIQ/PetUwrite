@@ -7,6 +7,7 @@ import '../admin_console/pages/admin_overview_page.dart';
 import '../admin/admin_product_catalog_page.dart';
 import 'admin/claims_analytics_tab.dart';
 import 'admin/claims_review_tab.dart';
+import 'admin/benchmarking_tab.dart';
 import 'admin/policies_pipeline_tab.dart';
 import 'admin/underwriting_cases_tab.dart';
 import 'admin_rules_editor_page.dart';
@@ -31,14 +32,10 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
     return AdminScaffold(
       selected: _selected,
       onSelect: (item) => setState(() => _selected = item),
-      title: _titleFor(_selected),
+      title: 'Clovara',
       subtitle: _subtitleFor(_selected),
       body: _buildBody(),
     );
-  }
-
-  String _titleFor(AdminNavItem item) {
-    return kAdminNavItems.firstWhere((s) => s.item == item).label;
   }
 
   String _subtitleFor(AdminNavItem item) {
@@ -53,6 +50,8 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
         return 'Claims review & decisioning';
       case AdminNavItem.claimsAnalytics:
         return 'Trends, cohorts, and actionable insights';
+      case AdminNavItem.benchmarking:
+        return 'Benchmark Clovara vs market reference bands';
       case AdminNavItem.policies:
         return 'Policy lifecycle pipeline';
       case AdminNavItem.rulesAndPricing:
@@ -87,6 +86,9 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
         return ClaimsAnalyticsTab(
           onOpenInbox: () => setState(() => _selected = AdminNavItem.claimsInbox),
         );
+
+      case AdminNavItem.benchmarking:
+        return const BenchmarkingTab();
 
       case AdminNavItem.policies:
         return const PoliciesPipelineTab();

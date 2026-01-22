@@ -26,6 +26,16 @@ class AdminScaffold extends StatelessWidget {
 
   bool _isCompact(double width) => width < 980;
 
+  LinearGradient _navGradient() {
+    final top = Color.lerp(ClovaraColors.forest, Colors.white, 0.10)!;
+    final bottom = Color.lerp(ClovaraColors.forest, Colors.black, 0.04)!;
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [top, bottom],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -34,7 +44,11 @@ class AdminScaffold extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            backgroundColor: ClovaraColors.forest,
+            backgroundColor: Colors.transparent,
+            flexibleSpace: DecoratedBox(
+              decoration: BoxDecoration(gradient: _navGradient()),
+              child: const SizedBox.expand(),
+            ),
             foregroundColor: Colors.white,
             elevation: 0,
             titleSpacing: 12,
@@ -50,14 +64,18 @@ class AdminScaffold extends StatelessWidget {
                       );
                     },
                   ),
-                const _ClovaraHeaderBrandLockup(),
-                const SizedBox(width: 14),
-                Container(
-                  width: 1,
-                  height: 24,
-                  color: Colors.white.withOpacity(0.22),
+                Padding(
+                  padding: EdgeInsets.only(left: compact ? 0 : 6, right: 12),
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: SvgPicture.asset(
+                      'assets/images/clovara_mark_refined.svg',
+                      fit: BoxFit.contain,
+                      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 14),
                 Expanded(
                   child: _TopBarTitle(title: title, subtitle: subtitle, inverse: true),
                 ),
@@ -268,37 +286,6 @@ class _GlobalSearchField extends StatelessWidget {
   }
 }
 
-
-class _ClovaraHeaderBrandLockup extends StatelessWidget {
-  const _ClovaraHeaderBrandLockup();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 22,
-          height: 22,
-          child: SvgPicture.asset(
-            'assets/images/clovara_mark_refined.svg',
-            fit: BoxFit.contain,
-            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          'Clovara Console',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: -0.2,
-              ),
-        ),
-      ],
-    );
-  }
-}
 class _AdminRail extends StatelessWidget {
   final AdminNavItem selected;
   final ValueChanged<AdminNavItem> onSelect;
@@ -313,45 +300,21 @@ class _AdminRail extends StatelessWidget {
     return Container(
       width: 280,
       decoration: BoxDecoration(
-        color: ClovaraColors.forest,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(ClovaraColors.forest, Colors.white, 0.10)!,
+            Color.lerp(ClovaraColors.forest, Colors.black, 0.04)!,
+          ],
+        ),
         border: Border(
           right: BorderSide(color: Colors.black.withOpacity(0.16)),
         ),
       ),
       child: Column(
         children: [
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                const _ClovaraRailBrandMark(),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Operations',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                            ),
-                      ),
-                      Text(
-                        'Claims, policies, marketing',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.white.withOpacity(0.72),
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Divider(height: 1, color: Colors.white.withOpacity(0.14)),
+          const SizedBox(height: 12),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(8),
@@ -371,29 +334,6 @@ class _AdminRail extends StatelessWidget {
   }
 }
 
-class _ClovaraRailBrandMark extends StatelessWidget {
-  const _ClovaraRailBrandMark();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.14)),
-      ),
-      padding: const EdgeInsets.all(7),
-      child: SvgPicture.asset(
-        'assets/images/clovara_mark_refined.svg',
-        fit: BoxFit.contain,
-        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-      ),
-    );
-  }
-}
-
 class _AdminDrawer extends StatelessWidget {
   final AdminNavItem selected;
   final ValueChanged<AdminNavItem> onSelect;
@@ -406,7 +346,7 @@ class _AdminDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themed = Theme.of(context).copyWith(
-      canvasColor: ClovaraColors.forest,
+      canvasColor: Colors.transparent,
       dividerColor: Colors.white.withOpacity(0.14),
       listTileTheme: const ListTileThemeData(iconColor: Colors.white, textColor: Colors.white),
     );
@@ -414,72 +354,63 @@ class _AdminDrawer extends StatelessWidget {
     return Theme(
       data: themed,
       child: Drawer(
+        backgroundColor: Colors.transparent,
         child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                child: Row(
-                  children: [
-                    const _ClovaraRailBrandMark(),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                                'Operations',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                                'Claims, policies, marketing',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.white.withOpacity(0.72),
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Close',
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.lerp(ClovaraColors.forest, Colors.white, 0.10)!,
+                  Color.lerp(ClovaraColors.forest, Colors.black, 0.04)!,
+                ],
               ),
-              Divider(height: 1, color: Colors.white.withOpacity(0.14)),
-              Expanded(
-                child: ListView(
-                  children: [
-                    for (final spec in kAdminNavItems)
-                      ListTile(
-                        leading: Icon(
-                          spec.icon,
-                          color: Colors.white.withOpacity(spec.item == selected ? 1.0 : 0.78),
-                        ),
-                        title: Text(
-                          spec.label,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(spec.item == selected ? 1.0 : 0.82),
-                            fontWeight: spec.item == selected ? FontWeight.w900 : FontWeight.w600,
-                          ),
-                        ),
-                        selected: spec.item == selected,
-                        selectedTileColor: Colors.white.withOpacity(0.12),
-                        onTap: () {
-                          Navigator.pop(context);
-                          onSelect(spec.item);
-                        },
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+                  child: Row(
+                    children: [
+                      const Spacer(),
+                      IconButton(
+                        tooltip: 'Close',
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                Divider(height: 1, color: Colors.white.withOpacity(0.14)),
+                Expanded(
+                  child: ListView(
+                    children: [
+                      for (final spec in kAdminNavItems)
+                        ListTile(
+                          leading: Icon(
+                            spec.icon,
+                            color: Colors.white.withOpacity(spec.item == selected ? 1.0 : 0.78),
+                          ),
+                          title: Text(
+                            spec.label,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(spec.item == selected ? 1.0 : 0.82),
+                              fontWeight: spec.item == selected ? FontWeight.w900 : FontWeight.w600,
+                            ),
+                          ),
+                          selected: spec.item == selected,
+                          selectedTileColor: Colors.white.withOpacity(0.12),
+                          onTap: () {
+                            Navigator.pop(context);
+                            onSelect(spec.item);
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

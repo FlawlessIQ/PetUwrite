@@ -31,6 +31,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_web_plugins:
+    sdk: flutter
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
@@ -67,6 +70,12 @@ dependencies:
   # Charts and data visualization
   fl_chart: ^0.68.0
   
+  # Google Fonts (replaces local font files)
+  google_fonts: ^6.1.0
+  
+  # Lottie animations
+  lottie: ^3.1.0
+  
   # Environment variables
   # UUID generation for idempotency
   uuid: ^4.2.1
@@ -84,6 +93,10 @@ dependencies:
   flutter_native_splash: ^2.3.10
   flutter_launcher_icons: ^0.13.1
   flutter_svg: ^2.2.2
+
+  # Routing (marketing site + app)
+  go_router: ^14.6.2
+  url_strategy: ^0.3.0
 
 dev_dependencies:
   flutter_test:
@@ -117,6 +130,7 @@ flutter:
     - assets/
     - assets/images/
     - assets/clovara_ui_kit_svg/
+    - assets/animations/
     - assets/images/clovara_mark_refined.svg
     - assets/images/clovara_appicon_1024.png
 
@@ -130,24 +144,25 @@ flutter:
   # in this "flutter" section. Each entry in this list should have a
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font.
-  fonts:
-    - family: Poppins
-      fonts:
-        - asset: assets/fonts/Poppins/Poppins-Regular.ttf
-        - asset: assets/fonts/Poppins/Poppins-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Poppins/Poppins-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Poppins/Poppins-Bold.ttf
-          weight: 700
-    
-    - family: Inter
-      fonts:
-        - asset: assets/fonts/Inter/Inter-Regular.ttf
-        - asset: assets/fonts/Inter/Inter-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Inter/Inter-SemiBold.ttf
-          weight: 600
+  # NOTE: Fonts now loaded via google_fonts package - see lib/ui/tokens.dart
+  # fonts:
+  #   - family: Poppins
+  #     fonts:
+  #       - asset: fonts/Poppins/Poppins-Regular.ttf
+  #       - asset: fonts/Poppins/Poppins-Medium.ttf
+  #         weight: 500
+  #       - asset: fonts/Poppins/Poppins-SemiBold.ttf
+  #         weight: 600
+  #       - asset: fonts/Poppins/Poppins-Bold.ttf
+  #         weight: 700
+  #   
+  #   - family: Inter
+  #     fonts:
+  #       - asset: fonts/Inter/Inter-Regular.ttf
+  #       - asset: fonts/Inter/Inter-Medium.ttf
+  #         weight: 500
+  #       - asset: fonts/Inter/Inter-SemiBold.ttf
+  #         weight: 600
   
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

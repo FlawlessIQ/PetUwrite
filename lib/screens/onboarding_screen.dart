@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 /// Onboarding screen for new users
 class OnboardingScreen extends StatefulWidget {
@@ -142,14 +143,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           TextButton(
             onPressed: () {
               // Skip to login/signup
-              Navigator.pushReplacementNamed(context, '/login');
+              context.go('/sign-in');
             },
             child: const Text('Skip'),
           ),
           ElevatedButton(
             onPressed: () {
               if (isLastPage) {
-                Navigator.pushReplacementNamed(context, '/login');
+                context.go('/sign-in');
               } else {
                 _pageController.nextPage(
                   duration: const Duration(milliseconds: 300),

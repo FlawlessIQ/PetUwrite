@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/login_screen.dart';
 import '../auth/customer_home_screen.dart';
@@ -2658,16 +2659,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   }
 
   void _continueToCheckout() {
-    Navigator.pushNamed(
-      context,
+    context.push(
       '/checkout',
-      arguments: {
+      extra: {
         'pet': _routeArguments?['petData'] ?? _routeArguments?['pet'] ?? {},
         'selectedPlan': _plans[_selectedPlanIndex],
         'riskScore': _routeArguments?['riskScore'],
         'underwritingCaseId': _routeArguments?['underwritingCaseId'],
-        'exclusions': _routeArguments?['exclusions'] ??
-            _routeArguments?['excludedConditions'],
+        'exclusions':
+            _routeArguments?['exclusions'] ?? _routeArguments?['excludedConditions'],
         'underwritingSnapshot': _routeArguments?['underwritingSnapshot'],
       },
     );
@@ -5911,18 +5911,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-            Navigator.pushNamed(
-              context,
+            context.push(
               '/checkout',
-              arguments: {
-                'pet': _routeArguments?['petData'] ??
-                    _routeArguments?['pet'] ??
-                    {},
+              extra: {
+                'pet': _routeArguments?['petData'] ?? _routeArguments?['pet'] ?? {},
                 'selectedPlan': _plans[_selectedPlanIndex],
                 'riskScore': _routeArguments?['riskScore'],
                 'underwritingCaseId': _routeArguments?['underwritingCaseId'],
-                'exclusions': _routeArguments?['exclusions'] ??
-                    _routeArguments?['excludedConditions'],
+                'exclusions':
+                    _routeArguments?['exclusions'] ?? _routeArguments?['excludedConditions'],
                 'underwritingSnapshot': _routeArguments?['underwritingSnapshot'],
               },
             );

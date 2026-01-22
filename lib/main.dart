@@ -3,14 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'theme/clovara_theme.dart';
-import 'auth/auth_gate.dart';
-import 'screens/homepage.dart';
-import 'screens/onboarding_screen.dart';
-import 'screens/quote_flow_screen.dart';
-import 'screens/conversational_quote_flow.dart';
-import 'screens/plan_selection_screen.dart';
-import 'screens/auth_required_checkout.dart';
-import 'screens/policy_confirmation_screen.dart';
 import 'providers/quote_provider.dart';
 import 'providers/pet_provider.dart';
 import 'providers/policy_provider.dart';
@@ -22,16 +14,41 @@ import 'services/marketing_attribution_service.dart';
 import 'package:flutter/foundation.dart'
   show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'config/emulator_config.dart';
+import 'router/app_router.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Web: use path URLs (no #) for SPA routes.
+  if (kIsWeb) {
+    usePathUrlStrategy();
+  }
+
+  // Initialize Firebase (best-effort).
+  // Some environments block Google's CDN (gstatic), which can prevent Firebase
+  // web plugins from loading and cause a blank screen.
+  // You can force-disable Firebase for local marketing/dev with:
+  //   flutter run -d chrome --dart-define=DISABLE_FIREBASE=true
+  final disableFirebase = const bool.fromEnvironment('DISABLE_FIREBASE', defaultValue: false);
+  var firebaseReady = false;
+  if (!disableFirebase) {
+    try {
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+      firebaseReady = true;
+    } catch (e) {
+      // Keep the app running (marketing pages, etc.). Firebase-dependent flows
+      // will not work until network access is restored.
+      debugPrint('⚠️ Firebase init failed (continuing without Firebase): $e');
+      firebaseReady = false;
+    }
+  }
 
   // Optional: connect to local Firebase emulators when enabled.
   // Enable with: --dart-define=USE_FIREBASE_EMULATORS=true
-  await EmulatorConfig.configureFirebaseEmulators();
+  if (firebaseReady) {
+    await EmulatorConfig.configureFirebaseEmulators();
+  }
 
   // Initialize Stripe only where `flutter_stripe` is supported.
   // macOS builds don't have a Stripe plugin implementation.
@@ -43,7 +60,9 @@ void main() async {
   }
 
   // Setup auth state listener to handle pending quote migration on sign-in
-  UserSessionService().setupAuthStateListener();
+  if (firebaseReady) {
+    UserSessionService().setupAuthStateListener();
+  }
 
   // Best-effort: start attribution session early (captures web UTMs/referrer).
   // Do not block app startup on this network call.
@@ -58,6 +77,7 @@ class PetUnderwriterAI extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firebaseService = FirebaseService();
+    final router = createAppRouter();
 
     return MultiProvider(
       providers: [
@@ -70,46 +90,14 @@ class PetUnderwriterAI extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => CheckoutProvider()),
       ],
-      child: MaterialApp(
+      child: MaterialApp.router(
         title: 'Clovara',
         debugShowCheckedModeBanner: false,
         theme: ClovaraTheme.light,
         darkTheme: ClovaraTheme.dark,
         themeMode: ThemeMode.light,
-        // Start with AuthGate - routes to homepage (unauthenticated) or dashboard (authenticated)
-        home: const AuthGate(),
-        routes: {
-          '/home': (context) => const Homepage(),
-          '/onboarding': (context) => const OnboardingScreen(),
-          '/quote': (context) => const QuoteFlowScreen(),
-          '/conversational-quote': (context) => const ConversationalQuoteFlow(),
-          '/plan-selection': (context) => const PlanSelectionScreen(),
-          '/confirmation': (context) => const PolicyConfirmationScreen(),
-          '/auth-gate': (context) => const AuthGate(),
-        },
-        onGenerateRoute: (settings) {
-          // Handle checkout route with authentication check
-          if (settings.name == '/checkout') {
-            final args = settings.arguments as Map<String, dynamic>?;
-            if (args != null &&
-                args.containsKey('pet') &&
-                args.containsKey('selectedPlan')) {
-              return MaterialPageRoute(
-                builder: (context) => AuthRequiredCheckout(
-                  pet: args['pet'],
-                  selectedPlan: args['selectedPlan'],
-                  underwritingCaseId: args['underwritingCaseId']?.toString(),
-                  exclusions: args['exclusions'] is List
-                      ? (args['exclusions'] as List)
-                      : null,
-                  underwritingSnapshot: (args['underwritingSnapshot'] as Map?)
-                      ?.cast<String, dynamic>(),
-                ),
-              );
-            }
-          }
-          return null;
-        },
+        // go_router integration
+        routerConfig: router,
       ),
     );
   }

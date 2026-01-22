@@ -659,3 +659,8 @@ const drafts = require("./drafts");
 exports.upsertDraft = drafts.upsertDraft;
 exports.resolveDraft = drafts.resolveDraft;
 exports.clearDraft = drafts.clearDraft;
+
+// Export benchmarking (admin-only)
+const benchmarking = require("./benchmarking");
+exports.refreshBenchmarkReference = benchmarking.refreshBenchmarkReference;
+exports.computePortfolioMetricsSnapshot = benchmarking.computePortfolioMetricsSnapshot;

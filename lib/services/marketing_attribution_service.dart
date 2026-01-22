@@ -13,7 +13,19 @@ class MarketingAttributionService {
   static const _sessionIdKey = 'marketing_attribution_session_id';
   static const _channelIdKey = 'marketing_attribution_channel_id';
 
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  bool get _firebaseDisabled =>
+      const bool.fromEnvironment('DISABLE_FIREBASE', defaultValue: false);
+
+  FirebaseFunctions? _tryGetFunctions() {
+    try {
+      return FirebaseFunctions.instance;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[MarketingAttribution] FirebaseFunctions unavailable: $e');
+      }
+      return null;
+    }
+  }
 
   String? _sessionId;
   String? _channelId;
@@ -22,6 +34,7 @@ class MarketingAttributionService {
   String? get channelId => _channelId;
 
   Future<void> ensureSessionStarted() async {
+    if (_firebaseDisabled) return;
     if (_sessionId != null) return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -52,7 +65,9 @@ class MarketingAttributionService {
     };
 
     try {
-      final callable = _functions.httpsCallable('startAttributionSession');
+      final functions = _tryGetFunctions();
+      if (functions == null) return;
+      final callable = functions.httpsCallable('startAttributionSession');
       final resp = await callable.call(payload);
       final data = (resp.data is Map)
           ? (resp.data as Map).cast<String, dynamic>()
@@ -95,10 +110,13 @@ class MarketingAttributionService {
     double? spend,
     Map<String, dynamic>? metadata,
   }) async {
+    if (_firebaseDisabled) return;
     await ensureSessionStarted();
 
     try {
-      final callable = _functions.httpsCallable('trackMarketingEvent');
+      final functions = _tryGetFunctions();
+      if (functions == null) return;
+      final callable = functions.httpsCallable('trackMarketingEvent');
       await callable.call({
         'type': type,
         'sessionId': _sessionId,

@@ -292,7 +292,7 @@ For insurance policy questions, contact:
 **Underwriting rules (auto-generated)**
 
 - Version: 1
-- Effective date: 2026-01-19
+- Effective date: 2026-01-21
 - Pet age eligibility: typically 2 months to 14 years at enrollment
 - Certain high-risk breeds may be excluded (see docs/UNDERWRITING_RULES.md)
 

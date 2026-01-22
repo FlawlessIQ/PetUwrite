@@ -5,9 +5,9 @@
 
 version: 1
 # YYYY-MM-DD
-effectiveDate: "2026-01-19"
+effectiveDate: "2026-01-21"
 updatedBy: ""
-changeNotes: "Initial canonicalization from prior defaults"
+changeNotes: "Add market-aligned excluded/restricted breeds and excluded condition categories (additive)"
 
 enabled: true
 
@@ -25,12 +25,88 @@ risk:
 # Matching in the app is substring/case-insensitive.
 excludedBreeds:
   - "American Pit Bull Terrier"
+  - "American Staffordshire Terrier"
+  - "American Bully"
   - "Dogo Argentino"
-  - "Pit Bull Terrier"
   - "Presa Canario"
+  - "Cane Corso"
   - "Staffordshire Bull Terrier"
   - "Wolf Dog"
   - "Wolf Hybrid"
+
+# Additional governed breed lists (additive; may not be enforced by all consumers yet)
+excluded_dog_breeds:
+  - "American Pit Bull Terrier"
+  - "American Staffordshire Terrier"
+  - "Staffordshire Bull Terrier"
+  - "American Bully"
+  - "Dogo Argentino"
+  - "Presa Canario"
+  - "Cane Corso"
+  - "Fila Brasileiro"
+  - "Tosa Inu"
+  - "Akita"
+  - "Wolfdog"
+  - "Wolf Hybrid"
+
+restricted_dog_breeds:
+  - "Rottweiler"
+  - "Doberman Pinscher"
+  - "German Shepherd"
+  - "Belgian Malinois"
+  - "Chow Chow"
+  - "Alaskan Malamute"
+  - "Siberian Husky"
+
+excluded_cat_breeds:
+  - "Savannah"
+  - "Bengal"
+  - "Chausie"
+  - "Caracal"
+  - "Serval"
+  - "Wolf Cat"
+
+excluded_conditions:
+  - "pre_existing_conditions"
+  - "congenital_conditions_diagnosed_before_enrollment"
+  - "hereditary_conditions_diagnosed_before_enrollment"
+  - "cosmetic_procedures"
+  - "elective_procedures"
+  - "breeding_related_costs"
+  - "pregnancy_and_whelping"
+  - "fertility_treatment"
+  - "grooming"
+  - "nail_trimming"
+  - "declawing"
+  - "tail_docking"
+  - "ear_cropping"
+  - "behavioral_training"
+  - "obedience_training"
+
+excluded_high_cost_conditions:
+  - "cancer_pre_existing"
+  - "chronic_kidney_disease_pre_existing"
+  - "chronic_liver_disease_pre_existing"
+  - "diabetes_pre_existing"
+  - "hip_dysplasia_pre_existing"
+  - "elbow_dysplasia_pre_existing"
+  - "cruciate_ligament_disease_pre_existing"
+  - "patellar_luxation_pre_existing"
+  - "intervertebral_disc_disease_pre_existing"
+
+excluded_neurological_conditions:
+  - "epilepsy_pre_existing"
+  - "seizure_disorders_pre_existing"
+  - "degenerative_myelopathy"
+  - "cerebellar_ataxia"
+  - "hydrocephalus"
+
+excluded_dental_conditions:
+  - "periodontal_disease"
+  - "gingivitis"
+  - "dental_decay"
+  - "retained_baby_teeth"
+  - "orthodontics"
 
 # Pre-existing conditions that trigger a full decline.
 criticalConditions:

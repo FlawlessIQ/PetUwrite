@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import '../theme/clovara_theme.dart';
 import '../auth/login_screen.dart';
 import '../auth/customer_home_screen.dart';
@@ -305,7 +306,7 @@ class Homepage extends StatelessWidget {
 
       if (resolved.draftType == 'quote') {
         if (context.mounted) {
-          Navigator.pushNamed(context, '/conversational-quote');
+          context.push('/conversational-quote');
         }
         return;
       }
@@ -315,15 +316,16 @@ class Homepage extends StatelessWidget {
         final selectedPlan = resolved.snapshot['selectedPlan'];
         if (pet != null && selectedPlan != null) {
           if (context.mounted) {
-            Navigator.pushNamed(
-              context,
+            context.push(
               '/checkout',
-              arguments: {
+              extra: {
                 'pet': pet,
                 'selectedPlan': selectedPlan,
-                'underwritingCaseId': resolved.snapshot['underwritingCaseId']?.toString(),
+                'underwritingCaseId':
+                    resolved.snapshot['underwritingCaseId']?.toString(),
                 'exclusions': resolved.snapshot['exclusions'],
-                'underwritingSnapshot': resolved.snapshot['underwritingSnapshot'],
+                'underwritingSnapshot':
+                    resolved.snapshot['underwritingSnapshot'],
               },
             );
           }
@@ -538,7 +540,7 @@ class Homepage extends StatelessWidget {
                   subtitle: 'AI-powered quotes in minutes',
                   color: Colors.white,
                   isMobile: isMobile,
-                  onTap: () => Navigator.pushNamed(context, '/conversational-quote'),
+                  onTap: () => context.push('/conversational-quote'),
                 ),
                 const SizedBox(height: 12),
                 _buildActionCard(
@@ -597,7 +599,7 @@ class Homepage extends StatelessWidget {
                     subtitle: 'AI-powered quotes in minutes',
                     color: Colors.white,
                     isMobile: false,
-                    onTap: () => Navigator.pushNamed(context, '/conversational-quote'),
+                    onTap: () => context.push('/conversational-quote'),
                   ),
                 ),
                 const SizedBox(width: 16),

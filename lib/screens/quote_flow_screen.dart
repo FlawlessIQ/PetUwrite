@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/login_screen.dart';
 import '../auth/customer_home_screen.dart';
@@ -9,6 +10,7 @@ import '../models/pet.dart';
 import '../services/risk_scoring_engine.dart';
 import '../services/marketing_attribution_service.dart';
 import 'medical_underwriting_screen.dart';
+import 'plan_selection_screen.dart';
 
 /// Quote flow screen for getting insurance quotes
 class QuoteFlowScreen extends StatefulWidget {
@@ -240,7 +242,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
               const SizedBox(width: 12),
               TextButton(
                 onPressed: () =>
-                    Navigator.pushNamed(context, '/conversational-quote'),
+                    context.push('/conversational-quote'),
                 child: const Text('Chat instead'),
               ),
             ],
@@ -876,24 +878,32 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
 
       // Eligible, non-complex: show plan selection with dynamic plans.
       if (!mounted) return;
-      Navigator.pushNamed(
+      Navigator.push(
         context,
-        '/plan-selection',
-        arguments: {
-          ..._formData,
-          'petData': _formData,
-          'pet': pet,
-          'owner': owner,
-          'riskScore': result.riskScore,
-        },
+        MaterialPageRoute(
+          builder: (context) => const PlanSelectionScreen(),
+          settings: RouteSettings(
+            arguments: {
+              ..._formData,
+              'petData': _formData,
+              'pet': pet,
+              'owner': owner,
+              'riskScore': result.riskScore,
+            },
+          ),
+        ),
       );
     } catch (e) {
       // Fall back to plans even if AI/risk fails.
       if (!mounted) return;
-      Navigator.pushNamed(
+      Navigator.push(
         context,
-        '/plan-selection',
-        arguments: {..._formData, 'petData': _formData, 'riskScore': null},
+        MaterialPageRoute(
+          builder: (context) => const PlanSelectionScreen(),
+          settings: RouteSettings(
+            arguments: {..._formData, 'petData': _formData, 'riskScore': null},
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -1017,7 +1027,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/conversational-quote');
+              context.push('/conversational-quote');
             },
             child: const Text('Chat with Clover'),
           ),

@@ -7,8 +7,8 @@ import '../models/policy.dart';
 
 /// Service class for Firebase operations
 class FirebaseService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
   
   // Collections
   static const String _petsCollection = 'pets';

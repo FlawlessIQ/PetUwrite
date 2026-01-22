@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DraftResolveResult {
@@ -29,19 +30,49 @@ class DraftResolveResult {
 class DraftService {
   static const String _resumeKeyPrefsKey = 'draft_resume_key';
 
-  final FirebaseAuth _auth;
-  final FirebaseFunctions _functions;
+  final FirebaseAuth? _authOverride;
+  final FirebaseFunctions? _functionsOverride;
 
   DraftService({
     FirebaseAuth? auth,
     FirebaseFunctions? functions,
-  })  : _auth = auth ?? FirebaseAuth.instance,
-        _functions = functions ?? FirebaseFunctions.instance;
+  })  : _authOverride = auth,
+        _functionsOverride = functions;
+
+  bool get _firebaseDisabled =>
+      const bool.fromEnvironment('DISABLE_FIREBASE', defaultValue: false);
+
+  FirebaseAuth? _tryGetAuth() {
+    if (_authOverride != null) return _authOverride;
+    if (_firebaseDisabled) return null;
+    try {
+      return FirebaseAuth.instance;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[DraftService] FirebaseAuth unavailable: $e');
+      return null;
+    }
+  }
+
+  FirebaseFunctions? _tryGetFunctions() {
+    if (_functionsOverride != null) return _functionsOverride;
+    if (_firebaseDisabled) return null;
+    try {
+      return FirebaseFunctions.instance;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[DraftService] FirebaseFunctions unavailable: $e');
+      return null;
+    }
+  }
 
   Future<void> ensureAnonymousSession() async {
-    final existing = _auth.currentUser;
+    final auth = _tryGetAuth();
+    if (auth == null) {
+      throw Exception('Resume is unavailable (Firebase disabled/unavailable)');
+    }
+
+    final existing = auth.currentUser;
     if (existing != null) return;
-    await _auth.signInAnonymously();
+    await auth.signInAnonymously();
   }
 
   Future<String?> getLocalResumeKey() async {
@@ -86,7 +117,11 @@ class DraftService {
     await ensureAnonymousSession();
     final resumeKey = await getOrCreateLocalResumeKey();
 
-    final callable = _functions.httpsCallable('upsertDraft');
+    final functions = _tryGetFunctions();
+    if (functions == null) {
+      throw Exception('Draft save unavailable (Firebase disabled/unavailable)');
+    }
+    final callable = functions.httpsCallable('upsertDraft');
     await callable.call({
       'resumeKey': resumeKey,
       'draftType': 'quote',
@@ -115,7 +150,11 @@ class DraftService {
       if (requiredEvidence.isNotEmpty) 'requiredEvidence': requiredEvidence,
     };
 
-    final callable = _functions.httpsCallable('upsertDraft');
+    final functions = _tryGetFunctions();
+    if (functions == null) {
+      throw Exception('Draft save unavailable (Firebase disabled/unavailable)');
+    }
+    final callable = functions.httpsCallable('upsertDraft');
     await callable.call({
       'resumeKey': resumeKey,
       'draftType': 'underwriting',
@@ -136,7 +175,11 @@ class DraftService {
     await ensureAnonymousSession();
     final resumeKey = await getOrCreateLocalResumeKey();
 
-    final callable = _functions.httpsCallable('upsertDraft');
+    final functions = _tryGetFunctions();
+    if (functions == null) {
+      throw Exception('Draft save unavailable (Firebase disabled/unavailable)');
+    }
+    final callable = functions.httpsCallable('upsertDraft');
     await callable.call({
       'resumeKey': resumeKey,
       'draftType': 'checkout',
@@ -153,7 +196,13 @@ class DraftService {
   Future<DraftResolveResult> resolveAndAdoptDraft({
     required String resumeKey,
   }) async {
-    final callable = _functions.httpsCallable('resolveDraft');
+    final functions = _tryGetFunctions();
+    final auth = _tryGetAuth();
+    if (functions == null || auth == null) {
+      throw Exception('Resume is unavailable (Firebase disabled/unavailable)');
+    }
+
+    final callable = functions.httpsCallable('resolveDraft');
     final result = await callable.call({'resumeKey': resumeKey.trim()});
 
     final data = (result.data is Map)
@@ -177,13 +226,13 @@ class DraftService {
         : <String, dynamic>{};
 
     // Adopt the owning uid if needed.
-    final current = _auth.currentUser;
+    final current = auth.currentUser;
     final needsAdopt = current == null || current.uid != ownerUid;
     if (needsAdopt) {
       if (customToken.isEmpty) {
         throw Exception('Missing custom token');
       }
-      await _auth.signInWithCustomToken(customToken);
+      await auth.signInWithCustomToken(customToken);
     }
 
     // Persist resumeKey locally so "Continue" works on this device.
@@ -202,7 +251,9 @@ class DraftService {
     if (resumeKey == null) return;
 
     await ensureAnonymousSession();
-    final callable = _functions.httpsCallable('clearDraft');
+    final functions = _tryGetFunctions();
+    if (functions == null) return;
+    final callable = functions.httpsCallable('clearDraft');
     await callable.call({'resumeKey': resumeKey});
   }
 

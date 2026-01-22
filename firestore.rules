@@ -84,6 +84,30 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if false;
     }
+
+    // Benchmarking: curated market reference bands + computed portfolio snapshots.
+    // NOTE: These documents are written by Cloud Functions (admin SDK) only.
+    // Admin console reads them for dashboards.
+    match /benchmark_reference_versions/{versionId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /benchmark_reference_current/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /portfolio_metrics_snapshots/{snapshotId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Admin audit log is immutable; server-written only.
+    match /admin_audit_log/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
     
     // Users collection - users can only read/write their own data
     match /users/{userId} {

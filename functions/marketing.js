@@ -164,7 +164,7 @@ exports.onMarketingEventCreated = onDocumentCreated("marketing_events/{eventId}"
   }
 });
 
-exports.startAttributionSession = onCall(async (request) => {
+exports.startAttributionSession = onCall({ cors: true }, async (request) => {
   const data = request.data || {};
 
   const utmSource = coerceString(data.utmSource).trim();
@@ -227,7 +227,7 @@ exports.startAttributionSession = onCall(async (request) => {
   return {sessionId, channelId};
 });
 
-exports.trackMarketingEvent = onCall(async (request) => {
+exports.trackMarketingEvent = onCall({ cors: true }, async (request) => {
   const data = request.data || {};
   const type = coerceString(data.type).trim();
   if (!type) throw new HttpsError("invalid-argument", "Missing type");
@@ -258,7 +258,7 @@ exports.trackMarketingEvent = onCall(async (request) => {
   return {ok: true};
 });
 
-exports.createPromotionCode = onCall(async (request) => {
+exports.createPromotionCode = onCall({ cors: true }, async (request) => {
   if (!(await isAdminCaller(request))) {
     throw new HttpsError("permission-denied", "Admin privileges required");
   }
@@ -332,7 +332,7 @@ exports.createPromotionCode = onCall(async (request) => {
   return {code, stripePromotionCodeId: promo.id, stripeCouponId: coupon.id};
 });
 
-exports.setPromotionCodeActive = onCall(async (request) => {
+exports.setPromotionCodeActive = onCall({ cors: true }, async (request) => {
   if (!(await isAdminCaller(request))) {
     throw new HttpsError("permission-denied", "Admin privileges required");
   }
@@ -394,7 +394,7 @@ function passesRestrictions({restrictions, channelId, state, productId, isNewCus
   return true;
 }
 
-exports.validatePromotionCode = onCall(async (request) => {
+exports.validatePromotionCode = onCall({ cors: true }, async (request) => {
   const data = request.data || {};
   const code = coerceString(data.code).trim().toUpperCase();
   if (!code) throw new HttpsError("invalid-argument", "Missing code");
@@ -493,7 +493,7 @@ exports.validatePromotionCode = onCall(async (request) => {
   }
 });
 
-exports.recordSpend = onCall(async (request) => {
+exports.recordSpend = onCall({ cors: true }, async (request) => {
   if (!(await isAdminCaller(request))) {
     throw new HttpsError("permission-denied", "Admin privileges required");
   }
@@ -532,7 +532,7 @@ exports.recordSpend = onCall(async (request) => {
   return {ok: true};
 });
 
-exports.importChannelSpendCsv = onCall(async (request) => {
+exports.importChannelSpendCsv = onCall({ cors: true }, async (request) => {
   if (!(await isAdminCaller(request))) {
     throw new HttpsError("permission-denied", "Admin privileges required");
   }
