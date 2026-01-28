@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import '../theme/clovara_theme.dart';
+import 'package:go_router/go_router.dart';
+import '../ui/components/clovara_logo.dart';
+import '../ui/components/max_width.dart';
+import '../ui/tokens.dart';
 import '../screens/conversational_quote_flow.dart';
 import '../screens/claims/claim_intake_screen.dart';
 import '../screens/claims/claim_details_screen.dart';
@@ -31,51 +33,108 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
     final size = MediaQuery.of(context).size;
     final isMobile = size.width < 600;
+    final horizontalPadding = isMobile ? 18.0 : 28.0;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // Modern Header
+            // Hero (header + welcome + stats)
             SliverToBoxAdapter(
-              child: _buildHeader(context, user, isMobile),
-            ),
-            
-            // Welcome Message
-            SliverToBoxAdapter(
-              child: _buildWelcomeMessage(user, isMobile),
-            ),
-            
-            // Quick Stats
-            SliverToBoxAdapter(
-              child: _buildQuickStats(user, isMobile),
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: AppColors.auroraGradient,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    isMobile ? 16 : 22,
+                    horizontalPadding,
+                    18,
+                  ),
+                  child: MaxWidth(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(context, user, isMobile),
+                        const SizedBox(height: 12),
+                        _buildWelcomeMessage(user, isMobile),
+                        const SizedBox(height: 16),
+                        _buildQuickStats(user, isMobile),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
             
             // Pending Quotes Section
             SliverToBoxAdapter(
-              child: _buildPendingQuotesSection(context, user, isMobile),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: 18,
+                ),
+                child: MaxWidth(
+                  child: _buildPendingQuotesSection(context, user, isMobile),
+                ),
+              ),
             ),
 
             // Underwriting Follow-up (Documents Needed)
             SliverToBoxAdapter(
-              child: _buildPendingUnderwritingSection(context, user, isMobile),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: 6,
+                ),
+                child: MaxWidth(
+                  child: _buildPendingUnderwritingSection(
+                    context,
+                    user,
+                    isMobile,
+                  ),
+                ),
+              ),
             ),
             
             // Active Policies Section
             SliverToBoxAdapter(
-              child: _buildPoliciesSection(context, user, isMobile),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: 6,
+                ),
+                child: MaxWidth(
+                  child: _buildPoliciesSection(context, user, isMobile),
+                ),
+              ),
             ),
             
             // Recent Claims Section
             SliverToBoxAdapter(
-              child: _buildRecentClaimsSection(context, user, isMobile),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: 6,
+                ),
+                child: MaxWidth(
+                  child: _buildRecentClaimsSection(context, user, isMobile),
+                ),
+              ),
             ),
             
             // Quick Actions
             SliverToBoxAdapter(
-              child: _buildQuickActions(context, isMobile),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: 18,
+                ),
+                child: MaxWidth(child: _buildQuickActions(context, isMobile)),
+              ),
             ),
             
             // Bottom Padding
@@ -89,77 +148,63 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildHeader(BuildContext context, User? user, bool isMobile) {
-    return Padding(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      child: Row(
-        children: [
-          // Logo
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: ClovaraColors.mist,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: ClovaraColors.clover.withOpacity(0.3),
-                width: 2,
+    return Row(
+      children: [
+        ClovaraLogoLockup(
+          markSize: isMobile ? 34 : 38,
+          textSize: isMobile ? 22 : 24,
+        ),
+        const Spacer(),
+        Tooltip(
+          message: 'Sign out',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => _handleSignOut(context),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+                boxShadow: AppShadows.soft,
               ),
-            ),
-            child: SvgPicture.asset(
-              'assets/images/clovara_mark_refined.svg',
-              width: isMobile ? 40 : 48,
-              height: isMobile ? 40 : 48,
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Brand name
-          Expanded(
-            child: Text(
-              'Clovara',
-              style: ClovaraTypography.h1.copyWith(
-                color: ClovaraColors.forest,
-                fontSize: isMobile ? 28 : 36,
-                fontWeight: FontWeight.bold,
-                letterSpacing: -1,
+              child: const Icon(
+                Icons.logout,
+                color: AppColors.deepGreen,
+                size: 20,
               ),
             ),
           ),
-          // Sign Out Button
-          IconButton(
-            onPressed: () => _handleSignOut(context),
-            icon: const Icon(Icons.logout),
-            color: ClovaraColors.slate,
-            tooltip: 'Sign Out',
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildWelcomeMessage(User? user, bool isMobile) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 20 : 40,
-        vertical: 8,
+    final titleStyle = Theme.of(context).textTheme.headlineSmall?.copyWith(
+          color: AppColors.deepGreen,
+          fontWeight: FontWeight.w800,
+        );
+
+    final subtitleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppColors.textMuted,
+          height: 1.3,
+        );
+
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 16 : 18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.br24,
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppShadows.soft,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Welcome back! 👋',
-            style: ClovaraTypography.h2.copyWith(
-              color: ClovaraColors.forest,
-              fontSize: isMobile ? 24 : 32,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            user?.email ?? 'Customer',
-            style: ClovaraTypography.body.copyWith(
-              color: ClovaraColors.slate,
-              fontSize: isMobile ? 14 : 16,
-            ),
-          ),
+          Text('Welcome back! 👋', style: titleStyle),
+          const SizedBox(height: 6),
+          Text(user?.email ?? 'Customer', style: subtitleStyle),
         ],
       ),
     );
@@ -185,32 +230,42 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           }
         }
 
-        return Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 20 : 40,
-            vertical: 16,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  icon: Icons.pets,
-                  count: uniquePets.length.toString(),
-                  label: 'Pets',
-                  isMobile: isMobile,
-                ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final stacked = constraints.maxWidth < 560;
+            final children = [
+              _buildStatCard(
+                icon: Icons.pets,
+                count: uniquePets.length.toString(),
+                label: 'Pets',
+                isMobile: isMobile,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  icon: Icons.description_outlined,
-                  count: policies.length.toString(),
-                  label: 'Policies',
-                  isMobile: isMobile,
-                ),
+              _buildStatCard(
+                icon: Icons.description_outlined,
+                count: policies.length.toString(),
+                label: 'Policies',
+                isMobile: isMobile,
               ),
-            ],
-          ),
+            ];
+
+            if (stacked) {
+              return Column(
+                children: [
+                  children[0],
+                  const SizedBox(height: 12),
+                  children[1],
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: children[0]),
+                const SizedBox(width: 12),
+                Expanded(child: children[1]),
+              ],
+            );
+          },
         );
       },
     );
@@ -223,37 +278,43 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     required bool isMobile,
   }) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 20),
+      padding: EdgeInsets.all(isMobile ? 16 : 18),
       decoration: BoxDecoration(
-        color: ClovaraColors.mist,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: ClovaraColors.clover.withOpacity(0.2),
-        ),
+        color: AppColors.surface,
+        borderRadius: AppRadii.br24,
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppShadows.soft,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            color: ClovaraColors.clover,
-            size: isMobile ? 24 : 28,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.surface2,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Icon(
+              icon,
+              color: AppColors.green,
+              size: 22,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             count,
-            style: ClovaraTypography.h2.copyWith(
-              color: ClovaraColors.forest,
-              fontSize: isMobile ? 28 : 36,
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: AppColors.deepGreen,
+                  fontWeight: FontWeight.w800,
+                ),
           ),
           Text(
             label,
-            style: ClovaraTypography.body.copyWith(
-              color: ClovaraColors.slate,
-              fontSize: isMobile ? 12 : 14,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textMuted,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
         ],
       ),
@@ -274,26 +335,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
         final pendingQuotes = snapshot.data!;
 
-        return Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 20 : 40,
-            vertical: 12,
-          ),
+        return _PortalSection(
+          title: 'Continue',
+          subtitle: 'Pick up where you left off.',
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Continue Your Quote',
-                style: ClovaraTypography.h3.copyWith(
-                  color: ClovaraColors.forest,
-                  fontWeight: FontWeight.bold,
-                  fontSize: isMobile ? 18 : 24,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ...pendingQuotes.map((quote) =>
-                  _buildPendingQuoteCard(context, quote, isMobile)),
-            ],
+            children: pendingQuotes
+                .map((quote) => _buildPendingQuoteCard(context, quote, isMobile))
+                .toList(growable: false),
           ),
         );
       },
@@ -328,114 +376,47 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             final belongsToUser = uwCase != null && uwCase.userId == user.uid;
 
             return Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 20 : 40,
-                vertical: 12,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Documents Needed',
-                    style: ClovaraTypography.h3.copyWith(
-                      color: ClovaraColors.forest,
-                      fontWeight: FontWeight.bold,
-                      fontSize: isMobile ? 18 : 24,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: ClovaraColors.mist,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: ClovaraColors.clover.withOpacity(0.2),
-                        width: 2,
+              padding: EdgeInsets.zero,
+              child: _PortalSection(
+                title: 'Documents needed',
+                subtitle: 'Upload follow-ups to continue underwriting.',
+                trailing: TextButton(
+                  onPressed: () async {
+                    await UserSessionService().clearPendingUnderwriting();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Saved underwriting cleared.'),
                       ),
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: belongsToUser
-                            ? () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const UnderwritingFollowUpDocumentsScreen(),
-                                  ),
-                                );
-                              }
-                            : null,
-                        borderRadius: BorderRadius.circular(16),
-                        child: Padding(
-                          padding: EdgeInsets.all(isMobile ? 16 : 18),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                child: Icon(
-                                  Icons.upload_file_outlined,
-                                  color: ClovaraColors.forest,
-                                  size: isMobile ? 22 : 24,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      belongsToUser
-                                          ? 'Continue underwriting'
-                                          : 'Saved underwriting found',
-                                      style: ClovaraTypography.body.copyWith(
-                                        color: ClovaraColors.forest,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: isMobile ? 14 : 15,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      belongsToUser
-                                          ? (petName != null && petName.isNotEmpty
-                                              ? 'Upload follow-up documents for $petName'
-                                              : 'Upload follow-up documents to continue')
-                                          : 'This saved case belongs to a different account on this device.',
-                                      style: ClovaraTypography.body.copyWith(
-                                        color: ClovaraColors.slate,
-                                        fontSize: isMobile ? 12 : 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () async {
-                                  await UserSessionService().clearPendingUnderwriting();
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Saved underwriting cleared.'),
-                                    ),
-                                  );
-                                  if (!mounted) return;
-                                  setState(() {});
-                                },
-                                child: const Text('Clear'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                    );
+                    if (!mounted) return;
+                    setState(() {});
+                  },
+                  child: const Text('Clear'),
+                ),
+                child: _PortalListItem(
+                  enabled: belongsToUser,
+                  leading: Icons.upload_file_outlined,
+                  title: belongsToUser
+                      ? 'Continue underwriting'
+                      : 'Saved underwriting found',
+                  subtitle: belongsToUser
+                      ? (petName != null && petName.isNotEmpty
+                          ? 'Upload follow-up documents for $petName'
+                          : 'Upload follow-up documents to continue')
+                      : 'This saved case belongs to a different account on this device.',
+                  onTap: belongsToUser
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const UnderwritingFollowUpDocumentsScreen(),
+                            ),
+                          );
+                        }
+                      : null,
+                ),
               ),
             );
           },
@@ -451,81 +432,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final petName = answers?['petName'] as String?;
     final quoteId = quote['id'] as String;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            ClovaraColors.clover,
-            Color(0xFF7CB342),
-            ClovaraColors.sunset,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: ClovaraColors.clover.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _resumePendingQuote(context, quoteId),
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: EdgeInsets.all(isMobile ? 16 : 20),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.pending_outlined,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        petName != null ? 'Quote for $petName' : 'Pet Insurance Quote',
-                        style: ClovaraTypography.body.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 16 : 18,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tap to continue',
-                        style: ClovaraTypography.bodySmall.copyWith(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: isMobile ? 12 : 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ],
-            ),
-          ),
-        ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: _PortalListItem(
+        leading: Icons.pending_outlined,
+        title: petName != null ? 'Quote for $petName' : 'Pet insurance quote',
+        subtitle: 'Tap to continue',
+        onTap: () => _resumePendingQuote(context, quoteId),
       ),
     );
   }
@@ -545,28 +458,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
         final policies = snapshot.data!.docs;
 
-        return Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 20 : 40,
-            vertical: 12,
-          ),
+        return _PortalSection(
+          title: 'My policies',
+          subtitle: 'Your active coverage at a glance.',
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'My Policies',
-                style: ClovaraTypography.h3.copyWith(
-                  color: ClovaraColors.forest,
-                  fontWeight: FontWeight.bold,
-                  fontSize: isMobile ? 18 : 24,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ...policies.take(2).map((policy) {
-                final data = policy.data() as Map<String, dynamic>;
-                return _buildPolicyCard(context, data, isMobile);
-              }),
-            ],
+            children: policies.take(2).map((policy) {
+              final data = policy.data() as Map<String, dynamic>;
+              return _buildPolicyCard(context, data, isMobile);
+            }).toList(growable: false),
           ),
         );
       },
@@ -581,68 +480,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final planName = planData?['name'] as String? ?? 'Policy';
     final monthlyPremium = planData?['monthlyPremium'] as num?;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(isMobile ? 16 : 20),
-      decoration: BoxDecoration(
-        color: ClovaraColors.mist,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: ClovaraColors.clover.withOpacity(0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: ClovaraColors.clover.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.description,
-                  color: ClovaraColors.clover,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      petName,
-                      style: ClovaraTypography.body.copyWith(
-                        color: ClovaraColors.forest,
-                        fontWeight: FontWeight.bold,
-                        fontSize: isMobile ? 16 : 18,
-                      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: _PortalListItem(
+        leading: Icons.description_outlined,
+        title: petName,
+        subtitle: planName,
+        trailing: monthlyPremium == null
+            ? null
+            : Text(
+                '\$${monthlyPremium.toStringAsFixed(0)}/mo',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppColors.green,
+                      fontWeight: FontWeight.w800,
                     ),
-                    Text(
-                      planName,
-                      style: ClovaraTypography.bodySmall.copyWith(
-                        color: ClovaraColors.slate,
-                        fontSize: isMobile ? 12 : 14,
-                      ),
-                    ),
-                  ],
-                ),
               ),
-              if (monthlyPremium != null)
-                Text(
-                  '\$${monthlyPremium.toStringAsFixed(0)}/mo',
-                  style: ClovaraTypography.body.copyWith(
-                    color: ClovaraColors.clover,
-                    fontWeight: FontWeight.bold,
-                    fontSize: isMobile ? 16 : 18,
-                  ),
-                ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -664,42 +516,24 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
         final claims = snapshot.data!.docs;
 
-        return Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 20 : 40,
-            vertical: 12,
+        return _PortalSection(
+          title: 'Recent claims',
+          subtitle: 'Updates on reimbursements and decisions.',
+          trailing: TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ClaimsListScreen(),
+                ),
+              );
+            },
+            child: const Text('View all'),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Recent Claims',
-                      style: ClovaraTypography.h3.copyWith(
-                        color: ClovaraColors.forest,
-                        fontWeight: FontWeight.bold,
-                        fontSize: isMobile ? 18 : 24,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ClaimsListScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text('View all'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ...claims.map((claim) => _buildClaimCard(context, claim, isMobile)),
-            ],
+            children: claims
+                .map((claim) => _buildClaimCard(context, claim, isMobile))
+                .toList(growable: false),
           ),
         );
       },
@@ -718,98 +552,46 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       case 'settled':
       case 'approved':
       case 'settling':
-        statusColor = Colors.green;
+        statusColor = AppColors.success;
         break;
       case 'denied':
-        statusColor = Colors.red;
+        statusColor = AppColors.danger;
         break;
       default:
-        statusColor = ClovaraColors.sunset;
+        statusColor = AppColors.warning;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: ClovaraColors.mist,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: statusColor.withOpacity(0.3),
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ClaimDetailsScreen(claimId: claimDoc.id),
-              ),
-            );
-          },
-          child: Padding(
-            padding: EdgeInsets.all(isMobile ? 16 : 20),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    (status.toLowerCase() == 'settled' || status.toLowerCase() == 'approved')
-                        ? Icons.check_circle
-                        : (status.toLowerCase() == 'settling')
-                            ? Icons.payments
-                            : Icons.pending,
-                    color: statusColor,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        claimType,
-                        style: ClovaraTypography.body.copyWith(
-                          color: ClovaraColors.forest,
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 14 : 16,
-                        ),
-                      ),
-                      Text(
-                        status.toUpperCase(),
-                        style: ClovaraTypography.bodySmall.copyWith(
-                          color: statusColor,
-                          fontSize: isMobile ? 11 : 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (amount > 0)
-                  Text(
-                    '\$${amount.toStringAsFixed(0)}',
-                    style: ClovaraTypography.body.copyWith(
-                      color: ClovaraColors.forest,
-                      fontWeight: FontWeight.bold,
-                      fontSize: isMobile ? 16 : 18,
+    final statusLabel = status.toUpperCase();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: _PortalListItem(
+        leading: (status.toLowerCase() == 'settled' ||
+                status.toLowerCase() == 'approved')
+            ? Icons.check_circle
+            : (status.toLowerCase() == 'settling')
+                ? Icons.payments
+                : Icons.pending,
+        leadingColor: statusColor,
+        title: claimType,
+        subtitle: statusLabel,
+        trailing: amount > 0
+            ? Text(
+                '\$${amount.toStringAsFixed(0)}',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppColors.deepGreen,
+                      fontWeight: FontWeight.w800,
                     ),
-                  ),
-                const SizedBox(width: 6),
-                Icon(
-                  Icons.chevron_right,
-                  color: ClovaraColors.slate.withOpacity(0.8),
-                ),
-              ],
+              )
+            : null,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ClaimDetailsScreen(claimId: claimDoc.id),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -841,99 +623,32 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       },
     ];
 
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 20 : 40,
-        vertical: 16,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Quick Actions',
-            style: ClovaraTypography.h3.copyWith(
-              color: ClovaraColors.forest,
-              fontWeight: FontWeight.bold,
-              fontSize: isMobile ? 18 : 24,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...actions.map((action) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      ClovaraColors.clover,
-                      Color(0xFF7CB342),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: ClovaraColors.clover.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: action['onTap'] as VoidCallback,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Padding(
-                      padding: EdgeInsets.all(isMobile ? 20 : 24),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              action['icon'] as IconData,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  action['title'] as String,
-                                  style: ClovaraTypography.body.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: isMobile ? 16 : 18,
-                                  ),
-                                ),
-                                Text(
-                                  action['subtitle'] as String,
-                                  style: ClovaraTypography.bodySmall.copyWith(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: isMobile ? 12 : 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(
-                            Icons.arrow_forward,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ],
-                      ),
+    return _PortalSection(
+      title: 'Quick actions',
+      subtitle: 'Start a quote, file a claim, or get support.',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 980 ? 3 : (constraints.maxWidth >= 640 ? 2 : 1);
+          final itemWidth = (constraints.maxWidth - (12 * (columns - 1))) / columns;
+
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: actions
+                .map(
+                  (action) => SizedBox(
+                    width: itemWidth,
+                    child: _PortalActionCard(
+                      icon: action['icon'] as IconData,
+                      title: action['title'] as String,
+                      subtitle: action['subtitle'] as String,
+                      onTap: action['onTap'] as VoidCallback,
                     ),
                   ),
-                ),
-              )),
-        ],
+                )
+                .toList(growable: false),
+          );
+        },
       ),
     );
   }
@@ -1002,9 +717,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   void _handleSignOut(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
-    if (context.mounted) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    }
+    if (!context.mounted) return;
+    context.go('/');
   }
 
   void _showHelpDialog(BuildContext context) {
@@ -1023,6 +737,222 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             child: const Text('Close'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PortalSection extends StatelessWidget {
+  const _PortalSection({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+    this.trailing,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget child;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+          color: AppColors.deepGreen,
+          fontWeight: FontWeight.w800,
+        );
+
+    final subtitleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppColors.textMuted,
+          height: 1.35,
+          fontWeight: FontWeight.w600,
+        );
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.br24,
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppShadows.soft,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: titleStyle),
+                    const SizedBox(height: 4),
+                    Text(subtitle, style: subtitleStyle),
+                  ],
+                ),
+              ),
+              if (trailing != null) trailing!,
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _PortalListItem extends StatelessWidget {
+  const _PortalListItem({
+    required this.leading,
+    required this.title,
+    required this.subtitle,
+    this.trailing,
+    this.onTap,
+    this.enabled = true,
+    this.leadingColor,
+  });
+
+  final IconData leading;
+  final Color? leadingColor;
+  final String title;
+  final String subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: enabled ? AppColors.deepGreen : AppColors.textSubtle,
+          fontWeight: FontWeight.w800,
+        );
+
+    final subtitleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: enabled ? AppColors.textMuted : AppColors.textSubtle,
+          fontWeight: FontWeight.w600,
+        );
+
+    return Material(
+      color: AppColors.surface2,
+      borderRadius: AppRadii.br20,
+      child: InkWell(
+        borderRadius: AppRadii.br20,
+        onTap: enabled ? onTap : null,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: AppRadii.br20,
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Icon(
+                  leading,
+                  color: leadingColor ?? AppColors.green,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: titleStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: subtitleStyle, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: 10),
+                trailing!,
+              ] else ...[
+                const SizedBox(width: 10),
+                const Icon(Icons.chevron_right, color: AppColors.textSubtle),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PortalActionCard extends StatelessWidget {
+  const _PortalActionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: AppColors.deepGreen,
+          fontWeight: FontWeight.w800,
+        );
+
+    final subtitleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppColors.textMuted,
+          height: 1.3,
+          fontWeight: FontWeight.w600,
+        );
+
+    return Material(
+      color: AppColors.surface,
+      borderRadius: AppRadii.br24,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadii.br24,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: AppRadii.br24,
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppShadows.soft,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Icon(icon, color: AppColors.green, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: titleStyle),
+                    const SizedBox(height: 6),
+                    Text(subtitle, style: subtitleStyle),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward, color: AppColors.textSubtle),
+            ],
+          ),
+        ),
       ),
     );
   }

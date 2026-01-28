@@ -6,16 +6,15 @@ import '../models/pet.dart';
 import '../models/underwriting_case.dart';
 import '../models/underwriting_decision.dart';
 import '../models/underwriting_medical_history.dart';
+import '../models/underwriting_exclusion.dart';
 
 class UnderwritingCaseService {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
 
-  UnderwritingCaseService({
-    FirebaseFirestore? firestore,
-    FirebaseAuth? auth,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+  UnderwritingCaseService({FirebaseFirestore? firestore, FirebaseAuth? auth})
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance;
 
   CollectionReference<Map<String, dynamic>> get _cases =>
       _firestore.collection('underwriting_cases');
@@ -32,6 +31,45 @@ class UnderwritingCaseService {
     final now = DateTime.now();
     final docRef = _cases.doc();
 
+    Map<String, dynamic>? constraintAudit;
+    List<UnderwritingExclusion>? underwritingExclusions;
+    List<String>? requiredEvidenceCodes;
+    if (quoteId != null && quoteId.trim().isNotEmpty) {
+      try {
+        final quoteSnap = await _firestore
+            .collection('quotes')
+            .doc(quoteId)
+            .get();
+        final data = quoteSnap.data();
+        if (data != null && data['constraintAudit'] is Map) {
+          constraintAudit = (data['constraintAudit'] as Map)
+              .cast<String, dynamic>();
+        }
+
+        final rawEvidence = data?['requiredEvidenceCodes'];
+        if (rawEvidence is List) {
+          requiredEvidenceCodes = rawEvidence
+              .map((e) => e.toString().trim())
+              .where((e) => e.isNotEmpty)
+              .toList(growable: false);
+        }
+
+        final rawExclusions = data?['exclusions'];
+        if (rawExclusions is List) {
+          underwritingExclusions = rawExclusions
+              .whereType<Map>()
+              .map(
+                (e) =>
+                    UnderwritingExclusion.fromJson(e.cast<String, dynamic>()),
+              )
+              .toList(growable: false);
+        }
+      } catch (e) {
+        // Best-effort only: do not block case creation.
+        print('⚠️ Unable to copy constraint audit from quote $quoteId: $e');
+      }
+    }
+
     final caseDoc = UnderwritingCase(
       id: docRef.id,
       userId: user.uid,
@@ -39,6 +77,9 @@ class UnderwritingCaseService {
       petId: pet.id,
       petSnapshot: pet,
       ownerSnapshot: owner,
+      constraintAudit: constraintAudit,
+      underwritingExclusions: underwritingExclusions,
+      requiredEvidenceCodes: requiredEvidenceCodes,
       status: UnderwritingCaseStatus.inProgress,
       triggerReasons: triggerReasons,
       createdAt: now,
@@ -72,25 +113,37 @@ class UnderwritingCaseService {
   }
 
   Future<UnderwritingMedicalHistory> getMedicalHistory(String caseId) async {
-    final doc = await _cases.doc(caseId).collection('medical_history').doc('current').get();
+    final doc = await _cases
+        .doc(caseId)
+        .collection('medical_history')
+        .doc('current')
+        .get();
     if (!doc.exists) return UnderwritingMedicalHistory.empty();
     return UnderwritingMedicalHistory.fromJson(doc.data()!);
   }
 
-  Future<void> saveMedicalHistory(String caseId, UnderwritingMedicalHistory history) async {
+  Future<void> saveMedicalHistory(
+    String caseId,
+    UnderwritingMedicalHistory history,
+  ) async {
     await _cases.doc(caseId).collection('medical_history').doc('current').set({
       ...history.toJson(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    await _cases.doc(caseId).update({'updatedAt': FieldValue.serverTimestamp()});
+    await _cases.doc(caseId).update({
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
     await logEvent(caseId, 'medical_history_saved', {
       'conditionsCount': history.conditions.length,
       'userAttestation': history.userAttestation,
     });
   }
 
-  Future<void> updateStatus(String caseId, UnderwritingCaseStatus status) async {
+  Future<void> updateStatus(
+    String caseId,
+    UnderwritingCaseStatus status,
+  ) async {
     await _cases.doc(caseId).update({
       'status': underwritingCaseStatusToString(status),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -101,7 +154,10 @@ class UnderwritingCaseService {
     });
   }
 
-  Future<void> saveDecision(String caseId, UnderwritingDecision decision) async {
+  Future<void> saveDecision(
+    String caseId,
+    UnderwritingDecision decision,
+  ) async {
     await _cases.doc(caseId).collection('decisions').doc('current').set({
       ...decision.toJson(),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -127,14 +183,22 @@ class UnderwritingCaseService {
   }
 
   Future<UnderwritingDecision?> getCurrentDecision(String caseId) async {
-    final doc = await _cases.doc(caseId).collection('decisions').doc('current').get();
+    final doc = await _cases
+        .doc(caseId)
+        .collection('decisions')
+        .doc('current')
+        .get();
     if (!doc.exists) return null;
     final data = doc.data();
     if (data == null) return null;
     return UnderwritingDecision.fromJson(data);
   }
 
-  Future<void> logEvent(String caseId, String eventType, Map<String, dynamic> payload) async {
+  Future<void> logEvent(
+    String caseId,
+    String eventType,
+    Map<String, dynamic> payload,
+  ) async {
     final user = _auth.currentUser;
     await _cases.doc(caseId).collection('events').add({
       'eventType': eventType,
@@ -163,17 +227,13 @@ class UnderwritingCaseService {
       final current = (data?['needMoreInfoAttempts'] as num?)?.toInt() ?? 0;
       final next = current + 1;
 
-      txn.set(
-        docRef,
-        {
-          'needMoreInfoAttempts': next,
-          'lastNeedMoreInfoReason': reason,
-          'lastNeedMoreInfoEvidenceCodes': requiredEvidenceCodes,
-          'lastNeedMoreInfoAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      txn.set(docRef, {
+        'needMoreInfoAttempts': next,
+        'lastNeedMoreInfoReason': reason,
+        'lastNeedMoreInfoEvidenceCodes': requiredEvidenceCodes,
+        'lastNeedMoreInfoAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       return next;
     });
@@ -181,15 +241,12 @@ class UnderwritingCaseService {
 
   /// Clears the persistent NEED_MORE_INFO attempt counter and related fields.
   Future<void> resetNeedMoreInfoAttempts({required String caseId}) async {
-    await _cases.doc(caseId).set(
-      {
-        'needMoreInfoAttempts': 0,
-        'lastNeedMoreInfoReason': null,
-        'lastNeedMoreInfoEvidenceCodes': const <String>[],
-        'lastNeedMoreInfoAt': null,
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
+    await _cases.doc(caseId).set({
+      'needMoreInfoAttempts': 0,
+      'lastNeedMoreInfoReason': null,
+      'lastNeedMoreInfoEvidenceCodes': const <String>[],
+      'lastNeedMoreInfoAt': null,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 }

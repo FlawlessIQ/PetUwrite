@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/clovara_theme.dart';
@@ -10,6 +9,7 @@ import '../services/user_session_service.dart';
 import '../services/draft_service.dart';
 import 'underwriting_followup_documents_screen.dart';
 import '../widgets/clovara_icons.dart';
+import '../ui/components/clovara_logo.dart';
 
 /// Clovara Homepage - Landing page with navigation options
 /// 
@@ -478,11 +478,7 @@ class Homepage extends StatelessWidget {
                 width: 2,
               ),
             ),
-            child: SvgPicture.asset(
-              'assets/images/clovara_mark_refined.svg',
-              width: isMobile ? 40 : 56,
-              height: isMobile ? 40 : 56,
-            ),
+            child: ClovaraMark(size: isMobile ? 40 : 56),
           ),
           const SizedBox(width: 16),
           // Brand name

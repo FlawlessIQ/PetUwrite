@@ -18,12 +18,13 @@ class Section extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final vertical = verticalPadding ??
+        final vertical =
+            verticalPadding ??
             Breakpoints.select<double>(
               constraints: constraints,
-              mobile: 28,
-              tablet: 40,
-              desktop: 52,
+              mobile: 22,
+              tablet: 32,
+              desktop: 44,
             );
 
         final content = Padding(

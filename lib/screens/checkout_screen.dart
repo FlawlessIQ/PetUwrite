@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/checkout_state.dart';
 import '../models/policy_exclusion.dart';
@@ -10,10 +10,14 @@ import '../services/draft_service.dart';
 import '../services/user_session_service.dart';
 import '../services/marketing_attribution_service.dart';
 import '../theme/clovara_theme.dart';
+import '../ui/tokens.dart';
+import '../ui/components/checkout_components.dart';
+import '../ui/components/clovara_logo.dart';
+import '../ui/components/save_resume_dialog.dart';
 import 'review_screen.dart';
-import 'owner_details_screen.dart';
 import 'payment_screen.dart';
 import 'confirmation_screen.dart';
+import 'owner_details_screen.dart' as owner_details;
 
 /// Redesigned checkout screen with prominent Clovara branding
 class CheckoutScreen extends StatefulWidget {
@@ -37,6 +41,9 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
+  final GlobalKey<owner_details.OwnerDetailsScreenState> _ownerDetailsKey =
+      GlobalKey<owner_details.OwnerDetailsScreenState>();
+
   @override
   void initState() {
     super.initState();
@@ -280,24 +287,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     Navigator.pop(context, true);
   }
 
-  Future<void> _copyResumeCodeToClipboard(BuildContext context) async {
-    try {
-      final draftService = DraftService();
-      final resumeKey = await draftService.getOrCreateLocalResumeKey();
-      await Clipboard.setData(
-        ClipboardData(text: draftService.encodeForSharing(resumeKey)),
-      );
-      if (!context.mounted) return;
-      final pretty = draftService.prettyCode(resumeKey);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Resume code copied: $pretty')));
-    } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to copy resume code')),
-      );
-    }
+  Future<void> _showSaveResumeCode(BuildContext context) async {
+    await SaveResumeDialog.show(
+      context,
+      ensureSaved: () async {
+        final provider = context.read<CheckoutProvider>();
+        final snapshot = _buildCheckoutSnapshot(provider);
+        await UserSessionService().savePendingCheckout(snapshot);
+
+        final state = provider.currentStep == CheckoutStep.payment
+            ? 'CHECKOUT_PAYMENT'
+            : 'CHECKOUT_OWNER';
+        await DraftService().upsertCheckoutDraft(
+          state: state,
+          checkoutData: snapshot,
+        );
+      },
+      title: 'Save & resume later',
+      body:
+          'We’ll save your checkout progress. Use this code to resume from the home page on any device.',
+      copyLabel: 'Copy code',
+      doneLabel: 'Done',
+    );
   }
 
   PlanType _getPlanTypeFromName(String name) {
@@ -337,17 +348,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return true;
       },
       child: Scaffold(
-        backgroundColor: ClovaraColors.forest,
+        backgroundColor: AppColors.background,
         body: SafeArea(
           child: Consumer<CheckoutProvider>(
             builder: (context, provider, child) {
-              return Column(
+              return Stack(
                 children: [
-                  _buildBrandedHeader(provider),
-                  if (provider.error != null)
-                    _buildErrorBanner(provider.error!),
-                  _buildStepIndicator(provider),
-                  Expanded(child: _buildStepContent(provider)),
+                  Column(
+                    children: [
+                      _buildBrandedHeader(provider),
+                      if (provider.error != null)
+                        _buildErrorBanner(provider.error!),
+                      _buildStepIndicator(provider),
+                      Expanded(child: _buildStepContent(provider)),
+                    ],
+                  ),
+
+                  // Bottom CTA Bar for Owner Details and Payment steps
+                  if (provider.currentStep == CheckoutStep.ownerDetails ||
+                      provider.currentStep == CheckoutStep.payment)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: _buildBottomCTA(provider),
+                    ),
                 ],
               );
             },
@@ -357,14 +382,68 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  Widget _buildBottomCTA(CheckoutProvider provider) {
+    if (provider.currentStep == CheckoutStep.ownerDetails) {
+      return PinnedCTABar(
+        primaryText: 'Continue to Payment',
+        onPrimaryPressed: () {
+          // Use GlobalKey to access the owner details screen's state
+          final ownerDetailsState = _ownerDetailsKey.currentState;
+          if (ownerDetailsState != null) {
+            ownerDetailsState.handleContinue(context);
+          } else {
+            // Fallback (should never happen)
+            provider.nextStep();
+          }
+        },
+        secondaryText: 'Back',
+        onSecondaryPressed: () => provider.previousStep(),
+      );
+    } else if (provider.currentStep == CheckoutStep.payment) {
+      final plan = provider.selectedPlan;
+      final finalAmount = plan != null ? plan.monthlyPremium : 0.0;
+
+      return PinnedCTABar(
+        primaryText: 'Pay \$${finalAmount.toStringAsFixed(2)}',
+        onPrimaryPressed: () => _handlePaymentContinue(context, provider),
+        secondaryText: 'Back',
+        onSecondaryPressed: () => provider.previousStep(),
+      );
+    }
+
+    return const SizedBox();
+  }
+
+  // ignore: unused_element
+  Future<void> _handleOwnerDetailsContinue(
+    BuildContext context,
+    CheckoutProvider provider,
+  ) async {
+    // This will be called from the checkout screen
+    // The actual validation logic is in OwnerDetailsScreen
+    // We need to expose a validation method or trigger it via provider
+
+    // For now, just move to next step - validation should be in the screen itself
+    provider.nextStep();
+  }
+
+  Future<void> _handlePaymentContinue(
+    BuildContext context,
+    CheckoutProvider provider,
+  ) async {
+    // Similar to above - payment logic should be in PaymentScreen
+    // This is just the navigation trigger
+    provider.nextStep();
+  }
+
   Widget _buildBrandedHeader(CheckoutProvider provider) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: ClovaraColors.forest,
+        color: AppColors.surface1,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -381,7 +460,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 IconButton(
                   icon: const Icon(
                     Icons.arrow_back,
-                    color: Colors.white,
+                    color: AppColors.textMuted,
                     size: 24,
                   ),
                   onPressed: () {
@@ -395,24 +474,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
               // Logo/Title
               Expanded(
-                child: Text(
-                  'Clovara',
-                  style: ClovaraTypography.h2.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
+                child: Center(
+                  child: ClovaraLogoLockup(
+                    compact: false,
+                    boxedMark: true,
+                    markSize: 40,
+                    textSize: 32,
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ),
 
-              // Close Button
+              // Actions
               if (provider.currentStep != CheckoutStep.confirmation)
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 24),
-                  onPressed: () => _handleExit(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Save Button
+                    IconButton(
+                      tooltip: 'Save & resume later',
+                      icon: const Icon(
+                        Icons.bookmark_border_rounded,
+                        color: AppColors.deepGreen,
+                        size: 24,
+                      ),
+                      onPressed: () => _showSaveResumeCode(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 16),
+                    // Close Button
+                    IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.textMuted,
+                        size: 24,
+                      ),
+                      onPressed: () => _handleExit(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
                 )
               else
                 const SizedBox(width: 24),
@@ -425,7 +526,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Text(
             provider.getStepName(provider.currentStep),
             style: ClovaraTypography.h3.copyWith(
-              color: ClovaraColors.clover,
+              color: AppColors.green,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
@@ -622,7 +723,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildStepContent(CheckoutProvider provider) {
-    // Wrap content in white background container for consistency
+    // Wrap content in white background for consistency
     Widget content;
 
     switch (provider.currentStep) {
@@ -630,7 +731,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         content = const ReviewScreen();
         break;
       case CheckoutStep.ownerDetails:
-        content = const OwnerDetailsScreen();
+        content = owner_details.OwnerDetailsScreen(key: _ownerDetailsKey);
         break;
       case CheckoutStep.payment:
         content = const PaymentScreen();
@@ -640,7 +741,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         break;
     }
 
-    return Container(color: Colors.grey.shade50, child: content);
+    return Container(color: AppColors.background, child: content);
   }
 
   Future<bool?> _showExitConfirmation(BuildContext context) {
@@ -694,9 +795,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ),
           TextButton(
-            onPressed: () => _copyResumeCodeToClipboard(context),
+            onPressed: () => _showSaveResumeCode(context),
             child: const Text(
-              'Copy resume code',
+              'Save resume code',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
           ),
@@ -740,7 +841,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void _handleExit(BuildContext context) async {
     final shouldExit = await _showExitConfirmation(context);
     if (shouldExit == true && mounted) {
-      Navigator.pop(context);
+      context.go('/');
     }
   }
 }

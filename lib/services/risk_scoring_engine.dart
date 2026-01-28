@@ -4,9 +4,13 @@ import '../models/pet.dart';
 import '../models/owner.dart';
 import '../models/risk_score.dart';
 import '../models/explainability_data.dart';
+import '../models/anomaly_flag.dart';
+import '../models/underwriting_exclusion.dart';
 import '../ai/ai_service.dart';
 import 'vet_history_parser.dart';
 import 'underwriting_rules_engine.dart';
+import 'underwriting_constraint_engine.dart';
+import 'underwriting_risk_synthesis.dart';
 
 /// Result of risk scoring including eligibility determination
 class RiskScoringResult {
@@ -26,10 +30,16 @@ class RiskScoringResult {
       eligibilityResult.eligible ? null : eligibilityResult.reason;
 
   /// Convenience getter to check if there are exclusions (conditional approval)
-  bool get hasExclusions => eligibilityResult.hasExclusions;
+  bool get hasExclusions =>
+      (riskScore.exclusions != null && riskScore.exclusions!.isNotEmpty) ||
+      eligibilityResult.hasExclusions;
 
   /// Convenience getter for excluded conditions list
   List<String> get excludedConditions => eligibilityResult.excludedConditions;
+
+  /// Structured underwriting exclusions (rare, targeted, deterministic).
+  List<UnderwritingExclusion> get exclusions =>
+      riskScore.exclusions ?? const <UnderwritingExclusion>[];
 }
 
 /// Engine for calculating risk scores for pet insurance underwriting
@@ -38,18 +48,23 @@ class RiskScoringEngine {
   final AIService _aiService;
   final FirebaseFirestore _firestore;
   final UnderwritingRulesEngine _rulesEngine;
+  final Future<UnderwritingConstraintEngine> _constraintEngine;
 
   RiskScoringEngine({
     required AIService aiService,
     FirebaseFirestore? firestore,
     UnderwritingRulesEngine? rulesEngine,
+    UnderwritingConstraintEngine? constraintEngine,
   }) : _aiService = aiService,
        _firestore = firestore ?? FirebaseFirestore.instance,
        _rulesEngine =
            rulesEngine ??
            UnderwritingRulesEngine(
              firestore: firestore ?? FirebaseFirestore.instance,
-           );
+           ),
+       _constraintEngine = constraintEngine == null
+           ? UnderwritingConstraintEngine.loadDefault()
+           : Future.value(constraintEngine);
 
   /// Calculate comprehensive risk score for a pet
   /// Combines traditional actuarial methods with AI-powered analysis
@@ -97,22 +112,139 @@ class RiskScoringEngine {
     categoryScores['lifestyle'] = lifestyleScore;
 
     // Calculate overall score (weighted average)
-    final overallScore = _calculateOverallScore(categoryScores);
+    final physiologicalScore = _calculateOverallScore(categoryScores);
 
-    // Get AI-powered analysis and enhanced risk assessment
-    final aiAnalysis = await _getAIRiskAnalysis(
-      pet: pet,
-      owner: owner,
-      vetHistory: vetHistory,
-      traditionalScore: overallScore,
-      categoryScores: categoryScores,
-      riskFactors: riskFactors,
+    // Deterministic constraints & anomaly detection (NOT validation rejection)
+    // This is non-negotiable: implausible inputs must materially affect pricing.
+    final constraintAssessment = (await _constraintEngine).assess(pet: pet);
+
+    // Deterministic logging for audit/debug (avoid PII; keep to pet inputs).
+    final audit = constraintAssessment.audit;
+    if (audit != null) {
+      // ignore: avoid_print
+      print(
+        '[ConstraintAudit] breed=${audit['breed']} species=${audit['species']} weightLbs=${(audit['weightLbs'] as num?)?.toStringAsFixed(1)} confidence=${constraintAssessment.confidenceScore.toStringAsFixed(3)} riskMultiplier=${constraintAssessment.riskMultiplier.toStringAsFixed(3)} findings=${constraintAssessment.anomalyFindings.length}',
+      );
+      final bc = audit['breedConstraint'];
+      if (bc is Map) {
+        final critical = bc['criticalThresholdLbs'];
+        // ignore: avoid_print
+        print(
+          '[ConstraintAudit] typical=${bc['typicalWeightLbsMin']}–${bc['typicalWeightLbsMax']} maxHealthy=${bc['maxHealthyWeightLbs']} anomalyThreshold=${bc['anomalyThresholdLbs']}${critical == null ? '' : ' criticalThreshold=$critical'}',
+        );
+      }
+      for (final f in constraintAssessment.anomalyFindings) {
+        // ignore: avoid_print
+        print(
+          '[ConstraintAuditFinding] type=${f.type.name} severity=${f.severity.name} impact=${f.confidenceImpact.toStringAsFixed(3)}',
+        );
+      }
+    }
+
+    // Add credibility track (0-100) as an explicit parallel risk dimension.
+    categoryScores['credibility'] = constraintAssessment.credibilityRiskScore;
+
+    // Convert anomaly findings into risk factors for explainability.
+    for (final anomaly in constraintAssessment.anomalyFindings) {
+      riskFactors.add(
+        RiskFactor(
+          category: 'credibility',
+          description: _anomalyToRiskFactorDescription(anomaly),
+          impact: _anomalyImpactToRiskFactorPoints(anomaly),
+          severity: _anomalySeverityToRiskFactorSeverity(anomaly.severity),
+        ),
+      );
+    }
+
+    // Synthesize final score from physiological + credibility, with a
+    // non-linear multiplier for biological implausibility.
+    final overallScore = UnderwritingRiskSynthesis.synthesizeFinalScore(
+      physiologicalRiskScore: physiologicalScore,
+      credibilityRiskScore: constraintAssessment.credibilityRiskScore,
+      riskMultiplier: constraintAssessment.riskMultiplier,
+      anomalyFindings: constraintAssessment.anomalyFindings,
     );
+
+    // Get AI-powered analysis and enhanced risk assessment.
+    // Fail-soft: AI enriches explainability, but deterministic scoring must
+    // always return a result (carrier-grade / audit-safe).
+    String? aiAnalysis;
+    try {
+      aiAnalysis = await _getAIRiskAnalysis(
+        pet: pet,
+        owner: owner,
+        vetHistory: vetHistory,
+        traditionalScore: overallScore,
+        categoryScores: categoryScores,
+        riskFactors: riskFactors,
+      );
+    } catch (e) {
+      // ignore: avoid_print
+      print('⚠️ RiskScoringEngine AI analysis failed (continuing): $e');
+      aiAnalysis = null;
+      riskFactors.add(
+        RiskFactor(
+          category: 'system',
+          description:
+              'AI analysis unavailable; quote generated from deterministic underwriting rules.',
+          impact: 0,
+          severity: Severity.low,
+        ),
+      );
+    }
+
+    // Some AI paths fail-soft internally and return empty output; treat that as unavailable.
+    if ((aiAnalysis ?? '').trim().isEmpty) {
+      aiAnalysis = null;
+    }
+
+    if (aiAnalysis == null) {
+      // Ensure we surface the AI outage in explainability.
+      final alreadyLogged = riskFactors.any(
+        (f) =>
+            f.category == 'system' &&
+            f.description.toLowerCase().contains('ai analysis unavailable'),
+      );
+      if (!alreadyLogged) {
+        riskFactors.add(
+          RiskFactor(
+            category: 'system',
+            description:
+                'AI analysis unavailable; quote generated from deterministic underwriting rules.',
+            impact: 0,
+            severity: Severity.low,
+          ),
+        );
+      }
+    }
 
     // Determine risk level
     final riskLevel = RiskScore.getRiskLevelFromScore(overallScore);
 
-    final riskScore = RiskScore(
+    final quoteVelocity = additionalData?['quoteVelocity'];
+    final bool suspiciousQuoteVelocity =
+        quoteVelocity is Map && quoteVelocity['suspicious'] == true;
+    if (suspiciousQuoteVelocity) {
+      final attempts10m = quoteVelocity['attempts10m'];
+      final attempts1h = quoteVelocity['attempts1h'];
+      riskFactors.add(
+        RiskFactor(
+          category: 'behavioral',
+          description:
+              'Rapid repeat quote attempts detected (10m=$attempts10m, 1h=$attempts1h).',
+          impact: 0,
+          severity: Severity.medium,
+        ),
+      );
+    }
+
+    final mergedReviewTriggers = <String>{
+      ...constraintAssessment.reviewTriggers,
+      if (aiAnalysis == null) 'AI_ANALYSIS_UNAVAILABLE',
+      if (suspiciousQuoteVelocity) 'QUOTE_VELOCITY_SUSPECTED',
+    }.toList(growable: false);
+
+    var riskScore = RiskScore(
       id: _generateId(),
       petId: pet.id,
       calculatedAt: DateTime.now(),
@@ -121,9 +253,75 @@ class RiskScoringEngine {
       categoryScores: categoryScores,
       riskFactors: riskFactors,
       aiAnalysis: aiAnalysis,
+      confidenceScore: constraintAssessment.confidenceScore,
+      physiologicalRiskScore: physiologicalScore,
+      credibilityRiskScore: constraintAssessment.credibilityRiskScore,
+      constraintRiskMultiplier: constraintAssessment.riskMultiplier,
+      anomalyFindings: constraintAssessment.anomalyFindings
+          .map((f) => f.toJson())
+          .toList(growable: false),
+      reviewTriggers: mergedReviewTriggers,
+      constraintAudit: constraintAssessment.audit,
     );
 
-    // Generate explainability data
+    // ✅ CHECK ELIGIBILITY AGAINST UNDERWRITING RULES (deterministic only)
+    // Medical conditions must be evaluated from strict medical facts, not strings.
+    final eligibilityResult = await _rulesEngine.checkEligibilityDeterministic(
+      pet: pet,
+      riskScore: riskScore,
+    );
+
+    // Apply exclusions AFTER anomaly detection + eligibility, but BEFORE
+    // pricing/explanation surfaces finalize.
+    final exclusions = _buildUnderwritingExclusions(
+      pet: pet,
+      constraintAssessment: constraintAssessment,
+      eligibilityResult: eligibilityResult,
+    );
+
+    final requiredEvidenceCodes = _buildRequiredEvidenceCodes(
+      constraintAssessment: constraintAssessment,
+    );
+
+    final bool hasExtraUnderwritingSignals =
+        exclusions.isNotEmpty || requiredEvidenceCodes.isNotEmpty;
+    if (hasExtraUnderwritingSignals) {
+      riskScore = RiskScore(
+        id: riskScore.id,
+        petId: riskScore.petId,
+        calculatedAt: riskScore.calculatedAt,
+        overallScore: riskScore.overallScore,
+        riskLevel: riskScore.riskLevel,
+        categoryScores: riskScore.categoryScores,
+        riskFactors: riskScore.riskFactors,
+        aiAnalysis: riskScore.aiAnalysis,
+        confidenceScore: riskScore.confidenceScore,
+        physiologicalRiskScore: riskScore.physiologicalRiskScore,
+        credibilityRiskScore: riskScore.credibilityRiskScore,
+        constraintRiskMultiplier: riskScore.constraintRiskMultiplier,
+        anomalyFindings: riskScore.anomalyFindings,
+        reviewTriggers: riskScore.reviewTriggers,
+        constraintAudit: riskScore.constraintAudit,
+        exclusions: exclusions,
+        requiredEvidenceCodes: requiredEvidenceCodes.isEmpty
+            ? null
+            : requiredEvidenceCodes,
+      );
+
+      // ignore: avoid_print
+      print(
+        '[ExclusionAudit] applied=${exclusions.length} types=${exclusions.map((e) => e.type.name).toSet().join(',')} triggers=${exclusions.map((e) => e.triggerReason).toSet().join(',')}',
+      );
+
+      if (requiredEvidenceCodes.isNotEmpty) {
+        // ignore: avoid_print
+        print(
+          '[EvidenceAudit] codes=${requiredEvidenceCodes.toSet().join(',')}',
+        );
+      }
+    }
+
+    // Generate explainability data (kept deterministic, independent of AI).
     final explainability = _generateExplainabilityData(
       quoteId: quoteId ?? 'unknown',
       pet: pet,
@@ -133,13 +331,6 @@ class RiskScoringEngine {
       riskFactors: riskFactors,
       finalScore: overallScore,
       additionalData: additionalData,
-    );
-
-    // ✅ CHECK ELIGIBILITY AGAINST UNDERWRITING RULES (deterministic only)
-    // Medical conditions must be evaluated from strict medical facts, not strings.
-    final eligibilityResult = await _rulesEngine.checkEligibilityDeterministic(
-      pet: pet,
-      riskScore: riskScore,
     );
 
     print(
@@ -165,6 +356,199 @@ class RiskScoringEngine {
     }
 
     return riskScore;
+  }
+
+  static const double _anomalyExclusionConfidenceThreshold = 0.80;
+
+  List<UnderwritingExclusion> _buildUnderwritingExclusions({
+    required Pet pet,
+    required UnderwritingConstraintAssessment constraintAssessment,
+    required EligibilityResult eligibilityResult,
+  }) {
+    final out = <UnderwritingExclusion>[];
+
+    // Intake-derived congenital exclusions (explicit customer-entered facts).
+    // We keep these structured + auditable and do not depend on anomaly gating.
+    final congenitalConditions =
+        pet.medicalConditions
+            ?.where((c) => c.isCongenital)
+            .map((c) => c.name.trim())
+            .where((n) => n.isNotEmpty)
+            .toList(growable: false) ??
+        const <String>[];
+
+    for (final conditionName in congenitalConditions) {
+      out.add(
+        UnderwritingExclusion(
+          type: UnderwritingExclusionType.congenital,
+          scope: conditionName,
+          triggerReason: 'INTAKE:CONGENITAL',
+          effectiveAt: UnderwritingExclusionEffectiveAt.bind,
+          reviewable: true,
+          explanation:
+              '$conditionName is excluded from coverage as a congenital condition.',
+        ),
+      );
+    }
+
+    // Breed-linked respiratory exclusions for brachycephalic/high-risk breeds.
+    // Deterministic, catalog-free: uses existing breed risk notes.
+    if (pet.species.trim().toLowerCase() == 'dog') {
+      final breedRisk = _getBreedRiskData(pet.breed);
+      final notes = (breedRisk['notes'] ?? '').toString().toLowerCase();
+      final bool respiratoryTrait =
+          notes.contains('brachy') ||
+          notes.contains('respiratory') ||
+          notes.contains('breathing');
+      if (breedRisk['isHighRisk'] == true && respiratoryTrait) {
+        out.add(
+          const UnderwritingExclusion(
+            type: UnderwritingExclusionType.breedLinked,
+            scope: 'respiratory',
+            triggerReason: 'BREED_TRAIT:RESPIRATORY',
+            effectiveAt: UnderwritingExclusionEffectiveAt.bind,
+            reviewable: false,
+            explanation:
+                'Respiratory conditions may be excluded based on breed-linked airway risk.',
+          ),
+        );
+      }
+    }
+
+    // Rules-driven exclusions (pre-existing conditions) remain first-class.
+    if (eligibilityResult.excludedConditions.isNotEmpty) {
+      final ruleId = (eligibilityResult.ruleViolated ?? 'EXCLUDABLE_CONDITION')
+          .toString()
+          .trim();
+
+      for (final condition in eligibilityResult.excludedConditions) {
+        final name = condition.trim();
+        if (name.isEmpty) continue;
+
+        out.add(
+          UnderwritingExclusion(
+            type: UnderwritingExclusionType.preExisting,
+            scope: name,
+            triggerReason: 'RULE:$ruleId',
+            effectiveAt: UnderwritingExclusionEffectiveAt.bind,
+            reviewable: true,
+            explanation:
+                '$name is excluded from coverage due to a pre-existing condition.',
+          ),
+        );
+      }
+    }
+
+    // Anomaly-derived exclusions (rare, targeted). Never blanket.
+    final confidence = constraintAssessment.confidenceScore;
+    if (confidence < _anomalyExclusionConfidenceThreshold) {
+      for (final anomaly in constraintAssessment.anomalyFindings) {
+        final sev = anomaly.severity;
+        if (sev != AnomalySeverity.high && sev != AnomalySeverity.critical) {
+          continue;
+        }
+
+        final exclusion = _tryMapAnomalyToTargetedExclusion(
+          pet: pet,
+          anomaly: anomaly,
+        );
+        if (exclusion == null) continue;
+
+        // De-dupe by (type, scope, triggerReason) to keep exclusions rare.
+        final key =
+            '${exclusion.type.name}|${exclusion.scope}|${exclusion.triggerReason}';
+        final seen = out
+            .map((e) => '${e.type.name}|${e.scope}|${e.triggerReason}')
+            .toSet();
+        if (seen.contains(key)) continue;
+
+        out.add(exclusion);
+      }
+    }
+
+    return out;
+  }
+
+  UnderwritingExclusion? _tryMapAnomalyToTargetedExclusion({
+    required Pet pet,
+    required AnomalyFlag anomaly,
+  }) {
+    switch (anomaly.type) {
+      case AnomalyFlagType.weightOutlier:
+        return UnderwritingExclusion(
+          type: UnderwritingExclusionType.anomalyDerived,
+          scope: 'orthopedic',
+          triggerReason: 'ANOMALY:${anomaly.type.name.toUpperCase()}',
+          effectiveAt: UnderwritingExclusionEffectiveAt.bind,
+          reviewable: true,
+          explanation:
+              'Orthopedic conditions are excluded based on an unusual size/weight profile until reviewed.',
+        );
+      case AnomalyFlagType.ageMismatch:
+        return UnderwritingExclusion(
+          type: UnderwritingExclusionType.anomalyDerived,
+          scope: 'age-related',
+          triggerReason: 'ANOMALY:${anomaly.type.name.toUpperCase()}',
+          effectiveAt: UnderwritingExclusionEffectiveAt.postBind,
+          reviewable: true,
+          explanation:
+              'Age-related conditions are excluded based on an unusual age profile until reviewed.',
+        );
+      case AnomalyFlagType.breedConflict:
+        return UnderwritingExclusion(
+          type: UnderwritingExclusionType.breedLinked,
+          scope: 'hereditary',
+          triggerReason: 'ANOMALY:${anomaly.type.name.toUpperCase()}',
+          effectiveAt: UnderwritingExclusionEffectiveAt.postBind,
+          reviewable: true,
+          explanation:
+              'Hereditary conditions are excluded until breed/species details are verified.',
+        );
+      case AnomalyFlagType.ownerReportingRisk:
+        // Keep anomaly-derived exclusions narrow: only apply when we can map to
+        // a specific, customer-explainable coverage area.
+        return null;
+    }
+  }
+
+  List<String> _buildRequiredEvidenceCodes({
+    required UnderwritingConstraintAssessment constraintAssessment,
+  }) {
+    final out = <String>[];
+    final confidence = constraintAssessment.confidenceScore;
+    if (confidence >= _anomalyExclusionConfidenceThreshold) {
+      return out;
+    }
+
+    for (final anomaly in constraintAssessment.anomalyFindings) {
+      final sev = anomaly.severity;
+      if (sev != AnomalySeverity.high && sev != AnomalySeverity.critical) {
+        continue;
+      }
+
+      switch (anomaly.type) {
+        case AnomalyFlagType.weightOutlier:
+          out.add('VERIFY_WEIGHT');
+          break;
+        case AnomalyFlagType.ageMismatch:
+          out.add('VERIFY_AGE');
+          break;
+        case AnomalyFlagType.breedConflict:
+          out.add('VERIFY_BREED_SPECIES');
+          break;
+        case AnomalyFlagType.ownerReportingRisk:
+          out.add('VERIFY_INTAKE');
+          break;
+      }
+    }
+
+    // De-dupe while preserving order.
+    final seen = <String>{};
+    final deduped = <String>[];
+    for (final code in out) {
+      if (seen.add(code)) deduped.add(code);
+    }
+    return deduped;
   }
 
   /// Calculate risk score WITH eligibility check
@@ -446,6 +830,22 @@ IMPORTANT:
         'riskScoreId': riskScore.id,
         'riskScore': riskScore.overallScore,
         'riskLevel': riskScore.riskLevel.toString(),
+        if (riskScore.confidenceScore != null)
+          'confidenceScore': riskScore.confidenceScore,
+        if (riskScore.credibilityRiskScore != null)
+          'credibilityRiskScore': riskScore.credibilityRiskScore,
+        if (riskScore.constraintRiskMultiplier != null)
+          'constraintRiskMultiplier': riskScore.constraintRiskMultiplier,
+        if (riskScore.anomalyFindings != null)
+          'anomalyFindings': riskScore.anomalyFindings,
+        if (riskScore.reviewTriggers != null)
+          'reviewTriggers': riskScore.reviewTriggers,
+        if (riskScore.constraintAudit != null)
+          'constraintAudit': riskScore.constraintAudit,
+        if (riskScore.exclusions != null)
+          'exclusions': riskScore.exclusions!.map((e) => e.toJson()).toList(),
+        if (riskScore.requiredEvidenceCodes != null)
+          'requiredEvidenceCodes': riskScore.requiredEvidenceCodes,
         'lastRiskAssessment': FieldValue.serverTimestamp(),
       });
     } catch (e) {
@@ -1288,6 +1688,41 @@ $topProtectiveFactors
       return 4.5; // Default cat weight
     }
     return 15.0; // Generic default
+  }
+
+  String _anomalyToRiskFactorDescription(AnomalyFlag anomaly) {
+    final prefix = switch (anomaly.type) {
+      AnomalyFlagType.weightOutlier => 'Weight anomaly',
+      AnomalyFlagType.ageMismatch => 'Age anomaly',
+      AnomalyFlagType.breedConflict => 'Breed/species anomaly',
+      AnomalyFlagType.ownerReportingRisk => 'Input credibility risk',
+    };
+    return '$prefix: ${anomaly.explanation}'.trim();
+  }
+
+  double _anomalyImpactToRiskFactorPoints(AnomalyFlag anomaly) {
+    // RiskFactor.impact is expected to be in roughly [-10, +10].
+    // Anomalies only ever increase risk (positive impact), but we keep it
+    // bounded to avoid swamping other explainability factors.
+    final typeWeight = switch (anomaly.type) {
+      AnomalyFlagType.weightOutlier => 1.20,
+      AnomalyFlagType.breedConflict => 1.10,
+      AnomalyFlagType.ageMismatch => 1.00,
+      AnomalyFlagType.ownerReportingRisk => 0.90,
+    };
+
+    final base = anomaly.severity.score * 8.0;
+    final points = (base * typeWeight).clamp(0.5, 10.0);
+    return points;
+  }
+
+  Severity _anomalySeverityToRiskFactorSeverity(AnomalySeverity severity) {
+    return switch (severity) {
+      AnomalySeverity.low => Severity.low,
+      AnomalySeverity.medium => Severity.medium,
+      AnomalySeverity.high => Severity.high,
+      AnomalySeverity.critical => Severity.critical,
+    };
   }
 
   String _generateId() {

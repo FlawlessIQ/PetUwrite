@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async';
 import 'package:flutter/rendering.dart';
 import '../theme/clovara_theme.dart';
@@ -10,17 +9,18 @@ import '../auth/login_screen.dart';
 import '../auth/customer_home_screen.dart';
 import '../models/pet.dart';
 import '../models/owner.dart';
-import '../services/risk_scoring_engine.dart';
 import '../services/conversational_ai_service.dart';
 import '../services/user_session_service.dart';
 import '../services/draft_service.dart';
+import '../ui/components/save_resume_dialog.dart';
 import '../services/underwriting_rules_engine.dart';
 import '../services/breed_size_guide.dart';
 import '../services/marketing_attribution_service.dart';
+import '../ui/components/clovara_logo.dart';
 import '../data/breed_catalog.dart';
-import '../ai/ai_service.dart';
 import '../ai/clover_persona.dart';
 import '../ai/clover_response_adapter.dart';
+import '../ui/components/max_width.dart';
 import 'ai_analysis_screen_v2.dart';
 
 /// Chatbot-style conversational quote flow with streaming text
@@ -294,27 +294,15 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       return;
     }
 
-    // Ensure there's a server-side draft saved for cross-device resume.
-    await _savePendingQuote();
-
-    try {
-      final draftService = DraftService();
-      final resumeKey = await draftService.getOrCreateLocalResumeKey();
-      await Clipboard.setData(
-        ClipboardData(text: draftService.encodeForSharing(resumeKey)),
-      );
-
-      if (!mounted) return;
-      final pretty = draftService.prettyCode(resumeKey);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Resume code copied: $pretty')));
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to copy resume code')),
-      );
-    }
+    await SaveResumeDialog.show(
+      context,
+      ensureSaved: _savePendingQuote,
+      title: 'Save & resume later',
+      body:
+          'We’ll save your progress. Use this code to resume from the home page on any device.',
+      copyLabel: 'Copy code',
+      doneLabel: 'Done',
+    );
   }
 
   /// Pre-fill user data from authentication
@@ -1086,24 +1074,6 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
         _isTyping = false;
       });
 
-      // Short pause to let user read the message
-      await Future.delayed(const Duration(milliseconds: 1500));
-
-      // Show analyzing message
-      setState(() {
-        _isTyping = true;
-      });
-
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      final analyzingMessage =
-          "Reviewing $petName's details and generating your quote...";
-      await _streamBotMessage(analyzingMessage, _questions.last);
-
-      setState(() {
-        _isTyping = false;
-      });
-
       // Create Pet model from answers
       final pet = _createPetFromAnswers();
 
@@ -1114,102 +1084,35 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       // Create Owner model from answers
       final owner = _createOwnerFromAnswers();
 
-      // Initialize AI service and calculate risk score
-      // Using Cloud Functions - no API key needed
-      final aiService = GPTService();
-      final riskEngine = RiskScoringEngine(aiService: aiService);
-
-      // Calculate risk score WITH eligibility check
-      final result = await riskEngine.calculateRiskScoreWithEligibility(
-        pet: pet,
-        owner: owner,
-      );
-
       // Complex cases may require additional medical underwriting questions,
       // but should not require sign-in just to view a quote.
       final bool needsMedicalUnderwriting =
           pet.preExistingConditions.isNotEmpty ||
-          (pet.isReceivingTreatment == true) ||
-          result.hasExclusions;
-
-      // Check if pet is eligible BEFORE showing plans
-      // If we already detected a rules-based decline earlier, prefer that reason.
-      final earlyDecline =
-          _earlyEligibility != null && _earlyEligibility!.eligible == false;
-      if ((!result.isEligible || earlyDecline) && mounted) {
-        final declineReason = earlyDecline
-            ? _earlyEligibility!.reason
-            : (result.rejectionReason ??
-                  'This application does not meet our current underwriting guidelines.');
-        // Show decline dialog
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: Row(
-              children: [
-                Icon(Icons.block, color: ClovaraColors.kWarmCoral),
-                const SizedBox(width: 12),
-                const Text('Application Declined'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Thanks for sharing ${petName}\'s details. Based on what you told us, we can\'t offer a new policy right now.',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(declineReason, style: const TextStyle(fontSize: 14)),
-                const SizedBox(height: 16),
-                Text(
-                  'If you think something is off or you\'d like to discuss alternatives, our underwriting team can help.',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close dialog
-                  Navigator.pop(context); // Return to home
-                },
-                child: const Text('Close'),
-              ),
-            ],
-          ),
-        );
-        return; // Stop here - don't navigate to analysis screen
-      }
+          (pet.isReceivingTreatment == true);
 
       // Note: Underwriting case creation (and sign-in) should happen later in the
       // checkout path, not before a user can see their quote.
 
-      // Pet is eligible - continue to analysis screen
+      // Navigate immediately to the analysis screen; it will compute risk/eligibility
+      // asynchronously while showing the analysis UI.
       if (mounted) {
-        // Clear pending quote since we're completing successfully
-        await UserSessionService().clearPendingQuote();
-        print('🗑️ Cleared pending quote');
+        unawaited(UserSessionService().clearPendingQuote());
+        print('🗑️ Clearing pending quote (async)');
 
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => AIAnalysisScreen(
               pet: pet,
-              riskScore: result.riskScore,
               routeArguments: {
                 'petData': _answers,
                 'pet': pet,
                 'owner': owner,
-                'riskScore': result.riskScore,
+                'quoteFlow': 'conversational',
                 'needsMedicalUnderwriting': needsMedicalUnderwriting,
-                'hasExclusions': result.hasExclusions,
-                'excludedConditions': result.excludedConditions,
+                if (_earlyEligibility != null &&
+                    _earlyEligibility!.eligible == false)
+                  'earlyDeclineReason': _earlyEligibility!.reason,
               },
             ),
           ),
@@ -1370,9 +1273,6 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     final firstName = nameParts.first;
     final lastName = nameParts.length > 1 ? nameParts.skip(1).join(' ') : '';
 
-    // Extract state from zip code (simplified - would use real zip lookup)
-    final state = _guessStateFromZipCode(zipCode);
-
     return Owner(
       id: 'owner_${DateTime.now().millisecondsSinceEpoch}',
       firstName: firstName,
@@ -1382,30 +1282,11 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       address: Address(
         street: '', // Not collected yet
         city: '', // Would need zip code lookup
-        state: state,
+        state: '', // Do not guess; server pricing canonicalizes from ZIP.
         zipCode: zipCode,
         country: 'USA',
       ),
     );
-  }
-
-  /// Guess state from zip code (simplified version)
-  String _guessStateFromZipCode(String zipCode) {
-    final zip = int.tryParse(zipCode) ?? 0;
-
-    // Simplified state mapping by zip code ranges
-    if (zip >= 10000 && zip <= 14999) return 'NY';
-    if (zip >= 90000 && zip <= 96699) return 'CA';
-    if (zip >= 60000 && zip <= 62999) return 'IL';
-    if (zip >= 75000 && zip <= 79999) return 'TX';
-    if (zip >= 30000 && zip <= 31999) return 'GA';
-    if (zip >= 98000 && zip <= 99499) return 'WA';
-    if (zip >= 85000 && zip <= 86599) return 'AZ';
-    if (zip >= 33000 && zip <= 34999) return 'FL';
-    if (zip >= 2000 && zip <= 2799) return 'MA';
-    if (zip >= 19100 && zip <= 19699) return 'PA';
-
-    return 'CA'; // Default fallback
   }
 
   String _formatQuestion(String question) {
@@ -1467,35 +1348,40 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
               );
             }
 
-            return Column(
-              children: [
-                // Header
-                _buildChatHeader(),
+            return MaxWidth(
+              maxWidth: 900,
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  // Header
+                  _buildChatHeader(),
 
-                // Messages
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 12 : 16,
-                      vertical: isMobile ? 16 : 20,
+                  // Messages
+                  Expanded(
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 12 : 16,
+                        vertical: isMobile ? 16 : 20,
+                      ),
+                      itemCount: _messages.length + (_isTyping ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == _messages.length && _isTyping) {
+                          return _buildTypingIndicator();
+                        }
+
+                        final message = _messages[index];
+                        return _buildMessageBubble(message);
+                      },
                     ),
-                    itemCount: _messages.length + (_isTyping ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == _messages.length && _isTyping) {
-                        return _buildTypingIndicator();
-                      }
-
-                      final message = _messages[index];
-                      return _buildMessageBubble(message);
-                    },
                   ),
-                ),
 
-                // Input area
-                if (_isWaitingForInput && _currentQuestion < _questions.length)
-                  _buildInputArea(),
-              ],
+                  // Input area
+                  if (_isWaitingForInput &&
+                      _currentQuestion < _questions.length)
+                    _buildInputArea(),
+                ],
+              ),
             );
           },
         ),
@@ -1555,6 +1441,43 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
         children: [
           Row(
             children: [
+              IconButton(
+                tooltip: 'Back to website home',
+                onPressed: () async {
+                  final hasProgress =
+                      _answers.isNotEmpty || _messages.isNotEmpty;
+                  if (hasProgress) {
+                    final shouldLeave = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Leave quote?'),
+                        content: const Text(
+                          'If you leave now, your progress may be lost.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Go to home'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (shouldLeave != true) return;
+                  }
+
+                  if (!mounted) return;
+                  context.go('/');
+                },
+                icon: const Icon(
+                  Icons.home_outlined,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
               // Clover Avatar
               Container(
                 width: 44,
@@ -1573,10 +1496,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                   child: Container(
                     color: Colors.white,
                     padding: const EdgeInsets.all(8),
-                    child: SvgPicture.asset(
-                      'assets/images/clovara_mark_refined.svg',
-                      fit: BoxFit.contain,
-                    ),
+                    child: const ClovaraMark(size: 28),
                   ),
                 ),
               ),
@@ -1607,12 +1527,12 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
               ),
               if (_answers.isNotEmpty)
                 IconButton(
-                  tooltip: 'Copy resume code',
+                  tooltip: 'Save & resume',
                   onPressed: () {
                     unawaited(_copyResumeCode());
                   },
                   icon: const Icon(
-                    Icons.content_copy,
+                    Icons.bookmark_add_outlined,
                     color: Colors.white,
                     size: 22,
                   ),
@@ -1700,10 +1620,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                     child: Container(
                       color: Colors.white,
                       padding: const EdgeInsets.all(6),
-                      child: SvgPicture.asset(
-                        'assets/images/clovara_mark_refined.svg',
-                        fit: BoxFit.contain,
-                      ),
+                      child: const ClovaraMark(size: 28),
                     ),
                   ),
                 ),
@@ -1817,10 +1734,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                           child: Container(
                             color: Colors.white,
                             padding: const EdgeInsets.all(6),
-                            child: SvgPicture.asset(
-                              'assets/images/clovara_mark_refined.svg',
-                              fit: BoxFit.contain,
-                            ),
+                            child: const ClovaraMark(size: 28),
                           ),
                         ),
                       ),

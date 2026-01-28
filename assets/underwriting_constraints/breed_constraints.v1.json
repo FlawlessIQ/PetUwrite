@@ -1,0 +1,378 @@
+{
+  "version": "v1",
+  "updatedAt": "2026-01-28",
+  "notes": "Deterministic underwriting constraint catalog. Values are reference ranges and confidence bands.",
+  "breedConstraints": {
+    "mixed breed - small": {
+      "species": "dog",
+      "typicalWeightLbs": [5, 25],
+      "maxHealthyWeightLbs": 30,
+      "anomalyThresholdLbs": 35,
+      "expectedLifespanYears": [13, 16],
+      "highRiskTraits": [],
+      "severityScaling": true
+    },
+    "mixed breed - medium": {
+      "species": "dog",
+      "typicalWeightLbs": [26, 60],
+      "maxHealthyWeightLbs": 65,
+      "anomalyThresholdLbs": 75,
+      "expectedLifespanYears": [10, 14],
+      "highRiskTraits": [],
+      "severityScaling": true
+    },
+     "mixed breed - large": {
+      "species": "dog",
+      "typicalWeightLbs": [61, 95],
+      "maxHealthyWeightLbs": 100,
+      "anomalyThresholdLbs": 120,
+      "expectedLifespanYears": [9, 12],
+      "highRiskTraits": [],
+      "severityScaling": true
+    },
+     "mixed breed - giant": {
+      "species": "dog",
+      "typicalWeightLbs": [96, 160],
+      "maxHealthyWeightLbs": 180,
+      "anomalyThresholdLbs": 200,
+      "expectedLifespanYears": [7, 10],
+      "highRiskTraits": ["joint_issues"],
+      "severityScaling": true
+    },
+    "labrador retriever": {
+      "species": "dog",
+      "typicalWeightLbs": [55, 80],
+      "maxHealthyWeightLbs": 90,
+      "anomalyThresholdLbs": 110,
+      "expectedLifespanYears": [10, 12],
+      "highRiskTraits": ["hip_dysplasia", "obesity_prone", "bloat_gdv_risk"],
+      "severityScaling": true
+    },
+    "golden retriever": {
+      "species": "dog",
+      "typicalWeightLbs": [55, 75],
+      "maxHealthyWeightLbs": 85,
+      "anomalyThresholdLbs": 100,
+      "expectedLifespanYears": [10, 12],
+      "highRiskTraits": ["hip_dysplasia", "cancer_risk", "skin_allergies"],
+      "severityScaling": true
+    },
+    "german shepherd": {
+      "species": "dog",
+      "typicalWeightLbs": [50, 90],
+      "maxHealthyWeightLbs": 95,
+      "anomalyThresholdLbs": 110,
+      "expectedLifespanYears": [9, 13],
+      "highRiskTraits": ["hip_dysplasia", "elbow_dysplasia", "bloat_gdv_risk", "degenerative_myelopathy"],
+      "severityScaling": true
+    },
+    "french bulldog": {
+      "species": "dog",
+      "typicalWeightLbs": [16, 28],
+      "maxHealthyWeightLbs": 35,
+      "anomalyThresholdLbs": 45,
+      "expectedLifespanYears": [10, 12],
+      "highRiskTraits": ["brachycephalic", "respiratory_risk", "spinal_issues_prone"],
+      "severityScaling": true
+    },
+    "bulldog": {
+      "species": "dog",
+      "typicalWeightLbs": [40, 50],
+      "maxHealthyWeightLbs": 60,
+      "anomalyThresholdLbs": 70,
+      "expectedLifespanYears": [8, 10],
+      "highRiskTraits": ["brachycephalic", "respiratory_risk", "hip_dysplasia"],
+      "severityScaling": true
+    },
+    "poodle (standard)": {
+      "species": "dog",
+      "typicalWeightLbs": [40, 70],
+      "maxHealthyWeightLbs": 75,
+      "anomalyThresholdLbs": 85,
+      "expectedLifespanYears": [12, 15],
+      "highRiskTraits": ["bloat_gdv_risk", "hip_dysplasia"],
+      "severityScaling": true
+    },
+    "poodle (miniature)": {
+      "species": "dog",
+      "typicalWeightLbs": [10, 15],
+      "maxHealthyWeightLbs": 18,
+      "anomalyThresholdLbs": 25,
+      "expectedLifespanYears": [13, 16],
+      "highRiskTraits": ["dental_disease_prone", "luxating_patella"],
+      "severityScaling": true
+    },
+     "poodle (toy)": {
+      "species": "dog",
+      "typicalWeightLbs": [4, 6],
+      "maxHealthyWeightLbs": 9,
+      "anomalyThresholdLbs": 12,
+      "expectedLifespanYears": [14, 18],
+      "highRiskTraits": ["dental_disease_prone", "luxating_patella"],
+      "severityScaling": true
+    },
+    "beagle": {
+      "species": "dog",
+      "typicalWeightLbs": [20, 30],
+      "maxHealthyWeightLbs": 35,
+      "anomalyThresholdLbs": 45,
+      "expectedLifespanYears": [12, 15],
+      "highRiskTraits": ["obesity_prone", "hip_dysplasia", "epilepsy_risk"],
+      "severityScaling": true
+    },
+    "rottweiler": {
+      "species": "dog",
+      "typicalWeightLbs": [80, 135],
+      "maxHealthyWeightLbs": 145,
+      "anomalyThresholdLbs": 160,
+      "expectedLifespanYears": [8, 10],
+      "highRiskTraits": ["hip_dysplasia", "cancer_risk", "bloat_gdv_risk"],
+      "severityScaling": true
+    },
+    "german shorthaired pointer": {
+      "species": "dog",
+      "typicalWeightLbs": [45, 70],
+      "maxHealthyWeightLbs": 75,
+      "anomalyThresholdLbs": 90,
+      "expectedLifespanYears": [12, 14],
+      "highRiskTraits": ["bloat_gdv_risk", "hip_dysplasia"],
+      "severityScaling": true
+    },
+    "dachshund (standard)": {
+      "species": "dog",
+      "typicalWeightLbs": [16, 32],
+      "maxHealthyWeightLbs": 35,
+      "anomalyThresholdLbs": 45,
+      "expectedLifespanYears": [12, 16],
+      "highRiskTraits": ["spinal_issues_prone", "disc_disease"],
+      "severityScaling": true
+    },
+    "dachshund (miniature)": {
+      "species": "dog",
+      "typicalWeightLbs": [8, 11],
+      "maxHealthyWeightLbs": 14,
+      "anomalyThresholdLbs": 18,
+      "expectedLifespanYears": [12, 16],
+      "highRiskTraits": ["spinal_issues_prone", "disc_disease", "dental_disease_prone"],
+      "severityScaling": true
+    },
+    "pembroke welsh corgi": {
+      "species": "dog",
+      "typicalWeightLbs": [24, 30],
+      "maxHealthyWeightLbs": 35,
+      "anomalyThresholdLbs": 45,
+      "expectedLifespanYears": [12, 15],
+      "highRiskTraits": ["disc_disease", "spinal_issues_prone", "hip_dysplasia"],
+      "severityScaling": true
+    },
+    "australian shepherd": {
+      "species": "dog",
+      "typicalWeightLbs": [40, 65],
+      "maxHealthyWeightLbs": 70,
+      "anomalyThresholdLbs": 85,
+      "expectedLifespanYears": [12, 15],
+      "highRiskTraits": ["hip_dysplasia", "drug_sensitivity_mdr1"],
+      "severityScaling": true
+    },
+    "yorkshire terrier": {
+      "species": "dog",
+      "typicalWeightLbs": [4, 7],
+      "maxHealthyWeightLbs": 10,
+      "anomalyThresholdLbs": 15,
+      "expectedLifespanYears": [13, 16],
+      "highRiskTraits": ["toy_breed", "dental_disease_prone", "luxating_patella"],
+      "severityScaling": true
+    },
+    "boxer": {
+      "species": "dog",
+      "typicalWeightLbs": [50, 80],
+      "maxHealthyWeightLbs": 90,
+      "anomalyThresholdLbs": 105,
+      "expectedLifespanYears": [10, 12],
+      "highRiskTraits": ["cancer_risk", "heart_conditions_prone", "bloat_gdv_risk"],
+      "severityScaling": true
+    },
+    "siberian husky": {
+      "species": "dog",
+      "typicalWeightLbs": [35, 60],
+      "maxHealthyWeightLbs": 65,
+      "anomalyThresholdLbs": 80,
+      "expectedLifespanYears": [12, 15],
+      "highRiskTraits": ["hip_dysplasia", "eye_conditions_prone"],
+      "severityScaling": true
+    },
+    "cavalier king charles spaniel": {
+      "species": "dog",
+      "typicalWeightLbs": [13, 18],
+      "maxHealthyWeightLbs": 22,
+      "anomalyThresholdLbs": 30,
+      "expectedLifespanYears": [9, 14],
+      "highRiskTraits": ["heart_conditions_prone", "syringomyelia_risk"],
+      "severityScaling": true
+    },
+    "great dane": {
+      "species": "dog",
+      "typicalWeightLbs": [110, 175],
+      "maxHealthyWeightLbs": 190,
+      "anomalyThresholdLbs": 210,
+      "expectedLifespanYears": [7, 10],
+      "highRiskTraits": ["giant_breed", "bloat_gdv_risk", "cardiomyopathy_risk", "hip_dysplasia"],
+      "severityScaling": true
+    },
+    "doberman pinscher": {
+      "species": "dog",
+      "typicalWeightLbs": [60, 100],
+      "maxHealthyWeightLbs": 110,
+      "anomalyThresholdLbs": 125,
+      "expectedLifespanYears": [10, 12],
+      "highRiskTraits": ["cardiomyopathy_risk", "bloat_gdv_risk", "wobbler_syndrome"],
+      "severityScaling": true
+    },
+    "shih tzu": {
+      "species": "dog",
+      "typicalWeightLbs": [9, 16],
+      "maxHealthyWeightLbs": 18,
+      "anomalyThresholdLbs": 22,
+      "expectedLifespanYears": [10, 16],
+      "highRiskTraits": ["brachycephalic", "dental_disease_prone", "eye_conditions_prone"],
+      "severityScaling": true
+    },
+    "boston terrier": {
+      "species": "dog",
+      "typicalWeightLbs": [12, 25],
+      "maxHealthyWeightLbs": 30,
+      "anomalyThresholdLbs": 40,
+      "expectedLifespanYears": [11, 13],
+      "highRiskTraits": ["brachycephalic", "respiratory_risk", "eye_conditions_prone"],
+      "severityScaling": true
+    },
+     "bernese mountain dog": {
+      "species": "dog",
+      "typicalWeightLbs": [70, 115],
+      "maxHealthyWeightLbs": 125,
+      "anomalyThresholdLbs": 140,
+      "expectedLifespanYears": [7, 10],
+      "highRiskTraits": ["cancer_risk", "hip_dysplasia", "bloat_gdv_risk"],
+      "severityScaling": true
+    },
+    "havanese": {
+      "species": "dog",
+      "typicalWeightLbs": [7, 13],
+      "maxHealthyWeightLbs": 16,
+      "anomalyThresholdLbs": 20,
+      "expectedLifespanYears": [14, 16],
+      "highRiskTraits": ["luxating_patella", "dental_disease_prone"],
+      "severityScaling": true
+    },
+     "chihuahua": {
+      "species": "dog",
+      "typicalWeightLbs": [3, 6],
+      "maxHealthyWeightLbs": 9,
+      "anomalyThresholdLbs": 12,
+      "expectedLifespanYears": [12, 20],
+      "highRiskTraits": ["toy_breed", "dental_disease_prone", "tracheal_collapse_risk", "luxating_patella"],
+      "severityScaling": true
+    },
+    "mixed breed - cat": {
+      "species": "cat",
+      "typicalWeightLbs": [6, 12],
+      "maxHealthyWeightLbs": 15,
+      "anomalyThresholdLbs": 18,
+      "expectedLifespanYears": [12, 18],
+      "highRiskTraits": [],
+      "severityScaling": true
+    },
+    "domestic short hair": {
+      "species": "cat",
+      "typicalWeightLbs": [6, 12],
+      "maxHealthyWeightLbs": 15,
+      "anomalyThresholdLbs": 18,
+      "expectedLifespanYears": [12, 18],
+      "highRiskTraits": [],
+      "severityScaling": true
+    },
+     "domestic long hair": {
+      "species": "cat",
+      "typicalWeightLbs": [8, 15],
+      "maxHealthyWeightLbs": 18,
+      "anomalyThresholdLbs": 22,
+      "expectedLifespanYears": [12, 18],
+      "highRiskTraits": [],
+      "severityScaling": true
+    },
+    "maine coon": {
+      "species": "cat",
+      "typicalWeightLbs": [9, 18],
+      "maxHealthyWeightLbs": 22,
+      "anomalyThresholdLbs": 28,
+      "expectedLifespanYears": [10, 15],
+      "highRiskTraits": ["hypertrophic_cardiomyopathy_risk", "hip_dysplasia"],
+      "severityScaling": true
+    },
+    "ragdoll": {
+      "species": "cat",
+      "typicalWeightLbs": [10, 20],
+      "maxHealthyWeightLbs": 24,
+      "anomalyThresholdLbs": 28,
+      "expectedLifespanYears": [12, 17],
+      "highRiskTraits": ["hypertrophic_cardiomyopathy_risk", "bladder_stones_prone"],
+      "severityScaling": true
+    },
+     "siamese": {
+      "species": "cat",
+      "typicalWeightLbs": [5, 10],
+      "maxHealthyWeightLbs": 14,
+      "anomalyThresholdLbs": 18,
+      "expectedLifespanYears": [12, 20],
+      "highRiskTraits": ["dental_disease_prone", "respiratory_issues_prone"],
+      "severityScaling": true
+    },
+    "persian": {
+      "species": "cat",
+      "typicalWeightLbs": [7, 12],
+      "maxHealthyWeightLbs": 14,
+      "anomalyThresholdLbs": 17,
+      "expectedLifespanYears": [12, 17],
+      "highRiskTraits": ["brachycephalic", "polycystic_kidney_disease", "respiratory_risk"],
+      "severityScaling": true
+    },
+    "bengal": {
+      "species": "cat",
+      "typicalWeightLbs": [8, 15],
+      "maxHealthyWeightLbs": 18,
+      "anomalyThresholdLbs": 22,
+      "expectedLifespanYears": [12, 16],
+      "highRiskTraits": ["hypertrophic_cardiomyopathy_risk"],
+      "severityScaling": true
+    },
+     "sphynx": {
+      "species": "cat",
+      "typicalWeightLbs": [6, 12],
+      "maxHealthyWeightLbs": 14,
+      "anomalyThresholdLbs": 17,
+      "expectedLifespanYears": [12, 15],
+      "highRiskTraits": ["heart_conditions_prone", "skin_issues"],
+      "severityScaling": true
+    }
+  },
+  "breedAliases": {
+    "lab": "labrador retriever",
+    "golden": "golden retriever",
+    "gsd": "german shepherd",
+    "shepherd": "german shepherd",
+    "frenchie": "french bulldog",
+    "bully": "bulldog",
+    "english bulldog": "bulldog",
+    "american bulldog": "bulldog",
+    "corgi": "pembroke welsh corgi",
+    "aussie": "australian shepherd",
+    "yorkie": "yorkshire terrier",
+    "husky": "siberian husky",
+    "cavalier": "cavalier king charles spaniel",
+    "dobe": "doberman pinscher",
+    "chi": "chihuahua",
+    "chiwawa": "chihuahua",
+    "dsh": "domestic short hair",
+    "dlh": "domestic long hair"
+  }
+}

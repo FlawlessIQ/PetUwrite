@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
 import 'customer_home_screen.dart';
 import '../screens/admin_console_screen.dart';
-import '../screens/homepage.dart';
 
 /// AuthGate handles routing users based on authentication status and role
 /// 
@@ -32,8 +32,15 @@ class AuthGate extends StatelessWidget {
         // Treat anonymous sessions as unauthenticated for routing purposes.
         // We use anonymous auth to secure Storage/Firestore writes during
         // underwriting, but we don't want to force a full account/profile.
+        // When unauthenticated, always land on the marketing site home
+        // (ShellRoute '/') which renders lib/pages/home_page.dart.
         if (!snapshot.hasData || snapshot.data?.isAnonymous == true) {
-          return const Homepage();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) context.go('/');
+          });
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
         // User is logged in - check their role

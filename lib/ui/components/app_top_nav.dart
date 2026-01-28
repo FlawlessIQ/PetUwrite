@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../tokens.dart';
 import 'buttons.dart';
+import 'clovara_logo.dart';
 import 'max_width.dart';
 
 class AppTopNav extends StatelessWidget {
@@ -39,22 +39,12 @@ class AppTopNav extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              SvgPicture.asset(
-                                'assets/images/clovara_mark_refined.svg',
-                                height: 26,
-                                colorFilter: const ColorFilter.mode(
-                                  AppColors.deepGreen,
-                                  BlendMode.srcIn,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Clovara',
-                                style: Theme.of(context).textTheme.titleLarge!
-                                    .copyWith(
-                                      color: AppColors.deepGreen,
-                                      fontSize: 18,
-                                    ),
+                              const ClovaraLogoLockup(
+                                compact: true,
+                                boxedMark: false,
+                                markSize: 26,
+                                textSize: 18,
+                                markColor: AppColors.deepGreen,
                               ),
                             ],
                           ),

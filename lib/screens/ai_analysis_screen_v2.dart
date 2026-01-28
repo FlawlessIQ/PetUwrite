@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:math' as math;
 import 'dart:async';
 import '../theme/clovara_theme.dart';
 import '../models/risk_score.dart';
 import '../models/pet.dart';
+import '../models/owner.dart';
+import '../ui/components/max_width.dart';
+import '../services/risk_scoring_engine.dart';
+import '../services/user_session_service.dart';
+import '../ai/ai_service.dart';
 import 'plan_selection_screen.dart';
 import 'medical_underwriting_screen.dart';
 
@@ -11,13 +17,13 @@ import 'medical_underwriting_screen.dart';
 /// Displays: risk calculation progress, score gauge, AI insights, recommendations
 class AIAnalysisScreen extends StatefulWidget {
   final Pet pet;
-  final RiskScore riskScore;
+  final RiskScore? riskScore;
   final Map<String, dynamic> routeArguments;
 
   const AIAnalysisScreen({
     super.key,
     required this.pet,
-    required this.riskScore,
+    this.riskScore,
     required this.routeArguments,
   });
 
@@ -44,9 +50,23 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
   int _currentStep = 0;
   final List<AnalysisStep> _steps = [];
 
+  RiskScoringResult? _result;
+  String? _fatalError;
+
+  bool _analysisComplete = false;
+  bool _navigationStarted = false;
+
+  RiskScore? get _activeRiskScore => _result?.riskScore ?? widget.riskScore;
+
+  bool get _hasComputedScore => _activeRiskScore != null;
+
   @override
   void initState() {
     super.initState();
+
+    // Kick off underwriting computation ASAP so we can navigate quickly
+    // after the animation finishes.
+    _beginCompute();
 
     // Initialize steps based on risk score
     _steps.addAll([
@@ -92,12 +112,234 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
       vsync: this,
     );
 
-    _scoreAnimation =
-        Tween<double>(begin: 0.0, end: widget.riskScore.overallScore).animate(
-          CurvedAnimation(parent: _scoreController, curve: Curves.easeOutCubic),
-        );
+    final initialScore = widget.riskScore?.overallScore ?? 0.0;
+    _scoreAnimation = Tween<double>(begin: 0.0, end: initialScore).animate(
+      CurvedAnimation(parent: _scoreController, curve: Curves.easeOutCubic),
+    );
 
     _startAnalysis();
+  }
+
+  Future<void> _maybeRouteNext() async {
+    if (!mounted || _navigationStarted) return;
+
+    if (_fatalError != null) {
+      _navigationStarted = true;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Unable to Generate Quote'),
+          content: const Text(
+            'We hit an issue generating your quote. Please try again in a moment.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final computedRiskScore = _result?.riskScore ?? widget.riskScore;
+    final computedEligibility = _result?.eligibilityResult;
+    if (computedRiskScore == null) {
+      // Computation is still running; keep showing the analysis screen.
+      return;
+    }
+
+    // If computed result says declined, show a decline dialog here.
+    final earlyDeclineReason = widget.routeArguments['earlyDeclineReason']
+        ?.toString();
+    final isDeclined =
+        computedEligibility != null && computedEligibility.eligible == false;
+    if (isDeclined) {
+      _navigationStarted = true;
+      final eligibilityReason = computedEligibility.reason.trim();
+      final declineReason = earlyDeclineReason?.trim().isNotEmpty == true
+          ? earlyDeclineReason!
+          : (eligibilityReason.isNotEmpty
+                ? eligibilityReason
+                : 'This application does not meet our current underwriting guidelines.');
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.block, color: ClovaraColors.kWarmCoral),
+              const SizedBox(width: 12),
+              const Text('Application Declined'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Thanks for sharing ${widget.pet.name}\'s details. Based on what you told us, we can\'t offer a new policy right now.',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(declineReason, style: const TextStyle(fontSize: 14)),
+              const SizedBox(height: 16),
+              Text(
+                'If you think something is off or you\'d like to discuss alternatives, our underwriting team can help.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    _navigationStarted = true;
+
+    // Route through medical underwriting when we need additional disclosures/questions.
+    final hasPreExistingConditions =
+        widget.pet.preExistingConditions.isNotEmpty &&
+        widget.pet.preExistingConditions.any(
+          (condition) => condition != 'None' && condition.isNotEmpty,
+        );
+    final hasRuleExclusions =
+        widget.routeArguments['hasExclusions'] == true ||
+        (widget.routeArguments['excludedConditions'] is List &&
+            (widget.routeArguments['excludedConditions'] as List).isNotEmpty);
+    final needsMedicalUnderwriting =
+        widget.routeArguments['needsMedicalUnderwriting'] == true;
+
+    // Rule-derived exclusions are handled as disclosures in the quote/checkout
+    // flow and should not force the medical-underwriting questionnaire.
+    final requiresUnderwriting =
+        hasPreExistingConditions || needsMedicalUnderwriting;
+
+    print(
+      '🧭 Underwriting routing: requires=$requiresUnderwriting preExisting=$hasPreExistingConditions hasRuleExclusions=$hasRuleExclusions needsMedicalUnderwriting=$needsMedicalUnderwriting conditions=${widget.pet.preExistingConditions.isEmpty ? '(none)' : widget.pet.preExistingConditions.join(', ')}',
+    );
+
+    if (!mounted) return;
+    if (requiresUnderwriting) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MedicalUnderwritingScreen(
+            pet: widget.pet,
+            riskScore: computedRiskScore,
+            quoteData: widget.routeArguments,
+          ),
+        ),
+      );
+    } else {
+      final nextArgs = <String, dynamic>{
+        ...widget.routeArguments,
+        'riskScore': computedRiskScore,
+        'hasExclusions':
+            (computedRiskScore.exclusions?.isNotEmpty ?? false) ||
+            (computedEligibility?.hasExclusions ?? false),
+        'excludedConditions':
+            computedEligibility?.excludedConditions ?? const <String>[],
+        // Ensure plan selection/checkout surfaces deterministic exclusions.
+        'exclusions': (computedRiskScore.exclusions ?? const [])
+            .map((e) => e.toPolicyExclusionJson())
+            .toList(growable: false),
+        'pricingEnabled': true,
+        'underwritingStatus': 'APPROVED',
+        'underwritingReason': 'NO_DISCLOSED_CONDITIONS',
+        'integrityPassed': true,
+      };
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const PlanSelectionScreen(),
+          settings: RouteSettings(arguments: nextArgs),
+        ),
+      );
+    }
+  }
+
+  void _beginCompute() {
+    // If caller already provided a computed risk score, we can skip.
+    if (widget.riskScore != null) {
+      // Best-effort: treat as computed result-less state.
+      return;
+    }
+
+    () async {
+      try {
+        final owner = widget.routeArguments['owner'];
+        if (owner is! Owner) {
+          throw Exception('Missing owner details for underwriting computation');
+        }
+
+        final flow = (widget.routeArguments['quoteFlow'] ?? '').toString();
+        final quoteVelocity = await UserSessionService().recordQuoteAttempt(
+          flow: flow.isEmpty ? 'unknown' : flow,
+        );
+
+        final aiService = GPTService();
+        final riskEngine = RiskScoringEngine(aiService: aiService);
+        final result = await riskEngine.calculateRiskScoreWithEligibility(
+          pet: widget.pet,
+          owner: owner,
+          additionalData: {'quoteVelocity': quoteVelocity},
+        );
+
+        if (!mounted) return;
+        setState(() {
+          _result = result;
+          // Update score animation to target actual score.
+          _scoreAnimation =
+              Tween<double>(
+                begin: 0.0,
+                end: result.riskScore.overallScore,
+              ).animate(
+                CurvedAnimation(
+                  parent: _scoreController,
+                  curve: Curves.easeOutCubic,
+                ),
+              );
+        });
+
+        // If the analysis animation already finished, we can route now.
+        if (_analysisComplete) {
+          // If the score animation already ran against a placeholder value,
+          // restart it so the gauge animates to the real score.
+          if (_scoreController.status != AnimationStatus.forward) {
+            _scoreController.forward(from: 0.0);
+          }
+          await _maybeRouteNext();
+        }
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _fatalError = e.toString();
+        });
+
+        if (_analysisComplete) {
+          await _maybeRouteNext();
+        }
+      }
+    }();
   }
 
   void _onUserScrollActivity() {
@@ -142,66 +384,22 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
 
     // Start score animation
     if (mounted) {
+      _analysisComplete = true;
+
+      // If underwriting compute already failed, show an error now.
+      if (_fatalError != null) {
+        await _maybeRouteNext();
+        return;
+      }
+
       // When insights become visible, scroll to the score section.
       _autoScrollTo(_scoreGaugeKey, alignment: 0.08);
       _scoreController.forward();
       // Wait longer to allow user to see insights
       await Future.delayed(const Duration(milliseconds: 4000));
 
-      // Route through medical underwriting when we need additional disclosures/questions.
-      final hasPreExistingConditions =
-          widget.pet.preExistingConditions.isNotEmpty &&
-          widget.pet.preExistingConditions.any(
-            (condition) => condition != 'None' && condition.isNotEmpty,
-          );
-      final hasRuleExclusions =
-          widget.routeArguments['hasExclusions'] == true ||
-          (widget.routeArguments['excludedConditions'] is List &&
-              (widget.routeArguments['excludedConditions'] as List).isNotEmpty);
-      final needsMedicalUnderwriting =
-          widget.routeArguments['needsMedicalUnderwriting'] == true;
-
-      final requiresUnderwriting =
-          hasPreExistingConditions ||
-          hasRuleExclusions ||
-          needsMedicalUnderwriting;
-
-      print(
-        '🧭 Underwriting routing: requires=$requiresUnderwriting preExisting=$hasPreExistingConditions hasRuleExclusions=$hasRuleExclusions needsMedicalUnderwriting=$needsMedicalUnderwriting conditions=${widget.pet.preExistingConditions.isEmpty ? '(none)' : widget.pet.preExistingConditions.join(', ')}',
-      );
-
-      // Navigate to appropriate screen
-      if (mounted) {
-        if (requiresUnderwriting) {
-          // Route through medical underwriting for detailed history collection
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MedicalUnderwritingScreen(
-                pet: widget.pet,
-                riskScore: widget.riskScore,
-                quoteData: widget.routeArguments,
-              ),
-            ),
-          );
-        } else {
-          // Skip underwriting for healthy pets
-          final nextArgs = <String, dynamic>{
-            ...widget.routeArguments,
-            'pricingEnabled': true,
-            'underwritingStatus': 'APPROVED',
-              'underwritingReason': 'NO_DISCLOSED_CONDITIONS',
-              'integrityPassed': true,
-          };
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const PlanSelectionScreen(),
-              settings: RouteSettings(arguments: nextArgs),
-            ),
-          );
-        }
-      }
+      // Route if we have a computed result; otherwise we'll route when compute completes.
+      await _maybeRouteNext();
     }
   }
 
@@ -231,63 +429,106 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
           },
           child: SingleChildScrollView(
             controller: _scrollController,
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 40),
+            child: MaxWidth(
+              maxWidth: kIsWeb ? 600 : double.infinity,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 40),
 
-                  // Agent avatar
-                  _buildAvatar(),
+                    // Agent avatar
+                    _buildAvatar(),
 
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 32),
 
-                  // Title
-                  Text(
-                    showInsights ? 'Analysis Complete' : 'Analyzing Coverage',
-                    style: ClovaraTypography.h2.copyWith(color: Colors.white),
-                  ),
-
-                  const SizedBox(height: 48),
-
-                  // Analysis steps
-                  ...List.generate(
-                    _steps.length,
-                    (index) => _buildStepCard(index),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Risk score gauge (shown after steps complete)
-                  if (showInsights)
-                    AnimatedOpacity(
-                      opacity: 1.0,
-                      duration: const Duration(milliseconds: 500),
-                      child: Column(
-                        children: [
-                          KeyedSubtree(key: _scoreGaugeKey, child: _buildScoreGauge()),
-                          const SizedBox(height: 32),
-                          KeyedSubtree(
-                            key: _categoryScoresKey,
-                            child: _buildCategoryScores(),
-                          ),
-                          const SizedBox(height: 24),
-                          KeyedSubtree(
-                            key: _riskFactorsKey,
-                            child: _buildRiskFactors(),
-                          ),
-                          const SizedBox(height: 24),
-                          if (widget.riskScore.aiAnalysis != null)
-                            KeyedSubtree(
-                              key: _aiInsightsKey,
-                              child: _buildAIInsights(),
-                            ),
-                        ],
-                      ),
+                    // Title
+                    Text(
+                      showInsights ? 'Analysis Complete' : 'Analyzing Coverage',
+                      style: ClovaraTypography.h2.copyWith(color: Colors.white),
                     ),
 
-                  const SizedBox(height: 24),
-                ],
+                    const SizedBox(height: 48),
+
+                    // Analysis steps
+                    ...List.generate(
+                      _steps.length,
+                      (index) => _buildStepCard(index),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Risk score gauge (shown after steps complete)
+                    if (showInsights)
+                      AnimatedOpacity(
+                        opacity: 1.0,
+                        duration: const Duration(milliseconds: 500),
+                        child: Column(
+                          children: [
+                            if (!_hasComputedScore) ...[
+                              Container(
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.12),
+                                  ),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        'Finalizing your quote…',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else ...[
+                              KeyedSubtree(
+                                key: _scoreGaugeKey,
+                                child: _buildScoreGauge(),
+                              ),
+                              const SizedBox(height: 32),
+                              KeyedSubtree(
+                                key: _categoryScoresKey,
+                                child: _buildCategoryScores(),
+                              ),
+                              const SizedBox(height: 24),
+                              KeyedSubtree(
+                                key: _riskFactorsKey,
+                                child: _buildRiskFactors(),
+                              ),
+                              const SizedBox(height: 24),
+                              if ((_activeRiskScore?.aiAnalysis ?? '')
+                                  .trim()
+                                  .isNotEmpty)
+                                KeyedSubtree(
+                                  key: _aiInsightsKey,
+                                  child: _buildAIInsights(),
+                                ),
+                            ],
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
           ),
@@ -440,6 +681,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
   }
 
   Widget _buildScoreGauge() {
+    final riskScore = _activeRiskScore;
+    if (riskScore == null) return const SizedBox.shrink();
+
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -514,11 +758,11 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
-              color: _getScoreColor(widget.riskScore.overallScore),
+              color: _getScoreColor(riskScore.overallScore),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              _getRiskLevelText(widget.riskScore.riskLevel),
+              _getRiskLevelText(riskScore.riskLevel),
               style: ClovaraTypography.button.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -560,6 +804,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
   }
 
   Widget _buildCategoryScores() {
+    final riskScore = _activeRiskScore;
+    if (riskScore == null) return const SizedBox.shrink();
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -589,7 +836,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
             ],
           ),
           const SizedBox(height: 20),
-          ...widget.riskScore.categoryScores.entries.map((entry) {
+          ...riskScore.categoryScores.entries.map((entry) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Column(
@@ -635,6 +882,9 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
   }
 
   Widget _buildRiskFactors() {
+    final riskScore = _activeRiskScore;
+    if (riskScore == null) return const SizedBox.shrink();
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -668,7 +918,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
             ],
           ),
           const SizedBox(height: 20),
-          ...widget.riskScore.riskFactors.map((factor) {
+          ...riskScore.riskFactors.map((factor) {
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
@@ -739,6 +989,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
   }
 
   Widget _buildAIInsights() {
+    final aiText = (_activeRiskScore?.aiAnalysis ?? '').trim();
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -787,7 +1038,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            widget.riskScore.aiAnalysis ?? 'No AI insights available',
+            aiText.isNotEmpty ? aiText : 'No AI insights available',
             style: ClovaraTypography.body.copyWith(
               color: Colors.white,
               height: 1.6,

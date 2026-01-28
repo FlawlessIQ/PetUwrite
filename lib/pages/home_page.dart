@@ -1,3 +1,4 @@
+// Home page
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,7 @@ import '../ui/components/gradient_border.dart';
 import '../ui/components/max_width.dart';
 import '../ui/components/premium_card.dart';
 import '../ui/components/buttons.dart';
+import '../ui/components/clovara_logo.dart';
 import '../ui/components/section.dart';
 import '../ui/components/section_break.dart';
 import '../ui/tokens.dart';
@@ -22,7 +24,7 @@ class HomePage extends StatelessWidget {
     return Column(
       children: [
         Section(
-          verticalPadding: 32,
+          verticalPadding: 28,
           child: const MaxWidth(child: _HeroSection()),
         ),
 
@@ -33,7 +35,6 @@ class HomePage extends StatelessWidget {
 
         Section(
           backgroundColor: AppColors.surface2,
-          verticalPadding: 34,
           child: MaxWidth(child: const _ContinuationHub()),
         ),
 
@@ -44,7 +45,6 @@ class HomePage extends StatelessWidget {
         ),
 
         Section(
-          verticalPadding: 34,
           child: MaxWidth(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -120,7 +120,6 @@ class HomePage extends StatelessWidget {
 
         Section(
           backgroundColor: AppColors.surface2,
-          verticalPadding: 34,
           child: MaxWidth(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -203,7 +202,7 @@ class HomePage extends StatelessWidget {
         ),
 
         Section(
-          verticalPadding: 32,
+          verticalPadding: 24,
           child: MaxWidth(
             maxWidth: 1200,
             child: GradientBorder(
@@ -300,37 +299,48 @@ class _HeroSection extends StatelessWidget {
             final bodyStyle = Theme.of(context).textTheme.bodyLarge!.copyWith(
               color: AppColors.textMuted,
               height: 1.6,
+              fontSize: isDesktop ? 19 : (isMobile ? 17 : 18),
             );
 
             final helperStyle = Theme.of(context).textTheme.bodySmall!.copyWith(
               color: AppColors.textMuted,
               height: 1.35,
               fontWeight: FontWeight.w600,
+              fontSize: isMobile ? 15 : 15.5,
             );
 
             final cta = LayoutBuilder(
               builder: (context, c) {
                 final fullWidth = c.maxWidth < 520;
-                return SizedBox(
-                  width: fullWidth ? double.infinity : 300,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: PrimaryButton(
-                          label: 'Get a quote',
-                          icon: Icons.pets,
-                          onPressed: () => context.go('/quote'),
+                final buttonWidth = fullWidth ? double.infinity : 320.0;
+
+                return Align(
+                  alignment: Alignment.center,
+                  child: SizedBox(
+                    width: buttonWidth,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          height: 56,
+                          child: PrimaryButton(
+                            label: 'Get a quote',
+                            icon: Icons.pets,
+                            textStyle: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                            ),
+                            onPressed: () => context.go('/quote'),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Takes about 2 minutes. No phone calls, no spam.',
-                        style: helperStyle,
-                      ),
-                    ],
+                        const SizedBox(height: 10),
+                        Text(
+                          'Takes about 2 minutes. No phone calls, no spam.',
+                          style: helperStyle,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -341,6 +351,12 @@ class _HeroSection extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const ClovaraLogoLockup(
+                    compact: true,
+                    boxedMark: false,
+                    markSize: 22,
+                  ),
+                  const SizedBox(height: 18),
                   Text(
                     'Pet insurance that actually makes sense.',
                     style: headingStyle,
@@ -1113,7 +1129,6 @@ class _MiniProcessGroup extends StatelessWidget {
             titleStyle: stepTitleStyle,
             descStyle: stepDescStyle,
           ),
-          if (i != steps.length - 1) const SizedBox(height: 10),
         ],
       ],
     );
@@ -1137,75 +1152,80 @@ class _MiniProcessStepRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const badgeSize = 22.0;
+    const gutterWidth = 28.0;
+    const lineWidth = 1.0;
+    const gapToPrevious = 10.0;
+    const gapToNext = 10.0;
+
     final lineColor = AppColors.borderTint;
     final badgeBorder = AppColors.border;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 28,
-          height: 36,
-          child: Stack(
-            children: [
-              if (!isFirst)
-                Positioned(
-                  left: 13.5,
-                  top: 0,
-                  height: 10,
-                  child: Container(width: 1, color: lineColor),
-                ),
-              if (!isLast)
-                Positioned(
-                  left: 13.5,
-                  top: 26,
-                  bottom: 0,
-                  child: Container(width: 1, color: lineColor),
-                ),
-              Align(
-                alignment: Alignment.center,
-                child: Container(
-                  height: 22,
-                  width: 22,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: badgeBorder),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${step.number}',
-                      style: Theme.of(context).textTheme.labelMedium!.copyWith(
-                        color: AppColors.deepGreen,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    final badge = Container(
+      height: badgeSize,
+      width: badgeSize,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: badgeBorder),
+      ),
+      child: Center(
+        child: Text(
+          '${step.number}',
+          style: Theme.of(context).textTheme.labelMedium!.copyWith(
+            color: AppColors.deepGreen,
+            fontWeight: FontWeight.w800,
           ),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                step.title,
-                style: titleStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                step.description,
-                style: descStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+      ),
+    );
+
+    return Stack(
+      children: [
+        if (!isFirst)
+          Positioned(
+            left: (badgeSize / 2) - (lineWidth / 2),
+            top: 0,
+            height: gapToPrevious,
+            child: Container(width: lineWidth, color: lineColor),
           ),
+        if (!isLast)
+          Positioned(
+            left: (badgeSize / 2) - (lineWidth / 2),
+            top: badgeSize + 4,
+            bottom: 0,
+            child: Container(width: lineWidth, color: lineColor),
+          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: gutterWidth,
+              child: Align(alignment: Alignment.topLeft, child: badge),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    step.title,
+                    style: titleStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    step.description,
+                    style: descStyle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (!isLast) const SizedBox(height: gapToNext),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );

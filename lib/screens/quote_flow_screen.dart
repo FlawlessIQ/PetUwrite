@@ -4,13 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/login_screen.dart';
 import '../auth/customer_home_screen.dart';
 import '../theme/clovara_theme.dart';
-import '../ai/ai_service.dart';
 import '../models/owner.dart';
 import '../models/pet.dart';
-import '../services/risk_scoring_engine.dart';
 import '../services/marketing_attribution_service.dart';
-import 'medical_underwriting_screen.dart';
-import 'plan_selection_screen.dart';
+import 'ai_analysis_screen_v2.dart';
 
 /// Quote flow screen for getting insurance quotes
 class QuoteFlowScreen extends StatefulWidget {
@@ -27,7 +24,15 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
 
   bool _isSubmitting = false;
 
-  final Map<String, dynamic> _formData = {'species': null, 'dateOfBirth': null};
+  final Map<String, dynamic> _formData = {
+    'species': null,
+    'dateOfBirth': null,
+    'gender': null,
+    'isNeutered': null,
+    'weightLbs': null,
+    'preExistingConditionTypes': <String>[],
+    'preExistingConditionOtherText': '',
+  };
 
   final _petFormKey = GlobalKey<FormState>();
   final _ownerFormKey = GlobalKey<FormState>();
@@ -36,6 +41,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
   late final TextEditingController _petNameController;
   late final TextEditingController _breedController;
   late final TextEditingController _dobController;
+  late final TextEditingController _weightLbsController;
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _emailController;
@@ -54,6 +60,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
     _petNameController = TextEditingController();
     _breedController = TextEditingController();
     _dobController = TextEditingController();
+    _weightLbsController = TextEditingController();
     _firstNameController = TextEditingController();
     _lastNameController = TextEditingController();
     _emailController = TextEditingController();
@@ -74,6 +81,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
     _petNameController.dispose();
     _breedController.dispose();
     _dobController.dispose();
+    _weightLbsController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
@@ -83,6 +91,18 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
     _conditionsController.dispose();
     super.dispose();
   }
+
+  static const List<String> _conditionOptions = <String>[
+    'Allergies',
+    'Arthritis',
+    'Cancer (history)',
+    'Diabetes',
+    'Heart Disease',
+    'Hip Dysplasia',
+    'Kidney Disease',
+    'Skin Conditions',
+    'Other',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -241,8 +261,7 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
               ),
               const SizedBox(width: 12),
               TextButton(
-                onPressed: () =>
-                    context.push('/conversational-quote'),
+                onPressed: () => context.push('/conversational-quote'),
                 child: const Text('Chat instead'),
               ),
             ],
@@ -363,6 +382,101 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                 ),
                 const SizedBox(height: 14),
                 _buildDobField(),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _weightLbsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Weight (lbs)',
+                    hintText: 'e.g., 35',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textInputAction: TextInputAction.next,
+                  onChanged: (value) {
+                    final trimmed = value.trim();
+                    _formData['weightLbs'] = double.tryParse(trimmed);
+                  },
+                  validator: (value) {
+                    final trimmed = (value ?? '').trim();
+                    final parsed = double.tryParse(trimmed);
+                    if (parsed == null) return 'Please enter a valid weight.';
+                    if (parsed <= 0) return 'Weight must be greater than 0.';
+                    if (parsed > 250)
+                      return 'That seems too high. Double-check.';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                Text('Sex', style: ClovaraTypography.label),
+                const SizedBox(height: 8),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment<String>(
+                      value: 'male',
+                      label: Text('Male'),
+                      icon: Icon(Icons.male),
+                    ),
+                    ButtonSegment<String>(
+                      value: 'female',
+                      label: Text('Female'),
+                      icon: Icon(Icons.female),
+                    ),
+                  ],
+                  selected: {
+                    if (_formData['gender'] != null)
+                      _formData['gender'] as String,
+                  },
+                  onSelectionChanged: (values) {
+                    setState(() {
+                      _formData['gender'] = values.first;
+                    });
+                  },
+                ),
+                if (_formData['gender'] == null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please select Male or Female.',
+                    style: ClovaraTypography.bodySmall.copyWith(
+                      color: ClovaraColors.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                Text('Spayed / Neutered', style: ClovaraTypography.label),
+                const SizedBox(height: 8),
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment<bool>(
+                      value: true,
+                      label: Text('Yes'),
+                      icon: Icon(Icons.check_circle_outline),
+                    ),
+                    ButtonSegment<bool>(
+                      value: false,
+                      label: Text('No'),
+                      icon: Icon(Icons.cancel_outlined),
+                    ),
+                  ],
+                  selected: {
+                    if (_formData['isNeutered'] != null)
+                      _formData['isNeutered'] as bool,
+                  },
+                  onSelectionChanged: (values) {
+                    setState(() {
+                      _formData['isNeutered'] = values.first;
+                    });
+                  },
+                ),
+                if (_formData['isNeutered'] == null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please select Yes or No.',
+                    style: ClovaraTypography.bodySmall.copyWith(
+                      color: ClovaraColors.error,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -593,15 +707,54 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                   style: ClovaraTypography.label,
                 ),
                 const SizedBox(height: 8),
-                TextFormField(
-                  controller: _conditionsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Conditions',
-                    hintText: 'e.g., allergies, arthritis, diabetes',
-                  ),
-                  maxLines: 3,
-                  onChanged: (value) => _formData['conditions'] = value.trim(),
+                Text(
+                  'Select any that apply. If you’re not sure, leave it blank — we can underwrite later.',
+                  style: ClovaraTypography.bodySmall,
                 ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _conditionOptions
+                      .map((opt) {
+                        final selected =
+                            (_formData['preExistingConditionTypes'] as List)
+                                .contains(opt);
+                        return FilterChip(
+                          label: Text(opt),
+                          selected: selected,
+                          onSelected: (isSelected) {
+                            setState(() {
+                              final current = List<String>.from(
+                                _formData['preExistingConditionTypes'] as List,
+                              );
+                              if (isSelected) {
+                                if (!current.contains(opt)) current.add(opt);
+                              } else {
+                                current.remove(opt);
+                              }
+                              _formData['preExistingConditionTypes'] = current;
+                            });
+                          },
+                        );
+                      })
+                      .toList(growable: false),
+                ),
+                if ((_formData['preExistingConditionTypes'] as List).contains(
+                  'Other',
+                )) ...[
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _conditionsController,
+                    decoration: const InputDecoration(
+                      labelText: 'Other condition',
+                      hintText: 'e.g., seizures, chronic ear infections',
+                    ),
+                    onChanged: (value) =>
+                        _formData['preExistingConditionOtherText'] = value
+                            .trim(),
+                  ),
+                ],
               ],
             ),
           ),
@@ -621,6 +774,13 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
     final species = (_formData['species'] ?? 'N/A').toString();
     final breed = (_formData['breed'] ?? '').toString();
     final dob = _formData['dateOfBirth'] as DateTime?;
+    final weightLbs = _formData['weightLbs'];
+    final weightText = weightLbs is num
+        ? '${weightLbs.toStringAsFixed(weightLbs % 1 == 0 ? 0 : 1)} lbs'
+        : 'N/A';
+    final gender = (_formData['gender'] ?? '').toString();
+    final neutered = _formData['isNeutered'];
+    final neuteredText = neutered is bool ? (neutered ? 'Yes' : 'No') : 'N/A';
     final dobText = dob == null
         ? 'N/A'
         : '${dob.year.toString().padLeft(4, '0')}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}';
@@ -632,7 +792,19 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
     final phone = (_formData['phone'] ?? '').toString();
     final state = (_formData['state'] ?? '').toString();
     final zip = (_formData['zipCode'] ?? '').toString();
-    final conditions = (_formData['conditions'] ?? '').toString();
+    final selectedConditions = List<String>.from(
+      _formData['preExistingConditionTypes'] as List,
+    );
+    final otherText = (_formData['preExistingConditionOtherText'] ?? '')
+        .toString()
+        .trim();
+    final conditions = selectedConditions.isEmpty
+        ? ''
+        : selectedConditions
+              .map((c) => c == 'Other' && otherText.isNotEmpty ? otherText : c)
+              .where((c) => c.trim().isNotEmpty)
+              .toList()
+              .join(', ');
 
     return ListView(
       children: [
@@ -661,6 +833,12 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
                     value: breed.isEmpty ? 'N/A' : breed,
                   ),
                   _ReviewRow(label: 'Birthday', value: dobText),
+                  _ReviewRow(label: 'Weight', value: weightText),
+                  _ReviewRow(
+                    label: 'Sex',
+                    value: gender.isEmpty ? 'N/A' : gender,
+                  ),
+                  _ReviewRow(label: 'Spayed/Neutered', value: neuteredText),
                 ],
               ),
               const SizedBox(height: 14),
@@ -760,11 +938,13 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
   bool _validateCurrentStep() {
     if (_currentStep == 0) {
       final speciesOk = _formData['species'] != null;
+      final genderOk = _formData['gender'] != null;
+      final neuteredOk = _formData['isNeutered'] != null;
       final petOk = _petFormKey.currentState?.validate() ?? false;
-      if (!speciesOk) {
+      if (!speciesOk || !genderOk || !neuteredOk) {
         setState(() {});
       }
-      return petOk && speciesOk;
+      return petOk && speciesOk && genderOk && neuteredOk;
     }
 
     if (_currentStep == 1) {
@@ -820,7 +1000,8 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
     _formData['phone'] = _phoneController.text.trim();
     _formData['state'] = _stateController.text.trim().toUpperCase();
     _formData['zipCode'] = _zipController.text.trim();
-    _formData['conditions'] = _conditionsController.text.trim();
+    _formData['preExistingConditionOtherText'] = _conditionsController.text
+        .trim();
 
     setState(() {
       _isSubmitting = true;
@@ -830,79 +1011,57 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
       final pet = _createPetFromForm();
       final owner = _createOwnerFromForm();
 
-      final aiService = GPTService();
-      final riskEngine = RiskScoringEngine(aiService: aiService);
+      final bool needsMedicalUnderwriting =
+          pet.preExistingConditions.isNotEmpty ||
+          (pet.isReceivingTreatment == true);
 
-      final result = await riskEngine.calculateRiskScoreWithEligibility(
-        pet: pet,
-        owner: owner,
-      );
-
-      final bool isComplexCase =
-          pet.preExistingConditions.isNotEmpty || result.hasExclusions;
-
-      if (!result.isEligible && mounted) {
-        await _showDeclineDialog(
-          petName: pet.name,
-          reason:
-              result.rejectionReason ??
-              'This application does not meet our current underwriting guidelines.',
-        );
-        return;
-      }
-
-      if (isComplexCase && mounted) {
-        // Ask any extra medical underwriting questions *before* plan selection.
-        // This does not require sign-in; auth is enforced at checkout.
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MedicalUnderwritingScreen(
-              pet: pet,
-              riskScore: result.riskScore,
-              quoteData: {
-                ..._formData,
-                'petData': _formData,
-                'pet': pet,
-                'owner': owner,
-                'riskScore': result.riskScore,
-                'needsMedicalUnderwriting': true,
-                'hasExclusions': result.hasExclusions,
-                'excludedConditions': result.excludedConditions,
-              },
-            ),
-          ),
-        );
-        return;
-      }
-
-      // Eligible, non-complex: show plan selection with dynamic plans.
       if (!mounted) return;
+
+      // Move immediately to the analysis screen; it computes underwriting
+      // asynchronously while showing progress UI.
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const PlanSelectionScreen(),
-          settings: RouteSettings(
-            arguments: {
+          builder: (context) => AIAnalysisScreen(
+            pet: pet,
+            routeArguments: {
               ..._formData,
               'petData': _formData,
               'pet': pet,
               'owner': owner,
-              'riskScore': result.riskScore,
+              'quoteFlow': 'classic',
+              'needsMedicalUnderwriting': needsMedicalUnderwriting,
             },
           ),
         ),
       );
     } catch (e) {
-      // Fall back to plans even if AI/risk fails.
+      // Fail closed: without a deterministic risk band we can't safely show pricing.
       if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const PlanSelectionScreen(),
-          settings: RouteSettings(
-            arguments: {..._formData, 'petData': _formData, 'riskScore': null},
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: ClovaraColors.kWarmCoral,
+              ),
+              const SizedBox(width: 12),
+              const Text('Unable to Generate Quote'),
+            ],
           ),
+          content: Text(
+            'We hit an issue generating your quote. Please try again in a moment.',
+            style: const TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Back'),
+            ),
+          ],
         ),
       );
     } finally {
@@ -917,10 +1076,12 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
   bool _validateAllStepsAndJump() {
     // Pet step
     final petSpeciesOk = _formData['species'] != null;
+    final petGenderOk = _formData['gender'] != null;
+    final petNeuteredOk = _formData['isNeutered'] != null;
     final petOk = _petFormKey.currentState?.validate() ?? false;
-    if (!petOk || !petSpeciesOk) {
+    if (!petOk || !petSpeciesOk || !petGenderOk || !petNeuteredOk) {
       setState(() => _currentStep = 0);
-      if (!petSpeciesOk) setState(() {});
+      if (!petSpeciesOk || !petGenderOk || !petNeuteredOk) setState(() {});
       return false;
     }
 
@@ -939,8 +1100,25 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
     final breed = (_formData['breed'] ?? '').toString().trim();
     final species = (_formData['species'] ?? 'Dog').toString().toLowerCase();
     final dob = _formData['dateOfBirth'] as DateTime?;
-    final conditionsText = (_formData['conditions'] ?? '').toString();
-    final preExisting = _parseConditionsList(conditionsText);
+    final weightLbsRaw = _formData['weightLbs'];
+    final genderRaw = (_formData['gender'] ?? '').toString().trim();
+    final isNeuteredRaw = _formData['isNeutered'];
+
+    final weightLbs = weightLbsRaw is num ? weightLbsRaw.toDouble() : 0.0;
+    final weightKg = weightLbs * 0.45359237;
+
+    final selectedConditions = List<String>.from(
+      _formData['preExistingConditionTypes'] as List,
+    );
+    final otherText = (_formData['preExistingConditionOtherText'] ?? '')
+        .toString()
+        .trim();
+
+    final List<String> preExisting = selectedConditions
+        .map((c) => c == 'Other' && otherText.isNotEmpty ? otherText : c)
+        .map((c) => c.toString().trim())
+        .where((c) => c.isNotEmpty)
+        .toList(growable: false);
 
     return Pet(
       id: 'pet_${DateTime.now().millisecondsSinceEpoch}',
@@ -949,9 +1127,9 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
       breed: breed.isEmpty ? 'Mixed Breed' : breed,
       dateOfBirth:
           dob ?? DateTime.now().subtract(const Duration(days: 365 * 2)),
-      gender: 'unknown',
-      weight: 10.0,
-      isNeutered: false,
+      gender: genderRaw.isEmpty ? 'unknown' : genderRaw,
+      weight: weightKg <= 0 ? 10.0 : weightKg,
+      isNeutered: isNeuteredRaw is bool ? isNeuteredRaw : false,
       preExistingConditions: preExisting,
       isReceivingTreatment: null,
     );
@@ -979,67 +1157,6 @@ class _QuoteFlowScreenState extends State<QuoteFlowScreen> {
         country: 'US',
       ),
       dateOfBirth: null,
-    );
-  }
-
-  List<String> _parseConditionsList(String conditionsText) {
-    final cleaned = conditionsText
-        .split(RegExp(r'[\n,;]'))
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
-    return cleaned;
-  }
-
-  Future<void> _showDeclineDialog({
-    required String petName,
-    required String reason,
-  }) async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.block, color: ClovaraColors.kWarmCoral),
-            const SizedBox(width: 12),
-            const Text('Application Declined'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Thanks for sharing $petName\'s details. Based on what you told us, we can\'t offer a new policy right now.',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-            Text(reason, style: const TextStyle(fontSize: 14)),
-            const SizedBox(height: 16),
-            Text(
-              'If you think something is off or you\'d like to discuss alternatives, our underwriting team can help.',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.push('/conversational-quote');
-            },
-            child: const Text('Chat with Clover'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: const Text('Close'),
-          ),
-        ],
-      ),
     );
   }
 }

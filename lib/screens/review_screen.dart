@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/checkout_state.dart';
 import '../models/medical_history.dart';
+import '../ui/components/max_width.dart';
 
 /// Step 1: Review pet and quote information
 class ReviewScreen extends StatefulWidget {
@@ -17,7 +18,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   String _formatAnnualLimit(plan) {
     try {
-      if (plan.isUnlimitedAnnualCoverage == true || (plan.maxAnnualCoverage as double).isInfinite) {
+      if (plan.isUnlimitedAnnualCoverage == true ||
+          (plan.maxAnnualCoverage as double).isInfinite) {
         return 'Unlimited';
       }
       final v = (plan.maxAnnualCoverage as double).toDouble();
@@ -28,25 +30,26 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   String _computeExclusionsKey(List exclusions) {
-    final names = exclusions
-        .map((e) {
-          if (e is String) return e;
-          try {
-            final conditionName = (e as dynamic).conditionName?.toString();
-            if (conditionName != null && conditionName.trim().isNotEmpty) {
-              return conditionName;
-            }
-          } catch (_) {
-            // ignore
-          }
-          return e.toString();
-        })
-        .whereType<String>()
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final names =
+        exclusions
+            .map((e) {
+              if (e is String) return e;
+              try {
+                final conditionName = (e as dynamic).conditionName?.toString();
+                if (conditionName != null && conditionName.trim().isNotEmpty) {
+                  return conditionName;
+                }
+              } catch (_) {
+                // ignore
+              }
+              return e.toString();
+            })
+            .whereType<String>()
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return names.join('|');
   }
 
@@ -78,76 +81,90 @@ class _ReviewScreenState extends State<ReviewScreen> {
             ),
           );
         }
-        
+
         final pet = provider.pet!;
         final plan = provider.selectedPlan!;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Review Your Coverage',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth >= 900;
+
+            return MaxWidth(
+              maxWidth: 980,
+              padding: EdgeInsets.symmetric(horizontal: isDesktop ? 24 : 16),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: isDesktop ? 32 : 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Review Your Coverage',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Please review your pet and coverage details before proceeding',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Pet Information Card
+                      _buildPetInfoCard(pet),
+                      const SizedBox(height: 16),
+
+                      // Medical History Card (if available)
+                      if (pet.hasDetailedMedicalHistory ||
+                          pet.preExistingConditions.isNotEmpty)
+                        _buildMedicalHistoryCard(pet),
+                      if (pet.hasDetailedMedicalHistory ||
+                          pet.preExistingConditions.isNotEmpty)
+                        const SizedBox(height: 16),
+
+                      // Plan Information Card
+                      _buildPlanInfoCard(plan),
+                      const SizedBox(height: 16),
+
+                      // Exclusions Card (if any)
+                      if (provider.exclusions.isNotEmpty)
+                        _buildExclusionsCard(provider.exclusions),
+                      if (provider.exclusions.isNotEmpty)
+                        const SizedBox(height: 16),
+
+                      // Exclusions acknowledgement (required)
+                      if (provider.exclusions.isNotEmpty)
+                        _buildExclusionsAcknowledgement(provider),
+                      if (provider.exclusions.isNotEmpty)
+                        const SizedBox(height: 16),
+
+                      // Coverage Details Card
+                      _buildCoverageDetailsCard(plan),
+                      const SizedBox(height: 16),
+
+                      // Features Card
+                      _buildFeaturesCard(plan),
+                      const SizedBox(height: 24),
+
+                      // Continue Button
+                      _buildContinueButton(
+                        context,
+                        provider,
+                        isEnabled:
+                            provider.exclusions.isEmpty ||
+                            _exclusionsAcknowledged,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Please review your pet and coverage details before proceeding',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade700,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Pet Information Card
-              _buildPetInfoCard(pet),
-              const SizedBox(height: 16),
-
-              // Medical History Card (if available)
-              if (pet.hasDetailedMedicalHistory || 
-                  pet.preExistingConditions.isNotEmpty)
-                _buildMedicalHistoryCard(pet),
-              if (pet.hasDetailedMedicalHistory || 
-                  pet.preExistingConditions.isNotEmpty)
-                const SizedBox(height: 16),
-
-              // Plan Information Card
-              _buildPlanInfoCard(plan),
-              const SizedBox(height: 16),
-
-              // Exclusions Card (if any)
-              if (provider.exclusions.isNotEmpty)
-                _buildExclusionsCard(provider.exclusions),
-              if (provider.exclusions.isNotEmpty)
-                const SizedBox(height: 16),
-
-              // Exclusions acknowledgement (required)
-              if (provider.exclusions.isNotEmpty)
-                _buildExclusionsAcknowledgement(provider),
-              if (provider.exclusions.isNotEmpty)
-                const SizedBox(height: 16),
-
-              // Coverage Details Card
-              _buildCoverageDetailsCard(plan),
-              const SizedBox(height: 16),
-
-              // Features Card
-              _buildFeaturesCard(plan),
-              const SizedBox(height: 24),
-
-              // Continue Button
-              _buildContinueButton(
-                context,
-                provider,
-                isEnabled: provider.exclusions.isEmpty || _exclusionsAcknowledged,
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -237,7 +254,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 16),
-            _buildInfoRow('Age', '${pet.ageInYears} years old', Icons.calendar_today),
+            _buildInfoRow(
+              'Age',
+              '${pet.ageInYears} years old',
+              Icons.calendar_today,
+            ),
             const SizedBox(height: 12),
             _buildInfoRow('Gender', pet.gender, Icons.info_outline),
             const SizedBox(height: 12),
@@ -270,11 +291,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    _getPlanIcon(plan.type),
-                    size: 32,
-                    color: Colors.white,
-                  ),
+                  Icon(_getPlanIcon(plan.type), size: 32, color: Colors.white),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -332,7 +349,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
               if (plan.multiPetDiscount > 0) ...[
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.shade100,
                     borderRadius: BorderRadius.circular(20),
@@ -340,7 +360,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green.shade700, size: 20),
+                      Icon(
+                        Icons.check_circle,
+                        color: Colors.green.shade700,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Multi-pet discount: -\$${plan.discountAmount.toStringAsFixed(2)}/mo',
@@ -378,10 +402,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       runSpacing: 8,
                       children: [
                         _pill('${plan.reimbursementPercent}% reimbursement'),
-                        _pill('\$${plan.annualDeductible.toStringAsFixed(0)} deductible'),
+                        _pill(
+                          '\$${plan.annualDeductible.toStringAsFixed(0)} deductible',
+                        ),
                         _pill('${_formatAnnualLimit(plan)} annual limit'),
                         if ((plan.selectedAddOns as List).isNotEmpty)
-                          _pill('Add-ons: ${(plan.selectedAddOns as List).join(', ')}'),
+                          _pill(
+                            'Add-ons: ${(plan.selectedAddOns as List).join(', ')}',
+                          ),
                       ],
                     ),
                   ],
@@ -404,7 +432,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
       ),
       child: Text(
         text,
-        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -420,10 +452,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
           children: [
             const Text(
               'Coverage Details',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             _buildCoverageRow(
@@ -462,26 +491,27 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   Widget _buildExclusionsCard(List exclusions) {
-    final exclusionNames = exclusions
-        .map((e) {
-          if (e is String) return e;
-          try {
-            // PolicyExclusion shape
-            final conditionName = (e as dynamic).conditionName?.toString();
-            if (conditionName != null && conditionName.trim().isNotEmpty) {
-              return conditionName;
-            }
-          } catch (_) {
-            // ignore
-          }
-          return e.toString();
-        })
-        .whereType<String>()
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final exclusionNames =
+        exclusions
+            .map((e) {
+              if (e is String) return e;
+              try {
+                // PolicyExclusion shape
+                final conditionName = (e as dynamic).conditionName?.toString();
+                if (conditionName != null && conditionName.trim().isNotEmpty) {
+                  return conditionName;
+                }
+              } catch (_) {
+                // ignore
+              }
+              return e.toString();
+            })
+            .whereType<String>()
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
     if (exclusionNames.isEmpty) return const SizedBox.shrink();
 
@@ -511,10 +541,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 const Expanded(
                   child: Text(
                     'Coverage exclusions',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -568,32 +595,33 @@ class _ReviewScreenState extends State<ReviewScreen> {
           children: [
             const Text(
               'What\'s Included',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            ...plan.features.take(8).map((feature) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 20,
-                        color: Colors.green.shade600,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          feature,
-                          style: const TextStyle(fontSize: 15),
+            ...plan.features
+                .take(8)
+                .map(
+                  (feature) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          size: 20,
+                          color: Colors.green.shade600,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            feature,
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )),
+                ),
             if (plan.features.length > 8)
               TextButton(
                 onPressed: () {
@@ -624,10 +652,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             textAlign: TextAlign.right,
           ),
         ),
@@ -635,7 +660,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
     );
   }
 
-  Widget _buildCoverageRow(String label, String value, String description, IconData icon) {
+  Widget _buildCoverageRow(
+    String label,
+    String value,
+    String description,
+    IconData icon,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -675,10 +705,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
               const SizedBox(height: 4),
               Text(
                 description,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
             ],
           ),
@@ -691,7 +718,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     final hasDetailedHistory = pet.hasDetailedMedicalHistory;
     final hasMedications = pet.hasActiveMedications;
     final conditionCount = pet.numberOfActiveConditions;
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -728,10 +755,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       ),
                       Text(
                         'Pre-existing conditions and health details',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -741,34 +765,42 @@ class _ReviewScreenState extends State<ReviewScreen> {
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 16),
-            
+
             // Medical Conditions Section
-            if (hasDetailedHistory && pet.medicalConditions != null && pet.medicalConditions!.isNotEmpty) ...[
+            if (hasDetailedHistory &&
+                pet.medicalConditions != null &&
+                pet.medicalConditions!.isNotEmpty) ...[
               _buildSectionHeader('Medical Conditions', Icons.healing),
               const SizedBox(height: 12),
-              ...pet.medicalConditions!.map((condition) => 
-                _buildConditionItem(condition)
-              ).toList(),
+              ...pet.medicalConditions!
+                  .map((condition) => _buildConditionItem(condition))
+                  .toList(),
               const SizedBox(height: 16),
             ] else if (pet.preExistingConditions.isNotEmpty) ...[
-              _buildSectionHeader('Pre-Existing Conditions', Icons.info_outline),
+              _buildSectionHeader(
+                'Pre-Existing Conditions',
+                Icons.info_outline,
+              ),
               const SizedBox(height: 12),
-              ...pet.preExistingConditions.map((condition) => 
-                _buildSimpleConditionItem(condition)
-              ).toList(),
+              ...pet.preExistingConditions
+                  .map((condition) => _buildSimpleConditionItem(condition))
+                  .toList(),
               const SizedBox(height: 16),
             ],
-            
+
             // Medications Section
-            if (hasMedications && pet.medications != null && pet.medications!.isNotEmpty) ...[
+            if (hasMedications &&
+                pet.medications != null &&
+                pet.medications!.isNotEmpty) ...[
               _buildSectionHeader('Current Medications', Icons.medication),
               const SizedBox(height: 12),
-              ...pet.medications!.where((med) => med.isOngoing).map((medication) => 
-                _buildMedicationItem(medication)
-              ).toList(),
+              ...pet.medications!
+                  .where((med) => med.isOngoing)
+                  .map((medication) => _buildMedicationItem(medication))
+                  .toList(),
               const SizedBox(height: 16),
             ],
-            
+
             // Allergies Section
             if (pet.allergies != null && pet.allergies!.isNotEmpty) ...[
               _buildSectionHeader('Allergies', Icons.warning_amber),
@@ -776,13 +808,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: pet.allergies!.map((allergy) => 
-                  _buildAllergyChip(allergy)
-                ).toList(),
+                children: pet.allergies!
+                    .map((allergy) => _buildAllergyChip(allergy))
+                    .toList(),
               ),
               const SizedBox(height: 16),
             ],
-            
+
             // Summary Stats
             Container(
               padding: const EdgeInsets.all(16),
@@ -801,7 +833,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       Colors.orange,
                     ),
                     _buildStatItem(
-                      pet.medications?.where((m) => m.isOngoing).length.toString() ?? '0',
+                      pet.medications
+                              ?.where((m) => m.isOngoing)
+                              .length
+                              .toString() ??
+                          '0',
                       'Active\nMedications',
                       Colors.blue,
                     ),
@@ -821,7 +857,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 ],
               ),
             ),
-            
+
             // Important Notice
             if (hasDetailedHistory) ...[
               const SizedBox(height: 16),
@@ -834,7 +870,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.blue.shade700,
+                      size: 20,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -874,7 +914,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   Widget _buildConditionItem(MedicalCondition condition) {
     final statusColor = _getConditionStatusColor(condition.status);
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -902,10 +942,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 if (condition.treatment != null)
                   Text(
                     condition.treatment!,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
               ],
             ),
@@ -938,10 +975,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
           Icon(Icons.circle, size: 8, color: Colors.grey.shade400),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              condition,
-              style: const TextStyle(fontSize: 15),
-            ),
+            child: Text(condition, style: const TextStyle(fontSize: 15)),
           ),
         ],
       ),
@@ -968,10 +1002,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 ),
                 Text(
                   '${medication.dosage} - ${medication.frequency}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 ),
               ],
             ),
@@ -1081,19 +1112,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
           ),
           child: const Text(
             'Continue to Owner Details',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(height: 12),
         Text(
           'By continuing, you agree to our Terms of Service and Privacy Policy',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           textAlign: TextAlign.center,
         ),
       ],

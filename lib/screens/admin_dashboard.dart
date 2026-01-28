@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/explainability_chart.dart';
 import '../models/explainability_data.dart';
 import 'admin_rules_editor_page.dart';
@@ -12,6 +11,7 @@ import 'admin/underwriting_cases_tab.dart';
 import 'admin/policies_pipeline_tab.dart';
 import '../widgets/system_health_widget.dart';
 import '../theme/clovara_theme.dart';
+import '../ui/components/clovara_logo.dart';
 
 /// Clovara Admin Dashboard - Review and manage high-risk quotes
 /// Only accessible to users with userRole == 2
@@ -99,11 +99,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: SvgPicture.asset(
-                'assets/images/clovara_mark_refined.svg',
-                width: 32,
-                height: 32,
-              ),
+              child: const ClovaraMark(size: 32),
             ),
             const SizedBox(width: 12),
             Column(

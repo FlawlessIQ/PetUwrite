@@ -1,6 +1,7 @@
 import 'pet.dart';
 import 'owner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'underwriting_exclusion.dart';
 
 /// Underwriting case lifecycle status.
 enum UnderwritingCaseStatus {
@@ -61,6 +62,9 @@ class UnderwritingCase {
   final String? petId;
   final Pet? petSnapshot;
   final Owner? ownerSnapshot;
+  final Map<String, dynamic>? constraintAudit;
+  final List<UnderwritingExclusion>? underwritingExclusions;
+  final List<String>? requiredEvidenceCodes;
   final UnderwritingCaseStatus status;
   final List<String> triggerReasons;
   final DateTime createdAt;
@@ -77,6 +81,9 @@ class UnderwritingCase {
     this.petId,
     this.petSnapshot,
     this.ownerSnapshot,
+    this.constraintAudit,
+    this.underwritingExclusions,
+    this.requiredEvidenceCodes,
   });
 
   Map<String, dynamic> toJson() {
@@ -86,6 +93,13 @@ class UnderwritingCase {
       'petId': petId,
       'petSnapshot': petSnapshot?.toJson(),
       'ownerSnapshot': ownerSnapshot?.toJson(),
+      if (constraintAudit != null) 'constraintAudit': constraintAudit,
+      if (underwritingExclusions != null)
+        'underwritingExclusions': underwritingExclusions!
+            .map((e) => e.toJson())
+            .toList(),
+      if (requiredEvidenceCodes != null)
+        'requiredEvidenceCodes': requiredEvidenceCodes,
       'status': underwritingCaseStatusToString(status),
       'triggerReasons': triggerReasons,
       'createdAt': createdAt.toIso8601String(),
@@ -100,6 +114,17 @@ class UnderwritingCase {
       return DateTime.tryParse((value ?? '').toString()) ?? DateTime.now();
     }
 
+    final exclusionsRaw = json['underwritingExclusions'];
+    final exclusions = exclusionsRaw is List
+        ? exclusionsRaw
+              .whereType<Map>()
+              .map(
+                (e) =>
+                    UnderwritingExclusion.fromJson(e.cast<String, dynamic>()),
+              )
+              .toList(growable: false)
+        : null;
+
     return UnderwritingCase(
       id: id,
       userId: (json['userId'] ?? '').toString(),
@@ -111,8 +136,23 @@ class UnderwritingCase {
       ownerSnapshot: json['ownerSnapshot'] is Map<String, dynamic>
           ? Owner.fromJson(json['ownerSnapshot'] as Map<String, dynamic>)
           : null,
-      status: underwritingCaseStatusFromString((json['status'] ?? 'in_progress').toString()),
-      triggerReasons: (json['triggerReasons'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      constraintAudit: json['constraintAudit'] is Map
+          ? (json['constraintAudit'] as Map).cast<String, dynamic>()
+          : null,
+      underwritingExclusions: exclusions,
+      requiredEvidenceCodes: (json['requiredEvidenceCodes'] is List)
+          ? (json['requiredEvidenceCodes'] as List)
+                .map((e) => e.toString())
+                .toList(growable: false)
+          : null,
+      status: underwritingCaseStatusFromString(
+        (json['status'] ?? 'in_progress').toString(),
+      ),
+      triggerReasons:
+          (json['triggerReasons'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
       createdAt: parseDate(json['createdAt']),
       updatedAt: parseDate(json['updatedAt']),
     );

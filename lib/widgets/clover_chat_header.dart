@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/clovara_theme.dart';
+import '../ui/components/clovara_logo.dart';
 
 /// Clover Chat Header Widget
 /// 
@@ -31,11 +31,7 @@ class CloverChatHeader extends StatelessWidget {
                 width: 1.5,
               ),
             ),
-            child: SvgPicture.asset(
-              'assets/images/clovara_mark_refined.svg',
-              width: 28,
-              height: 28,
-            ),
+            child: const ClovaraMark(size: 28),
           ),
           const SizedBox(width: 12),
           // Clover name

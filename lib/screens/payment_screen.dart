@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode, kReleaseMode;
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../payments/stripe_payment_element.dart'
+    if (dart.library.io) '../payments/stripe_payment_element_stub.dart';
 import '../models/checkout_state.dart';
 import '../services/draft_service.dart';
 import '../services/quote_engine.dart';
 import '../services/stripe_service.dart';
 import '../services/user_session_service.dart';
 import '../services/marketing_attribution_service.dart';
+import '../ui/tokens.dart';
+import '../ui/components/checkout_components.dart';
+import '../ui/components/clovara_logo.dart';
+import '../ui/components/max_width.dart';
+import '../ui/components/save_resume_dialog.dart';
 
 /// Step 3: Payment screen with Stripe integration
 class PaymentScreen extends StatefulWidget {
@@ -33,6 +42,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String _exclusionsKey = '';
 
   // Coupon state
+  bool _showCouponField = false; // Toggle for showing coupon input
   bool _isCouponApplied = false;
   double _discountAmount = 0.0;
   String? _appliedCouponCode;
@@ -41,10 +51,76 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // Stripe card field controller
   stripe.CardFieldInputDetails? _cardFieldDetails;
 
+  // Payment Element (web)
+  String? _clientSecret;
+  GlobalKey<_PaymentElementWidgetState>? _paymentElementKey;
+
+  // Dev-only bypass
+  static const bool _kAllowPaymentBypass = bool.fromEnvironment(
+    'ALLOW_PAYMENT_BYPASS',
+    defaultValue: false,
+  );
+
+  bool get _showBypassButton => kDebugMode || _kAllowPaymentBypass;
+
   @override
   void initState() {
     super.initState();
     _loadPendingCheckoutPaymentState();
+    if (kIsWeb) {
+      _paymentElementKey = GlobalKey<_PaymentElementWidgetState>();
+      _initializePaymentIntent();
+    }
+  }
+
+  Future<void> _initializePaymentIntent() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final provider = context.read<CheckoutProvider>();
+      final plan = provider.selectedPlan;
+      if (plan == null) return;
+
+      final amount = (plan.monthlyPremium - _discountAmount).clamp(
+        0.0,
+        double.infinity,
+      );
+      final policyId =
+          'policy_${user.uid}_${DateTime.now().millisecondsSinceEpoch}';
+
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'createPaymentIntent',
+      );
+      final response = await callable.call({
+        'amount': (amount * 100).round(), // Convert to cents
+        'currency': 'usd',
+        'policyId': policyId,
+      });
+
+      if (response.data != null && response.data['clientSecret'] != null) {
+        setState(() {
+          _clientSecret = response.data['clientSecret'];
+        });
+        print('✅ PaymentIntent created with clientSecret');
+      }
+    } catch (e) {
+      print('⚠️ Error initializing payment intent: $e');
+      // In dev mode with bypass button available, this is not critical
+      if (kDebugMode) {
+        print(
+          '💡 Dev mode: Payment initialization failed but bypass button is available',
+        );
+        setState(() {
+          _errorMessage = null; // Don't show error in dev mode
+        });
+      } else {
+        setState(() {
+          _errorMessage =
+              'Failed to initialize payment form. Please try again.';
+        });
+      }
+    }
   }
 
   Future<void> _loadPendingCheckoutPaymentState() async {
@@ -129,24 +205,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<void> _copyResumeCodeToClipboard() async {
-    try {
-      final draftService = DraftService();
-      final resumeKey = await draftService.getOrCreateLocalResumeKey();
-      await Clipboard.setData(
-        ClipboardData(text: draftService.encodeForSharing(resumeKey)),
-      );
-
-      if (!mounted) return;
-      final pretty = draftService.prettyCode(resumeKey);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Resume code copied: $pretty')));
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to copy resume code')),
-      );
-    }
+    final provider = context.read<CheckoutProvider>();
+    final plan = provider.selectedPlan;
+    await SaveResumeDialog.show(
+      context,
+      ensureSaved: () async {
+        final snapshot = _buildCheckoutSnapshot(provider, plan);
+        await UserSessionService().savePendingCheckout(snapshot);
+        await DraftService().upsertCheckoutDraft(
+          state: 'CHECKOUT_PAYMENT',
+          checkoutData: snapshot,
+        );
+      },
+      title: 'Save & resume later',
+      body:
+          'We’ll save your progress. Use this code to resume from the home page on any device.',
+      copyLabel: 'Copy code',
+      doneLabel: 'Done',
+    );
   }
 
   String _computeExclusionsKey(List exclusions) {
@@ -304,108 +380,636 @@ class _PaymentScreenState extends State<PaymentScreen> {
         final plan = provider.selectedPlan!;
         final ownerDetails = provider.ownerDetails!;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: Wrap(
-                  spacing: 8,
+        return MaxWidth(
+          maxWidth: 960,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 24,
+              bottom: 120, // Space for pinned CTA
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 420;
+
+                    return Row(
+                      children: [
+                        const ClovaraLogoLockup(
+                          compact: true,
+                          boxedMark: false,
+                          markSize: 20,
+                          textSize: 20,
+                        ),
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: () => context.go('/'),
+                          icon: const Icon(Icons.home_outlined, size: 18),
+                          label: Text(compact ? 'Home' : 'Website home'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.deepGreen,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Page Header
+                Text(
+                  'Review & Pay',
+                  style: GoogleFonts.poppins(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.text,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Secure payment powered by Stripe',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    color: AppColors.textMuted,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Order Summary Card
+                _buildOrderSummaryCard(plan, ownerDetails),
+                const SizedBox(height: 20),
+
+                // Payment Method Card
+                _buildPaymentMethodCard(),
+                const SizedBox(height: 20),
+
+                // Security Banner
+                InlineBanner(
+                  type: BannerType.info,
+                  message:
+                      'Your payment is encrypted and secure. We use industry-standard SSL encryption and are PCI DSS compliant.',
+                  icon: const Icon(Icons.lock_outline),
+                ),
+
+                // Exclusions Section (if any)
+                if (provider.exclusions.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  _buildExclusionsCard(provider),
+                ],
+
+                // Error Message
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 20),
+                  InlineBanner(type: BannerType.error, message: _errorMessage!),
+                ],
+
+                const SizedBox(height: 24),
+
+                // Save & Resume Options
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextButton(
+                    TertiaryButton(
+                      text: 'Save & finish later',
                       onPressed: () =>
                           _saveAndFinishLater(context, provider, plan),
-                      child: const Text('Save & finish later'),
+                      icon: Icons.bookmark_outline,
                     ),
-                    TextButton(
+                    const SizedBox(width: 16),
+                    TertiaryButton(
+                      text: 'Save resume code',
                       onPressed: _copyResumeCodeToClipboard,
-                      child: const Text('Copy resume code'),
+                      icon: Icons.bookmark_add_outlined,
                     ),
                   ],
                 ),
-              ),
-              const Text(
-                'Payment',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Secure payment powered by Stripe',
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
-              ),
-              const SizedBox(height: 24),
 
-              // Order Summary Card
-              _buildOrderSummary(plan, ownerDetails),
-              const SizedBox(height: 24),
-
-              // Payment Information Card
-              _buildPaymentInfoCard(),
-              const SizedBox(height: 24),
-
-              // Security Info
-              _buildSecurityInfo(),
-              const SizedBox(height: 24),
-
-              // Exclusions Summary (if any)
-              if (provider.exclusions.isNotEmpty) ...[
-                _buildExclusionsSummaryCard(provider.exclusions),
-                const SizedBox(height: 12),
-                _buildExclusionsAcknowledgement(provider),
-                const SizedBox(height: 24),
+                // DEV-ONLY: Bypass Payment Button
+                if (_showBypassButton && !_bypassPayment) ...[
+                  const SizedBox(height: 24),
+                  Center(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _handleDevBypass(context, provider),
+                      icon: const Icon(Icons.code, size: 16),
+                      label: const Text(
+                        'Bypass Payment (DEV)',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.warning,
+                        side: BorderSide(color: AppColors.warning),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
-
-              // Error Message
-              if (_errorMessage != null) ...[
-                _buildErrorMessage(),
-                const SizedBox(height: 16),
-              ],
-
-              // Navigation Buttons
-              _buildNavigationButtons(context, provider, plan),
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildExclusionsAcknowledgement(CheckoutProvider provider) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade200),
-      ),
-      child: CheckboxListTile(
-        value: _exclusionsAcknowledged,
-        onChanged: (value) {
-          final nextValue = value ?? false;
-          setState(() {
-            _exclusionsAcknowledged = nextValue;
-          });
-          if (nextValue) {
-            provider.recordExclusionsAcknowledgement(source: 'payment');
-          }
-        },
-        dense: true,
-        contentPadding: EdgeInsets.zero,
-        controlAffinity: ListTileControlAffinity.leading,
-        title: Text(
-          'I understand these exclusions will not be covered.',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: Colors.orange.shade900,
+  Widget _buildOrderSummaryCard(plan, ownerDetails) {
+    final double finalAmount = _bypassPayment
+        ? 0.0
+        : (plan.monthlyPremium - _discountAmount);
+
+    String annualLimitLabel() {
+      try {
+        if (plan.isUnlimitedAnnualCoverage == true ||
+            (plan.maxAnnualCoverage as double).isInfinite) {
+          return 'Unlimited';
+        }
+        final v = (plan.maxAnnualCoverage as double).toDouble();
+        return '\$${v.toStringAsFixed(0)}';
+      } catch (_) {
+        return '—';
+      }
+    }
+
+    return CheckoutCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(
+            title: 'Order Summary',
+            padding: const EdgeInsets.only(bottom: 16),
           ),
-        ),
+
+          // Price Summary First (most important)
+          InfoRow(
+            label: 'Monthly Premium',
+            value: '\$${plan.monthlyPremium.toStringAsFixed(2)}',
+            isBold: true,
+          ),
+          if (plan.multiPetDiscount > 0)
+            InfoRow(
+              label: 'Multi-pet Discount',
+              value: '-\$${plan.discountAmount.toStringAsFixed(2)}',
+              valueColor: AppColors.success,
+            ),
+          if (_isCouponApplied && _discountAmount > 0)
+            InfoRow(
+              label: 'Coupon Discount',
+              value: '-\$${_discountAmount.toStringAsFixed(2)}',
+              valueColor: AppColors.success,
+            ),
+
+          const CheckoutDivider(),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total Due Today',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.text,
+                ),
+              ),
+              Text(
+                _bypassPayment
+                    ? '\$0.00'
+                    : '\$${finalAmount.toStringAsFixed(2)}',
+                style: GoogleFonts.poppins(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.green,
+                ),
+              ),
+            ],
+          ),
+
+          const CheckoutDivider(),
+
+          // Coverage Details
+          InfoRow(label: 'Plan', value: plan.name),
+          InfoRow(
+            label: 'Reimbursement',
+            value: '${plan.reimbursementPercent}%',
+          ),
+          InfoRow(
+            label: 'Annual Deductible',
+            value: '\$${plan.annualDeductible.toStringAsFixed(0)}',
+          ),
+          InfoRow(label: 'Annual Limit', value: annualLimitLabel()),
+          if ((plan.selectedAddOns as List).isNotEmpty)
+            InfoRow(
+              label: 'Add-ons',
+              value: (plan.selectedAddOns as List).join(', '),
+            ),
+
+          const CheckoutDivider(margin: EdgeInsets.symmetric(vertical: 12)),
+
+          InfoRow(label: 'Policy Holder', value: ownerDetails.fullName),
+          InfoRow(label: 'Email', value: ownerDetails.email),
+
+          const SizedBox(height: 12),
+          InlineBanner(
+            type: BannerType.success,
+            message: 'Coverage starts immediately after payment',
+            margin: EdgeInsets.zero,
+          ),
+        ],
       ),
     );
   }
 
+  Widget _buildPaymentMethodCard() {
+    return CheckoutCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(
+            title: 'Payment Method',
+            padding: const EdgeInsets.only(bottom: 20),
+          ),
+
+          // Collapsible Coupon Code Section
+          _buildCouponSection(),
+          const SizedBox(height: 20),
+
+          // Card Input or Bypass Message
+          if (!_bypassPayment) ...[
+            // Stripe Card Field (Native only)
+            if (!kIsWeb)
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  borderRadius: AppRadii.br12,
+                  border: Border.all(color: AppColors.border),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                child: stripe.CardField(
+                  onCardChanged: (card) {
+                    setState(() {
+                      _cardFieldDetails = card;
+                    });
+                  },
+                  enablePostalCode: true,
+                  autofocus: false,
+                ),
+              ),
+            // Web: Stripe Payment Element
+            if (kIsWeb)
+              _clientSecret != null
+                  ? _PaymentElementWidget(
+                      key: _paymentElementKey,
+                      clientSecret: _clientSecret!,
+                    )
+                  : _buildMockPaymentForm(),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.credit_card, size: 18, color: AppColors.textSubtle),
+                const SizedBox(width: 8),
+                Text(
+                  'Visa • Mastercard • Amex • Discover',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.textSubtle,
+                  ),
+                ),
+              ],
+            ),
+          ] else
+            InlineBanner(
+              type: BannerType.success,
+              message: 'Test coupon applied - no payment required',
+              margin: EdgeInsets.zero,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCouponSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Show applied coupon banner or toggle link
+        if (_isCouponApplied && _appliedCouponCode != null)
+          InlineBanner(
+            type: BannerType.success,
+            message: _bypassPayment
+                ? 'Test coupon applied - Payment waived'
+                : 'Coupon "$_appliedCouponCode" applied - Save \$${_discountAmount.toStringAsFixed(2)}',
+            margin: EdgeInsets.zero,
+          )
+        else
+          TextButton.icon(
+            onPressed: () {
+              setState(() {
+                _showCouponField = !_showCouponField;
+              });
+            },
+            icon: Icon(
+              _showCouponField ? Icons.remove : Icons.add,
+              size: 16,
+              color: AppColors.green,
+            ),
+            label: Text(
+              _showCouponField ? 'Hide coupon code' : 'Have a coupon code?',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.green,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+
+        // Expandable coupon input field
+        if (_showCouponField && !_isCouponApplied) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _couponController,
+                  enabled: !_isValidatingCoupon,
+                  decoration: checkoutInputDecoration(label: 'Enter code')
+                      .copyWith(
+                        errorText: _couponError,
+                        prefixIcon: const Icon(
+                          Icons.local_offer_outlined,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                  textCapitalization: TextCapitalization.characters,
+                  onFieldSubmitted: (_) => _applyCoupon(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isValidatingCoupon ? null : _applyCoupon,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    backgroundColor: AppColors.green,
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.br12),
+                  ),
+                  child: _isValidatingCoupon
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          'Apply',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMockPaymentForm() {
+    return Container(
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: AppRadii.br12,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Card Number
+          TextFormField(
+            decoration: checkoutInputDecoration(label: 'Card number').copyWith(
+              hintText: '1234 1234 1234 1234',
+              prefixIcon: const Icon(Icons.credit_card, size: 20),
+            ),
+            keyboardType: TextInputType.number,
+            enabled: false,
+          ),
+          const SizedBox(height: 16),
+
+          // Expiry and CVC
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  decoration: checkoutInputDecoration(
+                    label: 'Expiry date',
+                  ).copyWith(hintText: 'MM / YY'),
+                  keyboardType: TextInputType.number,
+                  enabled: false,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  decoration: checkoutInputDecoration(
+                    label: 'CVC',
+                  ).copyWith(hintText: '123'),
+                  keyboardType: TextInputType.number,
+                  enabled: false,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // ZIP Code
+          TextFormField(
+            decoration: checkoutInputDecoration(
+              label: 'ZIP / Postal code',
+            ).copyWith(hintText: '12345'),
+            keyboardType: TextInputType.number,
+            enabled: false,
+          ),
+
+          if (kDebugMode) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Colors.orange.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Demo mode - Configure Stripe to enable live payments',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExclusionsCard(CheckoutProvider provider) {
+    return CheckoutCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(
+            title: 'Important: Policy Exclusions',
+            subtitle:
+                'Please review and acknowledge these exclusions before proceeding',
+            padding: const EdgeInsets.only(bottom: 16),
+          ),
+
+          InlineBanner(
+            type: BannerType.warning,
+            message:
+                'The following conditions are excluded from your policy and will not be covered',
+            margin: const EdgeInsets.only(bottom: 16),
+          ),
+
+          ...provider.exclusions.map((exclusion) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.cancel_outlined,
+                    size: 18,
+                    color: AppColors.danger,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          exclusion.conditionName,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.text,
+                          ),
+                        ),
+                        if (exclusion.notes != null &&
+                            exclusion.notes!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              exclusion.notes!,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+
+          const CheckoutDivider(),
+
+          // Acknowledgement Checkbox
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E6),
+              borderRadius: AppRadii.br12,
+              border: Border.all(
+                color: _exclusionsAcknowledged
+                    ? AppColors.green
+                    : AppColors.warning,
+                width: _exclusionsAcknowledged ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: _exclusionsAcknowledged,
+                    onChanged: (value) {
+                      final nextValue = value ?? false;
+                      setState(() {
+                        _exclusionsAcknowledged = nextValue;
+                      });
+                      if (nextValue) {
+                        provider.recordExclusionsAcknowledgement(
+                          source: 'payment',
+                        );
+                      }
+                    },
+                    activeColor: AppColors.green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'I understand and acknowledge that the conditions listed above are excluded from my policy and will not be covered',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: AppColors.text,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ignore: unused_element
   Widget _buildOrderSummary(plan, ownerDetails) {
     final double finalAmount = _bypassPayment
         ? 0.0
@@ -521,6 +1125,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildPaymentInfoCard() {
     return Card(
       elevation: 2,
@@ -803,6 +1408,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildSecurityInfo() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -840,6 +1446,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildErrorMessage() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -875,6 +1482,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildNavigationButtons(
     BuildContext context,
     CheckoutProvider provider,
@@ -926,7 +1534,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     : () => _handlePayment(context, provider, plan),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppColors.green,
                 ),
                 child: _isProcessing
                     ? const SizedBox(
@@ -1011,6 +1619,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildExclusionsSummaryCard(List exclusions) {
     final exclusionNames =
         exclusions
@@ -1093,6 +1702,114 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  /// DEV-ONLY: Bypass payment for testing
+  Future<void> _handleDevBypass(
+    BuildContext context,
+    CheckoutProvider provider,
+  ) async {
+    // Safety check: never allow in release mode
+    assert(
+      !kReleaseMode,
+      'Payment bypass must never be enabled in release mode',
+    );
+
+    if (kReleaseMode) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment bypass is not available in release mode'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            SizedBox(width: 12),
+            Text('Dev Mode: Bypass Payment'),
+          ],
+        ),
+        content: const Text(
+          'This will skip payment processing and mark the payment as TEST_BYPASS. '
+          'This feature is only available in development mode.\\n\\n'
+          'Continue to confirmation?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Bypass Payment'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isProcessing = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final paymentInfo = PaymentInfo(
+        paymentIntentId: 'TEST_BYPASS_${DateTime.now().millisecondsSinceEpoch}',
+        paymentMethodId: 'test_bypass',
+        amount: 0.0,
+        currency: 'usd',
+        status: 'test_waived', // Must match validation in checkout_state.dart
+        paidAt: DateTime.now(),
+        last4: 'XXXX',
+        brand: 'Test',
+        couponCode: _appliedCouponCode,
+        discountAmount: _discountAmount,
+      );
+
+      provider.setPaymentInfo(paymentInfo);
+
+      print(
+        '\u26a0\ufe0f DEV MODE: Payment bypassed - ${paymentInfo.paymentIntentId}',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.white),
+                SizedBox(width: 12),
+                Text('DEV MODE: Payment bypassed!'),
+              ],
+            ),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      provider.nextStep();
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Bypass failed: ${e.toString()}';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
   Future<void> _handlePayment(
     BuildContext context,
     CheckoutProvider provider,
@@ -1148,14 +1865,63 @@ class _PaymentScreenState extends State<PaymentScreen> {
         return;
       }
 
-      // On web, payment is not yet supported - show error
+      // On web, use Payment Element
       if (kIsWeb) {
-        throw Exception(
-          'Payment processing is not yet available on web. Please use the mobile app or contact support.',
+        if (_clientSecret == null || _paymentElementKey?.currentState == null) {
+          throw Exception('Payment form not initialized');
+        }
+
+        // Confirm payment using the Payment Element
+        final result = await _paymentElementKey!.currentState!.confirmPayment();
+
+        if (result['error'] != null) {
+          throw Exception(result['error']);
+        }
+
+        // Payment successful on web
+        final paymentInfo = PaymentInfo(
+          paymentIntentId:
+              result['paymentIntent']?['id'] ??
+              'web_payment_${DateTime.now().millisecondsSinceEpoch}',
+          paymentMethodId:
+              result['paymentIntent']?['payment_method'] ?? 'web_pm',
+          amount: (plan.monthlyPremium - _discountAmount).clamp(
+            0.0,
+            double.infinity,
+          ),
+          currency: 'usd',
+          status: 'succeeded',
+          paidAt: DateTime.now(),
+          last4: '****',
+          brand: 'Card',
+          couponCode: _appliedCouponCode,
+          discountAmount: _discountAmount,
         );
+
+        provider.setPaymentInfo(paymentInfo);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text('Payment successful!'),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+
+        await Future.delayed(const Duration(milliseconds: 500));
+        provider.nextStep();
+        return;
       }
 
-      // Validate card details are entered (mobile only)
+      // Mobile: Validate card details are entered
       if (_cardFieldDetails == null || !_cardFieldDetails!.complete) {
         throw Exception('Please enter complete card details');
       }
@@ -1240,5 +2006,109 @@ class _PaymentScreenState extends State<PaymentScreen> {
         });
       }
     }
+  }
+}
+
+/// Payment Element Widget wrapper
+class _PaymentElementWidget extends StatefulWidget {
+  final String clientSecret;
+
+  const _PaymentElementWidget({super.key, required this.clientSecret});
+
+  @override
+  State<_PaymentElementWidget> createState() => _PaymentElementWidgetState();
+}
+
+class _PaymentElementWidgetState extends State<_PaymentElementWidget> {
+  final GlobalKey<_StripePaymentElementWrapperState> _elementKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    if (!kIsWeb) {
+      return const Center(
+        child: Text('Payment Element is only available on web'),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: AppRadii.br12,
+        border: Border.all(color: AppColors.border),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: _StripePaymentElementWrapper(
+        key: _elementKey,
+        clientSecret: widget.clientSecret,
+        publishableKey:
+            'pk_test_51SI7vTPzjq9wJkU5zFAJvBSWvFLKfu9Be4klAyLdG8IOjHpQwsw8My1WxhrbagFztc549VKyQAmAtCklGOpbeo4v00IAlWsINb',
+      ),
+    );
+  }
+
+  /// Expose confirmPayment method to parent
+  Future<Map<String, dynamic>> confirmPayment() async {
+    if (_elementKey.currentState != null) {
+      return await _elementKey.currentState!.confirmPayment();
+    }
+    return {'error': 'Payment element not initialized'};
+  }
+}
+
+/// Inner wrapper for StripePaymentElement with state access
+class _StripePaymentElementWrapper extends StatefulWidget {
+  final String clientSecret;
+  final String publishableKey;
+
+  const _StripePaymentElementWrapper({
+    super.key,
+    required this.clientSecret,
+    required this.publishableKey,
+  });
+
+  @override
+  State<_StripePaymentElementWrapper> createState() =>
+      _StripePaymentElementWrapperState();
+}
+
+class _StripePaymentElementWrapperState
+    extends State<_StripePaymentElementWrapper> {
+  StripePaymentElement? _element;
+  final GlobalKey _widgetKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    _element = StripePaymentElement(
+      key: _widgetKey,
+      clientSecret: widget.clientSecret,
+      publishableKey: widget.publishableKey,
+      onPaymentSuccess: (result) {
+        print('✅ Payment confirmed: $result');
+      },
+      onPaymentError: (error) {
+        print('❌ Payment error: $error');
+      },
+    );
+
+    return _element!;
+  }
+
+  Future<Map<String, dynamic>> confirmPayment() async {
+    if (_element != null && kIsWeb) {
+      // Call confirmPayment directly on the StripePaymentElement
+      try {
+        // Use reflection-like access since we can't directly access the state
+        // The Payment Element widget internally handles the confirmation
+        final state = _widgetKey.currentState;
+        if (state != null && state.mounted) {
+          // The StripePaymentElement has its own confirmPayment method
+          // We need to call it via the widget's state
+          return await (state as dynamic).confirmPayment();
+        }
+      } catch (e) {
+        print('Error confirming payment: $e');
+      }
+    }
+    return {'error': 'Payment element not initialized'};
   }
 }

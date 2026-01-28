@@ -3,13 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../models/claim.dart';
 import '../../services/claims_service.dart';
 import '../../services/conversational_ai_service.dart';
 import '../../theme/clovara_theme.dart';
+import '../../ui/components/clovara_logo.dart';
 
 /// Conversational AI-powered claim intake screen
 /// Allows customers to file First Notice of Loss (FNOL) with empathy and guidance
@@ -788,12 +788,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
               radius: 16,
               backgroundColor: Colors.white,
               child: ClipOval(
-                child: SvgPicture.asset(
-                  'assets/images/clovara_mark_refined.svg',
-                  width: 32,
-                  height: 32,
-                  fit: BoxFit.cover,
-                ),
+                child: const ClovaraMark(size: 32, fit: BoxFit.cover),
               ),
             ),
             const SizedBox(width: 8),
@@ -828,12 +823,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
                       radius: 16,
                       backgroundColor: Colors.white,
                       child: ClipOval(
-                        child: SvgPicture.asset(
-                          'assets/images/clovara_mark_refined.svg',
-                          width: 32,
-                          height: 32,
-                          fit: BoxFit.cover,
-                        ),
+                        child: const ClovaraMark(size: 32, fit: BoxFit.cover),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -941,12 +931,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
               radius: 16,
               backgroundColor: Colors.white,
               child: ClipOval(
-                child: SvgPicture.asset(
-                  'assets/images/clovara_mark_refined.svg',
-                  width: 32,
-                  height: 32,
-                  fit: BoxFit.cover,
-                ),
+                child: const ClovaraMark(size: 32, fit: BoxFit.cover),
               ),
             ),
             const SizedBox(width: 8),

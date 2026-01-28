@@ -7,6 +7,7 @@ import '../services/draft_service.dart';
 import '../services/underwriting_case_service.dart';
 import '../services/user_session_service.dart';
 import '../theme/clovara_theme.dart';
+import '../ui/components/save_resume_dialog.dart';
 import 'underwriting_intake_screen.dart';
 
 class UnderwritingFollowUpDocumentsScreen extends StatefulWidget {
@@ -168,6 +169,20 @@ class _UnderwritingFollowUpDocumentsScreenState
         elevation: 0,
         title: const Text('Documents Needed'),
         actions: [
+          IconButton(
+            tooltip: 'Save resume code',
+            onPressed: () {
+              SaveResumeDialog.show(
+                context,
+                title: 'Save & resume later',
+                body:
+                    'If you leave this page, use this code to return and upload documents from any device.',
+                copyLabel: 'Copy code',
+                doneLabel: 'Done',
+              );
+            },
+            icon: const Icon(Icons.bookmark_add_outlined),
+          ),
           TextButton(
             onPressed: _clearSaved,
             child: const Text('Clear'),
@@ -219,32 +234,12 @@ class _UnderwritingFollowUpDocumentsScreenState
                             final key = snap.data;
                             if (key == null) return const SizedBox.shrink();
                             final pretty = DraftService().prettyCode(key);
-                            return Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    'Resume code: $pretty',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(color: Colors.grey.shade600),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () async {
-                                    await Clipboard.setData(
-                                      ClipboardData(text: key),
-                                    );
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Resume code copied.'),
-                                      ),
-                                    );
-                                  },
-                                  child: const Text('Copy'),
-                                ),
-                              ],
+                            return Text(
+                              'Resume code: $pretty',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: Colors.grey.shade600),
                             );
                           },
                         ),

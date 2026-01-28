@@ -5,16 +5,20 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/checkout_state.dart';
 import '../services/draft_service.dart';
 import '../services/user_session_service.dart';
+import '../ui/tokens.dart';
+import '../ui/components/checkout_components.dart';
+import '../ui/components/max_width.dart';
+import '../ui/components/save_resume_dialog.dart';
 
 /// Step 2: Owner details form with e-sign consent
 class OwnerDetailsScreen extends StatefulWidget {
   const OwnerDetailsScreen({super.key});
 
   @override
-  State<OwnerDetailsScreen> createState() => _OwnerDetailsScreenState();
+  State<OwnerDetailsScreen> createState() => OwnerDetailsScreenState();
 }
 
-class _OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
+class OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
@@ -114,24 +118,23 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
   }
 
   Future<void> _copyResumeCodeToClipboard() async {
-    try {
-      final draftService = DraftService();
-      final resumeKey = await draftService.getOrCreateLocalResumeKey();
-      await Clipboard.setData(
-        ClipboardData(text: draftService.encodeForSharing(resumeKey)),
-      );
-
-      if (!mounted) return;
-      final pretty = draftService.prettyCode(resumeKey);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Resume code copied: $pretty')),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to copy resume code')),
-      );
-    }
+    await SaveResumeDialog.show(
+      context,
+      ensureSaved: () async {
+        final provider = context.read<CheckoutProvider>();
+        final snapshot = _buildCheckoutSnapshot(provider);
+        await UserSessionService().savePendingCheckout(snapshot);
+        await DraftService().upsertCheckoutDraft(
+          state: 'CHECKOUT_OWNER',
+          checkoutData: snapshot,
+        );
+      },
+      title: 'Save & resume later',
+      body:
+          'We’ll save your owner details. Use this code to resume from the home page on any device.',
+      copyLabel: 'Copy code',
+      doneLabel: 'Done',
+    );
   }
   
   /// Load user profile and pre-populate form fields
@@ -219,388 +222,391 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const SizedBox.shrink(),
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: () => _saveAndFinishLater(context),
-                      child: const Text('Save & finish later'),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: _copyResumeCodeToClipboard,
-                      child: const Text('Copy resume code'),
-                    ),
-                  ],
+    return MaxWidth(
+      maxWidth: 960,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 24,
+          bottom: 120, // Space for pinned CTA
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Page Header
+              Text(
+                'Owner Information',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text,
+                  height: 1.2,
                 ),
-              ],
-            ),
-            const Text(
-              'Owner Information',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Please provide your contact and address information',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade700,
+              const SizedBox(height: 8),
+              Text(
+                'We\'ll use this to create your policy and send important updates',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textMuted,
+                  height: 1.4,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
-            // Personal Information Section
-            _buildSectionHeader('Personal Information', Icons.person),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _firstNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'First Name *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter first name';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    controller: _lastNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Last Name *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter last name';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email Address *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.email_outlined),
-                helperText: 'We\'ll send your policy documents here',
-              ),
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter email';
-                }
-                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                  return 'Please enter a valid email';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _phoneController,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.phone_outlined),
-                helperText: 'Format: (123) 456-7890',
-              ),
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter phone number';
-                }
-                return null;
-              },
-            ),
-
-            const SizedBox(height: 32),
-
-            // Address Section
-            _buildSectionHeader('Billing Address', Icons.home),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _addressLine1Controller,
-              decoration: const InputDecoration(
-                labelText: 'Street Address *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on_outlined),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter street address';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _addressLine2Controller,
-              decoration: const InputDecoration(
-                labelText: 'Apt, Suite, etc. (optional)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on_outlined),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
-                    controller: _cityController,
-                    decoration: const InputDecoration(
-                      labelText: 'City *',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _stateController,
-                    decoration: const InputDecoration(
-                      labelText: 'State *',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _zipCodeController,
-                    decoration: const InputDecoration(
-                      labelText: 'ZIP *',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
-                      if (value.length != 5) {
-                        return 'Invalid';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 32),
-
-            // E-Sign Consent Section
-            _buildSectionHeader('Electronic Signature Consent', Icons.draw),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: _hasESignConsent ? Colors.green : Colors.grey.shade300,
-                  width: 2,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+              // Contact Information Card
+              CheckoutCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CheckboxListTile(
-                      value: _hasESignConsent,
-                      onChanged: (value) {
-                        setState(() => _hasESignConsent = value!);
-                      },
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'I agree to use electronic signatures',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'By checking this box, I consent to electronically sign this insurance application and related documents. I understand that my electronic signature has the same legal effect as a handwritten signature.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ),
+                    SectionHeader(
+                      title: 'Contact Information',
+                      padding: const EdgeInsets.only(bottom: 20),
                     ),
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: () => _showESignTermsDialog(context),
-                      icon: const Icon(Icons.article_outlined),
-                      label: const Text('View full E-Sign Terms'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Privacy Policy Consent
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: _hasPrivacyConsent ? Colors.green : Colors.grey.shade300,
-                  width: 2,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CheckboxListTile(
-                      value: _hasPrivacyConsent,
-                      onChanged: (value) {
-                        setState(() => _hasPrivacyConsent = value!);
-                      },
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'I agree to the Terms of Service and Privacy Policy',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'I have read and agree to the Terms of Service and Privacy Policy. I understand how my personal information will be collected, used, and protected.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
                     Row(
                       children: [
-                        TextButton.icon(
-                          onPressed: () => _showTermsDialog(context),
-                          icon: const Icon(Icons.description_outlined),
-                          label: const Text('Terms of Service'),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _firstNameController,
+                            decoration: checkoutInputDecoration(
+                              label: 'First Name *',
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter first name';
+                              }
+                              return null;
+                            },
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        TextButton.icon(
-                          onPressed: () => _showPrivacyDialog(context),
-                          icon: const Icon(Icons.privacy_tip_outlined),
-                          label: const Text('Privacy Policy'),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _lastNameController,
+                            decoration: checkoutInputDecoration(
+                              label: 'Last Name *',
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter last name';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: checkoutInputDecoration(
+                        label: 'Email Address *',
+                        hint: 'We\'ll send your policy documents here',
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter email';
+                        }
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _phoneController,
+                      decoration: checkoutInputDecoration(
+                        label: 'Phone Number *',
+                        hint: 'Format: (123) 456-7890',
+                      ),
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter phone number';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Billing Address Card
+              CheckoutCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionHeader(
+                      title: 'Billing Address',
+                      padding: const EdgeInsets.only(bottom: 20),
+                    ),
+                    TextFormField(
+                      controller: _addressLine1Controller,
+                      decoration: checkoutInputDecoration(
+                        label: 'Street Address *',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter street address';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _addressLine2Controller,
+                      decoration: checkoutInputDecoration(
+                        label: 'Apt, Suite, etc. (optional)',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            controller: _cityController,
+                            decoration: checkoutInputDecoration(
+                              label: 'City *',
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Required';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _stateController,
+                            decoration: checkoutInputDecoration(
+                              label: 'State *',
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Required';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _zipCodeController,
+                            decoration: checkoutInputDecoration(
+                              label: 'ZIP Code *',
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Required';
+                              }
+                              return null;
+                            },
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-            ),
+              const SizedBox(height: 20),
 
-            const SizedBox(height: 32),
-
-            // Navigation Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      context.read<CheckoutProvider>().previousStep();
-                    },
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+              // Consent & Communications Card
+              CheckoutCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionHeader(
+                      title: 'Consent & Communications',
+                      padding: const EdgeInsets.only(bottom: 16),
                     ),
-                    child: const Text(
-                      'Back',
-                      style: TextStyle(fontSize: 16),
+                    
+                    // E-Sign Consent
+                    _buildConsentCheckbox(
+                      value: _hasESignConsent,
+                      onChanged: (value) {
+                        setState(() {
+                          _hasESignConsent = value ?? false;
+                        });
+                      },
+                      label: 'I consent to using electronic signatures',
+                      onLearnMore: () => _showESignTermsDialog(context),
                     ),
+                    const SizedBox(height: 12),
+                    
+                    // Privacy Consent
+                    _buildConsentCheckbox(
+                      value: _hasPrivacyConsent,
+                      onChanged: (value) {
+                        setState(() {
+                          _hasPrivacyConsent = value ?? false;
+                        });
+                      },
+                      label: 'I agree to the Terms of Service and Privacy Policy',
+                      onLearnMore: () => _showTermsDialog(context),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Error banner if consent not checked
+              if (_showConsentError())
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: InlineBanner(
+                    type: BannerType.error,
+                    message: _getConsentErrorMessage(),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: _hasESignConsent && _hasPrivacyConsent
-                        ? () => _handleContinue(context)
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text(
-                      'Continue to Payment',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
+              
+              const SizedBox(height: 24),
+
+              // Save & Resume Options
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TertiaryButton(
+                    text: 'Save & finish later',
+                    onPressed: () => _saveAndFinishLater(context),
+                    icon: Icons.bookmark_outline,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
+                  const SizedBox(width: 16),
+                    TertiaryButton(
+                      text: 'Save resume code',
+                      onPressed: _copyResumeCodeToClipboard,
+                      icon: Icons.bookmark_add_outlined,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Widget _buildConsentCheckbox({
+    required bool value,
+    required ValueChanged<bool?> onChanged,
+    required String label,
+    required VoidCallback onLearnMore,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: AppRadii.br12,
+        border: value 
+          ? Border.all(color: AppColors.green, width: 1.5)
+          : Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: Checkbox(
+              value: value,
+              onChanged: onChanged,
+              activeColor: AppColors.green,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.text,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: onLearnMore,
+                  child: Text(
+                    'Learn more',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.green,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _showConsentError() {
+    // Only show error if form has been attempted (add state tracking if needed)
+    return false; // Will be handled by inline check on continue press
+  }
+
+  String _getConsentErrorMessage() {
+    if (!_hasESignConsent && !_hasPrivacyConsent) {
+      return 'Please accept both consent requirements to continue';
+    } else if (!_hasESignConsent) {
+      return 'Please accept the e-sign consent to continue';
+    } else {
+      return 'Please accept the Terms and Privacy Policy to continue';
+    }
+  }
+
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 28, color: Colors.blue.shade700),
-        const SizedBox(width: 12),
+        Icon(icon, size: 20, color: AppColors.green),
+        const SizedBox(width: 8),
         Text(
           title,
           style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.text,
           ),
         ),
       ],
     );
   }
 
+  /// Public method to handle continue action (called from parent checkout screen)
+  Future<void> handleContinue(BuildContext context) async {
+    return _handleContinue(context);
+  }
+
   Future<void> _handleContinue(BuildContext context) async {
+    print('🔍 _handleContinue called');
+    print('🔍 Form valid: ${_formKey.currentState?.validate()}');
+    print('🔍 E-sign consent: $_hasESignConsent');
+    print('🔍 Privacy consent: $_hasPrivacyConsent');
+    
     if (_formKey.currentState!.validate()) {
+      print('✅ Form validation passed');
+      
       if (!_hasESignConsent) {
+        print('❌ E-sign consent not accepted');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please accept the e-sign consent to continue'),
@@ -611,6 +617,7 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
       }
 
       if (!_hasPrivacyConsent) {
+        print('❌ Privacy consent not accepted');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please accept the Terms and Privacy Policy to continue'),
@@ -620,6 +627,8 @@ class _OwnerDetailsScreenState extends State<OwnerDetailsScreen> {
         return;
       }
 
+      print('✅ All validations passed, creating OwnerDetails');
+      
       final ownerDetails = OwnerDetails(
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,

@@ -4,15 +4,12 @@ const crypto = require('crypto');
 
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
-const { setGlobalOptions } = require('firebase-functions/v2');
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
 const db = admin.firestore();
-
-setGlobalOptions({ region: 'us-central1' });
 
 function sha256(input) {
   return crypto.createHash('sha256').update(input).digest('hex');

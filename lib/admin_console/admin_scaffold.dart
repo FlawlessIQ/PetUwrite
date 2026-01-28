@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/clovara_theme.dart';
+import '../ui/components/clovara_logo.dart';
 import 'admin_nav.dart';
 
 class AdminScaffold extends StatelessWidget {
@@ -69,11 +69,7 @@ class AdminScaffold extends StatelessWidget {
                   child: SizedBox(
                     width: 22,
                     height: 22,
-                    child: SvgPicture.asset(
-                      'assets/images/clovara_mark_refined.svg',
-                      fit: BoxFit.contain,
-                      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                    ),
+                    child: const ClovaraMark(size: 22, color: Colors.white),
                   ),
                 ),
                 Expanded(

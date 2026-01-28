@@ -41,3 +41,7 @@ exports.extractPdfText = pdfExtraction.extractPdfText;
 
 const imageExtraction = require("./imageExtraction");
 exports.extractImageText = imageExtraction.extractImageText;
+
+// Policy binding (admin write)
+const policies = require("./policies");
+exports.createPolicy = policies.createPolicy;

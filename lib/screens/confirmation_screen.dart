@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/checkout_state.dart';
 import '../models/policy_exclusion.dart';
 import '../services/draft_service.dart';
@@ -9,6 +11,9 @@ import '../services/policy_service.dart';
 import '../services/user_session_service.dart';
 import '../services/underwriting_case_service.dart';
 import '../services/marketing_attribution_service.dart';
+import '../ui/tokens.dart';
+import '../ui/components/checkout_components.dart';
+import '../ui/components/max_width.dart';
 
 /// Step 4: Confirmation screen with policy details and PDF download
 class ConfirmationScreen extends StatefulWidget {
@@ -52,8 +57,18 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
       final provider = context.read<CheckoutProvider>();
 
       // Debug: Check if user is authenticated
-      final user = FirebaseAuth.instance.currentUser;
-      print('🔍 Creating policy for user: ${user?.uid} (${user?.email})');
+      var user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        // In web/dev flows we may reach checkout without a signed-in user.
+        // Firestore rules require request.auth, so ensure we have at least
+        // an anonymous session before creating a policy.
+        await FirebaseAuth.instance.signInAnonymously();
+        user = FirebaseAuth.instance.currentUser;
+      }
+
+      print(
+        '🔍 Creating policy for user: ${user?.uid} (anonymous=${user?.isAnonymous}, email=${user?.email})',
+      );
 
       if (user == null) {
         throw Exception('User not authenticated - cannot create policy');
@@ -168,7 +183,12 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
       }
 
       // Send email notification
-      await _policyService.sendPolicyEmail(policy);
+      try {
+        await _policyService.sendPolicyEmail(policy);
+      } catch (e) {
+        // Best-effort only; policy is already created.
+        print('⚠️ Policy email failed (ignored): $e');
+      }
 
       setState(() {
         _isCreatingPolicy = false;
@@ -236,6 +256,13 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          TextButton.icon(
+            onPressed: () => context.go('/'),
+            icon: const Icon(Icons.home_outlined, size: 18),
+            label: const Text('Website home'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.deepGreen),
+          ),
+          const SizedBox(height: 18),
           const CircularProgressIndicator(),
           const SizedBox(height: 24),
           const Text(
@@ -259,6 +286,13 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            TextButton.icon(
+              onPressed: () => context.go('/'),
+              icon: const Icon(Icons.home_outlined, size: 18),
+              label: const Text('Website home'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.deepGreen),
+            ),
+            const SizedBox(height: 18),
             Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
             const SizedBox(height: 24),
             const Text(
@@ -297,336 +331,299 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
   }
 
   Widget _buildSuccessState(PolicyDocument policy) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Success Animation
-          ScaleTransition(
-            scale: _scaleAnimation,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.check_circle,
-                size: 80,
-                color: Colors.green.shade600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Success Message
-          const Text(
-            'Coverage Activated!',
-            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Your pet insurance policy is now active',
-            style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-
-          // Policy Information Card
-          _buildPolicyInfoCard(policy),
-          const SizedBox(height: 16),
-
-          // Coverage Summary Card
-          _buildCoverageSummaryCard(policy),
-          const SizedBox(height: 16),
-
-          // What's Next Card
-          _buildWhatsNextCard(policy),
-          const SizedBox(height: 24),
-
-          // Action Buttons
-          _buildActionButtons(policy),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPolicyInfoCard(PolicyDocument policy) {
     final dateFormat = DateFormat('MMM dd, yyyy');
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+    return MaxWidth(
+      maxWidth: 960,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Icon(Icons.description, size: 24, color: Colors.blue.shade700),
-                const SizedBox(width: 12),
-                const Text(
-                  'Policy Details',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => context.go('/'),
+                icon: const Icon(Icons.home_outlined, size: 18),
+                label: const Text('Website home'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.deepGreen,
                 ),
-              ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Success Badge (subtle, not giant)
+            ScaleTransition(
+              scale: _scaleAnimation,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.success, width: 3),
+                    color: const Color(0xFFE8F5F0),
+                  ),
+                  child: Icon(Icons.check, size: 48, color: AppColors.success),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Success Message
+            Text(
+              'You\'re Covered!',
+              style: GoogleFonts.poppins(
+                fontSize: 32,
+                fontWeight: FontWeight.w700,
+                color: AppColors.text,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your pet insurance policy is now active',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                color: AppColors.textMuted,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+
+            // Policy Information Card
+            CheckoutCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SectionHeader(
+                    title: 'Policy Details',
+                    padding: const EdgeInsets.only(bottom: 16),
+                  ),
+                  InfoRow(
+                    label: 'Policy Number',
+                    value: policy.policyNumber,
+                    isBold: true,
+                  ),
+                  InfoRow(label: 'Pet Name', value: policy.pet.name),
+                  InfoRow(label: 'Plan', value: policy.plan.name),
+                  InfoRow(
+                    label: 'Coverage Start',
+                    value: dateFormat.format(policy.effectiveDate),
+                  ),
+                  InfoRow(
+                    label: 'Coverage End',
+                    value: dateFormat.format(policy.expirationDate),
+                  ),
+                  InfoRow(
+                    label: 'Monthly Premium',
+                    value: '\$${policy.plan.monthlyPremium.toStringAsFixed(2)}',
+                    isBold: true,
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
-            _buildInfoRow('Policy Number', policy.policyNumber, isBold: true),
-            const SizedBox(height: 12),
-            _buildInfoRow('Pet Name', policy.pet.name),
-            const SizedBox(height: 12),
-            _buildInfoRow('Plan', policy.plan.name),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              'Coverage Start',
-              dateFormat.format(policy.effectiveDate),
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              'Coverage End',
-              dateFormat.format(policy.expirationDate),
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              'Monthly Premium',
-              '\$${policy.plan.monthlyPremium.toStringAsFixed(2)}',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildCoverageSummaryCard(PolicyDocument policy) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.shield, size: 24, color: Colors.green.shade700),
-                const SizedBox(width: 12),
-                const Text(
-                  'Coverage Summary',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ],
+            // Coverage Summary Card
+            CheckoutCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SectionHeader(
+                    title: 'Coverage Summary',
+                    padding: const EdgeInsets.only(bottom: 16),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildCoverageMetric(
+                          'Reimbursement',
+                          policy.plan.coveragePercentage,
+                          Icons.pie_chart_outline,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildCoverageMetric(
+                          'Deductible',
+                          '\$${policy.plan.annualDeductible.toStringAsFixed(0)}',
+                          Icons.attach_money,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildCoverageMetric(
+                          'Annual Max',
+                          '\$${(policy.plan.maxAnnualCoverage / 1000).toStringAsFixed(0)}K',
+                          Icons.trending_up,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildCoverageMetric(
+                          'Co-pay',
+                          '${policy.plan.coPayPercentage.toInt()}%',
+                          Icons.handshake_outlined,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildCoverageItem(
-                    'Deductible',
-                    '\$${policy.plan.annualDeductible.toStringAsFixed(0)}',
-                    Icons.attach_money,
-                  ),
-                ),
-                Expanded(
-                  child: _buildCoverageItem(
-                    'Reimbursement',
-                    policy.plan.coveragePercentage,
-                    Icons.pie_chart,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildCoverageItem(
-                    'Annual Max',
-                    '\$${(policy.plan.maxAnnualCoverage / 1000).toStringAsFixed(0)}K',
-                    Icons.trending_up,
-                  ),
-                ),
-                Expanded(
-                  child: _buildCoverageItem(
-                    'Co-pay',
-                    '${policy.plan.coPayPercentage.toInt()}%',
-                    Icons.handshake,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildWhatsNextCard(PolicyDocument policy) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.lightbulb_outline,
-                  size: 24,
-                  color: Colors.orange.shade700,
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'What\'s Next?',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildNextStepItem(
-              '1',
-              'Check Your Email',
-              'We\'ve sent your policy documents to ${policy.owner.email}',
-              Icons.email,
-            ),
-            const SizedBox(height: 12),
-            _buildNextStepItem(
-              '2',
-              'Download Your Policy',
-              'Save a copy of your policy PDF for your records',
-              Icons.download,
-            ),
-            const SizedBox(height: 12),
-            _buildNextStepItem(
-              '3',
-              'Visit Your Vet',
-              'Schedule a checkup and start using your coverage',
-              Icons.local_hospital,
-            ),
-            const SizedBox(height: 12),
-            _buildNextStepItem(
-              '4',
-              'File a Claim',
-              'Submit claims easily through our mobile app',
-              Icons.receipt_long,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(PolicyDocument policy) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ElevatedButton.icon(
-          onPressed: () => _downloadPDF(policy),
-          icon: const Icon(Icons.download),
-          label: const Text('Download Policy PDF'),
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            backgroundColor: Colors.blue,
-          ),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: () => _emailReceipt(policy),
-          icon: const Icon(Icons.email_outlined),
-          label: const Text('Email Receipt'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
-          child: const Text('Go to Dashboard'),
-        ),
-        const SizedBox(height: 32),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.support_agent, color: Colors.blue.shade700),
-              const SizedBox(width: 12),
-              Expanded(
+            // Waiting Periods Card
+            if (policy.plan.waitingPeriodsDays != null &&
+                policy.plan.waitingPeriodsDays!.isNotEmpty)
+              CheckoutCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Need Help?',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
-                      ),
+                    SectionHeader(
+                      title: 'Waiting Periods',
+                      padding: const EdgeInsets.only(bottom: 12),
                     ),
                     Text(
-                      'Contact us at support@petunderwriter.ai',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue.shade800,
+                      'Coverage starts on ${dateFormat.format(policy.effectiveDate)}, but some conditions have a waiting period. These are typical market standards:',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        height: 1.35,
+                        color: AppColors.textMuted,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    ...(() {
+                      final entries =
+                          policy.plan.waitingPeriodsDays!.entries.toList(
+                            growable: false,
+                          )..sort((a, b) => a.key.compareTo(b.key));
+
+                      return entries
+                          .map(
+                            (e) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: InfoRow(
+                                label: _titleCase(e.key),
+                                value: '${e.value} days',
+                                padding: EdgeInsets.zero,
+                              ),
+                            ),
+                          )
+                          .toList(growable: false);
+                    })(),
                   ],
                 ),
               ),
-            ],
-          ),
+            if (policy.plan.waitingPeriodsDays != null &&
+                policy.plan.waitingPeriodsDays!.isNotEmpty)
+              const SizedBox(height: 20),
+
+            // Next Steps Card
+            CheckoutCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SectionHeader(
+                    title: 'Next Steps',
+                    padding: const EdgeInsets.only(bottom: 16),
+                  ),
+                  _buildNextStepRow(
+                    '1',
+                    'Check your email',
+                    'Policy documents sent to ${policy.owner.email}',
+                    Icons.email_outlined,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildNextStepRow(
+                    '2',
+                    'Visit your vet',
+                    'Your coverage starts on ${dateFormat.format(policy.effectiveDate)} (waiting periods apply)',
+                    Icons.local_hospital_outlined,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildNextStepRow(
+                    '3',
+                    'File claims easily',
+                    'Submit through our mobile app',
+                    Icons.receipt_long_outlined,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Action Buttons
+            PrimaryButton(
+              text: 'Go to Dashboard',
+              onPressed: () {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/dashboard',
+                  (route) => false,
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            SecondaryButton(
+              text: 'Download Policy PDF',
+              onPressed: () => _downloadPDF(policy),
+              icon: Icons.download,
+            ),
+            const SizedBox(height: 12),
+            TertiaryButton(
+              text: 'Contact Support',
+              onPressed: () {
+                // Open support
+              },
+              icon: Icons.support_agent,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {bool isBold = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-          ),
-        ),
-      ],
-    );
+  String _titleCase(String raw) {
+    final cleaned = raw.replaceAll('_', ' ').trim();
+    if (cleaned.isEmpty) return raw;
+    return cleaned
+        .split(RegExp(r'\s+'))
+        .map((w) {
+          if (w.isEmpty) return w;
+          return w[0].toUpperCase() + w.substring(1);
+        })
+        .join(' ');
   }
 
-  Widget _buildCoverageItem(String label, String value, IconData icon) {
+  Widget _buildCoverageMetric(String label, String value, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.surface2,
+        borderRadius: AppRadii.br12,
       ),
       child: Column(
         children: [
-          Icon(icon, size: 32, color: Colors.blue.shade700),
+          Icon(icon, size: 28, color: AppColors.green),
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppColors.text,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted),
             textAlign: TextAlign.center,
           ),
         ],
@@ -634,7 +631,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
     );
   }
 
-  Widget _buildNextStepItem(
+  Widget _buildNextStepRow(
     String number,
     String title,
     String description,
@@ -647,15 +644,16 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: Colors.blue.shade700,
+            color: AppColors.green,
             shape: BoxShape.circle,
           ),
           child: Center(
             child: Text(
               number,
-              style: const TextStyle(
+              style: GoogleFonts.inter(
                 color: Colors.white,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
               ),
             ),
           ),
@@ -667,14 +665,15 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
             children: [
               Row(
                 children: [
-                  Icon(icon, size: 20, color: Colors.grey.shade700),
+                  Icon(icon, size: 18, color: AppColors.textMuted),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       title,
-                      style: const TextStyle(
+                      style: GoogleFonts.inter(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.text,
                       ),
                     ),
                   ),
@@ -683,7 +682,10 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
               const SizedBox(height: 4),
               Text(
                 description,
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: AppColors.textMuted,
+                ),
               ),
             ],
           ),
@@ -738,36 +740,6 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to download PDF: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _emailReceipt(PolicyDocument policy) async {
-    try {
-      await _policyService.sendPolicyEmail(policy);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                Text('Receipt sent to ${policy.owner.email}'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send email: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );

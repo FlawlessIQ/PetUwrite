@@ -16,6 +16,7 @@ class UserSessionService {
   static const String _pendingQuoteKey = 'pending_quote_data';
   static const String _pendingUnderwritingKey = 'pending_underwriting_data';
   static const String _pendingCheckoutKey = 'pending_checkout_data';
+  static const String _quoteAttemptsKey = 'quote_attempts_v1';
 
   /// Get current authenticated user
   User? get currentUser => _auth.currentUser;
@@ -145,6 +146,87 @@ class UserSessionService {
     final jsonString = jsonEncode(quoteData);
     await prefs.setString(_pendingQuoteKey, jsonString);
     print('💾 Saved pending quote locally');
+  }
+
+  /// Record a quote attempt locally and return a velocity signal.
+  ///
+  /// This is a deterministic, carrier-grade abuse signal (quote-shopping / retry velocity).
+  /// It is intentionally local-only so it works before authentication.
+  Future<Map<String, dynamic>> recordQuoteAttempt({required String flow}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+
+    List<dynamic> raw = const [];
+    try {
+      final jsonString = prefs.getString(_quoteAttemptsKey);
+      if (jsonString != null && jsonString.isNotEmpty) {
+        final decoded = jsonDecode(jsonString);
+        if (decoded is List) raw = decoded;
+      }
+    } catch (_) {
+      raw = const [];
+    }
+
+    final attempts = <Map<String, dynamic>>[];
+    for (final item in raw) {
+      if (item is Map) {
+        attempts.add(item.cast<String, dynamic>());
+      }
+    }
+
+    attempts.add({
+      't': now.millisecondsSinceEpoch,
+      'flow': flow,
+    });
+
+    // Prune to last 24h and cap to avoid unbounded growth.
+    final cutoff = now.subtract(const Duration(hours: 24)).millisecondsSinceEpoch;
+    final pruned = attempts
+        .where((e) {
+          final t = e['t'];
+          return t is int && t >= cutoff;
+        })
+        .toList(growable: false);
+
+    final capped = pruned.length <= 50
+        ? pruned
+        : pruned.sublist(pruned.length - 50);
+
+    try {
+      await prefs.setString(_quoteAttemptsKey, jsonEncode(capped));
+    } catch (_) {
+      // Best-effort only; do not break quote UX.
+    }
+
+    return _quoteVelocitySignalFromAttempts(capped, now: now);
+  }
+
+  Map<String, dynamic> _quoteVelocitySignalFromAttempts(
+    List<Map<String, dynamic>> attempts, {
+    required DateTime now,
+  }) {
+    int countSince(Duration window) {
+      final cutoff = now.subtract(window).millisecondsSinceEpoch;
+      return attempts.where((e) {
+        final t = e['t'];
+        return t is int && t >= cutoff;
+      }).length;
+    }
+
+    final attempts2m = countSince(const Duration(minutes: 2));
+    final attempts10m = countSince(const Duration(minutes: 10));
+    final attempts1h = countSince(const Duration(hours: 1));
+
+    // Conservative thresholds: we only flag obvious patterns.
+    final suspicious = attempts10m >= 3 || attempts1h >= 6;
+
+    return {
+      'attempts2m': attempts2m,
+      'attempts10m': attempts10m,
+      'attempts1h': attempts1h,
+      'suspicious': suspicious,
+      'capturedAt': now.toIso8601String(),
+    };
   }
 
   /// Get pending quote data

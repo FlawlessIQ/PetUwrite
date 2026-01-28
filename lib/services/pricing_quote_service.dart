@@ -16,10 +16,13 @@ class PricingQuoteService {
     List<String> addOns = const <String>[],
   }) async {
     final callable = _functions.httpsCallable('getPricingQuotePublic');
+
+    final normalizedState = (state ?? '').trim().toUpperCase();
+    final shouldSendState = RegExp(r'^[A-Z]{2}$').hasMatch(normalizedState) && normalizedState.length == 2;
     final result = await callable.call({
       'riskBand': riskBand,
       'zipCode': zipCode,
-      if (state != null) 'state': state,
+      if (shouldSendState) 'state': normalizedState,
       'numberOfPets': numberOfPets,
       'addOns': addOns,
     });
@@ -32,10 +35,26 @@ class PricingQuoteService {
     final rawPlans = data['plans'];
     if (rawPlans is! List) return const <Plan>[];
 
-    return rawPlans
+    final plans = rawPlans
         .whereType<Map>()
         .map((p) => Plan.fromJson(p.cast<String, dynamic>()))
         .toList(growable: false);
+
+    // Deterministic pricing audit logs (no PII).
+    for (final plan in plans) {
+      final breakdown = plan.pricingBreakdown;
+      if (breakdown == null) continue;
+      final base = breakdown.pricingBasePremium;
+      final finalPremium = breakdown.finalMonthlyPremium;
+      final delta = finalPremium - base;
+      final pct = base.abs() < 0.0001 ? null : (delta / base);
+      // ignore: avoid_print
+      print(
+        '[PricingAudit] tier=${plan.type.name} riskBand=${breakdown.riskBand.name} base=${base.toStringAsFixed(2)} final=${finalPremium.toStringAsFixed(2)} delta=${delta.toStringAsFixed(2)} pct=${pct == null ? 'n/a' : '${(pct * 100).toStringAsFixed(1)}%'} multipliers(riskBand=${breakdown.riskBandMultiplier.toStringAsFixed(3)}, regional=${breakdown.regionalMultiplier.toStringAsFixed(3)})',
+      );
+    }
+
+    return plans;
   }
 
   Future<Plan?> priceSku({
@@ -50,10 +69,13 @@ class PricingQuoteService {
     List<String> addOns = const <String>[],
   }) async {
     final callable = _functions.httpsCallable('getPricingQuotePublic');
+
+    final normalizedState = (state ?? '').trim().toUpperCase();
+    final shouldSendState = RegExp(r'^[A-Z]{2}$').hasMatch(normalizedState) && normalizedState.length == 2;
     final result = await callable.call({
       'riskBand': riskBand,
       'zipCode': zipCode,
-      if (state != null) 'state': state,
+      if (shouldSendState) 'state': normalizedState,
       'numberOfPets': numberOfPets,
       'addOns': addOns,
       'skus': [

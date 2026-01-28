@@ -31,8 +31,18 @@ const imageExtraction = require("./imageExtraction");
 // Import declined quote notification functions
 const declinedQuoteNotifications = require("./declinedQuoteNotifications");
 
+// Import payment functions
+const payment = require("./payment");
+const policies = require("./policies");
+
 // For cost control, set maximum number of containers
-setGlobalOptions({maxInstances: 10});
+setGlobalOptions({
+  region: "us-central1",
+  maxInstances: 10,
+});
+
+// Callable: policy creation (admin write; used as fallback when Firestore client rules deny).
+exports.createPolicy = policies.createPolicy;
 
 /**
  * Triggered when a new quote is created
@@ -664,3 +674,7 @@ exports.clearDraft = drafts.clearDraft;
 const benchmarking = require("./benchmarking");
 exports.refreshBenchmarkReference = benchmarking.refreshBenchmarkReference;
 exports.computePortfolioMetricsSnapshot = benchmarking.computePortfolioMetricsSnapshot;
+
+// Export payment functions
+exports.createPaymentIntent = payment.createPaymentIntent;
+exports.handlePaymentIntentSucceeded = payment.handlePaymentIntentSucceeded;

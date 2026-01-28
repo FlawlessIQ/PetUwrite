@@ -1,5 +1,5 @@
 /// Medical history models for detailed underwriting
-/// 
+///
 /// These models capture comprehensive medical information about pets
 /// for accurate risk assessment and underwriting decisions.
 library;
@@ -10,6 +10,7 @@ class MedicalCondition {
   final String name;
   final DateTime diagnosisDate;
   final String status; // 'active', 'resolved', 'managed', 'stable'
+  final bool isCongenital;
   final String? treatment;
   final String? notes;
   final String? veterinarian;
@@ -20,6 +21,7 @@ class MedicalCondition {
     required this.name,
     required this.diagnosisDate,
     required this.status,
+    this.isCongenital = false,
     this.treatment,
     this.notes,
     this.veterinarian,
@@ -32,10 +34,11 @@ class MedicalCondition {
       name: json['name'] as String,
       diagnosisDate: DateTime.parse(json['diagnosisDate'] as String),
       status: json['status'] as String,
+      isCongenital: json['isCongenital'] as bool? ?? false,
       treatment: json['treatment'] as String?,
       notes: json['notes'] as String?,
       veterinarian: json['veterinarian'] as String?,
-      lastCheckup: json['lastCheckup'] != null 
+      lastCheckup: json['lastCheckup'] != null
           ? DateTime.parse(json['lastCheckup'] as String)
           : null,
     );
@@ -47,6 +50,7 @@ class MedicalCondition {
       'name': name,
       'diagnosisDate': diagnosisDate.toIso8601String(),
       'status': status,
+      'isCongenital': isCongenital,
       'treatment': treatment,
       'notes': notes,
       'veterinarian': veterinarian,
@@ -59,6 +63,7 @@ class MedicalCondition {
     String? name,
     DateTime? diagnosisDate,
     String? status,
+    bool? isCongenital,
     String? treatment,
     String? notes,
     String? veterinarian,
@@ -69,6 +74,7 @@ class MedicalCondition {
       name: name ?? this.name,
       diagnosisDate: diagnosisDate ?? this.diagnosisDate,
       status: status ?? this.status,
+      isCongenital: isCongenital ?? this.isCongenital,
       treatment: treatment ?? this.treatment,
       notes: notes ?? this.notes,
       veterinarian: veterinarian ?? this.veterinarian,
@@ -112,7 +118,7 @@ class Medication {
       dosage: json['dosage'] as String,
       frequency: json['frequency'] as String,
       startDate: DateTime.parse(json['startDate'] as String),
-      endDate: json['endDate'] != null 
+      endDate: json['endDate'] != null
           ? DateTime.parse(json['endDate'] as String)
           : null,
       prescribedBy: json['prescribedBy'] as String?,
@@ -166,7 +172,8 @@ class VetVisit {
   final DateTime visitDate;
   final String veterinarian;
   final String clinic;
-  final String visitType; // 'checkup', 'emergency', 'surgery', 'follow-up', 'vaccination'
+  final String
+  visitType; // 'checkup', 'emergency', 'surgery', 'follow-up', 'vaccination'
   final String? diagnosis;
   final String? treatment;
   final String? notes;
@@ -355,21 +362,23 @@ class CompleteMedicalHistory {
     return CompleteMedicalHistory(
       conditions: json['conditions'] != null
           ? (json['conditions'] as List)
-              .map((c) => MedicalCondition.fromJson(c as Map<String, dynamic>))
-              .toList()
+                .map(
+                  (c) => MedicalCondition.fromJson(c as Map<String, dynamic>),
+                )
+                .toList()
           : [],
       medications: json['medications'] != null
           ? (json['medications'] as List)
-              .map((m) => Medication.fromJson(m as Map<String, dynamic>))
-              .toList()
+                .map((m) => Medication.fromJson(m as Map<String, dynamic>))
+                .toList()
           : [],
       allergies: json['allergies'] != null
           ? List<String>.from(json['allergies'] as List)
           : [],
       vetVisits: json['vetVisits'] != null
           ? (json['vetVisits'] as List)
-              .map((v) => VetVisit.fromJson(v as Map<String, dynamic>))
-              .toList()
+                .map((v) => VetVisit.fromJson(v as Map<String, dynamic>))
+                .toList()
           : [],
       uploadedRecords: json['uploadedRecords'] != null
           ? VetRecords.fromJson(json['uploadedRecords'] as Map<String, dynamic>)
@@ -400,15 +409,13 @@ class CompleteMedicalHistory {
   // Helper getters
   List<MedicalCondition> get activeConditions =>
       conditions.where((c) => c.isActive).toList();
-  
+
   List<Medication> get activeMedications =>
       medications.where((m) => m.isOngoing).toList();
-  
+
   int get totalVetVisits => vetVisits.length;
-  
-  bool get hasEmergencyVisits =>
-      vetVisits.any((v) => v.isEmergency);
-  
-  bool get hasSurgeryHistory =>
-      vetVisits.any((v) => v.isSurgery);
+
+  bool get hasEmergencyVisits => vetVisits.any((v) => v.isEmergency);
+
+  bool get hasSurgeryHistory => vetVisits.any((v) => v.isSurgery);
 }

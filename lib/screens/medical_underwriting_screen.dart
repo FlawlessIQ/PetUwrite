@@ -23,6 +23,7 @@ import '../services/vet_history_parser.dart' hide Medication;
 import '../services/vet_document_reuse_detector.dart';
 import '../services/user_session_service.dart';
 import '../services/draft_service.dart';
+import '../ui/components/save_resume_dialog.dart';
 import '../theme/clovara_theme.dart';
 import '../widgets/underwriting_disclosure_dialog.dart';
 import 'plan_selection_screen.dart';
@@ -86,6 +87,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   final _conditionNotesController = TextEditingController();
   DateTime? _conditionDiagnosisDate;
   String _conditionStatus = 'active';
+  bool _conditionIsCongenital = false;
 
   // Medication form controllers
   final _medicationNameController = TextEditingController();
@@ -373,6 +375,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       status: (existing.status == 'resolved' || existing.status == 'managed')
           ? existing.status
           : incoming.status,
+      isCongenital: existing.isCongenital || incoming.isCongenital,
       treatment:
           (existing.treatment == null || existing.treatment!.trim().isEmpty)
           ? incoming.treatment
@@ -2859,7 +2862,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
               }
             : null,
         tertiaryLabel: computedStatus == UnderwritingStatus.needMoreInfo
-            ? 'Copy resume code'
+            ? 'Save resume code'
             : null,
         onTertiary: computedStatus == UnderwritingStatus.needMoreInfo
             ? () {
@@ -3031,24 +3034,14 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   }
 
   Future<void> _copyResumeCodeToClipboard() async {
-    try {
-      final draftService = DraftService();
-      final resumeKey = await draftService.getOrCreateLocalResumeKey();
-      await Clipboard.setData(
-        ClipboardData(text: draftService.encodeForSharing(resumeKey)),
-      );
-
-      if (!mounted) return;
-      final pretty = draftService.prettyCode(resumeKey);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Resume code copied: $pretty')));
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to copy resume code')),
-      );
-    }
+    await SaveResumeDialog.show(
+      context,
+      title: 'Save & resume later',
+      body:
+          'Use this code to return from the home page and upload documents from any device.',
+      copyLabel: 'Copy code',
+      doneLabel: 'Done',
+    );
   }
 
   // Dialog methods
@@ -3062,6 +3055,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       _conditionNameController.text = isOther ? '' : condition.name;
       _conditionDiagnosisDate = condition.diagnosisDate;
       _conditionStatus = condition.status;
+      _conditionIsCongenital = condition.isCongenital;
       _conditionTreatmentController.text = condition.treatment ?? '';
       _conditionNotesController.text = condition.notes ?? '';
     });
@@ -3137,6 +3131,18 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
               ),
             ),
             const SizedBox(height: 16),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Congenital / since birth'),
+              subtitle: const Text(
+                'Mark when the condition has been present since birth.',
+              ),
+              value: _conditionIsCongenital,
+              onChanged: (value) {
+                setState(() => _conditionIsCongenital = value);
+              },
+            ),
+            const SizedBox(height: 8),
             ListTile(
               title: const Text('Diagnosis Date'),
               subtitle: Text(
@@ -3480,6 +3486,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           name: _conditionNameController.text,
           diagnosisDate: _conditionDiagnosisDate!,
           status: _conditionStatus,
+          isCongenital: _conditionIsCongenital,
           treatment: _conditionTreatmentController.text.isEmpty
               ? null
               : _conditionTreatmentController.text,
@@ -3498,6 +3505,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       name: _conditionNameController.text,
       diagnosisDate: _conditionDiagnosisDate!,
       status: _conditionStatus,
+      isCongenital: _conditionIsCongenital,
       treatment: _conditionTreatmentController.text.isEmpty
           ? null
           : _conditionTreatmentController.text,
@@ -3530,6 +3538,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     _conditionNotesController.clear();
     _conditionDiagnosisDate = null;
     _conditionStatus = 'active';
+    _conditionIsCongenital = false;
   }
 
   void _addMedication() {

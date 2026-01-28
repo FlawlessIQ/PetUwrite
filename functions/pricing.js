@@ -10,6 +10,7 @@ const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const {FieldValue} = require("firebase-admin/firestore");
+const zipcodes = require("zipcodes");
 
 if (!admin.apps.length) admin.initializeApp();
 
@@ -268,6 +269,25 @@ function getRegionalAdjustment({state, zipCode, regionalAdjustments}) {
   };
 }
 
+function normalizeZipCode(zipCode) {
+  // Accept 5-digit ZIP and ZIP+4, but normalize to first 5 digits.
+  const raw = coerceString(zipCode).trim();
+  const m = raw.match(/^\s*(\d{5})(?:-\d{4})?\s*$/);
+  return m ? m[1] : raw;
+}
+
+function resolveCanonicalStateFromZip(zipCode) {
+  const zip5 = normalizeZipCode(zipCode);
+  const rec = zipcodes.lookup(zip5);
+  const st = rec && typeof rec.state === "string" ? rec.state.trim() : "";
+  return st ? st.toUpperCase() : "";
+}
+
+function normalizeState(state) {
+  const st = coerceString(state).trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(st) ? st : "";
+}
+
 function getMultiPetDiscount({numberOfPets, multiPetDiscounts}) {
   const n = coerceInt(numberOfPets) ?? 1;
   if (n >= 4) return coerceNumber(multiPetDiscounts[4]) ?? 0.0;
@@ -413,6 +433,38 @@ function exclusions() {
   ];
 }
 
+function defaultWaitingPeriodsDays() {
+  // Keep aligned with ProductCatalog.defaultWaitingPeriodsDays (client).
+  return {
+    accident: 3,
+    illness: 14,
+    orthopedic: 180,
+  };
+}
+
+function defaultPolicyRules() {
+  // Keep aligned with QuoteEngine.buildPlan policyRules (client).
+  return {
+    orthopedicWaiver: {
+      eligible: true,
+      requiresVetExam: true,
+      noPriorSymptomsRequired: true,
+      waivedOrthopedicDays: 30,
+    },
+    curablePreExisting: {
+      supported: true,
+      monthsSymptomFreeRequired: 12,
+      requiresVetRecords: true,
+      chronicAlwaysExcludedExamples: [
+        "diabetes",
+        "cushing's disease",
+        "chronic kidney disease",
+        "epilepsy",
+      ],
+    },
+  };
+}
+
 exports.getPricingQuotePublic = onCall(
   {
     invoker: "public",
@@ -428,12 +480,29 @@ exports.getPricingQuotePublic = onCall(
         data.riskBand ?? data.riskLevel ?? data?.riskScore?.riskLevel,
       );
 
-      const zipCode = coerceString(data.zipCode).trim();
-      const state = coerceString(data.state).trim();
+      const zipCode = normalizeZipCode(data.zipCode);
+      const providedState = normalizeState(data.state);
       const numberOfPets = coerceInt(data.numberOfPets) ?? 1;
 
       if (!zipCode) {
         throw new HttpsError("invalid-argument", "zipCode is required");
+      }
+
+      // Carrier-grade: derive rating state/territory authoritatively from ZIP.
+      // If lookup fails, fall back to a normalized client state if provided.
+      const canonicalStateFromZip = resolveCanonicalStateFromZip(zipCode);
+      const canonicalState = canonicalStateFromZip || providedState;
+      const stateSource = canonicalStateFromZip ? "zip" : (providedState ? "client" : "unknown");
+      const stateMismatch = Boolean(
+        canonicalStateFromZip && providedState && canonicalStateFromZip !== providedState,
+      );
+
+      if (stateMismatch) {
+        logger.info("ZIP/state mismatch on pricing quote", {
+          zipCode,
+          providedState,
+          canonicalState: canonicalStateFromZip,
+        });
       }
 
       const addOns = Array.isArray(data.addOns)
@@ -443,7 +512,7 @@ exports.getPricingQuotePublic = onCall(
       const {versionId, config} = await loadActivePricingConfig();
 
       const regional = getRegionalAdjustment({
-        state,
+        state: canonicalState,
         zipCode,
         regionalAdjustments: config.regionalAdjustments,
       });
@@ -526,8 +595,8 @@ exports.getPricingQuotePublic = onCall(
           selectedAddOns: addOns,
           riskBand,
           pricingBreakdown: breakdown,
-          waitingPeriodsDays: null,
-          policyRules: null,
+          waitingPeriodsDays: defaultWaitingPeriodsDays(),
+          policyRules: defaultPolicyRules(),
           features: featuresForTier(sku.tier),
           exclusions: exclusions(),
         };
@@ -538,6 +607,9 @@ exports.getPricingQuotePublic = onCall(
         pricingVersion: config.version,
         effectiveDateIso: config.effectiveDateIso,
         notes: config.notes,
+        canonicalState: canonicalState || null,
+        stateSource,
+        stateMismatch,
         plans,
       };
     } catch (e) {

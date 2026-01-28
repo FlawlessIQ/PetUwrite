@@ -16,9 +16,14 @@ import 'package:flutter/foundation.dart'
 import 'config/emulator_config.dart';
 import 'router/app_router.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'theme/clovara_scroll_behavior.dart';
+import 'utils/web_trackpad_scroll_workaround.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Work around a debug-only Flutter Web assertion for macOS trackpad scrolling.
+  installWebTrackpadScrollWorkaroundIfNeeded();
 
   // Web: use path URLs (no #) for SPA routes.
   if (kIsWeb) {
@@ -96,6 +101,7 @@ class PetUnderwriterAI extends StatelessWidget {
         theme: ClovaraTheme.light,
         darkTheme: ClovaraTheme.dark,
         themeMode: ThemeMode.light,
+        scrollBehavior: const ClovaraScrollBehavior(),
         // go_router integration
         routerConfig: router,
       ),

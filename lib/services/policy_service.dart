@@ -10,7 +10,26 @@ import '../services/quote_engine.dart';
 class PolicyService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(
+    region: 'us-central1',
+  );
+
+  Future<void> _setWithAuthRetry(
+    DocumentReference<Map<String, dynamic>> ref,
+    Map<String, dynamic> data,
+    User user,
+  ) async {
+    try {
+      await ref.set(data);
+    } on FirebaseException catch (e) {
+      if (e.code != 'permission-denied') rethrow;
+
+      // Web sometimes needs a token refresh/propagation tick before Firestore
+      // rules see request.auth.
+      await user.getIdToken(true);
+      await ref.set(data);
+    }
+  }
 
   /// Create a new policy document in Firestore
   Future<PolicyDocument> createPolicy({
@@ -24,18 +43,35 @@ class PolicyService {
     Map<String, dynamic>? underwritingSnapshot,
   }) async {
     try {
-      final user = _auth.currentUser;
+      var user = _auth.currentUser;
+      if (user == null) {
+        // Defensive: in some web flows we can reach checkout without
+        // any prior auth step. Ensure we have at least an anonymous session.
+        await _auth.signInAnonymously();
+        user = _auth.currentUser;
+      }
       if (user == null) {
         throw Exception('User not authenticated');
       }
 
+      // Ensure token is present so callable requests include auth.
+      await user.getIdToken(true);
+
       final now = DateTime.now();
-      final effectiveDate = now;
-      final expirationDate = DateTime(now.year + 1, now.month, now.day);
+      // Carrier-grade governance: avoid same-day effective coverage.
+      // Waiting periods still apply, but this reduces immediate bind→claim abuse.
+      final effectiveDate = DateTime(now.year, now.month, now.day).add(
+        const Duration(days: 1),
+      );
+      final expirationDate = DateTime(
+        effectiveDate.year + 1,
+        effectiveDate.month,
+        effectiveDate.day,
+      );
 
       // Create policy document
       final policyRef = _firestore.collection('policies').doc();
-      
+
       final policy = PolicyDocument(
         policyId: policyRef.id,
         policyNumber: policyNumber,
@@ -52,40 +88,101 @@ class PolicyService {
         underwritingSnapshot: underwritingSnapshot,
       );
 
-      // Save to Firestore
+      // Prefer server-side creation via callable (admin write). This avoids
+      // Firestore rules blocking policy creation for anonymous users.
+      try {
+        print('🔁 createPolicy: trying callable createPolicy (preferred)');
+        final callable = _functions.httpsCallable('createPolicy');
+        final result = await callable.call({
+          'policyId': policyRef.id,
+          'policyNumber': policyNumber,
+          'pet': pet.toJson(),
+          'owner': owner.toJson(),
+          'plan': plan.toJson(),
+          'payment': payment.toJson(),
+          'effectiveDate': effectiveDate.toIso8601String(),
+          'expirationDate': expirationDate.toIso8601String(),
+          'createdAt': now.toIso8601String(),
+          'status': 'active',
+          'underwritingCaseId': underwritingCaseId,
+          'exclusions': exclusions.map((e) => e.toJson()).toList(),
+          'underwritingSnapshot': underwritingSnapshot,
+        });
+
+        final data = (result.data as Map).cast<String, dynamic>();
+        final policyJson = (data['policy'] as Map).cast<String, dynamic>();
+        print('✅ createPolicy: callable succeeded');
+        return PolicyDocument.fromJson(policyJson);
+      } on FirebaseFunctionsException catch (e) {
+        // Only fall back to Firestore direct write if the function is missing
+        // or temporarily unavailable. Otherwise surface the function error.
+        print(
+          '⚠️ createPolicy: callable failed code=${e.code} message=${e.message}',
+        );
+        if (e.details != null) {
+          print('⚠️ createPolicy: callable details=${e.details}');
+        }
+        final canFallbackToFirestore =
+            e.code == 'not-found' ||
+            e.code == 'unimplemented' ||
+            e.code == 'unavailable' ||
+            e.code == 'deadline-exceeded';
+        if (!canFallbackToFirestore) {
+          rethrow;
+        }
+      }
+
+      // Save to Firestore (fallback)
       final documentData = {
         ...policy.toJson(),
-        'ownerId': user.uid,  // Changed from userId to ownerId to match Firestore rules
+        'ownerId':
+            user.uid, // Changed from userId to ownerId to match Firestore rules
         'createdBy': user.email,
         'lastUpdated': FieldValue.serverTimestamp(),
       };
-      
-      print('🔍 Saving policy document with data: ${documentData.keys.toList()}');
-      print('🔍 OwnerId being saved: ${user.uid}');
-      print('🔍 Current user authenticated: ${user.email}');
-      
-      await policyRef.set(documentData);
 
-      // Create user policy reference
-      await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .collection('policies')
-          .doc(policyRef.id)
-          .set({
-        'policyId': policyRef.id,
-        'policyNumber': policyNumber,
-        'petId': pet.id,
-        'petName': pet.name,
-        'planName': plan.name,
-        'monthlyPremium': plan.monthlyPremium,
-        'status': 'active',
-        'effectiveDate': effectiveDate.toIso8601String(),
-        'expirationDate': expirationDate.toIso8601String(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      print(
+        '🔍 Saving policy document with data: ${documentData.keys.toList()}',
+      );
+      print('🔍 OwnerId being saved: ${user.uid}');
+      print(
+        '🔍 Auth session: uid=${user.uid} anonymous=${user.isAnonymous} email=${user.email}',
+      );
+
+      await _setWithAuthRetry(policyRef, documentData, user);
+
+      // Create user policy reference (best-effort; don't fail bind on rules).
+      try {
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('policies')
+            .doc(policyRef.id)
+            .set({
+              'policyId': policyRef.id,
+              'policyNumber': policyNumber,
+              'petId': pet.id,
+              'petName': pet.name,
+              'planName': plan.name,
+              'monthlyPremium': plan.monthlyPremium,
+              'status': 'active',
+              'effectiveDate': effectiveDate.toIso8601String(),
+              'expirationDate': expirationDate.toIso8601String(),
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+      } catch (e) {
+        print('⚠️ createPolicy: failed to write user policy reference: $e');
+      }
 
       return policy;
+    } on FirebaseFunctionsException catch (e) {
+      throw Exception(
+        'Failed to create policy: [firebase_functions/${e.code}] ${e.message ?? ''}',
+      );
+    } on FirebaseException catch (e) {
+      throw Exception(
+        'Failed to create policy: [${e.plugin}/${e.code}] ${e.message ?? ''}',
+      );
     } catch (e) {
       throw Exception('Failed to create policy: ${e.toString()}');
     }
@@ -95,7 +192,7 @@ class PolicyService {
   Future<PolicyDocument?> getPolicy(String policyId) async {
     try {
       final doc = await _firestore.collection('policies').doc(policyId).get();
-      
+
       if (!doc.exists) {
         return null;
       }
@@ -116,7 +213,10 @@ class PolicyService {
 
       final querySnapshot = await _firestore
           .collection('policies')
-          .where('ownerId', isEqualTo: user.uid)  // Changed from userId to ownerId
+          .where(
+            'ownerId',
+            isEqualTo: user.uid,
+          ) // Changed from userId to ownerId
           .orderBy('createdAt', descending: true)
           .get();
 
@@ -144,9 +244,7 @@ class PolicyService {
             .doc(user.uid)
             .collection('policies')
             .doc(policyId)
-            .update({
-          'status': status,
-        });
+            .update({'status': status});
       }
     } catch (e) {
       throw Exception('Failed to update policy status: ${e.toString()}');
@@ -171,9 +269,7 @@ class PolicyService {
             .doc(user.uid)
             .collection('policies')
             .doc(policyId)
-            .update({
-          'status': 'cancelled',
-        });
+            .update({'status': 'cancelled'});
       }
     } catch (e) {
       throw Exception('Failed to cancel policy: ${e.toString()}');
@@ -199,17 +295,40 @@ class PolicyService {
 
   /// Send policy email with PDF attachment
   Future<void> sendPolicyEmail(PolicyDocument policy) async {
+    final recipientEmail = policy.owner.email.trim();
+    if (recipientEmail.isEmpty) {
+      print('⚠️ sendPolicyEmail: no recipient email; skipping');
+      return;
+    }
+
     try {
       final callable = _functions.httpsCallable('sendPolicyEmail');
       await callable.call({
         'policyId': policy.policyId,
         'policyNumber': policy.policyNumber,
-        'recipientEmail': policy.owner.email,
+        'recipientEmail': recipientEmail,
         'recipientName': policy.owner.fullName,
         'policyData': policy.toJson(),
       });
+      print('✅ sendPolicyEmail: sent to $recipientEmail');
+    } on FirebaseFunctionsException catch (e) {
+      // Email is best-effort. If the function is not deployed/configured yet,
+      // do not fail the checkout.
+      final canIgnore =
+          e.code == 'not-found' ||
+          e.code == 'unimplemented' ||
+          e.code == 'unavailable' ||
+          e.code == 'failed-precondition';
+      print('⚠️ sendPolicyEmail: failed code=${e.code} message=${e.message}');
+      if (!canIgnore) {
+        // Still best-effort, but log loudly.
+        print('⚠️ sendPolicyEmail: unexpected failure; continuing anyway');
+      }
+      return;
     } catch (e) {
-      throw Exception('Failed to send email: ${e.toString()}');
+      // Best-effort: never break policy creation because email failed.
+      print('⚠️ sendPolicyEmail: failed: $e');
+      return;
     }
   }
 
@@ -231,7 +350,7 @@ class PolicyService {
 
       // Create new policy document for renewal
       final policyRef = _firestore.collection('policies').doc();
-      
+
       final renewalPolicy = PolicyDocument(
         policyId: policyRef.id,
         policyNumber: '${existingPolicy.policyNumber}R',
@@ -247,7 +366,7 @@ class PolicyService {
 
       await policyRef.set({
         ...renewalPolicy.toJson(),
-        'ownerId': _auth.currentUser!.uid,  // Changed from userId to ownerId
+        'ownerId': _auth.currentUser!.uid, // Changed from userId to ownerId
         'originalPolicyId': policyId,
         'isRenewal': true,
         'lastUpdated': FieldValue.serverTimestamp(),
@@ -267,7 +386,7 @@ class PolicyService {
     try {
       final policies = await _firestore
           .collection('policies')
-          .where('ownerId', isEqualTo: userId)  // Changed from userId to ownerId
+          .where('ownerId', isEqualTo: userId) // Changed from userId to ownerId
           .get();
 
       int activePolicies = 0;

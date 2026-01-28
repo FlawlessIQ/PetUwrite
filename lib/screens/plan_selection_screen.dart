@@ -5,12 +5,19 @@ import '../auth/login_screen.dart';
 import '../auth/customer_home_screen.dart';
 import '../models/risk_score.dart';
 import '../models/owner.dart';
+import '../models/underwriting_exclusion.dart';
+import '../models/pet.dart';
 import '../services/quote_engine.dart';
 import '../services/product_catalog.dart';
+import '../services/draft_service.dart';
 import '../services/product_catalog_availability_engine.dart';
 import '../services/pricing_quote_service.dart';
 import '../services/pricing_gate.dart';
 import '../theme/clovara_theme.dart';
+import '../ui/tokens.dart';
+import '../ui/components/checkout_ui/checkout_card.dart';
+import '../ui/components/save_resume_dialog.dart';
+import '../services/user_session_service.dart';
 
 /// Minimal, clean plan selection screen
 class PlanSelectionScreen extends StatefulWidget {
@@ -65,6 +72,18 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       for (final item in raw) {
         if (item is String) {
           addName(item);
+        } else if (item is UnderwritingExclusion) {
+          // Format structured exclusions for chip display
+          if (item.type == UnderwritingExclusionType.anomalyDerived && 
+              item.scope.toLowerCase().contains('weight')) {
+            addName('Weight Risk');
+          } else if (item.type == UnderwritingExclusionType.breedLinked) {
+            final label = item.scope.isNotEmpty ? item.scope : 'Breed Risk';
+            addName('${label[0].toUpperCase()}${label.substring(1)} (Breed Linked)');
+          } else {
+             // Fallback to scope or explanation prefix
+             addName(item.scope.isNotEmpty ? item.scope : 'Exclusion');
+          }
         } else if (item is Map) {
           final conditionName = item['conditionName']?.toString();
           addName(conditionName);
@@ -82,71 +101,114 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return names;
   }
 
+  Widget _buildExclusionsChips() {
+    final exclusions = _getExclusionNamesFromRoute();
+    if (exclusions.isEmpty) return const SizedBox.shrink();
+
+    final chipFill = AppColors.accentAmber.withOpacity(0.16);
+    final chipBorder = AppColors.accentAmber.withOpacity(0.9);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: exclusions
+            .map(
+              (e) => Chip(
+                label: Text(
+                  e,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.text,
+                  ),
+                ),
+                backgroundColor: chipFill,
+                side: BorderSide(color: chipBorder, width: 1.2),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+              ),
+            )
+            .toList(growable: false),
+      ),
+    );
+  }
+
   Widget _buildExclusionsCallout() {
     final exclusions = _getExclusionNamesFromRoute();
     if (exclusions.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final bg = AppColors.accentAmber.withOpacity(0.16);
+    final border = AppColors.accentAmber.withOpacity(0.95);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: AppRadii.br16,
+            border: Border.all(color: border, width: 1.6),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.gpp_maybe, color: Colors.orange.shade800, size: 20),
-              const SizedBox(width: 10),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.accentAmber.withOpacity(0.28),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  color: AppColors.warning,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  'Coverage exclusions',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.orange.shade900,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Important: coverage exclusions',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.warning,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "This policy won’t cover treatment related to the conditions below.",
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.text,
+                        fontWeight: FontWeight.w700,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'These exclusions apply regardless of which plan you pick.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Your policy will not cover treatment related to these conditions:',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.orange.shade900,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: exclusions
-                .map(
-                  (e) => Chip(
-                    label: Text(
-                      e,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.orange.shade900,
-                      ),
-                    ),
-                    backgroundColor: Colors.white,
-                    side: BorderSide(color: Colors.orange.shade200),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
+        ),
+        _buildExclusionsChips(),
+      ],
     );
   }
 
@@ -186,7 +248,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
   List<Plan> _filterPlansByAvailability(List<Plan> plans) {
     final availability = _availability;
-    final withoutUnlimited = plans.where((p) => p.type != PlanType.unlimited).toList();
+    final withoutUnlimited = plans
+        .where((p) => p.type != PlanType.unlimited)
+        .toList();
     if (availability == null) return withoutUnlimited;
     return withoutUnlimited
         .where(
@@ -266,14 +330,17 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           filtered.any((p) => p.type == PlanType.standard)
           ? PlanType.standard
           : filtered.first.type;
-      final recommendedIndex = filtered.indexWhere((p) => p.type == recommendedPlanType);
+      final recommendedIndex = filtered.indexWhere(
+        (p) => p.type == recommendedPlanType,
+      );
 
       setState(() {
         _dynamicPlans = filtered;
         _isLoadingPlans = false;
         _selectedPlanIndex = recommendedIndex >= 0 ? recommendedIndex : 0;
-        _baselineMonthlyPremium =
-            filtered.isNotEmpty ? filtered[_selectedPlanIndex].monthlyPremium : null;
+        _baselineMonthlyPremium = filtered.isNotEmpty
+            ? filtered[_selectedPlanIndex].monthlyPremium
+            : null;
       });
     }
 
@@ -318,7 +385,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lock_outline, size: 44, color: Colors.white),
+            const Icon(
+              Icons.lock_outline,
+              size: 44,
+              color: AppColors.deepGreen,
+            ),
             const SizedBox(height: 12),
             const Text(
               'Pricing is unavailable',
@@ -326,7 +397,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: AppColors.deepGreen,
               ),
             ),
             const SizedBox(height: 10),
@@ -336,24 +407,21 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               style: TextStyle(
                 fontSize: 14,
                 height: 1.35,
-                color: Colors.white.withValues(alpha: 0.85),
+                color: AppColors.textMuted,
               ),
             ),
             const SizedBox(height: 12),
             Text(
               'Reason: $_pricingBlockReason',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.65),
-              ),
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),
             const SizedBox(height: 18),
             OutlinedButton(
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.6)),
+                foregroundColor: AppColors.deepGreen,
+                side: const BorderSide(color: AppColors.border),
               ),
               child: const Text('Back'),
             ),
@@ -394,13 +462,13 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     if (plan is! Plan) return ClovaraColors.clover;
     switch (plan.type) {
       case PlanType.basic:
-        return ClovaraColors.sunset;
+        return AppColors.textMuted;
       case PlanType.standard:
         return ClovaraColors.clover;
       case PlanType.plus:
-        return const Color(0xFF3B82F6);
+        return AppColors.deepGreen;
       case PlanType.premium:
-        return ClovaraColors.kWarmCoral;
+        return ClovaraColors.forest;
       case PlanType.unlimited:
         return ClovaraColors.forest;
     }
@@ -489,8 +557,13 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       builder: (context) {
         return Dialog(
           backgroundColor: Colors.white,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 22,
+            vertical: 22,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 980, maxHeight: 720),
             child: Padding(
@@ -543,7 +616,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                               _comparePinSelectedDefault = next;
                             },
                             onSelectIndex: (index) {
-                              setDialogState(() => workingSelectedIndex = index);
+                              setDialogState(
+                                () => workingSelectedIndex = index,
+                              );
                               _setSelectedPlanIndex(index);
                             },
                           ),
@@ -572,8 +647,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     final colWidth = isMobile ? 170.0 : 210.0;
 
     final riskScore = _routeArguments?['riskScore'] as RiskScore?;
-    final recommendedIndex =
-      riskScore == null ? null : _getRecommendedPlanIndex(riskScore, plans.length);
+    final recommendedIndex = riskScore == null
+        ? null
+        : _getRecommendedPlanIndex(riskScore, plans.length);
 
     String recommendationReason() {
       if (riskScore == null) return '';
@@ -588,16 +664,21 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       }
     }
 
-    String planName(dynamic plan) => plan is Plan ? plan.name : (plan as PlanData).name;
-    double planMonthly(dynamic plan) => plan is Plan ? plan.monthlyPremium : (plan as PlanData).monthlyPrice;
-    int planDeductible(dynamic plan) => plan is Plan ? plan.annualDeductible.toInt() : (plan as PlanData).annualDeductible;
+    String planName(dynamic plan) =>
+        plan is Plan ? plan.name : (plan as PlanData).name;
+    double planMonthly(dynamic plan) =>
+        plan is Plan ? plan.monthlyPremium : (plan as PlanData).monthlyPrice;
+    int planDeductible(dynamic plan) => plan is Plan
+        ? plan.annualDeductible.toInt()
+        : (plan as PlanData).annualDeductible;
     int planReimburse(dynamic plan) => plan is Plan
         ? (100 - plan.coPayPercentage).toInt()
         : (plan as PlanData).reimbursement;
     String planLimit(dynamic plan) => plan is Plan
         ? _formatAnnualLimit(plan)
         : '\$${((plan as PlanData).annualLimit / 1000).toStringAsFixed(0)}k';
-    List<String> planFeatures(dynamic plan) => plan is Plan ? plan.features : (plan as PlanData).features;
+    List<String> planFeatures(dynamic plan) =>
+        plan is Plan ? plan.features : (plan as PlanData).features;
 
     final hasDynamic = plans.any((p) => p is Plan);
     final engine = QuoteEngine();
@@ -609,7 +690,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     int deductibleOf(dynamic plan) => planDeductible(plan);
     int? limitOf(dynamic plan) {
       if (plan is Plan) {
-        if (plan.isUnlimitedAnnualCoverage || plan.maxAnnualCoverage.isInfinite) {
+        if (plan.isUnlimitedAnnualCoverage ||
+            plan.maxAnnualCoverage.isInfinite) {
           return null;
         }
         return plan.maxAnnualCoverage.toInt();
@@ -617,8 +699,12 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       return (plan as PlanData).annualLimit;
     }
 
-    final reimburseBest = plans.map(reimburseOf).reduce((a, b) => a > b ? a : b);
-    final deductibleBest = plans.map(deductibleOf).reduce((a, b) => a < b ? a : b);
+    final reimburseBest = plans
+        .map(reimburseOf)
+        .reduce((a, b) => a > b ? a : b);
+    final deductibleBest = plans
+        .map(deductibleOf)
+        .reduce((a, b) => a < b ? a : b);
     final limitValues = plans.map(limitOf).toList();
     final hasUnlimited = limitValues.any((v) => v == null);
     final limitBest = hasUnlimited
@@ -642,26 +728,17 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       final accent = _tierColor(plan);
       final selected = originalIndex == selectedIndex;
       final tagline = _tierTagline(plan);
+      const selectionAccent = ClovaraColors.clover;
 
       return SizedBox(
         width: colWidth,
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            gradient: selected
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      accent.withValues(alpha: 0.16),
-                      Colors.white,
-                    ],
-                  )
-                : null,
-            color: selected ? null : Colors.white,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: selected ? accent : Colors.grey.shade200,
+              color: selected ? selectionAccent : AppColors.border,
               width: selected ? 2 : 1,
             ),
           ),
@@ -674,8 +751,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     width: 34,
                     height: 34,
                     decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.12),
+                      color: AppColors.surface2,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selected ? selectionAccent : AppColors.border,
+                      ),
                     ),
                     child: Icon(_tierIcon(plan), color: accent, size: 18),
                   ),
@@ -688,7 +768,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
-                        color: ClovaraColors.forest,
+                        color: AppColors.deepGreen,
                       ),
                     ),
                   ),
@@ -702,7 +782,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade700,
+                    color: AppColors.textMuted,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -716,7 +796,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
-                      color: accent,
+                      color: AppColors.deepGreen,
                       letterSpacing: -0.8,
                     ),
                   ),
@@ -728,7 +808,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: Colors.grey.shade700,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ),
@@ -738,19 +818,23 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: selected
-                        ? accent.withValues(alpha: 0.12)
-                        : Colors.grey.shade100,
+                    color: AppColors.surface2,
                     borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: selected ? selectionAccent : AppColors.border,
+                    ),
                   ),
                   child: Text(
                     selected ? 'Selected' : 'Tap to select',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w900,
-                      color: selected ? accent : Colors.grey.shade700,
+                      color: selected ? selectionAccent : AppColors.textMuted,
                     ),
                   ),
                 ),
@@ -775,7 +859,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: highlight ? Colors.green.withValues(alpha: 0.10) : null,
+            color: highlight ? AppColors.surface2 : null,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -881,16 +965,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  ClovaraColors.clover.withValues(alpha: 0.14),
-                  Colors.white,
-                ],
-              ),
+              color: AppColors.surface2,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppColors.border),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -899,10 +976,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: ClovaraColors.clover.withValues(alpha: 0.12),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: ClovaraColors.clover),
                   ),
-                  child: const Icon(Icons.auto_awesome, color: ClovaraColors.clover, size: 18),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    color: ClovaraColors.clover,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -914,7 +996,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
-                          color: ClovaraColors.forest,
+                          color: AppColors.deepGreen,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -923,7 +1005,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700,
+                          color: AppColors.textMuted,
                           height: 1.25,
                         ),
                       ),
@@ -966,8 +1048,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   minWidth: isMobile ? 130 : 160,
                 ),
                 children: const [
-                  Text('Compare to selected', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-                  Text('Compare all', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                  Text(
+                    'Compare to selected',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                  ),
+                  Text(
+                    'Compare all',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                  ),
                 ],
               ),
             ],
@@ -997,22 +1085,21 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(width: labelWidth),
-                    ...List.generate(
-                      columns.length,
-                      (i) {
-                        final entry = columns[i];
-                        final originalIndex = entry.key;
-                        final plan = entry.value;
-                        return GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => onSelectIndex(originalIndex),
-                          child: Padding(
-                            padding: EdgeInsets.only(right: i == columns.length - 1 ? 0 : 12),
-                            child: headerCell(plan, originalIndex),
+                    ...List.generate(columns.length, (i) {
+                      final entry = columns[i];
+                      final originalIndex = entry.key;
+                      final plan = entry.value;
+                      return GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => onSelectIndex(originalIndex),
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: i == columns.length - 1 ? 0 : 12,
                           ),
-                        );
-                      },
-                    ),
+                          child: headerCell(plan, originalIndex),
+                        ),
+                      );
+                    }),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -1020,7 +1107,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    rowLabel('Reimbursement', subtitle: 'Higher % → you pay less'),
+                    rowLabel(
+                      'Reimbursement',
+                      subtitle: 'Higher % → you pay less',
+                    ),
                     ...List.generate(columns.length, (i) {
                       final plan = columns[i].value;
                       final v = reimburseOf(plan);
@@ -1042,7 +1132,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    rowLabel('Annual deductible', subtitle: 'Higher → lower premium'),
+                    rowLabel(
+                      'Annual deductible',
+                      subtitle: 'Higher → lower premium',
+                    ),
                     ...List.generate(columns.length, (i) {
                       final plan = columns[i].value;
                       final v = deductibleOf(plan);
@@ -1064,12 +1157,17 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    rowLabel('Annual limit', subtitle: 'More coverage → higher premium'),
+                    rowLabel(
+                      'Annual limit',
+                      subtitle: 'More coverage → higher premium',
+                    ),
                     ...List.generate(columns.length, (i) {
                       final plan = columns[i].value;
                       final v = limitOf(plan);
                       final selectedV = limitOf(selectedPlan);
-                      final highlight = v == null ? hasUnlimited : (limitBest != null && v == limitBest);
+                      final highlight = v == null
+                          ? hasUnlimited
+                          : (limitBest != null && v == limitBest);
                       String? delta;
                       if (pinSelected && plan != selectedPlan) {
                         if (v == null && selectedV != null) {
@@ -1078,7 +1176,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                           delta = '- Limited vs selected';
                         } else if (v != null && selectedV != null) {
                           final d = v - selectedV;
-                          delta = '${d >= 0 ? '+' : ''}\$${(d.abs() / 1000).toStringAsFixed(0)}k vs selected';
+                          delta =
+                              '${d >= 0 ? '+' : ''}\$${(d.abs() / 1000).toStringAsFixed(0)}k vs selected';
                         }
                       }
                       return valueCell(
@@ -1097,11 +1196,17 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     children: [
                       rowLabel(
                         'Example claim',
-                        subtitle: 'Estimated out-of-pocket for \$${exampleClaim.toStringAsFixed(0)}',
+                        subtitle:
+                            'Estimated out-of-pocket for \$${exampleClaim.toStringAsFixed(0)}',
                       ),
                       ...List.generate(columns.length, (i) {
                         final p = columns[i].value;
-                        if (p is! Plan) return valueCell(p, '—', emphasis: Colors.grey.shade700);
+                        if (p is! Plan)
+                          return valueCell(
+                            p,
+                            '—',
+                            emphasis: Colors.grey.shade700,
+                          );
                         final oop = engine.calculateOutOfPocket(
                           plan: p,
                           claimAmount: exampleClaim,
@@ -1112,8 +1217,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                                 claimAmount: exampleClaim,
                               )
                             : null;
-                        final d = selectedOop == null ? null : (oop - selectedOop);
-                        final delta = (pinSelected && d != null && p != selectedPlan)
+                        final d = selectedOop == null
+                            ? null
+                            : (oop - selectedOop);
+                        final delta =
+                            (pinSelected && d != null && p != selectedPlan)
                             ? '${d >= 0 ? '+' : ''}\$${d.abs().toStringAsFixed(0)} vs selected'
                             : null;
                         return valueCell(
@@ -1152,7 +1260,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: isSelected ? accent : Colors.grey.shade200,
+                color: isSelected ? ClovaraColors.clover : AppColors.border,
                 width: isSelected ? 2 : 1,
               ),
               boxShadow: [
@@ -1172,8 +1280,13 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: accent.withValues(alpha: 0.12),
+                        color: AppColors.surface2,
                         borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isSelected
+                              ? ClovaraColors.clover
+                              : AppColors.border,
+                        ),
                       ),
                       child: Icon(_tierIcon(plan), color: accent, size: 18),
                     ),
@@ -1184,7 +1297,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
-                          color: ClovaraColors.forest,
+                          color: AppColors.deepGreen,
                         ),
                       ),
                     ),
@@ -1193,13 +1306,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w900,
-                        color: accent,
+                        color: AppColors.deepGreen,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                ...feats.take(isMobile ? 6 : 8).map(
+                ...feats
+                    .take(isMobile ? 6 : 8)
+                    .map(
                       (f) => Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Row(
@@ -1414,7 +1529,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             v == null ? 'Unlimited' : '\$${(v / 1000).toStringAsFixed(0)}k',
       );
       if (picked == null) return;
-      _updateSelectedPlan(await rebuild(annualLimit: picked, annualLimitProvided: true));
+      _updateSelectedPlan(
+        await rebuild(annualLimit: picked, annualLimitProvided: true),
+      );
     }
 
     final visibleAddOns = AddOn.all.where((addon) {
@@ -1748,7 +1865,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             v == null ? 'Unlimited' : '\$${(v / 1000).toStringAsFixed(0)}k',
       );
       if (picked == null) return;
-      _updateSelectedPlan(await rebuild(annualLimit: picked, annualLimitProvided: true));
+      _updateSelectedPlan(
+        await rebuild(annualLimit: picked, annualLimitProvided: true),
+      );
     }
 
     final visibleAddOns = AddOn.all.where((addon) {
@@ -1815,11 +1934,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     child: Ink(
                       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                       decoration: BoxDecoration(
-                        color: ClovaraColors.clover.withValues(alpha: 0.08),
+                        color: AppColors.surface2,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: ClovaraColors.clover.withValues(alpha: 0.30),
-                        ),
+                        border: Border.all(color: ClovaraColors.clover),
                       ),
                       child: Row(
                         children: [
@@ -2016,7 +2133,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                                     } else {
                                       next.remove(addon.type);
                                     }
-                                    _updateSelectedPlan(await rebuild(addOns: next));
+                                    _updateSelectedPlan(
+                                      await rebuild(addOns: next),
+                                    );
                                   },
                                 ),
                             ],
@@ -2140,10 +2259,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     required bool selected,
     required void Function(bool nextSelected) onToggle,
   }) {
-    final borderColor = selected ? ClovaraColors.clover : Colors.grey.shade200;
-    final bg = selected
-        ? ClovaraColors.clover.withValues(alpha: 0.08)
-        : Colors.white;
+    final borderColor = selected ? ClovaraColors.clover : AppColors.border;
+    const bg = Colors.white;
 
     return Material(
       color: bg,
@@ -2163,15 +2280,16 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: selected
-                      ? ClovaraColors.clover.withValues(alpha: 0.18)
-                      : Colors.grey.shade100,
+                  color: AppColors.surface2,
                   borderRadius: BorderRadius.circular(9),
+                  border: Border.all(
+                    color: selected ? ClovaraColors.clover : AppColors.border,
+                  ),
                 ),
                 child: Icon(
                   selected ? Icons.check : Icons.add,
                   size: 16,
-                  color: selected ? ClovaraColors.clover : Colors.grey.shade700,
+                  color: selected ? ClovaraColors.clover : AppColors.textMuted,
                 ),
               ),
               const SizedBox(width: 10),
@@ -2187,7 +2305,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
-                        color: Colors.grey.shade900,
+                        color: AppColors.deepGreen,
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -2197,7 +2315,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.grey.shade700,
+                        color: AppColors.textMuted,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -2498,7 +2616,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         '\$500 Deductible',
         '24/7 Vet Helpline',
       ],
-      color: ClovaraColors.sunset,
+      color: AppColors.textMuted,
     ),
     PlanData(
       name: 'Standard',
@@ -2535,7 +2653,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         'Prescription Coverage',
         'Alternative Therapies',
       ],
-      color: ClovaraColors.kWarmCoral,
+      color: AppColors.deepGreen,
     ),
   ];
 
@@ -2546,7 +2664,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
     if (_isLoadingPlans) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -2571,25 +2689,16 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
     if (!_pricingAllowed) {
       return Scaffold(
-        backgroundColor: ClovaraColors.forest,
+        backgroundColor: AppColors.background,
         body: _buildPricingBlocked(),
       );
     }
 
     return Scaffold(
-      backgroundColor: ClovaraColors.mist,
+      backgroundColor: AppColors.background,
       appBar: _buildModernAppBar(context),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.white,
-              ClovaraColors.mist,
-            ],
-          ),
-        ),
+        decoration: const BoxDecoration(color: AppColors.background),
         child: isMobile ? _buildMobileV2() : _buildDesktopV2(),
       ),
       bottomNavigationBar: _buildStickyCheckoutBar(),
@@ -2598,15 +2707,17 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
   PreferredSizeWidget _buildModernAppBar(BuildContext context) {
     final petName = _tryGetPetNameFromRoute();
-    final subtitle = petName == null ? 'Pick coverage that fits your budget' : 'For $petName — pick coverage that fits your budget';
+    final subtitle = petName == null
+        ? 'Pick coverage that fits your budget'
+        : 'For $petName — pick coverage that fits your budget';
 
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       elevation: 0,
       scrolledUnderElevation: 0,
       leading: IconButton(
         onPressed: () => Navigator.pop(context),
-        icon: Icon(Icons.arrow_back, color: ClovaraColors.forest),
+        icon: const Icon(Icons.arrow_back, color: AppColors.deepGreen),
         tooltip: 'Back',
       ),
       titleSpacing: 4,
@@ -2616,7 +2727,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           Text(
             'Choose your plan',
             style: TextStyle(
-              color: ClovaraColors.forest,
+              color: AppColors.deepGreen,
               fontWeight: FontWeight.w900,
               fontSize: 18,
             ),
@@ -2635,6 +2746,36 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         ],
       ),
       actions: [
+        TextButton.icon(
+          onPressed: () async {
+            final shouldLeave = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Back to website home?'),
+                content: const Text(
+                  'If you leave now, your quote and plan selection may be lost.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Go to home'),
+                  ),
+                ],
+              ),
+            );
+
+            if (shouldLeave != true) return;
+            if (!context.mounted) return;
+            context.go('/');
+          },
+          icon: const Icon(Icons.home_outlined, size: 18),
+          label: const Text('Website home'),
+          style: TextButton.styleFrom(foregroundColor: AppColors.deepGreen),
+        ),
         _buildAccountIcon(context),
         const SizedBox(width: 8),
       ],
@@ -2667,16 +2808,299 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         'riskScore': _routeArguments?['riskScore'],
         'underwritingCaseId': _routeArguments?['underwritingCaseId'],
         'exclusions':
-            _routeArguments?['exclusions'] ?? _routeArguments?['excludedConditions'],
+            _routeArguments?['exclusions'] ??
+            _routeArguments?['excludedConditions'],
         'underwritingSnapshot': _routeArguments?['underwritingSnapshot'],
       },
+    );
+  }
+
+  AddOnType? _tryParseAddOnType(Object? value) {
+    if (value == null) return null;
+    if (value is AddOnType) return value;
+    final s = value.toString();
+    for (final e in AddOnType.values) {
+      if (e.name == s || e.toString() == s) return e;
+    }
+    return null;
+  }
+
+  Set<AddOnType> _selectedAddOnsOf(Plan plan) {
+    return plan.selectedAddOns
+        .map(_tryParseAddOnType)
+        .whereType<AddOnType>()
+        .toSet();
+  }
+
+  List<AddOn> _visibleAddOns() {
+    return AddOn.all
+        .where((addon) {
+          final availability = _availability;
+          if (availability == null) return true;
+          return ProductCatalogAvailabilityEngine.isAddOnEnabled(
+            availability,
+            addon.type.name,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  int _addOnPriority(AddOn a) {
+    final t = a.type;
+    if (t == AddOnType.wellnessPremium) return 0;
+    if (t == AddOnType.wellnessLite) return 1;
+    if (t == AddOnType.examFees) return 2;
+    if (t == AddOnType.dentalPlus) return 3;
+    if (t == AddOnType.rehab) return 4;
+    if (t == AddOnType.behavioral) return 5;
+    if (t == AddOnType.prescriptionFood) return 6;
+    return 10;
+  }
+
+  Future<Plan> _repricePlanWithAddOns(Plan base, Set<AddOnType> addOns) async {
+    final ageYears = _resolveAgeYearsFromRoute();
+
+    int? annualLimit;
+    if (base.isUnlimitedAnnualCoverage || base.maxAnnualCoverage.isInfinite) {
+      annualLimit = null;
+    } else {
+      annualLimit = base.maxAnnualCoverage.toInt();
+    }
+
+    try {
+      final owner = _routeArguments?['owner'] as Owner?;
+      if (owner != null) {
+        final svc = PricingQuoteService();
+        final priced = await svc.priceSku(
+          riskBand: base.riskBand.name,
+          zipCode: owner.address.zipCode,
+          state: owner.address.state,
+          numberOfPets: base.numberOfPets,
+          tier: base.type.name,
+          reimbursementPercent: base.reimbursementPercent,
+          annualDeductible: base.annualDeductible.toInt(),
+          annualLimit: annualLimit,
+          addOns: addOns.map((e) => e.name).toList(growable: false),
+        );
+        if (priced != null) return priced;
+      }
+    } catch (_) {
+      // Fall back to local pricing.
+    }
+
+    final engine = QuoteEngine();
+    return engine.buildPlan(
+      tier: base.type,
+      basePremium: base.pricingBasePremium,
+      riskBand: base.riskBand,
+      numberOfPets: base.numberOfPets,
+      discount: base.multiPetDiscount,
+      regionalMultiplier: base.pricingBreakdown?.regionalMultiplier ?? 1.0,
+      regionalKey: base.pricingBreakdown?.regionalKey ?? 'DEFAULT',
+      ageYears: ageYears,
+      reimbursementPercent: base.reimbursementPercent,
+      annualDeductible: base.annualDeductible.toInt(),
+      annualLimit: annualLimit,
+      addOns: addOns.toList(growable: false),
+    );
+  }
+
+  Widget _buildAddOnUpsellCard({
+    required AddOn addon,
+    required bool selected,
+    required String? priceLabel,
+    required VoidCallback onTap,
+  }) {
+    const accent = ClovaraColors.clover;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadii.br20,
+        child: CheckoutCard(
+          selected: selected,
+          accent: accent,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: selected ? accent : AppColors.border,
+                  ),
+                ),
+                child: Icon(
+                  selected ? Icons.check_rounded : Icons.add_rounded,
+                  color: selected ? accent : AppColors.textMuted,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            addon.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.text,
+                            ),
+                          ),
+                        ),
+                        if (priceLabel != null)
+                          Text(
+                            priceLabel,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      addon.description,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddOnsUpsellSection(Plan plan, {required bool isMobile}) {
+    final all = _visibleAddOns();
+    if (all.isEmpty) return const SizedBox.shrink();
+
+    final selected = _selectedAddOnsOf(plan);
+    final addOnLoads =
+        plan.pricingBreakdown?.addOnMonthlyLoads ?? const <String, double>{};
+
+    final sorted = List<AddOn>.from(all)
+      ..sort((a, b) => _addOnPriority(a).compareTo(_addOnPriority(b)));
+    final top = sorted.take(3).toList(growable: false);
+    if (top.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Most pet parents add one',
+          style: TextStyle(
+            fontSize: isMobile ? 15 : 14,
+            fontWeight: FontWeight.w900,
+            color: ClovaraColors.forest,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Optional add-ons you can turn on in seconds.',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w600,
+            height: 1.25,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (isMobile) ...[
+          for (final addon in top)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _buildAddOnUpsellCard(
+                addon: addon,
+                selected: selected.contains(addon.type),
+                priceLabel: addOnLoads[addon.type.name] == null
+                    ? null
+                    : '+ \$${addOnLoads[addon.type.name]!.toStringAsFixed(2)}/mo',
+                onTap: () async {
+                  final next = Set<AddOnType>.from(selected);
+                  if (next.contains(addon.type)) {
+                    next.remove(addon.type);
+                  } else {
+                    next.add(addon.type);
+                  }
+                  _updateSelectedPlan(await _repricePlanWithAddOns(plan, next));
+                },
+              ),
+            ),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: OutlinedButton.icon(
+              onPressed: () => _openCoverageCustomizerBottomSheet(plan),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ClovaraColors.forest,
+                side: BorderSide(color: Colors.grey.shade300),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              icon: const Icon(Icons.add_circle_outline, size: 18),
+              label: const Text(
+                'See all add-ons',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
+        ] else
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (final addon in top)
+                SizedBox(
+                  width: 320,
+                  child: _buildAddOnUpsellCard(
+                    addon: addon,
+                    selected: selected.contains(addon.type),
+                    priceLabel: addOnLoads[addon.type.name] == null
+                        ? null
+                        : '+ \$${addOnLoads[addon.type.name]!.toStringAsFixed(2)}/mo',
+                    onTap: () async {
+                      final next = Set<AddOnType>.from(selected);
+                      if (next.contains(addon.type)) {
+                        next.remove(addon.type);
+                      } else {
+                        next.add(addon.type);
+                      }
+                      _updateSelectedPlan(
+                        await _repricePlanWithAddOns(plan, next),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+      ],
     );
   }
 
   Widget _buildStickyCheckoutBar() {
     final plan = _plans[_selectedPlanIndex];
     final name = plan is Plan ? plan.name : (plan as PlanData).name;
-    final price = plan is Plan ? plan.monthlyPremium : (plan as PlanData).monthlyPrice;
+    final price = plan is Plan
+        ? plan.monthlyPremium
+        : (plan as PlanData).monthlyPrice;
 
     return SafeArea(
       top: false,
@@ -2772,6 +3196,13 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _buildAddOnsUpsellSection(selected, isMobile: true),
+            ),
+          ),
+        if (selected is Plan)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: _buildCoverageCustomizerCard(selected, isMobile: true),
             ),
           ),
@@ -2796,14 +3227,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            ClovaraColors.clover.withValues(alpha: 0.14),
-            ClovaraColors.sunset.withValues(alpha: 0.10),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppColors.surface1,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -2864,7 +3288,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
   void _syncMobilePlanController() {
     if (!_mobilePlanController.hasClients) return;
-    final current = (_mobilePlanController.page ?? _mobilePlanController.initialPage).round();
+    final current =
+        (_mobilePlanController.page ?? _mobilePlanController.initialPage)
+            .round();
     if (current == _selectedPlanIndex) return;
     _mobilePlanController.jumpToPage(_selectedPlanIndex);
   }
@@ -2873,7 +3299,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     final riskScore = _routeArguments?['riskScore'] as RiskScore?;
     final planCount = _plans.length;
     final screenH = MediaQuery.sizeOf(context).height;
-    final carouselHeight = (screenH * 0.32).clamp(240.0, 300.0);
+    // Slightly taller to avoid overflows on short web/mobile viewports.
+    final carouselHeight = (screenH * 0.36).clamp(280.0, 340.0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2912,7 +3339,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             itemBuilder: (context, index) {
               final plan = _plans[index];
               final recommended =
-                  riskScore != null && index == _getRecommendedPlanIndex(riskScore, planCount);
+                  riskScore != null &&
+                  index == _getRecommendedPlanIndex(riskScore, planCount);
               final selected = index == _selectedPlanIndex;
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
@@ -3005,7 +3433,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         const Spacer(),
                         TextButton.icon(
                           onPressed: () => _openComparePlans(isMobile: false),
-                          icon: const Icon(Icons.table_chart_outlined, size: 18),
+                          icon: const Icon(
+                            Icons.table_chart_outlined,
+                            size: 18,
+                          ),
                           label: const Text(
                             'Compare',
                             style: TextStyle(fontWeight: FontWeight.w900),
@@ -3050,12 +3481,20 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                                 children: [
                                   ...List.generate(_plans.length, (index) {
                                     final plan = _plans[index];
-                                    final recommended = riskScore != null &&
-                                      index == _getRecommendedPlanIndex(riskScore, _plans.length);
-                                    final selected = index == _selectedPlanIndex;
+                                    final recommended =
+                                        riskScore != null &&
+                                        index ==
+                                            _getRecommendedPlanIndex(
+                                              riskScore,
+                                              _plans.length,
+                                            );
+                                    final selected =
+                                        index == _selectedPlanIndex;
                                     return Padding(
                                       padding: EdgeInsets.only(
-                                        bottom: index == _plans.length - 1 ? 0 : 12,
+                                        bottom: index == _plans.length - 1
+                                            ? 0
+                                            : 12,
                                       ),
                                       child: _buildPlanPickerCard(
                                         plan: plan,
@@ -3063,7 +3502,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                                         selected: selected,
                                         recommended: recommended,
                                         dense: true,
-                                        onTap: () => _setSelectedPlanIndex(index),
+                                        onTap: () =>
+                                            _setSelectedPlanIndex(index),
                                       ),
                                     );
                                   }),
@@ -3084,9 +3524,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.55),
+                    color: AppColors.surface1,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: AppShadows.soft,
                   ),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.only(bottom: 120),
@@ -3096,7 +3537,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         _buildSectionLabel(
                           icon: Icons.shield_outlined,
                           title: 'Coverage summary',
-                          subtitle: 'Your price and core coverage levers at a glance.',
+                          subtitle:
+                              'Your price and core coverage levers at a glance.',
                           accent: accent,
                         ),
                         const SizedBox(height: 10),
@@ -3106,17 +3548,24 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                           _buildSectionLabel(
                             icon: Icons.auto_awesome,
                             title: 'Upgrade your plan',
-                            subtitle: 'Add extras and tune your deductible and reimbursement.',
+                            subtitle:
+                                'Add extras and tune your deductible and reimbursement.',
                             accent: accent,
                           ),
                           const SizedBox(height: 10),
-                          _buildCoverageCustomizerCard(selected, isMobile: false),
+                          _buildCoverageCustomizerCard(
+                            selected,
+                            isMobile: false,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildAddOnsUpsellSection(selected, isMobile: false),
                           const SizedBox(height: 16),
                         ],
                         _buildSectionLabel(
                           icon: Icons.check_circle_outline,
                           title: 'What\'s included',
-                          subtitle: 'Included benefits and coverage highlights.',
+                          subtitle:
+                              'Included benefits and coverage highlights.',
                           accent: accent,
                         ),
                         const SizedBox(height: 10),
@@ -3143,16 +3592,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            accent.withValues(alpha: 0.12),
-            Colors.white.withValues(alpha: 0.70),
-          ],
-        ),
+        color: AppColors.surface2,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
@@ -3162,7 +3604,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppColors.border),
             ),
             child: Icon(icon, color: ClovaraColors.forest, size: 18),
           ),
@@ -3176,7 +3618,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
-                    color: ClovaraColors.forest,
+                    color: AppColors.deepGreen,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -3184,7 +3626,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   subtitle,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade700,
+                    color: AppColors.textMuted,
                     fontWeight: FontWeight.w600,
                     height: 1.25,
                   ),
@@ -3206,23 +3648,32 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     bool dense = false,
   }) {
     final name = plan is Plan ? plan.name : (plan as PlanData).name;
-    final price = plan is Plan ? plan.monthlyPremium : (plan as PlanData).monthlyPrice;
-    final deductible = plan is Plan ? plan.annualDeductible.toInt() : (plan as PlanData).annualDeductible;
-    final reimburse = plan is Plan ? (100 - plan.coPayPercentage).toInt() : (plan as PlanData).reimbursement;
+    final price = plan is Plan
+        ? plan.monthlyPremium
+        : (plan as PlanData).monthlyPrice;
+    final deductible = plan is Plan
+        ? plan.annualDeductible.toInt()
+        : (plan as PlanData).annualDeductible;
+    final reimburse = plan is Plan
+        ? (100 - plan.coPayPercentage).toInt()
+        : (plan as PlanData).reimbursement;
     final limitLabel = plan is Plan
         ? _formatAnnualLimit(plan)
         : '\$${((plan as PlanData).annualLimit / 1000).toStringAsFixed(0)}k';
 
     final accent = _tierColor(plan);
-    final bg = selected
-        ? null
-        : Colors.white;
-    final border = selected ? accent : Colors.grey.shade200;
+    const selectionAccent = ClovaraColors.clover;
+    final bg = Colors.white;
+    final border = selected ? selectionAccent : AppColors.border;
     final tagline = _tierTagline(plan);
 
     final features = plan is Plan ? plan.features : (plan as PlanData).features;
-    final highlight1 = features.isNotEmpty ? features.first : 'Accidents & illnesses';
-    final highlight2 = features.length >= 2 ? features[1] : 'Fast claims + 24/7 support';
+    final highlight1 = features.isNotEmpty
+        ? features.first
+        : 'Accidents & illnesses';
+    final highlight2 = features.length >= 2
+        ? features[1]
+        : 'Fast claims + 24/7 support';
 
     // Mobile card: bigger typography, stronger hierarchy, more “premium” layout.
     if (!dense) {
@@ -3237,17 +3688,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: border, width: selected ? 2 : 1),
-              gradient: selected
-                  ? LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        accent.withValues(alpha: 0.20),
-                        Colors.white,
-                      ],
-                    )
-                  : null,
-              color: selected ? null : Colors.white,
+              color: bg,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -3266,14 +3707,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       width: 46,
                       height: 46,
                       decoration: BoxDecoration(
-                        color: selected
-                            ? accent.withValues(alpha: 0.18)
-                            : Colors.grey.shade100,
+                        color: AppColors.surface2,
                         borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: selected ? selectionAccent : AppColors.border,
+                        ),
                       ),
                       child: Icon(
                         selected ? Icons.check_circle : _tierIcon(plan),
-                        color: selected ? accent : Colors.grey.shade700,
+                        color: selected ? selectionAccent : AppColors.textMuted,
                         size: 22,
                       ),
                     ),
@@ -3292,7 +3734,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w900,
-                                    color: ClovaraColors.forest,
+                                    color: AppColors.deepGreen,
                                     letterSpacing: -0.3,
                                   ),
                                 ),
@@ -3307,7 +3749,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey.shade700,
+                                color: AppColors.textMuted,
                                 fontWeight: FontWeight.w700,
                               ),
                             )
@@ -3323,18 +3765,17 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              ClovaraColors.clover,
-                              ClovaraColors.clover.withValues(alpha: 0.86),
-                            ],
-                          ),
+                          color: ClovaraColors.clover,
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: const [
-                            Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+                            Icon(
+                              Icons.auto_awesome,
+                              size: 16,
+                              color: Colors.white,
+                            ),
                             SizedBox(width: 7),
                             Text(
                               'Recommended',
@@ -3358,7 +3799,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w900,
-                        color: accent,
+                        color: AppColors.deepGreen,
                         letterSpacing: -1.0,
                       ),
                     ),
@@ -3370,53 +3811,59 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: Colors.grey.shade700,
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: AppColors.border),
                       ),
                       child: Text(
                         '$reimburse% back • $limitLabel',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w900,
-                          color: ClovaraColors.forest,
+                          color: AppColors.deepGreen,
                         ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _buildKeyMetricPill(
-                      icon: Icons.payments_outlined,
-                      label: 'Deductible',
-                      value: '\$$deductible',
-                      accent: accent,
-                    ),
-                    _buildKeyMetricPill(
-                      icon: Icons.percent,
-                      label: 'Reimbursement',
-                      value: '$reimburse%',
-                      accent: accent,
-                    ),
-                    _buildKeyMetricPill(
-                      icon: Icons.shield_outlined,
-                      label: 'Limit',
-                      value: limitLabel,
-                      accent: accent,
-                    ),
-                  ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildKeyMetricPill(
+                        icon: Icons.payments_outlined,
+                        label: 'Deductible',
+                        value: '\$$deductible',
+                        accent: accent,
+                      ),
+                      const SizedBox(width: 10),
+                      _buildKeyMetricPill(
+                        icon: Icons.percent,
+                        label: 'Reimbursement',
+                        value: '$reimburse%',
+                        accent: accent,
+                      ),
+                      const SizedBox(width: 10),
+                      _buildKeyMetricPill(
+                        icon: Icons.shield_outlined,
+                        label: 'Limit',
+                        value: limitLabel,
+                        accent: accent,
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 14),
                 _buildFeatureLine(highlight1, accent),
@@ -3440,21 +3887,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: border, width: selected ? 2 : 1),
-            gradient: selected
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      accent.withValues(alpha: 0.16),
-                      Colors.white,
-                    ],
-                  )
-                : null,
-            color: selected ? null : bg,
+            color: bg,
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: accent.withValues(alpha: 0.14),
+                      color: Colors.black.withValues(alpha: 0.06),
                       blurRadius: 18,
                       offset: const Offset(0, 10),
                     ),
@@ -3467,14 +3904,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: selected
-                      ? accent.withValues(alpha: 0.18)
-                      : Colors.grey.shade100,
+                  color: AppColors.surface2,
                   borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: selected ? selectionAccent : AppColors.border,
+                  ),
                 ),
                 child: Icon(
                   selected ? Icons.check_circle : _tierIcon(plan),
-                  color: selected ? accent : Colors.grey.shade600,
+                  color: selected ? selectionAccent : AppColors.textMuted,
                 ),
               ),
               const SizedBox(width: 12),
@@ -3492,7 +3930,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                             style: TextStyle(
                               fontSize: dense ? 15 : 15,
                               fontWeight: FontWeight.w900,
-                              color: ClovaraColors.forest,
+                              color: AppColors.deepGreen,
                             ),
                           ),
                         ),
@@ -3503,18 +3941,17 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  ClovaraColors.clover,
-                                  ClovaraColors.clover.withValues(alpha: 0.86),
-                                ],
-                              ),
+                              color: ClovaraColors.clover,
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: const [
-                                Icon(Icons.auto_awesome, size: 14, color: Colors.white),
+                                Icon(
+                                  Icons.auto_awesome,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
                                 SizedBox(width: 6),
                                 Text(
                                   'Recommended',
@@ -3588,9 +4025,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.08),
+        color: AppColors.surface2,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withValues(alpha: 0.18)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -3605,7 +4042,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 label,
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.grey.shade700,
+                  color: AppColors.textMuted,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -3615,7 +4052,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w900,
-                  color: ClovaraColors.forest,
+                  color: AppColors.deepGreen,
                 ),
               ),
             ],
@@ -3646,14 +4083,17 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     );
   }
 
-  Widget _buildSelectedPlanOverview(
-    dynamic plan, {
-    bool isCompact = false,
-  }) {
+  Widget _buildSelectedPlanOverview(dynamic plan, {bool isCompact = false}) {
     final name = plan is Plan ? plan.name : (plan as PlanData).name;
-    final price = plan is Plan ? plan.monthlyPremium : (plan as PlanData).monthlyPrice;
-    final deductible = plan is Plan ? plan.annualDeductible.toInt() : (plan as PlanData).annualDeductible;
-    final reimburse = plan is Plan ? (100 - plan.coPayPercentage).toInt() : (plan as PlanData).reimbursement;
+    final price = plan is Plan
+        ? plan.monthlyPremium
+        : (plan as PlanData).monthlyPrice;
+    final deductible = plan is Plan
+        ? plan.annualDeductible.toInt()
+        : (plan as PlanData).annualDeductible;
+    final reimburse = plan is Plan
+        ? (100 - plan.coPayPercentage).toInt()
+        : (plan as PlanData).reimbursement;
     final limitLabel = plan is Plan
         ? _formatAnnualLimit(plan)
         : '\$${((plan as PlanData).annualLimit / 1000).toStringAsFixed(0)}k';
@@ -3661,16 +4101,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            accent.withValues(alpha: 0.08),
-            Colors.white,
-          ],
-        ),
+        color: AppColors.surface1,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -3686,21 +4119,21 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.08),
+              color: AppColors.surface2,
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: accent.withValues(alpha: 0.25)),
+              border: Border.all(color: AppColors.border),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(_tierIcon(plan), size: 16, color: accent),
+                Icon(_tierIcon(plan), size: 16, color: ClovaraColors.clover),
                 const SizedBox(width: 8),
                 Text(
                   'Selected plan',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
-                    color: ClovaraColors.forest,
+                    color: AppColors.deepGreen,
                   ),
                 ),
               ],
@@ -3712,7 +4145,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             style: TextStyle(
               fontSize: isCompact ? 16 : 20,
               fontWeight: FontWeight.w900,
-              color: ClovaraColors.forest,
+              color: AppColors.deepGreen,
             ),
           ),
           const SizedBox(height: 6),
@@ -3723,7 +4156,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 style: TextStyle(
                   fontSize: isCompact ? 34 : 46,
                   fontWeight: FontWeight.w900,
-                  color: accent,
+                  color: AppColors.deepGreen,
                   letterSpacing: -1.5,
                 ),
               ),
@@ -3790,27 +4223,28 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColors.border),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           tilePadding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          collapsedIconColor: Colors.grey.shade700,
-          iconColor: Colors.grey.shade700,
+          collapsedIconColor: AppColors.textMuted,
+          iconColor: AppColors.textMuted,
           title: Row(
             children: [
               Container(
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: ClovaraColors.sunset.withValues(alpha: 0.10),
+                  color: AppColors.surface2,
                   borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: Icon(
                   Icons.receipt_long,
-                  color: ClovaraColors.forest,
+                  color: AppColors.deepGreen,
                   size: 18,
                 ),
               ),
@@ -3840,7 +4274,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(999),
@@ -3856,9 +4293,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               ),
             ],
           ),
-          children: [
-            _buildExampleBills(plan),
-          ],
+          children: [_buildExampleBills(plan)],
         ),
       ),
     );
@@ -3870,13 +4305,12 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     required String value,
     Color? accent,
   }) {
-    final a = accent ?? ClovaraColors.clover;
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -3892,10 +4326,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: a.withValues(alpha: 0.10),
+              color: AppColors.surface2,
               borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
             ),
-            child: Icon(icon, size: 18, color: ClovaraColors.forest),
+            child: Icon(icon, size: 18, color: AppColors.deepGreen),
           ),
           const SizedBox(width: 10),
           Column(
@@ -3906,7 +4341,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 label,
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.grey.shade600,
+                  color: AppColors.textMuted,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -3940,14 +4375,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            ClovaraColors.clover.withValues(alpha: 0.10),
-            ClovaraColors.mist,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppColors.surface2,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -4088,14 +4516,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            accent.withValues(alpha: 0.06),
-            Colors.white,
-          ],
-        ),
+        color: AppColors.surface1,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -4163,7 +4584,6 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
   Widget _buildCoverageCustomizerCard(Plan plan, {required bool isMobile}) {
     final ageYears = _resolveAgeYearsFromRoute();
-    final accent = _tierColor(plan);
     final allowedReimbursements = ProductCatalog.reimbursementOptionsFor(
       riskBand: plan.riskBand,
     );
@@ -4277,7 +4697,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       void Function(Plan next) apply,
     ) {
       final addOnLoads =
-          workingPlan.pricingBreakdown?.addOnMonthlyLoads ?? const <String, double>{};
+          workingPlan.pricingBreakdown?.addOnMonthlyLoads ??
+          const <String, double>{};
       final currentPremium = workingPlan.monthlyPremium;
       final baseline = _baselineMonthlyPremium;
       final delta = baseline == null ? null : (currentPremium - baseline);
@@ -4320,7 +4741,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(999),
@@ -4345,10 +4769,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: delta <= 0
-                                ? Colors.green.withValues(alpha: 0.10)
-                                : Colors.orange.withValues(alpha: 0.12),
+                            color: AppColors.surface2,
                             borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: AppColors.border),
                           ),
                           child: Text(
                             '${delta <= 0 ? '' : '+'}\$${delta.toStringAsFixed(0)}',
@@ -4356,8 +4779,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                               fontSize: 11,
                               fontWeight: FontWeight.w900,
                               color: delta <= 0
-                                  ? Colors.green.shade800
-                                  : Colors.orange.shade800,
+                                  ? AppColors.success
+                                  : AppColors.warning,
                             ),
                           ),
                         ),
@@ -4398,13 +4821,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             subtitle: 'More coverage → higher premium',
             options: allowedAnnualLimits,
             selected: currentAnnualLimit,
-            labelFor: (v) => v == null ? 'Unlimited' : '\$${(v / 1000).toStringAsFixed(0)}k',
+            labelFor: (v) =>
+                v == null ? 'Unlimited' : '\$${(v / 1000).toStringAsFixed(0)}k',
             onSelected: (v) async {
               currentAnnualLimit = v;
               apply(await rebuild(annualLimit: v, annualLimitProvided: true));
             },
           ),
-          if (visibleAddOns.isNotEmpty) ...[
+          if (includeHeaderActions && visibleAddOns.isNotEmpty) ...[
             const SizedBox(height: 14),
             Text(
               'Add-ons',
@@ -4418,19 +4842,17 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             ...visibleAddOns.map((addon) {
               final selected = selectedAddOns.contains(addon.type);
               final load = addOnLoads[addon.type.name];
-              final priceLabel = load == null ? null : '+ \$${load.toStringAsFixed(2)}/mo';
+              final priceLabel = load == null
+                  ? null
+                  : '+ \$${load.toStringAsFixed(2)}/mo';
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 decoration: BoxDecoration(
-                  color: selected
-                      ? ClovaraColors.clover.withValues(alpha: 0.06)
-                      : Colors.white,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: selected
-                        ? ClovaraColors.clover.withValues(alpha: 0.45)
-                        : Colors.grey.shade200,
+                    color: selected ? ClovaraColors.clover : AppColors.border,
                   ),
                 ),
                 child: SwitchListTile.adaptive(
@@ -4471,7 +4893,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     addon.description,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade700,
+                      color: AppColors.textMuted,
                       height: 1.25,
                       fontWeight: FontWeight.w600,
                     ),
@@ -4508,14 +4930,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            accent.withValues(alpha: 0.06),
-            Colors.white,
-          ],
-        ),
+        color: AppColors.surface1,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: isMobile
@@ -4532,387 +4947,244 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isMobile)
-            ...[
-              Builder(
-                builder: (context) {
-                  final baseline = _baselineMonthlyPremium;
-                  final currentPremium = plan.monthlyPremium;
-                  final delta = baseline == null ? null : (currentPremium - baseline);
+          if (!isMobile) ...[
+            Builder(
+              builder: (context) {
+                final baseline = _baselineMonthlyPremium;
+                final currentPremium = plan.monthlyPremium;
+                final delta = baseline == null
+                    ? null
+                    : (currentPremium - baseline);
 
-                  return Container(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                return Container(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface2,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Icon(
+                          Icons.tune,
+                          color: ClovaraColors.forest,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Customize coverage',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                                color: ClovaraColors.forest,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$currentReimbursement% reimbursement • \$$currentDeductible deductible • '
+                              '${currentAnnualLimit == null ? 'Unlimited' : '\$${(currentAnnualLimit! / 1000).toStringAsFixed(0)}k'} annual limit',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade700,
+                                fontWeight: FontWeight.w700,
+                                height: 1.25,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '\$${currentPremium.toStringAsFixed(0)}/mo',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                                color: ClovaraColors.forest,
+                              ),
+                            ),
+                            if (delta != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: delta <= 0
+                                      ? AppColors.success.withValues(
+                                          alpha: 0.10,
+                                        )
+                                      : AppColors.warning.withValues(
+                                          alpha: 0.10,
+                                        ),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '${delta <= 0 ? '' : '+'}\$${delta.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                    color: delta <= 0
+                                        ? AppColors.success
+                                        : AppColors.warning,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            Builder(
+              builder: (context) {
+                final selected = _plans[_selectedPlanIndex];
+                final working = selected is Plan ? selected : plan;
+                return content(
+                  false,
+                  working,
+                  (next) => _updateSelectedPlan(next),
+                );
+              },
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surface2,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: Colors.grey.shade200),
                     ),
-                    child: Row(
+                    child: Icon(
+                      Icons.auto_awesome,
+                      color: ClovaraColors.forest,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: accent.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            Icons.tune,
+                        Text(
+                          'Boost your coverage',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
                             color: ClovaraColors.forest,
-                            size: 18,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Customize coverage',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w900,
-                                  color: ClovaraColors.forest,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '$currentReimbursement% reimbursement • \$$currentDeductible deductible • '
-                                '${currentAnnualLimit == null ? 'Unlimited' : '\$${(currentAnnualLimit! / 1000).toStringAsFixed(0)}k'} annual limit',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade700,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.25,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Container(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: Colors.grey.shade200),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '\$${currentPremium.toStringAsFixed(0)}/mo',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w900,
-                                  color: ClovaraColors.forest,
-                                ),
-                              ),
-                              if (delta != null) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: delta <= 0
-                                        ? Colors.green.withValues(alpha: 0.10)
-                                        : Colors.orange.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    '${delta <= 0 ? '' : '+'}\$${delta.toStringAsFixed(0)}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w900,
-                                      color: delta <= 0
-                                          ? Colors.green.shade800
-                                          : Colors.orange.shade800,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
+                        const SizedBox(height: 2),
+                        Text(
+                          'Add extras now — you can adjust coverage details anytime.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w600,
+                            height: 1.25,
                           ),
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              Builder(
-                builder: (context) {
-                  final selected = _plans[_selectedPlanIndex];
-                  final working = selected is Plan ? selected : plan;
-                  return content(
-                    false,
-                    working,
-                    (next) => _updateSelectedPlan(next),
-                  );
-                },
-              ),
-            ]
-          else
-            ...[
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      ClovaraColors.clover.withValues(alpha: 0.14),
-                      Colors.white,
-                    ],
                   ),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Icon(Icons.auto_awesome, color: ClovaraColors.forest),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Boost your coverage',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: ClovaraColors.forest,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Add extras now — you can adjust coverage details anytime.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade700,
-                              fontWeight: FontWeight.w600,
-                              height: 1.25,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Your coverage settings',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: ClovaraColors.forest,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '\$${plan.monthlyPremium.toStringAsFixed(0)}/mo',
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Your coverage settings',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w900,
                       color: ClovaraColors.forest,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '$currentReimbursement% reimbursement • \$$currentDeductible deductible • '
-                '${currentAnnualLimit == null ? 'Unlimited' : '\$${(currentAnnualLimit! / 1000).toStringAsFixed(0)}k'} annual limit',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade700,
-                  fontWeight: FontWeight.w700,
                 ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: ElevatedButton.icon(
-                  onPressed: () => _openCoverageCustomizerBottomSheet(plan),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ClovaraColors.forest,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Icon(Icons.tune, size: 18),
-                  label: const Text(
-                    'Adjust deductible, reimbursement & limits',
-                    style: TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                ),
-              ),
-              if (visibleAddOns.isNotEmpty) ...[
-                const SizedBox(height: 16),
                 Text(
-                  'Popular add-ons',
+                  '\$${plan.monthlyPremium.toStringAsFixed(0)}/mo',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w900,
                     color: ClovaraColors.forest,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Builder(
-                  builder: (context) {
-                    // Show a short, conversion-focused list inline.
-                    final addOnLoads =
-                        plan.pricingBreakdown?.addOnMonthlyLoads ?? const <String, double>{};
-
-                    int priority(AddOn a) {
-                      final t = a.type;
-                      if (t == AddOnType.wellnessPremium) return 0;
-                      if (t == AddOnType.wellnessLite) return 1;
-                      if (t == AddOnType.examFees) return 2;
-                      if (t == AddOnType.dentalPlus) return 3;
-                      if (t == AddOnType.rehab) return 4;
-                      if (t == AddOnType.behavioral) return 5;
-                      if (t == AddOnType.prescriptionFood) return 6;
-                      return 10;
-                    }
-
-                    final sorted = List<AddOn>.from(visibleAddOns)
-                      ..sort((a, b) => priority(a).compareTo(priority(b)));
-
-                    final top = sorted.take(3).toList();
-
-                    return Column(
-                      children: [
-                        for (final addon in top)
-                          _buildMobileAddOnCard(
-                            addon: addon,
-                            selected: selectedAddOns.contains(addon.type),
-                            priceLabel: addOnLoads[addon.type.name] == null
-                                ? null
-                                : '+ \$${addOnLoads[addon.type.name]!.toStringAsFixed(2)}/mo',
-                            onChanged: (nextSelected) async {
-                              final next = Set<AddOnType>.from(selectedAddOns);
-                              if (nextSelected) {
-                                next.add(addon.type);
-                              } else {
-                                next.remove(addon.type);
-                              }
-                              _updateSelectedPlan(await rebuild(addOns: next));
-                            },
-                          ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 46,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _openCoverageCustomizerBottomSheet(plan),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: ClovaraColors.forest,
-                              side: BorderSide(color: Colors.grey.shade300),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            icon: const Icon(Icons.add_circle_outline, size: 18),
-                            label: const Text(
-                              'See all add-ons',
-                              style: TextStyle(fontWeight: FontWeight.w900),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
               ],
-            ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileAddOnCard({
-    required AddOn addon,
-    required bool selected,
-    required String? priceLabel,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        gradient: selected
-            ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  ClovaraColors.clover.withValues(alpha: 0.10),
-                  Colors.white,
-                ],
-              )
-            : null,
-        color: selected ? null : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: selected
-              ? ClovaraColors.clover.withValues(alpha: 0.45)
-              : Colors.grey.shade200,
-          width: selected ? 2 : 1,
-        ),
-      ),
-      child: SwitchListTile.adaptive(
-        value: selected,
-        onChanged: onChanged,
-        contentPadding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                addon.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '$currentReimbursement% reimbursement • \$$currentDeductible deductible • '
+              '${currentAnnualLimit == null ? 'Unlimited' : '\$${(currentAnnualLimit! / 1000).toStringAsFixed(0)}k'} annual limit',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton.icon(
+                onPressed: () => _openCoverageCustomizerBottomSheet(plan),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ClovaraColors.forest,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: const Icon(Icons.tune, size: 18),
+                label: const Text(
+                  'Adjust deductible, reimbursement & limits',
+                  style: TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
             ),
-            if (priceLabel != null)
-              Text(
-                priceLabel,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade700,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
           ],
-        ),
-        subtitle: Text(
-          addon.description,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade700,
-            height: 1.25,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        ],
       ),
     );
   }
@@ -5008,8 +5280,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
     int currentDeductible = workingPlan.annualDeductible.toInt();
     if (!allowedDeductibles.contains(currentDeductible)) {
-      currentDeductible =
-          allowedDeductibles.isEmpty ? 500 : allowedDeductibles.first;
+      currentDeductible = allowedDeductibles.isEmpty
+          ? 500
+          : allowedDeductibles.first;
     }
 
     if (!allowedAnnualLimits.contains(currentAnnualLimit)) {
@@ -5059,7 +5332,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         riskBand: workingPlan.riskBand,
         numberOfPets: workingPlan.numberOfPets,
         discount: workingPlan.multiPetDiscount,
-        regionalMultiplier: workingPlan.pricingBreakdown?.regionalMultiplier ?? 1.0,
+        regionalMultiplier:
+            workingPlan.pricingBreakdown?.regionalMultiplier ?? 1.0,
         regionalKey: workingPlan.pricingBreakdown?.regionalKey ?? 'DEFAULT',
         ageYears: ageYears,
         reimbursementPercent: nextReimb,
@@ -5079,10 +5353,13 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     }).toList();
 
     final addOnLoads =
-        workingPlan.pricingBreakdown?.addOnMonthlyLoads ?? const <String, double>{};
+        workingPlan.pricingBreakdown?.addOnMonthlyLoads ??
+        const <String, double>{};
 
     final baseline = _baselineMonthlyPremium;
-    final delta = baseline == null ? null : (workingPlan.monthlyPremium - baseline);
+    final delta = baseline == null
+        ? null
+        : (workingPlan.monthlyPremium - baseline);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -5110,14 +5387,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                ClovaraColors.clover.withValues(alpha: 0.12),
-                Colors.white,
-              ],
-            ),
+            color: AppColors.surface2,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.grey.shade200),
           ),
@@ -5149,21 +5419,21 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               ),
               if (delta != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
-                    color: delta <= 0
-                        ? Colors.green.withValues(alpha: 0.10)
-                        : Colors.orange.withValues(alpha: 0.12),
+                    color: AppColors.surface2,
                     borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: AppColors.border),
                   ),
                   child: Text(
                     '${delta <= 0 ? '' : '+'}\$${delta.toStringAsFixed(0)}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
-                      color: delta <= 0
-                          ? Colors.green.shade800
-                          : Colors.orange.shade800,
+                      color: delta <= 0 ? AppColors.success : AppColors.warning,
                     ),
                   ),
                 ),
@@ -5221,20 +5491,17 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           ...visibleAddOns.map((addon) {
             final selected = selectedAddOns.contains(addon.type);
             final load = addOnLoads[addon.type.name];
-            final priceLabel =
-                load == null ? null : '+ \$${load.toStringAsFixed(2)}/mo';
+            final priceLabel = load == null
+                ? null
+                : '+ \$${load.toStringAsFixed(2)}/mo';
 
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
               decoration: BoxDecoration(
-                color: selected
-                    ? ClovaraColors.clover.withValues(alpha: 0.06)
-                    : Colors.white,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: selected
-                      ? ClovaraColors.clover.withValues(alpha: 0.45)
-                      : Colors.grey.shade200,
+                  color: selected ? ClovaraColors.clover : AppColors.border,
                 ),
               ),
               child: SwitchListTile.adaptive(
@@ -5265,7 +5532,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         priceLabel,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade700,
+                          color: AppColors.textMuted,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -5275,7 +5542,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   addon.description,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade700,
+                    color: AppColors.textMuted,
                     height: 1.25,
                     fontWeight: FontWeight.w600,
                   ),
@@ -5358,7 +5625,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   ),
                   selected: opt == selected,
                   onSelected: (_) => onSelected(opt),
-                  selectedColor: ClovaraColors.clover.withValues(alpha: 0.16),
+                  selectedColor: AppColors.surface2,
                   side: BorderSide(
                     color: opt == selected
                         ? ClovaraColors.clover
@@ -5409,10 +5676,41 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     );
   }
 
+  Future<void> _showSaveResumeCode(BuildContext context) async {
+    await SaveResumeDialog.show(
+      context,
+      ensureSaved: () async {
+        final Pet? pet = _routeArguments?['pet'] ?? _routeArguments?['petData'];
+        final RiskScore? riskScore = _routeArguments?['riskScore'];
+        final List<UnderwritingExclusion>? exclusions = _routeArguments?['exclusions'];
+        final Owner? owner = _routeArguments?['owner'];
+          
+        Map<String, dynamic> quoteData = {
+          'step': 'PLAN_SELECTION',
+          if (pet != null) 'pet': pet, // Assumes Pet has toJson
+          if (riskScore != null) 'riskScore': riskScore.toJson(),
+          if (exclusions != null) 'exclusions': exclusions.map((e) => e.toJson()).toList(),
+          if (owner != null) 'owner': owner.toJson(),
+        };
+
+        await UserSessionService().savePendingQuote(quoteData);
+
+        // Also save to backend draft for cross-device retrieval
+        await DraftService().upsertQuoteDraft(quoteData: quoteData);
+      },
+      title: 'Save & resume later',
+      body:
+          'We’ll save your plan selection progress. Use this code to resume from the home page on any device.',
+      copyLabel: 'Copy code',
+      doneLabel: 'Done',
+    );
+  }
+
   Widget _buildAccountIcon(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+        // Authenticated user: show Dashboard and Sign Out
         if (snapshot.hasData) {
           return PopupMenuButton<String>(
             icon: Icon(
@@ -5439,13 +5737,44 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             ],
           );
         }
-        return IconButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-          ),
-          icon: Icon(Icons.login, color: ClovaraColors.forest),
-        );
+        
+        // Unauthenticated user: show Save for Later and Home
+        return PopupMenuButton<String>(
+            icon: Icon(
+              Icons.account_circle_outlined, // Outlined to indicate guest/unauth
+              color: ClovaraColors.forest,
+              size: 28,
+            ),
+             onSelected: (value) {
+              if (value == 'save') {
+                _showSaveResumeCode(context);
+              } else if (value == 'home') {
+                 context.go('/');
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'save', 
+                child: Row(
+                  children: [
+                    Icon(Icons.bookmark_border, size: 20, color: AppColors.text),
+                    SizedBox(width: 8),
+                    Text('Save for later'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'home', 
+                child: Row(
+                  children: [
+                    Icon(Icons.home_outlined, size: 20, color: AppColors.text),
+                    SizedBox(width: 8),
+                    Text('Return to Home'),
+                  ],
+                ),
+              ),
+            ],
+          );
       },
     );
   }
@@ -5578,7 +5907,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         : '\$${((plan as PlanData).annualLimit / 1000).toStringAsFixed(0)}k';
     final riskScore = _routeArguments?['riskScore'] as RiskScore?;
     final recommended =
-      riskScore != null && index == _getRecommendedPlanIndex(riskScore, _plans.length);
+        riskScore != null &&
+        index == _getRecommendedPlanIndex(riskScore, _plans.length);
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -5704,7 +6034,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         : '\$${((plan as PlanData).annualLimit / 1000).toStringAsFixed(0)}k';
     final riskScore = _routeArguments?['riskScore'] as RiskScore?;
     final recommended =
-      riskScore != null && index == _getRecommendedPlanIndex(riskScore, _plans.length);
+        riskScore != null &&
+        index == _getRecommendedPlanIndex(riskScore, _plans.length);
     final selected = _selectedPlanIndex == index;
 
     return GestureDetector(
@@ -5914,13 +6245,18 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             context.push(
               '/checkout',
               extra: {
-                'pet': _routeArguments?['petData'] ?? _routeArguments?['pet'] ?? {},
+                'pet':
+                    _routeArguments?['petData'] ??
+                    _routeArguments?['pet'] ??
+                    {},
                 'selectedPlan': _plans[_selectedPlanIndex],
                 'riskScore': _routeArguments?['riskScore'],
                 'underwritingCaseId': _routeArguments?['underwritingCaseId'],
                 'exclusions':
-                    _routeArguments?['exclusions'] ?? _routeArguments?['excludedConditions'],
-                'underwritingSnapshot': _routeArguments?['underwritingSnapshot'],
+                    _routeArguments?['exclusions'] ??
+                    _routeArguments?['excludedConditions'],
+                'underwritingSnapshot':
+                    _routeArguments?['underwritingSnapshot'],
               },
             );
           },

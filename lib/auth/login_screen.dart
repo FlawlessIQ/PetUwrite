@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import '../theme/clovara_theme.dart';
+import 'package:go_router/go_router.dart';
+import '../ui/tokens.dart';
 import '../services/user_session_service.dart';
+import '../ui/components/clovara_logo.dart';
 
 /// Phone number input formatter
 class PhoneNumberFormatter extends TextInputFormatter {
@@ -93,6 +94,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     super.dispose();
   }
 
+  void _closeOrRedirectAfterAuth() {
+    if (!mounted) return;
+
+    // This screen is used in two ways:
+    // 1) As a pushed Material route (e.g. checkout gating) -> pop back.
+    // 2) As a top-level go_router route (/sign-in) -> popping would empty the
+    //    router stack and crash; redirect to the authenticated app shell.
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+
+    context.go('/app');
+  }
+
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -117,9 +134,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         print('Error migrating pending quote after sign-in: $e');
       }
 
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      _closeOrRedirectAfterAuth();
     } on FirebaseAuthException catch (e) {
       print('Firebase Auth Error - Code: ${e.code}, Message: ${e.message}');
       setState(() {
@@ -177,9 +192,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       print('User document created in Firestore');
       
       // Pop back after successful sign-up to let AuthGate handle navigation
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      _closeOrRedirectAfterAuth();
     } on FirebaseAuthException catch (e) {
       print('Firebase Auth Error - Code: ${e.code}, Message: ${e.message}');
       setState(() {
@@ -224,7 +237,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final isMobile = size.width < 600;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -285,33 +298,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Logo
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: ClovaraColors.mist,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: ClovaraColors.clover.withOpacity(0.3),
-                width: 2,
-              ),
-            ),
-            child: SvgPicture.asset(
-              'assets/images/clovara_mark_refined.svg',
-              width: isMobile ? 40 : 56,
-              height: isMobile ? 40 : 56,
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Brand name
-          Text(
-            'Clovara',
-            style: ClovaraTypography.h1.copyWith(
-              color: ClovaraColors.forest,
-              fontSize: isMobile ? 32 : 48,
-              fontWeight: FontWeight.bold,
-              letterSpacing: -1,
-            ),
+          ClovaraLogoLockup(
+            markSize: isMobile ? 40 : 56,
+            textSize: isMobile ? 32 : 48,
           ),
         ],
       ),
@@ -323,31 +312,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       constraints: BoxConstraints(maxWidth: isMobile ? 500 : 600),
       child: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              ClovaraColors.clover,
-              Color(0xFF7CB342),
-              ClovaraColors.sunset,
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: ClovaraColors.clover.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          color: AppColors.surface,
+          borderRadius: AppRadii.br24,
+          border: Border.all(color: AppColors.border),
+          boxShadow: AppShadows.soft,
         ),
         child: Column(
           children: [
             // Tab Bar
             Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: AppColors.surface2,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(24),
                   topRight: Radius.circular(24),
@@ -355,14 +330,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
               child: TabBar(
                 controller: _tabController,
-                indicatorColor: Colors.white,
+                indicatorColor: AppColors.green,
                 indicatorWeight: 4,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white.withOpacity(0.7),
-                labelStyle: ClovaraTypography.body.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
+                labelColor: AppColors.deepGreen,
+                unselectedLabelColor: AppColors.textMuted,
+                labelStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                 tabs: const [
                   Tab(text: 'Sign In'),
                   Tab(text: 'Create Account'),
@@ -373,7 +347,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           // Form Content - White card inside gradient
           Container(
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(24),
                 bottomRight: Radius.circular(24),
@@ -428,12 +402,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide: const BorderSide(color: AppColors.border),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: ClovaraColors.clover,
+                            color: AppColors.green,
                             width: 2,
                           ),
                         ),
@@ -465,12 +439,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide: const BorderSide(color: AppColors.border),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: ClovaraColors.clover,
+                            color: AppColors.green,
                             width: 2,
                           ),
                         ),
@@ -507,12 +481,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide: const BorderSide(color: AppColors.border),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: ClovaraColors.clover,
+                            color: AppColors.green,
                             width: 2,
                           ),
                         ),
@@ -547,12 +521,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: const BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: ClovaraColors.clover,
+                            color: AppColors.green,
                           width: 2,
                         ),
                       ),
@@ -594,12 +568,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: const BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: ClovaraColors.clover,
+                            color: AppColors.green,
                           width: 2,
                         ),
                       ),
@@ -625,71 +599,54 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   
                   const SizedBox(height: 32),
                   
-                  // Submit Button with gradient
+                  // Submit Button
                   SizedBox(
                     height: 56,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            ClovaraColors.clover,
-                            Color(0xFF7CB342),
-                          ],
+                    child: ElevatedButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              if (_isSignUp) {
+                                _signUp();
+                              } else {
+                                _signIn();
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.deepGreen,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.deepGreen
+                            .withOpacity(0.45),
+                        disabledForegroundColor: Colors.white
+                            .withOpacity(0.9),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: ClovaraColors.clover.withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                        elevation: 0,
                       ),
-                      child: ElevatedButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () {
-                                if (_isSignUp) {
-                                  _signUp();
-                                } else {
-                                  _signIn();
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    _isSignUp ? 'Create Account' : 'Sign In',
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.arrow_forward, size: 20),
-                                ],
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
                               ),
-                      ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _isSignUp ? 'Create Account' : 'Sign In',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.arrow_forward, size: 20),
+                              ],
+                            ),
                     ),
                   ),
                 ],
@@ -708,7 +665,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       child: Text(
         'Forgot Password?',
         style: TextStyle(
-          color: ClovaraColors.clover,
+          color: AppColors.green,
           fontSize: 16,
           fontWeight: FontWeight.w600,
         ),
@@ -722,44 +679,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       padding: EdgeInsets.all(isMobile ? 16 : 24),
       child: Column(
         children: [
-          // Demo account info
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              color: ClovaraColors.mist,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: ClovaraColors.clover.withOpacity(0.3),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  color: ClovaraColors.clover,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Demo: customer@test.com',
-                  style: ClovaraTypography.body.copyWith(
-                    color: ClovaraColors.slate,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
           // Copyright
           Text(
             '© 2024 Clovara • Pet Insurance, Reimagined',
-            style: ClovaraTypography.body.copyWith(
-              color: ClovaraColors.slate.withOpacity(0.6),
-              fontSize: 12,
-            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSubtle,
+                  fontSize: 12,
+                ),
             textAlign: TextAlign.center,
           ),
         ],
