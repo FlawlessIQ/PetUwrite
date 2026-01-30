@@ -21,8 +21,8 @@ REGION="us-central1"
 
 echo "🚀 Deploying Functions (Gen2 callables)..."
 
-firebase deploy --only \
-  functions:chatCompletion,functions:analyzeRisk,functions:analyzeClaimDocument,functions:makeClaimDecision,functions:processClaimDecision,functions:getUnderwritingRulesPublic,functions:getProductCatalogPublic
+firebase deploy --project "$PROJECT_ID" --only \
+  functions:chatCompletion,functions:analyzeRisk,functions:analyzeClaimDocument,functions:makeClaimDecision,functions:processClaimDecision,functions:getUnderwritingRulesPublic,functions:getProductCatalogPublic,functions:getClaimsAnalytics,functions:updateClaimsAnalyticsCache,functions:getClaimsAnalyticsFilterOptionsAdmin,functions:getPetNamesAdmin,functions:getPolicyAndPetAdmin
 
 echo "✅ Functions deployed"
 

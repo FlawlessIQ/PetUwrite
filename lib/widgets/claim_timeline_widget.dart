@@ -3,13 +3,12 @@ import 'package:intl/intl.dart';
 import '../models/claim.dart';
 
 /// Interactive claim timeline visualization
-/// 
-/// Shows the claim journey: Filed → Documents Review → AI Analysis → 
-/// Human Review → Settled/Denied with progress indicators and timestamps
+///
+/// Shows the claim journey: Filed → Documents → Review → Decision
 class ClaimTimelineWidget extends StatelessWidget {
   final Claim claim;
   final bool showTimestamps;
-  
+
   const ClaimTimelineWidget({
     super.key,
     required this.claim,
@@ -19,7 +18,7 @@ class ClaimTimelineWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final steps = _buildTimelineSteps();
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -34,10 +33,7 @@ class ClaimTimelineWidget extends StatelessWidget {
                 const SizedBox(width: 8),
                 const Text(
                   'Claim Journey',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -46,12 +42,8 @@ class ClaimTimelineWidget extends StatelessWidget {
               final index = entry.key;
               final step = entry.value;
               final isLast = index == steps.length - 1;
-              
-              return _buildTimelineStep(
-                context,
-                step,
-                isLast: isLast,
-              );
+
+              return _buildTimelineStep(context, step, isLast: isLast);
             }),
           ],
         ),
@@ -61,113 +53,116 @@ class ClaimTimelineWidget extends StatelessWidget {
 
   List<TimelineStep> _buildTimelineSteps() {
     final steps = <TimelineStep>[];
-    
+
     // Step 1: Filed
-    steps.add(TimelineStep(
-      title: 'Claim Filed',
-      description: 'Your claim has been submitted',
-      icon: Icons.file_upload,
-      status: TimelineStepStatus.completed,
-      timestamp: claim.createdAt,
-      color: Colors.blue,
-    ));
-    
+    steps.add(
+      TimelineStep(
+        title: 'Claim Filed',
+        description: 'Your claim has been submitted',
+        icon: Icons.file_upload,
+        status: TimelineStepStatus.completed,
+        timestamp: claim.createdAt,
+        color: Colors.blue,
+      ),
+    );
+
     // Step 2: Documents Review
     final hasDocuments = claim.attachments.isNotEmpty;
-    steps.add(TimelineStep(
-      title: 'Documents Review',
-      description: hasDocuments
-          ? '${claim.attachments.length} document(s) uploaded'
-          : 'Awaiting documents',
-      icon: Icons.description,
-      status: _getDocumentsStatus(),
-      timestamp: hasDocuments ? claim.createdAt : null,
-      color: Colors.purple,
-    ));
-    
-    // Step 3: AI Analysis
-    final hasAIDecision = claim.aiDecision != null;
-    steps.add(TimelineStep(
-      title: 'AI Analysis',
-      description: hasAIDecision
-          ? 'AI recommendation: ${claim.aiDecision!.value}'
-          : 'Analyzing your claim...',
-      icon: Icons.psychology,
-      status: _getAIAnalysisStatus(),
-      timestamp: hasAIDecision ? claim.updatedAt : null,
-      color: Colors.teal,
-      confidence: claim.aiConfidenceScore,
-    ));
-    
-    // Step 4: Human Review (if needed)
-    final hasHumanOverride = claim.humanOverride != null;
-    if (claim.status != ClaimStatus.denied && claim.status != ClaimStatus.settled) {
-      if (claim.aiConfidenceScore != null && claim.aiConfidenceScore! < 0.8) {
-        steps.add(TimelineStep(
-          title: 'Human Review',
-          description: hasHumanOverride
-              ? 'Reviewed by our team'
-              : 'Our team is reviewing your claim',
-          icon: Icons.person,
-          status: hasHumanOverride
-              ? TimelineStepStatus.completed
-              : TimelineStepStatus.inProgress,
-          timestamp: hasHumanOverride
-              ? (claim.humanOverride!['overrideTimestamp'] as DateTime?)
-              : null,
+    steps.add(
+      TimelineStep(
+        title: 'Documents Review',
+        description: hasDocuments
+            ? '${claim.attachments.length} document(s) uploaded'
+            : 'Awaiting documents',
+        icon: Icons.description,
+        status: _getDocumentsStatus(),
+        timestamp: hasDocuments ? claim.createdAt : null,
+        color: Colors.purple,
+      ),
+    );
+
+    // Step 3: Initial Review
+    final hasInitialReview =
+        claim.aiDecision != null && (claim.aiConfidenceScore ?? 0) > 0;
+    steps.add(
+      TimelineStep(
+        title: 'Review in Progress',
+        description: hasInitialReview
+            ? 'Initial checks complete'
+            : 'Reviewing your claim...',
+        icon: Icons.fact_check_outlined,
+        status: _getAIAnalysisStatus(),
+        timestamp: hasInitialReview ? claim.updatedAt : null,
+        color: Colors.teal,
+        confidence: claim.aiConfidenceScore,
+      ),
+    );
+
+    // Step 4: Information needed (automated loop)
+    if (claim.status == ClaimStatus.awaitingInfo) {
+      final needsDocs = claim.attachments.isEmpty;
+      steps.add(
+        TimelineStep(
+          title: 'Information Needed',
+          description: needsDocs
+              ? 'Upload vet records and receipts'
+              : 'Please provide the requested details',
+          icon: Icons.assignment_late_outlined,
+          status: TimelineStepStatus.inProgress,
+          timestamp: claim.updatedAt,
           color: Colors.orange,
-        ));
-      }
-    } else if (hasHumanOverride) {
-      steps.add(TimelineStep(
-        title: 'Human Review',
-        description: 'Reviewed by our team',
-        icon: Icons.person,
-        status: TimelineStepStatus.completed,
-        timestamp: claim.humanOverride!['overrideTimestamp'] as DateTime?,
-        color: Colors.orange,
-      ));
+        ),
+      );
     }
-    
+
     // Step 5: Final Decision
     if (claim.status == ClaimStatus.settled) {
-      steps.add(TimelineStep(
-        title: 'Claim Approved',
-        description: 'Payment of \$${claim.claimAmount.toStringAsFixed(2)} processed',
-        icon: Icons.check_circle,
-        status: TimelineStepStatus.completed,
-        timestamp: claim.settledAt,
-        color: Colors.green,
-      ));
+      steps.add(
+        TimelineStep(
+          title: 'Claim Approved',
+          description:
+              'Payment of \$${claim.claimAmount.toStringAsFixed(2)} processed',
+          icon: Icons.check_circle,
+          status: TimelineStepStatus.completed,
+          timestamp: claim.settledAt,
+          color: Colors.green,
+        ),
+      );
     } else if (claim.status == ClaimStatus.settling) {
-      steps.add(TimelineStep(
-        title: 'Payment Processing',
-        description: 'Your reimbursement is being processed',
-        icon: Icons.payments,
-        status: TimelineStepStatus.inProgress,
-        timestamp: claim.updatedAt,
-        color: Colors.green,
-      ));
+      steps.add(
+        TimelineStep(
+          title: 'Payment Processing',
+          description: 'Your reimbursement is being processed',
+          icon: Icons.payments,
+          status: TimelineStepStatus.inProgress,
+          timestamp: claim.updatedAt,
+          color: Colors.green,
+        ),
+      );
     } else if (claim.status == ClaimStatus.denied) {
-      steps.add(TimelineStep(
-        title: 'Claim Denied',
-        description: 'See explanation below',
-        icon: Icons.cancel,
-        status: TimelineStepStatus.completed,
-        timestamp: claim.updatedAt,
-        color: Colors.red,
-      ));
+      steps.add(
+        TimelineStep(
+          title: 'Claim Denied',
+          description: 'See explanation below',
+          icon: Icons.cancel,
+          status: TimelineStepStatus.completed,
+          timestamp: claim.updatedAt,
+          color: Colors.red,
+        ),
+      );
     } else {
-      steps.add(TimelineStep(
-        title: 'Final Decision',
-        description: 'Almost there...',
-        icon: Icons.hourglass_empty,
-        status: TimelineStepStatus.pending,
-        timestamp: null,
-        color: Colors.grey,
-      ));
+      steps.add(
+        TimelineStep(
+          title: 'Final Decision',
+          description: 'Almost there...',
+          icon: Icons.hourglass_empty,
+          status: TimelineStepStatus.pending,
+          timestamp: null,
+          color: Colors.grey,
+        ),
+      );
     }
-    
+
     return steps;
   }
 
@@ -182,13 +177,14 @@ class ClaimTimelineWidget extends StatelessWidget {
   }
 
   TimelineStepStatus _getAIAnalysisStatus() {
-    if (claim.aiDecision == null) {
-      if (claim.attachments.isNotEmpty) {
-        return TimelineStepStatus.inProgress;
-      }
-      return TimelineStepStatus.pending;
+    if (claim.aiDecision != null) {
+      return TimelineStepStatus.completed;
     }
-    return TimelineStepStatus.completed;
+    if (claim.status == ClaimStatus.processing &&
+        claim.attachments.isNotEmpty) {
+      return TimelineStepStatus.inProgress;
+    }
+    return TimelineStepStatus.pending;
   }
 
   Widget _buildTimelineStep(
@@ -254,7 +250,7 @@ class ClaimTimelineWidget extends StatelessWidget {
         ),
       );
     }
-    
+
     return Icon(
       step.icon,
       color: step.status == TimelineStepStatus.pending
@@ -287,9 +283,10 @@ class ClaimTimelineWidget extends StatelessWidget {
   }
 
   Widget _buildConnector(TimelineStepStatus status) {
-    final isActive = status == TimelineStepStatus.completed ||
+    final isActive =
+        status == TimelineStepStatus.completed ||
         status == TimelineStepStatus.inProgress;
-    
+
     return Container(
       width: 3,
       height: 40,
@@ -299,10 +296,7 @@ class ClaimTimelineWidget extends StatelessWidget {
             ? LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Colors.grey[400]!,
-                  Colors.grey[300]!,
-                ],
+                colors: [Colors.grey[400]!, Colors.grey[300]!],
               )
             : null,
       ),
@@ -336,16 +330,13 @@ class ClaimTimelineWidget extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           step.description,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[700],
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey[700]),
         ),
-        if (step.confidence != null && step.status == TimelineStepStatus.completed)
-          ...[
-            const SizedBox(height: 8),
-            _buildConfidenceBadge(step.confidence!),
-          ],
+        if (step.confidence != null &&
+            step.status == TimelineStepStatus.completed) ...[
+          const SizedBox(height: 8),
+          _buildConfidenceBadge(step.confidence!),
+        ],
         if (step.status == TimelineStepStatus.inProgress) ...[
           const SizedBox(height: 12),
           _buildProgressIndicator(),
@@ -378,15 +369,15 @@ class ClaimTimelineWidget extends StatelessWidget {
     final color = confidence >= 0.8
         ? Colors.green
         : confidence >= 0.6
-            ? Colors.orange
-            : Colors.red;
-    
+        ? Colors.orange
+        : Colors.red;
+
     return Row(
       children: [
-        Icon(Icons.psychology, size: 16, color: color),
+        Icon(Icons.fact_check, size: 16, color: color),
         const SizedBox(width: 4),
         Text(
-          'AI Confidence: $percentage%',
+          'Review confidence: $percentage%',
           style: TextStyle(
             fontSize: 12,
             color: color,
@@ -431,8 +422,4 @@ class TimelineStep {
 }
 
 /// Timeline step status
-enum TimelineStepStatus {
-  completed,
-  inProgress,
-  pending,
-}
+enum TimelineStepStatus { completed, inProgress, pending }

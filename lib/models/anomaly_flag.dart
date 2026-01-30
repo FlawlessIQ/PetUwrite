@@ -4,6 +4,7 @@
 /// - We must not rely solely on AI free-text interpretation.
 /// - We do not reject user inputs, but we *do* flag implausible combinations
 ///   and materially adjust risk/pricing while keeping an auditable trail.
+library;
 
 enum AnomalyFlagType {
   weightOutlier,

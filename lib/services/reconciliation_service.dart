@@ -7,6 +7,24 @@ class ReconciliationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
+  /// Get claim attachment extraction pipeline health (admin only).
+  Future<AttachmentExtractionHealth> getAttachmentExtractionHealth() async {
+    try {
+      final result = await _functions
+          .httpsCallable('getClaimAttachmentExtractionHealth')
+          .call();
+
+      final data = (result.data as Map).cast<String, dynamic>();
+      if (data['success'] != true) {
+        throw Exception(data['message'] ?? 'Failed to load extraction health');
+      }
+
+      return AttachmentExtractionHealth.fromMap(data);
+    } catch (e) {
+      throw Exception('Failed to load extraction health: $e');
+    }
+  }
+
   /// Get the latest reconciliation run statistics
   Future<ReconciliationStats> getLatestReconciliationStats() async {
     try {
@@ -396,4 +414,99 @@ enum HealthStatus {
   fair,
   poor,
   critical,
+}
+
+class AttachmentExtractionHealth {
+  final DateTime generatedAt;
+  final AttachmentExtractionCounts counts;
+  final List<AttachmentExtractionErrorEntry> recentErrors;
+
+  AttachmentExtractionHealth({
+    required this.generatedAt,
+    required this.counts,
+    required this.recentErrors,
+  });
+
+  factory AttachmentExtractionHealth.fromMap(Map<String, dynamic> map) {
+    final countsMap = Map<String, dynamic>.from(map['counts'] ?? const {});
+    final recent = (map['recentErrors'] as List? ?? const [])
+        .map((e) => AttachmentExtractionErrorEntry.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+
+    return AttachmentExtractionHealth(
+      generatedAt: DateTime.tryParse(map['generatedAt']?.toString() ?? '') ?? DateTime.now(),
+      counts: AttachmentExtractionCounts.fromMap(countsMap),
+      recentErrors: recent,
+    );
+  }
+}
+
+class AttachmentExtractionCounts {
+  final int queued;
+  final int processing;
+  final int done;
+  final int error;
+  final int staleProcessing;
+
+  AttachmentExtractionCounts({
+    required this.queued,
+    required this.processing,
+    required this.done,
+    required this.error,
+    required this.staleProcessing,
+  });
+
+  factory AttachmentExtractionCounts.fromMap(Map<String, dynamic> map) {
+    int asInt(dynamic v) => v is num ? v.toInt() : int.tryParse(v?.toString() ?? '') ?? 0;
+
+    return AttachmentExtractionCounts(
+      queued: asInt(map['queued']),
+      processing: asInt(map['processing']),
+      done: asInt(map['done']),
+      error: asInt(map['error']),
+      staleProcessing: asInt(map['staleProcessing']),
+    );
+  }
+}
+
+class AttachmentExtractionErrorEntry {
+  final String? claimId;
+  final String attachmentId;
+  final String? fileName;
+  final String? contentType;
+  final String? extractionError;
+  final int extractionAttemptCount;
+  final DateTime? extractedAt;
+  final DateTime? nextAttemptAt;
+
+  AttachmentExtractionErrorEntry({
+    required this.claimId,
+    required this.attachmentId,
+    required this.fileName,
+    required this.contentType,
+    required this.extractionError,
+    required this.extractionAttemptCount,
+    required this.extractedAt,
+    required this.nextAttemptAt,
+  });
+
+  factory AttachmentExtractionErrorEntry.fromMap(Map<String, dynamic> map) {
+    DateTime? parseDate(dynamic v) {
+      if (v == null) return null;
+      return DateTime.tryParse(v.toString());
+    }
+
+    return AttachmentExtractionErrorEntry(
+      claimId: map['claimId']?.toString(),
+      attachmentId: map['attachmentId']?.toString() ?? '',
+      fileName: map['fileName']?.toString(),
+      contentType: map['contentType']?.toString(),
+      extractionError: map['extractionError']?.toString(),
+      extractionAttemptCount: (map['extractionAttemptCount'] is num)
+          ? (map['extractionAttemptCount'] as num).toInt()
+          : int.tryParse(map['extractionAttemptCount']?.toString() ?? '') ?? 0,
+      extractedAt: parseDate(map['extractedAt']),
+      nextAttemptAt: parseDate(map['nextAttemptAt']),
+    );
+  }
 }

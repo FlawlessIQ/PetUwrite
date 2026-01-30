@@ -8,7 +8,7 @@ import 'claims_document_uploader.dart';
 class ConcurrentModificationException implements Exception {
   final String message;
   ConcurrentModificationException(this.message);
-  
+
   @override
   String toString() => 'ConcurrentModificationException: $message';
 }
@@ -19,7 +19,7 @@ class ClaimsService {
   final FirebaseFirestore _firestore;
 
   ClaimsService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// Submit a new claim
   Future<String> submitClaim({
@@ -47,10 +47,10 @@ class ClaimsService {
       );
 
       final docRef = await _firestore.collection('claims').add(claim.toMap());
-      
+
       // Auto-generate training data from this claim
       await _generateTrainingDataFromClaim(docRef.id, claim);
-      
+
       return docRef.id;
     } catch (e) {
       throw Exception('Failed to submit claim: $e');
@@ -63,13 +63,18 @@ class ClaimsService {
         .collection('claims')
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => InsuranceClaim.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => InsuranceClaim.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 
   /// Get claims by risk band
-  Future<List<InsuranceClaim>> getClaimsByRiskBand(int bandStart, int bandEnd) async {
+  Future<List<InsuranceClaim>> getClaimsByRiskBand(
+    int bandStart,
+    int bandEnd,
+  ) async {
     try {
       final snapshot = await _firestore
           .collection('claims')
@@ -113,16 +118,18 @@ class ClaimsService {
         final bandEnd = bandStart + 10;
 
         if (bandClaims.isEmpty) {
-          analytics.add(RiskBandAnalytics(
-            band: '$bandStart-$bandEnd',
-            bandIndex: i,
-            claimCount: 0,
-            averageClaimAmount: 0.0,
-            claimsFrequency: 0.0,
-            approvedCount: 0,
-            deniedCount: 0,
-            partialCount: 0,
-          ));
+          analytics.add(
+            RiskBandAnalytics(
+              band: '$bandStart-$bandEnd',
+              bandIndex: i,
+              claimCount: 0,
+              averageClaimAmount: 0.0,
+              claimsFrequency: 0.0,
+              approvedCount: 0,
+              deniedCount: 0,
+              partialCount: 0,
+            ),
+          );
           continue;
         }
 
@@ -149,21 +156,23 @@ class ClaimsService {
             .where('riskScore', isLessThan: bandEnd)
             .get();
         final totalPoliciesInBand = policiesSnapshot.docs.length;
-        
+
         final claimsFrequency = totalPoliciesInBand > 0
             ? (bandClaims.length / totalPoliciesInBand) * 100
             : 0.0;
 
-        analytics.add(RiskBandAnalytics(
-          band: '$bandStart-$bandEnd',
-          bandIndex: i,
-          claimCount: bandClaims.length,
-          averageClaimAmount: averageAmount,
-          claimsFrequency: claimsFrequency,
-          approvedCount: approvedCount,
-          deniedCount: deniedCount,
-          partialCount: partialCount,
-        ));
+        analytics.add(
+          RiskBandAnalytics(
+            band: '$bandStart-$bandEnd',
+            bandIndex: i,
+            claimCount: bandClaims.length,
+            averageClaimAmount: averageAmount,
+            claimsFrequency: claimsFrequency,
+            approvedCount: approvedCount,
+            deniedCount: deniedCount,
+            partialCount: partialCount,
+          ),
+        );
       }
 
       return analytics;
@@ -324,7 +333,7 @@ class ClaimsService {
   Future<List<Map<String, dynamic>>> exportTrainingDataForML() async {
     try {
       final trainingData = await getTrainingData();
-      
+
       return trainingData.map((sample) {
         return {
           'input': sample['input'],
@@ -356,11 +365,11 @@ class ClaimsService {
       for (final doc in samples) {
         final data = doc.data();
         final label = data['label'] as Map<String, dynamic>;
-        
+
         if (label['hadClaim'] == true) {
           claimCount++;
           totalClaimAmount += (label['claimAmount'] as num).toDouble();
-          
+
           if (label['outcome'] == 'approved') {
             approvedCount++;
           } else if (label['outcome'] == 'denied') {
@@ -374,8 +383,12 @@ class ClaimsService {
         'claimsWithData': claimCount,
         'approvedClaims': approvedCount,
         'deniedClaims': deniedCount,
-        'averageClaimAmount': claimCount > 0 ? totalClaimAmount / claimCount : 0.0,
-        'approvalRate': claimCount > 0 ? (approvedCount / claimCount) * 100 : 0.0,
+        'averageClaimAmount': claimCount > 0
+            ? totalClaimAmount / claimCount
+            : 0.0,
+        'approvalRate': claimCount > 0
+            ? (approvedCount / claimCount) * 100
+            : 0.0,
       };
     } catch (e) {
       throw Exception('Failed to get training data stats: $e');
@@ -386,7 +399,14 @@ class ClaimsService {
   Future<String> createClaim(Claim claim) async {
     try {
       final claimRef = _firestore.collection('claims').doc(claim.claimId);
-      await claimRef.set(claim.toMap());
+
+      // Important: Firestore rules may deny reading non-existent claim docs.
+      // Use an upsert write without a pre-read. For updates, createdAt must
+      // remain stable (the caller is responsible for keeping claim.createdAt
+      // consistent).
+      final data = claim.toMap();
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      await claimRef.set(data, SetOptions(merge: true));
       return claim.claimId;
     } catch (e) {
       throw Exception('Failed to create claim: $e');
@@ -397,7 +417,14 @@ class ClaimsService {
   Future<void> saveDraftClaim(Claim claim) async {
     try {
       final claimRef = _firestore.collection('claims').doc(claim.claimId);
-      await claimRef.set(claim.toMap(), SetOptions(merge: true));
+
+      // Avoid reading before writing (reads of missing docs may be denied).
+      // Upsert with merge so we can create drafts and update them later.
+      // Firestore rules enforce createdAt immutability, so caller must keep
+      // claim.createdAt stable across saves.
+      final data = claim.toMap();
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      await claimRef.set(data, SetOptions(merge: true));
     } catch (e) {
       throw Exception('Failed to save draft claim: $e');
     }
@@ -416,34 +443,35 @@ class ClaimsService {
     Map<String, dynamic>? additionalFields,
   }) async {
     final claimRef = _firestore.collection('claims').doc(claimId);
-    
+
     try {
       await _firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(claimRef);
-        
+
         if (!snapshot.exists) {
           throw Exception('Claim $claimId not found');
         }
-        
+
         final currentData = snapshot.data()!;
-        final currentUpdatedAt = (currentData['updatedAt'] as Timestamp).toDate();
-        
+        final currentUpdatedAt = (currentData['updatedAt'] as Timestamp)
+            .toDate();
+
         // Optimistic locking check
         if (currentUpdatedAt != expectedUpdatedAt) {
           throw ConcurrentModificationException(
             'Claim was modified by another process. '
             'Expected updatedAt: $expectedUpdatedAt, '
-            'Actual updatedAt: $currentUpdatedAt'
+            'Actual updatedAt: $currentUpdatedAt',
           );
         }
-        
+
         // Prepare update data
         final updateData = {
           'status': newStatus.value,
           'updatedAt': FieldValue.serverTimestamp(),
           ...?additionalFields,
         };
-        
+
         transaction.update(claimRef, updateData);
       });
     } catch (e) {
@@ -495,25 +523,25 @@ class ClaimsService {
     required String adminUserId,
   }) async {
     final claimRef = _firestore.collection('claims').doc(claimId);
-    
+
     try {
       final result = await _firestore.runTransaction<bool>((transaction) async {
         final snapshot = await transaction.get(claimRef);
-        
+
         if (!snapshot.exists) {
           throw Exception('Claim $claimId not found');
         }
-        
+
         final data = snapshot.data()!;
         final reviewLockedBy = data['reviewLockedBy'] as String?;
         final reviewLockedAt = data['reviewLockedAt'] as Timestamp?;
-        
+
         // Check if lock exists and is not expired
         if (reviewLockedBy != null && reviewLockedAt != null) {
           final lockTime = reviewLockedAt.toDate();
           final lockExpiry = lockTime.add(const Duration(minutes: 10));
           final now = DateTime.now();
-          
+
           // Lock is still valid
           if (now.isBefore(lockExpiry)) {
             // Already locked by same user - allow (lock refresh)
@@ -528,16 +556,16 @@ class ClaimsService {
           }
           // Lock expired - can acquire
         }
-        
+
         // Acquire lock
         transaction.update(claimRef, {
           'reviewLockedBy': adminUserId,
           'reviewLockedAt': FieldValue.serverTimestamp(),
         });
-        
+
         return true;
       });
-      
+
       return result;
     } catch (e) {
       throw Exception('Failed to acquire review lock: $e');
@@ -550,18 +578,18 @@ class ClaimsService {
     required String adminUserId,
   }) async {
     final claimRef = _firestore.collection('claims').doc(claimId);
-    
+
     try {
       await _firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(claimRef);
-        
+
         if (!snapshot.exists) {
           throw Exception('Claim $claimId not found');
         }
-        
+
         final data = snapshot.data()!;
         final reviewLockedBy = data['reviewLockedBy'] as String?;
-        
+
         // Only release if locked by this user
         if (reviewLockedBy == adminUserId) {
           transaction.update(claimRef, {
@@ -576,28 +604,26 @@ class ClaimsService {
   }
 
   /// Check if claim is currently locked for review
-  Future<bool> isReviewLocked({
-    required String claimId,
-  }) async {
+  Future<bool> isReviewLocked({required String claimId}) async {
     try {
       final snapshot = await _firestore.collection('claims').doc(claimId).get();
-      
+
       if (!snapshot.exists) {
         throw Exception('Claim $claimId not found');
       }
-      
+
       final data = snapshot.data()!;
       final reviewLockedBy = data['reviewLockedBy'] as String?;
       final reviewLockedAt = data['reviewLockedAt'] as Timestamp?;
-      
+
       if (reviewLockedBy == null || reviewLockedAt == null) {
         return false;
       }
-      
+
       final lockTime = reviewLockedAt.toDate();
       final lockExpiry = lockTime.add(const Duration(minutes: 10));
       final now = DateTime.now();
-      
+
       return now.isBefore(lockExpiry);
     } catch (e) {
       throw Exception('Failed to check review lock: $e');
@@ -609,14 +635,17 @@ class ClaimsService {
     try {
       final now = DateTime.now();
       final expiryThreshold = now.subtract(const Duration(minutes: 10));
-      
+
       final snapshot = await _firestore
           .collection('claims')
-          .where('reviewLockedAt', isLessThan: Timestamp.fromDate(expiryThreshold))
+          .where(
+            'reviewLockedAt',
+            isLessThan: Timestamp.fromDate(expiryThreshold),
+          )
           .get();
-      
+
       int clearedCount = 0;
-      
+
       for (final doc in snapshot.docs) {
         await doc.reference.update({
           'reviewLockedBy': FieldValue.delete(),
@@ -624,7 +653,7 @@ class ClaimsService {
         });
         clearedCount++;
       }
-      
+
       return clearedCount;
     } catch (e) {
       throw Exception('Failed to clear expired locks: $e');
@@ -642,9 +671,7 @@ class ClaimsService {
       await uploadFileToStorageRef(
         fileRef,
         filePath,
-        metadata: SettableMetadata(
-          contentType: _getContentType(fileName),
-        ),
+        metadata: SettableMetadata(contentType: _getContentType(fileName)),
       );
 
       return await fileRef.getDownloadURL();
@@ -653,10 +680,42 @@ class ClaimsService {
     }
   }
 
+  /// Upload claim document and return both download URL and storage path.
+  ///
+  /// This enables server-side automation to read the file from Storage
+  /// reliably (without depending on tokenized download URLs).
+  Future<Map<String, dynamic>> uploadClaimDocumentWithMetadata(
+    String filePath,
+    String claimId,
+  ) async {
+    try {
+      final storageRef = FirebaseStorage.instance.ref();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = filePath.split('/').last;
+      final fileRef = storageRef.child('claims/$claimId/$timestamp-$fileName');
+
+      await uploadFileToStorageRef(
+        fileRef,
+        filePath,
+        metadata: SettableMetadata(contentType: _getContentType(fileName)),
+      );
+
+      final downloadUrl = await fileRef.getDownloadURL();
+      return {
+        'downloadUrl': downloadUrl,
+        'storagePath': fileRef.fullPath,
+        'fileName': fileName,
+        'contentType': _getContentType(fileName),
+      };
+    } catch (e) {
+      throw Exception('Failed to upload document: $e');
+    }
+  }
+
   /// Upload claim document to Firebase Storage from bytes (for web)
   Future<String> uploadClaimDocumentFromBytes(
-    Uint8List bytes, 
-    String fileName, 
+    Uint8List bytes,
+    String fileName,
     String claimId,
   ) async {
     try {
@@ -664,17 +723,43 @@ class ClaimsService {
       final storageRef = FirebaseStorage.instance.ref();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileRef = storageRef.child('claims/$claimId/$timestamp-$fileName');
-      
+
       // Upload the file bytes
       final uploadTask = await fileRef.putData(
         bytes,
-        SettableMetadata(
-          contentType: _getContentType(fileName),
-        ),
+        SettableMetadata(contentType: _getContentType(fileName)),
       );
-      
+
       // Get download URL
       return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      throw Exception('Failed to upload document: $e');
+    }
+  }
+
+  /// Upload claim document from bytes and return both download URL and storage path.
+  Future<Map<String, dynamic>> uploadClaimDocumentFromBytesWithMetadata(
+    Uint8List bytes,
+    String fileName,
+    String claimId,
+  ) async {
+    try {
+      final storageRef = FirebaseStorage.instance.ref();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileRef = storageRef.child('claims/$claimId/$timestamp-$fileName');
+
+      final uploadTask = await fileRef.putData(
+        bytes,
+        SettableMetadata(contentType: _getContentType(fileName)),
+      );
+
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      return {
+        'downloadUrl': downloadUrl,
+        'storagePath': uploadTask.ref.fullPath,
+        'fileName': fileName,
+        'contentType': _getContentType(fileName),
+      };
     } catch (e) {
       throw Exception('Failed to upload document: $e');
     }
@@ -691,6 +776,12 @@ class ClaimsService {
         return 'image/jpeg';
       case 'png':
         return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'heic':
+        return 'image/heic';
+      case 'heif':
+        return 'image/heif';
       default:
         return 'application/octet-stream';
     }

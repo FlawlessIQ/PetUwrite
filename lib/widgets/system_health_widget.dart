@@ -17,6 +17,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
   SystemHealthScore? _healthScore;
   ReconciliationStats? _latestStats;
   List<FailedOperation>? _failedOperations;
+  AttachmentExtractionHealth? _extractionHealth;
   bool _isLoading = true;
   String? _error;
 
@@ -37,12 +38,14 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
         _reconciliationService.calculateSystemHealth(),
         _reconciliationService.getLatestReconciliationStats(),
         _reconciliationService.getFailedOperations(),
+        _reconciliationService.getAttachmentExtractionHealth(),
       ]);
 
       setState(() {
         _healthScore = results[0] as SystemHealthScore;
         _latestStats = results[1] as ReconciliationStats;
         _failedOperations = results[2] as List<FailedOperation>;
+        _extractionHealth = results[3] as AttachmentExtractionHealth;
         _isLoading = false;
       });
     } catch (e) {
@@ -136,10 +139,196 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
 
                 const Divider(height: 1),
 
+                // Claim document extraction pipeline
+                _buildAttachmentExtractionSection(),
+
+                const Divider(height: 1),
+
                 // Failed Operations Section
                 _buildFailedOperationsSection(),
               ],
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttachmentExtractionSection() {
+    final health = _extractionHealth;
+    if (health == null) return const SizedBox.shrink();
+
+    final counts = health.counts;
+
+    Color statusColor;
+    if (counts.staleProcessing > 0) {
+      statusColor = Colors.red;
+    } else if (counts.error > 0) {
+      statusColor = Colors.orange;
+    } else {
+      statusColor = Colors.green;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Claim Document Extraction',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  counts.staleProcessing > 0
+                      ? 'Action needed'
+                      : (counts.error > 0 ? 'Degraded' : 'Healthy'),
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Updated: ${_formatTimestamp(health.generatedAt)}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricCard(
+                  'Queued',
+                  counts.queued.toString(),
+                  Icons.queue,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildMetricCard(
+                  'Processing',
+                  counts.processing.toString(),
+                  Icons.hourglass_top,
+                  Colors.teal,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildMetricCard(
+                  'Errors',
+                  counts.error.toString(),
+                  Icons.error_outline,
+                  counts.error > 0 ? Colors.orange : Colors.green,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildMetricCard(
+                  'Stale Processing',
+                  counts.staleProcessing.toString(),
+                  Icons.warning_amber,
+                  counts.staleProcessing > 0 ? Colors.red : Colors.green,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          if (health.recentErrors.isNotEmpty) ...[
+            const Text(
+              'Recent extraction failures',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: health.recentErrors.take(5).length,
+              separatorBuilder: (context, index) => const Divider(height: 12),
+              itemBuilder: (context, index) {
+                final e = health.recentErrors[index];
+                final title = e.fileName ?? e.attachmentId;
+                final subtitleParts = <String>[];
+                if (e.claimId != null && e.claimId!.isNotEmpty) {
+                  subtitleParts.add('Claim ${e.claimId}');
+                }
+                if (e.extractionAttemptCount > 0) {
+                  subtitleParts.add('Attempt ${e.extractionAttemptCount}');
+                }
+                if (e.nextAttemptAt != null) {
+                  subtitleParts.add('Next: ${_formatTimestamp(e.nextAttemptAt!)}');
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.orange[700], size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 2),
+                          if (subtitleParts.isNotEmpty)
+                            Text(
+                              subtitleParts.join(' • '),
+                              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                            ),
+                          if ((e.extractionError ?? '').isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              e.extractionError!,
+                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green[600], size: 22),
+                const SizedBox(width: 10),
+                const Text(
+                  'No recent extraction failures',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

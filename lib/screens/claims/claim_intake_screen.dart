@@ -3,26 +3,29 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/claim.dart';
 import '../../services/claims_service.dart';
 import '../../services/conversational_ai_service.dart';
 import '../../theme/clovara_theme.dart';
 import '../../ui/components/clovara_logo.dart';
 
-/// Conversational AI-powered claim intake screen
+/// Conversational claim intake screen
 /// Allows customers to file First Notice of Loss (FNOL) with empathy and guidance
 class ClaimIntakeScreen extends StatefulWidget {
   final String policyId;
   final String petId;
   final String? draftClaimId; // Optional: for resuming existing drafts
+  final bool ignoreExistingDrafts;
 
   const ClaimIntakeScreen({
     super.key,
     required this.policyId,
     required this.petId,
     this.draftClaimId,
+    this.ignoreExistingDrafts = false,
   });
 
   @override
@@ -35,11 +38,11 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   final ClaimsService _claimsService = ClaimsService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final ImagePicker _imagePicker = ImagePicker();
 
   final List<ChatMessage> _messages = [];
   bool _isAITyping = false;
   bool _isSubmitting = false;
+  bool _isOpeningReimbursement = false;
 
   // Collected claim data
   DateTime? _incidentDate;
@@ -48,6 +51,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   double? _estimatedCost;
   final List<String> _attachmentUrls = [];
   String? _draftClaimId;
+  DateTime? _draftCreatedAt;
 
   // Conversation stage tracking
   ClaimIntakeStage _currentStage = ClaimIntakeStage.greeting;
@@ -80,20 +84,30 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
 
   /// Initialize conversation with greeting or resume existing draft
   void _initializeConversation() async {
-    print('DEBUG: Initializing conversation, draftClaimId: ${widget.draftClaimId}');
-    
+    print(
+      'DEBUG: Initializing conversation, draftClaimId: ${widget.draftClaimId}',
+    );
+
+    if (widget.ignoreExistingDrafts && widget.draftClaimId == null) {
+      print('DEBUG: ignoreExistingDrafts=true, starting new conversation');
+      _startNewConversation();
+      return;
+    }
+
     bool draftLoaded = false;
-    
+
     // Check if we're resuming an existing draft
     if (widget.draftClaimId != null) {
       print('DEBUG: Loading specific draft claim: ${widget.draftClaimId}');
       draftLoaded = await _loadExistingDraft();
     } else {
       // Check for any existing draft claims for this policy/pet
-      print('DEBUG: Checking for existing drafts for policy: ${widget.policyId}, pet: ${widget.petId}');
+      print(
+        'DEBUG: Checking for existing drafts for policy: ${widget.policyId}, pet: ${widget.petId}',
+      );
       draftLoaded = await _checkForExistingDrafts();
     }
-    
+
     // If no draft was loaded, start new conversation
     if (!draftLoaded) {
       print('DEBUG: No draft loaded, starting new conversation');
@@ -109,22 +123,23 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
           .collection('claims')
           .doc(widget.draftClaimId)
           .get();
-      
+
       if (claimDoc.exists) {
         print('DEBUG: Draft claim document exists');
         final claimData = claimDoc.data()!;
         print('DEBUG: Claim data: $claimData');
         final claim = Claim.fromMap(claimData, claimDoc.id);
-        
+
         // Populate the claim data
         _draftClaimId = claim.claimId;
+        _draftCreatedAt = claim.createdAt;
         _incidentDate = claim.incidentDate;
         _description = claim.description;
         _claimType = claim.claimType;
         _estimatedCost = claim.claimAmount;
         _attachmentUrls.clear();
         _attachmentUrls.addAll(claim.attachments);
-        
+
         print('DEBUG: Restoring conversation with draft data');
         // Restore conversation state with existing data
         _restoreConversationWithDraft(claim);
@@ -148,8 +163,10 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
         print('DEBUG: No authenticated user');
         return false;
       }
-      
-      print('DEBUG: Querying for drafts - user: ${user.uid}, policy: ${widget.policyId}, pet: ${widget.petId}');
+
+      print(
+        'DEBUG: Querying for drafts - user: ${user.uid}, policy: ${widget.policyId}, pet: ${widget.petId}',
+      );
       final draftsQuery = await FirebaseFirestore.instance
           .collection('claims')
           .where('ownerId', isEqualTo: user.uid)
@@ -159,24 +176,25 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
           .orderBy('updatedAt', descending: true)
           .limit(1)
           .get();
-      
+
       print('DEBUG: Found ${draftsQuery.docs.length} draft claims');
-      
+
       if (draftsQuery.docs.isNotEmpty) {
         final draftDoc = draftsQuery.docs.first;
         final claimData = draftDoc.data();
         print('DEBUG: Loading draft: ${draftDoc.id}');
         final claim = Claim.fromMap(claimData, draftDoc.id);
-        
+
         // Populate the claim data
         _draftClaimId = claim.claimId;
+        _draftCreatedAt = claim.createdAt;
         _incidentDate = claim.incidentDate;
         _description = claim.description;
         _claimType = claim.claimType;
         _estimatedCost = claim.claimAmount;
         _attachmentUrls.clear();
         _attachmentUrls.addAll(claim.attachments);
-        
+
         // Restore conversation state
         _restoreConversationWithDraft(claim);
         return true;
@@ -192,54 +210,64 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   /// Restore conversation state with existing draft data
   void _restoreConversationWithDraft(Claim claim) {
     print('DEBUG: Restoring conversation with claim: ${claim.claimId}');
-    print('DEBUG: Claim details - Date: ${claim.incidentDate}, Type: ${claim.claimType}, Desc: ${claim.description}, Amount: ${claim.claimAmount}');
-    
+    print(
+      'DEBUG: Claim details - Date: ${claim.incidentDate}, Type: ${claim.claimType}, Desc: ${claim.description}, Amount: ${claim.claimAmount}',
+    );
+
     setState(() {
       _messages.clear();
-      
+
       // Greeting message
-      _messages.add(ChatMessage(
-        text: "Hi there! I'm Clover, and I can see you were working on a claim earlier. "
-            "Let me help you continue where you left off. 🐾\n\n"
-            "Here's what we have so far:",
-        isUser: false,
-        timestamp: DateTime.now(),
-        showAvatar: true,
-      ));
+      _messages.add(
+        ChatMessage(
+          text:
+              "Hi there! I'm Clover, and I can see you were working on a claim earlier. "
+              "Let me help you continue where you left off. 🐾\n\n"
+              "Here's what we have so far:",
+          isUser: false,
+          timestamp: DateTime.now(),
+          showAvatar: true,
+        ),
+      );
 
       // Show collected information
       final summaryText = _buildClaimSummary(claim);
-      _messages.add(ChatMessage(
-        text: summaryText,
-        isUser: false,
-        timestamp: DateTime.now(),
-      ));
+      _messages.add(
+        ChatMessage(
+          text: summaryText,
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      );
 
       // Determine next step based on what's missing
       final nextStep = _determineNextStep(claim);
-      _messages.add(ChatMessage(
-        text: nextStep,
-        isUser: false,
-        timestamp: DateTime.now(),
-      ));
-      
+      _messages.add(
+        ChatMessage(text: nextStep, isUser: false, timestamp: DateTime.now()),
+      );
+
       _updateStageBasedOnProgress(claim);
-      print('DEBUG: Restored ${_messages.length} messages, stage: $_currentStage');
+      print(
+        'DEBUG: Restored ${_messages.length} messages, stage: $_currentStage',
+      );
     });
   }
 
   /// Start a new conversation for first-time claims
   void _startNewConversation() {
     setState(() {
-      _messages.add(ChatMessage(
-        text: "Hi there! I'm Clover, and I'm here to help you file your claim. "
-            "I know this might be a stressful time for you and your pet. "
-            "Let's take this step by step together. 🐾\n\n"
-            "First, can you tell me when the incident happened?",
-        isUser: false,
-        timestamp: DateTime.now(),
-        showAvatar: true,
-      ));
+      _messages.add(
+        ChatMessage(
+          text:
+              "Hi there! I'm Clover, and I'm here to help you file your claim. "
+              "I know this might be a stressful time for you and your pet. "
+              "Let's take this step by step together. 🐾\n\n"
+              "First, can you tell me when the incident happened?",
+          isUser: false,
+          timestamp: DateTime.now(),
+          showAvatar: true,
+        ),
+      );
       _currentStage = ClaimIntakeStage.collectingDate;
     });
   }
@@ -248,22 +276,28 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   String _buildClaimSummary(Claim claim) {
     final buffer = StringBuffer();
     buffer.writeln("📋 **Claim Summary:**\n");
-    
-    buffer.writeln("📅 **Incident Date:** ${DateFormat('MMMM d, yyyy').format(claim.incidentDate)}");
+
+    buffer.writeln(
+      "📅 **Incident Date:** ${DateFormat('MMMM d, yyyy').format(claim.incidentDate)}",
+    );
     buffer.writeln("🏥 **Claim Type:** ${claim.claimType.displayName}");
-    
+
     if (claim.description.isNotEmpty) {
       buffer.writeln("📝 **Description:** ${claim.description}");
     }
-    
+
     if (claim.claimAmount > 0) {
-      buffer.writeln("💰 **Estimated Cost:** \$${claim.claimAmount.toStringAsFixed(2)}");
+      buffer.writeln(
+        "💰 **Estimated Cost:** \$${claim.claimAmount.toStringAsFixed(2)}",
+      );
     }
-    
+
     if (claim.attachments.isNotEmpty) {
-      buffer.writeln("📎 **Documents:** ${claim.attachments.length} file(s) uploaded");
+      buffer.writeln(
+        "📎 **Documents:** ${claim.attachments.length} file(s) uploaded",
+      );
     }
-    
+
     return buffer.toString();
   }
 
@@ -294,11 +328,9 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
     if (message.trim().isEmpty) return;
 
     setState(() {
-      _messages.add(ChatMessage(
-        text: message,
-        isUser: true,
-        timestamp: DateTime.now(),
-      ));
+      _messages.add(
+        ChatMessage(text: message, isUser: true, timestamp: DateTime.now()),
+      );
       _messageController.clear();
       _isAITyping = true;
     });
@@ -342,11 +374,15 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
           break;
 
         case ClaimIntakeStage.complete:
-          _addAIMessage("Your claim has been submitted! Is there anything else I can help you with?");
+          _addAIMessage(
+            "Your claim has been submitted! Is there anything else I can help you with?",
+          );
           break;
       }
     } catch (e) {
-      _addAIMessage("I'm sorry, I encountered an issue. Could you try rephrasing that?");
+      _addAIMessage(
+        "I'm sorry, I encountered an issue. Could you try rephrasing that?",
+      );
     } finally {
       setState(() {
         _isAITyping = false;
@@ -355,38 +391,38 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
     }
   }
 
-  /// Handle date collection with AI parsing
+  /// Handle date collection with natural-language parsing
   Future<void> _handleDateCollection(String message) async {
-    // Use AI to parse date from natural language
+    // Parse date from natural language
     final aiResponse = await _aiService.parseDate(message);
-    
+
     if (aiResponse['success'] == true && aiResponse['date'] != null) {
       _incidentDate = DateTime.parse(aiResponse['date']);
-      
+
       _addAIMessage(
         "Got it, the incident happened on ${DateFormat('MMMM d, yyyy').format(_incidentDate!)}. "
         "I'm so sorry to hear that. 💙\n\n"
-        "Can you describe what happened? Take your time and include as many details as you'd like."
+        "Can you describe what happened? Take your time and include as many details as you'd like.",
       );
-      
+
       setState(() {
         _currentStage = ClaimIntakeStage.collectingDescription;
       });
     } else {
       _addAIMessage(
         "I'm having trouble understanding that date. Could you provide it in a format like "
-        "'January 15, 2025' or '01/15/2025'?"
+        "'January 15, 2025' or '01/15/2025'?",
       );
     }
   }
 
-  /// Handle description collection with AI sentiment analysis
+  /// Handle description collection with sentiment classification
   Future<void> _handleDescriptionCollection(String message) async {
     _description = message;
 
-    // Use AI to classify claim type and detect sentiment
+    // Classify claim type and detect sentiment
     final aiResponse = await _aiService.analyzeClaimDescription(message);
-    
+
     _claimType = _parseClaimType(aiResponse['claimType']);
     final sentiment = aiResponse['sentiment'] ?? 'neutral';
     final urgency = aiResponse['urgency'] ?? 'normal';
@@ -397,7 +433,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
     _addAIMessage(
       "$empathyMessage\n\n"
       "Based on what you've shared, this looks like ${_claimType?.displayName.toLowerCase() ?? 'a claim'} claim. "
-      "Do you happen to know the total cost or have an estimate? If not, that's okay - you can say 'not sure'."
+      "Do you happen to know the total cost or have an estimate? If not, that's okay - you can say 'not sure'.",
     );
 
     setState(() {
@@ -411,30 +447,30 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   /// Handle cost collection
   Future<void> _handleCostCollection(String message) async {
     final lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.contains('not sure') || 
+
+    if (lowerMessage.contains('not sure') ||
         lowerMessage.contains('don\'t know') ||
         lowerMessage.contains('unknown')) {
       _estimatedCost = null;
       _addAIMessage(
         "No problem at all! We can update that later.\n\n"
         "Would you like to upload any documents? This could be a vet invoice, receipt, "
-        "or photos. You can upload them now or add them later."
+        "or photos. You can upload them now or add them later.",
       );
     } else {
-      // Parse cost with AI
+      // Parse cost from natural language
       final aiResponse = await _aiService.parseCurrency(message);
       if (aiResponse['success'] == true) {
         _estimatedCost = aiResponse['amount']?.toDouble();
         _addAIMessage(
           "Thank you! I've noted the estimated cost as ${_formatCurrency(_estimatedCost!)}.\n\n"
           "Would you like to upload any documents? This could be a vet invoice, receipt, "
-          "or photos. You can upload them now or add them later."
+          "or photos. You can upload them now or add them later.",
         );
       } else {
         _addAIMessage(
           "I didn't quite catch that amount. Could you provide it like '\$500' or '500 dollars'? "
-          "Or say 'not sure' if you don't have an estimate."
+          "Or say 'not sure' if you don't have an estimate.",
         );
         return;
       }
@@ -450,49 +486,57 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   /// Handle document upload prompt
   Future<void> _handleDocumentPrompt(String message) async {
     final lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.contains('yes') || lowerMessage.contains('upload')) {
-      _addAIMessage("Great! Tap the 📎 button below to upload your documents.");
-      // Don't advance stage - wait for actual upload
-    } else if (lowerMessage.contains('later') || 
-               lowerMessage.contains('skip') || 
-               lowerMessage.contains('done') ||
-               lowerMessage.contains('finished') ||
-               lowerMessage.contains('no')) {
+
+    // Important: "upload later" should be treated as "later".
+    if (lowerMessage.contains('later') ||
+        lowerMessage.contains('skip') ||
+        lowerMessage.contains('done') ||
+        lowerMessage.contains('finished') ||
+        lowerMessage.contains('no')) {
       await _proceedToAnalysis();
+    } else if (lowerMessage.contains('yes') || lowerMessage.trim() == 'y') {
+      _addAIMessage(
+        "Great! Tap the 📎 button below to upload your documents (PDFs and photos are supported).",
+      );
+      // Don't advance stage - wait for actual upload
+    } else if (lowerMessage.contains('upload') ||
+        lowerMessage.contains('document') ||
+        lowerMessage.contains('pdf')) {
+      _addAIMessage(
+        "Sure — tap the 📎 button below to upload your documents (PDFs and photos are supported).",
+      );
+      // Don't advance stage - wait for actual upload
     } else {
       _addAIMessage(
         "Would you like to upload documents now, or would you prefer to do it later? "
-        "Just say 'yes' to upload or 'later' to continue."
+        "Just say 'yes' to upload or 'later' to continue.",
       );
     }
   }
 
-  /// Proceed to AI analysis stage
+  /// Proceed to analysis stage
   Future<void> _proceedToAnalysis() async {
     setState(() {
       _currentStage = ClaimIntakeStage.aiAnalysis;
       _isAITyping = true;
     });
 
-    _addAIMessage(
-      "Perfect! Let me review everything you've shared... 🤔"
-    );
+    _addAIMessage("Perfect! Let me review everything you've shared... 🤔");
 
     await Future.delayed(const Duration(seconds: 2));
 
     await _handleAIAnalysis();
   }
 
-  /// Handle AI analysis and summary
+  /// Handle analysis and summary
   Future<void> _handleAIAnalysis() async {
-    // Generate AI summary and reasoning
+    // Generate a summary for confirmation
     final summary = _generateClaimSummary();
-    
+
     _addAIMessage(
       "Here's what I've gathered:\n\n"
       "$summary\n\n"
-      "Does this look correct? Reply 'yes' to submit your claim, or let me know what needs to be changed."
+      "Does this look correct? Reply 'yes' to submit your claim, or let me know what needs to be changed.",
     );
 
     setState(() {
@@ -506,8 +550,20 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   /// Handle final confirmation
   Future<void> _handleConfirmation(String message) async {
     final lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.contains('yes') || lowerMessage.contains('correct') || lowerMessage.contains('submit')) {
+
+    if (lowerMessage.contains('upload') ||
+        lowerMessage.contains('document') ||
+        lowerMessage.contains('pdf') ||
+        lowerMessage.contains('attachment')) {
+      _addAIMessage(
+        "No problem — tap the 📎 button to upload documents, then say 'done' when you're ready to submit.",
+      );
+      return;
+    }
+
+    if (lowerMessage.contains('yes') ||
+        lowerMessage.contains('correct') ||
+        lowerMessage.contains('submit')) {
       await _submitClaim();
     } else {
       _addAIMessage(
@@ -515,7 +571,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
         "- The incident date\n"
         "- The description\n"
         "- The estimated cost\n"
-        "- Or add/remove documents"
+        "- Or add/remove documents",
       );
       // Stay in confirmation stage for edits
     }
@@ -531,9 +587,23 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not authenticated');
 
+      // Ensure the draft exists and all latest fields are persisted first.
+      // Firestore rules enforce `createdAt` immutability, so we must submit
+      // by updating status on the existing draft rather than rewriting the
+      // whole document with a new createdAt.
+      final claimId =
+          _draftClaimId ?? DateTime.now().millisecondsSinceEpoch.toString();
+      _draftClaimId = claimId;
+      await _saveDraft();
+
+      await FirebaseFirestore.instance.collection('claims').doc(claimId).update({
+        'status': ClaimStatus.submitted.value,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
       // Create final claim
       final claim = Claim(
-        claimId: _draftClaimId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        claimId: claimId,
         policyId: widget.policyId,
         ownerId: user.uid,
         petId: widget.petId,
@@ -543,26 +613,24 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
         description: _description ?? '',
         attachments: _attachmentUrls,
         status: ClaimStatus.submitted,
-        createdAt: DateTime.now(),
+        createdAt: _draftCreatedAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
       );
-
-      await _claimsService.createClaim(claim);
 
       _addAIMessage(
         "✅ Your claim has been successfully submitted!\n\n"
         "Claim ID: ${claim.claimId}\n\n"
-        "I'm analyzing your claim now with our AI system... 🤖"
+        "Thanks — our system is reviewing it now. We'll keep you posted here and by email.",
       );
 
-      // Trigger AI decision engine immediately
+      // Trigger decision processing immediately
       try {
         await _triggerAIDecision(claim);
       } catch (e) {
-        print('AI decision failed, will be processed later: $e');
+        print('Decision processing failed, will be processed later: $e');
         _addAIMessage(
           "Your claim is submitted and will be reviewed within 24-48 hours. "
-          "You'll receive updates via email and in your policy dashboard."
+          "You'll receive updates via email and in your policy dashboard.",
         );
       }
 
@@ -572,7 +640,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
     } catch (e) {
       _addAIMessage(
         "I'm sorry, there was an issue submitting your claim. Please try again or contact support. "
-        "Error: ${e.toString()}"
+        "Error: ${e.toString()}",
       );
     } finally {
       setState(() {
@@ -581,16 +649,20 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
     }
   }
 
-  /// Trigger AI decision engine for instant review
+  /// Trigger decision processing for instant review
   Future<void> _triggerAIDecision(Claim claim) async {
     try {
-      _addAIMessage("Analyzing your claim... This will just take a moment! ⏱️");
+      _addAIMessage("Reviewing your claim... This will just take a moment! ⏱️");
 
-      final callable = FirebaseFunctions.instance.httpsCallable('processClaimDecision');
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'processClaimDecision',
+      );
       final result = await callable.call({'claimId': claim.claimId});
       final data = (result.data as Map).cast<String, dynamic>();
-      final decision = (data['decision'] as Map?)?.cast<String, dynamic>() ?? {};
-      final decisionType = (decision['decision'] as String? ?? 'review').toLowerCase();
+      final decision =
+          (data['decision'] as Map?)?.cast<String, dynamic>() ?? {};
+      final decisionType = (decision['decision'] as String? ?? 'review')
+          .toLowerCase();
       final denialReason = decision['denialReason'] as String?;
 
       // Show result to user based on decision
@@ -599,29 +671,29 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
           "🎉 Great news! Your claim has been approved!\n\n"
           "Amount: \$${claim.claimAmount.toStringAsFixed(2)}\n\n"
           "We're initiating your reimbursement now. You'll typically receive it within 3-5 business days. "
-          "Is there anything else I can help you with? 🐾"
+          "Is there anything else I can help you with? 🐾",
         );
       } else if (decisionType == 'deny') {
         _addAIMessage(
           "I've reviewed your claim, but unfortunately it doesn't meet our coverage criteria.\n\n"
           "Reason: ${denialReason ?? 'See policy details'}\n\n"
           "If you believe this is an error, please contact our support team. "
-          "Is there anything else I can help you with?"
+          "Is there anything else I can help you with?",
         );
       } else {
-        // Escalated to human review
+        // Routed to additional review
         _addAIMessage(
           "Your claim has been submitted for review by our team.\n\n"
           "We'll carefully review all the details and get back to you within 24-48 hours. "
           "You'll receive updates via email and in your policy dashboard.\n\n"
-          "Is there anything else I can help you with today? 🐾"
+          "Is there anything else I can help you with today? 🐾",
         );
       }
 
-      print('✅ Server-side AI Decision completed for claim ${claim.claimId}');
+      print('✅ Server-side decision completed for claim ${claim.claimId}');
       print('   Decision: $decisionType');
     } catch (e) {
-      print('Error triggering AI decision: $e');
+      print('Error triggering decision: $e');
       rethrow;
     }
   }
@@ -632,8 +704,11 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
+      final createdAt = _draftCreatedAt ?? DateTime.now();
+
       final draftClaim = Claim(
-        claimId: _draftClaimId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        claimId:
+            _draftClaimId ?? DateTime.now().millisecondsSinceEpoch.toString(),
         policyId: widget.policyId,
         ownerId: user.uid,
         petId: widget.petId,
@@ -643,63 +718,158 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
         description: _description ?? '',
         attachments: _attachmentUrls,
         status: ClaimStatus.draft,
-        createdAt: DateTime.now(),
+        createdAt: createdAt,
         updatedAt: DateTime.now(),
       );
 
       await _claimsService.saveDraftClaim(draftClaim);
       _draftClaimId = draftClaim.claimId;
+      _draftCreatedAt ??= createdAt;
     } catch (e) {
       print('Error saving draft: $e');
     }
   }
 
-  /// Handle image/document upload
-  Future<void> _handleImageUpload() async {
+  /// Handle document upload (PDFs + images)
+  Future<void> _handleAttachmentUpload() async {
     try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 85,
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('Not authenticated');
+      }
+
+      // Web sessions can occasionally have a stale token when coming back to
+      // an already-open tab; refresh so Storage + Firestore rules see auth.
+      await user.getIdToken(true);
+
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'heic'],
+        allowMultiple: true,
+        withData: kIsWeb,
       );
 
-      if (image != null) {
+      if (result != null && result.files.isNotEmpty) {
         setState(() {
           _isAITyping = true;
         });
 
-        final claimId = _draftClaimId ?? DateTime.now().millisecondsSinceEpoch.toString();
+        final claimId =
+            _draftClaimId ?? DateTime.now().millisecondsSinceEpoch.toString();
 
         // Ensure the draft claim exists before uploading documents so
         // Storage rules can safely enforce ownership via Firestore.
         _draftClaimId = claimId;
         await _saveDraft();
 
-        // Upload to Firebase Storage
-        final url = kIsWeb
-            ? await _claimsService.uploadClaimDocumentFromBytes(
-                await image.readAsBytes(),
-                image.name,
-                claimId,
-              )
-            : await _claimsService.uploadClaimDocument(
-                image.path,
+        var successCount = 0;
+        var failureCount = 0;
+
+        for (final file in result.files) {
+          try {
+            final Uint8List? bytes = file.bytes;
+            // IMPORTANT: On web, PlatformFile.path throws when accessed.
+            final String? path = kIsWeb ? null : file.path;
+
+            final Map<String, dynamic> upload;
+            if (kIsWeb) {
+              if (bytes == null) {
+                throw Exception('Web file picker did not provide bytes');
+              }
+              upload = await _claimsService
+                  .uploadClaimDocumentFromBytesWithMetadata(
+                    bytes,
+                    file.name,
+                    claimId,
+                  );
+            } else if (path != null && path.isNotEmpty) {
+              upload = await _claimsService.uploadClaimDocumentWithMetadata(
+                path,
                 claimId,
               );
+            } else if (bytes != null) {
+              upload = await _claimsService
+                  .uploadClaimDocumentFromBytesWithMetadata(
+                    bytes,
+                    file.name,
+                    claimId,
+                  );
+            } else {
+              throw Exception('No file bytes or path available');
+            }
 
-        setState(() {
-          _attachmentUrls.add(url);
-        });
+            final url = upload['downloadUrl'] as String;
+            final storagePath = upload['storagePath'] as String;
+            final fileName = (upload['fileName'] as String?) ?? file.name;
+            final contentType = upload['contentType'] as String?;
 
-        _addAIMessage(
-          "✅ Document uploaded successfully! You can upload more, or say 'done' when you're finished."
-        );
+            // Always attach the download URL to the claim draft so the user can
+            // proceed even if Firestore rules block attachment subcollection writes.
+            setState(() {
+              _attachmentUrls.add(url);
+            });
+
+            // Persist the new attachment URL with a minimal patch to reduce
+            // Firestore rule surface area during uploads.
+            await getClaimDocument(claimId).update({
+              'attachments': FieldValue.arrayUnion([url]),
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+
+            // Best-effort: write structured attachment metadata for the server-side
+            // extraction pipeline. If this is blocked by rules, Cloud Functions can
+            // still hydrate structured attachment records from the claim.attachments
+            // URLs.
+            try {
+              await getClaimDocument(claimId).collection('attachments').add({
+                'downloadUrl': url,
+                'storagePath': storagePath,
+                'fileName': fileName,
+                'contentType': contentType,
+                'uploadedAt': FieldValue.serverTimestamp(),
+                'uploadedBy': user.uid,
+                'extractionStatus': 'queued',
+              });
+            } catch (e) {
+              print(
+                '⚠️ Attachment metadata write blocked; falling back to URL-only attachment. error=$e',
+              );
+            }
+
+            successCount++;
+          } catch (e, st) {
+            // Keep the UI going for other files, but log the real reason.
+            print('❌ Attachment upload failed for ${file.name}: $e');
+            print(st);
+            failureCount++;
+            _addAIMessage(
+              "Sorry, there was an issue uploading '${file.name}'. Please try again.",
+            );
+          }
+        }
+
+        if (successCount > 0 && failureCount == 0) {
+          _addAIMessage(
+            "✅ Document uploaded successfully! You can upload more, or say 'done' when you're finished.",
+          );
+        } else if (successCount > 0 && failureCount > 0) {
+          _addAIMessage(
+            "✅ Uploaded $successCount file(s). $failureCount file(s) failed — please try those again.",
+          );
+        } else if (successCount == 0 && failureCount > 0) {
+          _addAIMessage(
+            "Sorry — none of the selected files uploaded. Please try again.",
+          );
+        }
 
         await _saveDraft();
       }
-    } catch (e) {
-      _addAIMessage("Sorry, there was an issue uploading that file. Could you try again?");
+    } catch (e, st) {
+      print('❌ Attachment upload flow failed: $e');
+      print(st);
+      _addAIMessage(
+        "Sorry, there was an issue uploading that file. Could you try again?",
+      );
     } finally {
       setState(() {
         _isAITyping = false;
@@ -710,13 +880,17 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   /// Generate claim summary for confirmation
   String _generateClaimSummary() {
     final buffer = StringBuffer();
-    
-    buffer.writeln("📅 Incident Date: ${_incidentDate != null ? DateFormat('MMMM d, yyyy').format(_incidentDate!) : 'Not provided'}");
+
+    buffer.writeln(
+      "📅 Incident Date: ${_incidentDate != null ? DateFormat('MMMM d, yyyy').format(_incidentDate!) : 'Not provided'}",
+    );
     buffer.writeln("🏥 Claim Type: ${_claimType?.displayName ?? 'Unknown'}");
-    buffer.writeln("💰 Estimated Cost: ${_estimatedCost != null ? _formatCurrency(_estimatedCost!) : 'Not provided'}");
+    buffer.writeln(
+      "💰 Estimated Cost: ${_estimatedCost != null ? _formatCurrency(_estimatedCost!) : 'Not provided'}",
+    );
     buffer.writeln("📝 Description: ${_description ?? 'Not provided'}");
     buffer.writeln("📎 Documents: ${_attachmentUrls.length} uploaded");
-    
+
     return buffer.toString();
   }
 
@@ -725,7 +899,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
     if (urgency == 'high') {
       return "I can tell this is urgent. Thank you for sharing those details with me.";
     }
-    
+
     switch (sentiment) {
       case 'distressed':
         return "I can hear how difficult this must be for you. You're doing the right thing by getting help.";
@@ -738,7 +912,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
     }
   }
 
-  /// Parse claim type from AI response
+  /// Parse claim type from model response
   ClaimType? _parseClaimType(String? type) {
     if (type == null) return null;
     try {
@@ -756,12 +930,14 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
   /// Add AI message to chat
   void _addAIMessage(String text) {
     setState(() {
-      _messages.add(ChatMessage(
-        text: text,
-        isUser: false,
-        timestamp: DateTime.now(),
-        showAvatar: true,
-      ));
+      _messages.add(
+        ChatMessage(
+          text: text,
+          isUser: false,
+          timestamp: DateTime.now(),
+          showAvatar: true,
+        ),
+      );
     });
   }
 
@@ -776,6 +952,51 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
         );
       }
     });
+  }
+
+  Future<void> _openReimbursementSetup() async {
+    if (_isOpeningReimbursement) return;
+
+    try {
+      setState(() => _isOpeningReimbursement = true);
+
+      String? maybeHttpUrl;
+      final base = Uri.base;
+      if (base.scheme == 'http' || base.scheme == 'https') {
+        maybeHttpUrl = base.origin;
+      }
+
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('createReimbursementOnboardingLink')
+          .call({
+            if (maybeHttpUrl != null) 'returnUrl': maybeHttpUrl,
+            if (maybeHttpUrl != null) 'refreshUrl': maybeHttpUrl,
+          });
+
+      final data = (result.data as Map?)?.cast<String, dynamic>() ?? {};
+      final url = data['url'] as String?;
+      if (url == null || url.isEmpty) {
+        throw Exception('Missing onboarding URL');
+      }
+
+      final uri = Uri.parse(url);
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Open this link to finish setup: $url')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open reimbursement setup: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isOpeningReimbursement = false);
+    }
   }
 
   @override
@@ -796,6 +1017,13 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
           ],
         ),
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Reimbursement setup',
+            onPressed: _isOpeningReimbursement ? null : _openReimbursementSetup,
+            icon: const Icon(Icons.account_balance_outlined),
+          ),
+        ],
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,
@@ -816,7 +1044,10 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
             // AI typing indicator
             if (_isAITyping)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     CircleAvatar(
@@ -828,7 +1059,10 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(20),
@@ -855,10 +1089,11 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
               child: Row(
                 children: [
                   // Attachment button
-                  if (_currentStage == ClaimIntakeStage.collectingDocuments)
+                  if (_currentStage == ClaimIntakeStage.collectingDocuments ||
+                      _currentStage == ClaimIntakeStage.confirmation)
                     IconButton(
                       icon: const Icon(Icons.attach_file),
-                      onPressed: _handleImageUpload,
+                      onPressed: _handleAttachmentUpload,
                       tooltip: 'Upload document',
                     ),
 
@@ -922,8 +1157,9 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
-        mainAxisAlignment:
-            message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: message.isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!message.isUser && message.showAvatar) ...[
@@ -940,9 +1176,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: message.isUser
-                    ? ClovaraColors.clover
-                    : Colors.grey[200],
+                color: message.isUser ? ClovaraColors.clover : Colors.grey[200],
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -1026,7 +1260,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
             final delay = index * 0.2;
             final value = (_controller.value - delay).clamp(0.0, 1.0);
             final opacity = (value < 0.5 ? value * 2 : (1 - value) * 2);
-            
+
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Container(

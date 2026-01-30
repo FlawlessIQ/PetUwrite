@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../admin_console/components/admin_kpi_card.dart';
@@ -29,7 +29,7 @@ class ClaimsAnalyticsTab extends StatefulWidget {
 }
 
 class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
   
   // Filters
   String? _selectedBreed;
@@ -58,49 +58,20 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
   /// Load filter options from Firestore
   Future<void> _loadFilterOptions() async {
     try {
-      // Load unique breeds
-      final petsSnapshot = await _firestore.collection('pets').get();
-      final breeds = petsSnapshot.docs
-          .map((doc) => doc.data()['breed'] as String?)
-          .where((breed) => breed != null && breed.isNotEmpty)
-          .cast<String>()
-          .toSet()
-          .toList();
-      breeds.sort();
+      final callable = _functions.httpsCallable('getClaimsAnalyticsFilterOptionsAdmin');
+      final resp = await callable.call({
+        'startDate': _startDate.toIso8601String(),
+        'endDate': _endDate.toIso8601String(),
+      });
 
-      // Load unique regions (from owner addresses)
-      final usersSnapshot = await _firestore.collection('users').get();
-      final regions = usersSnapshot.docs
-          .map((doc) {
-            final address = doc.data()['address'] as Map<String, dynamic>?;
-            return address?['state'] as String?;
-          })
-          .where((state) => state != null && state.isNotEmpty)
-          .cast<String>()
-          .toSet()
-          .toList();
-      regions.sort();
+      final data = (resp.data is Map)
+          ? (resp.data as Map).cast<String, dynamic>()
+          : <String, dynamic>{};
 
-      // Load unique vet providers (from claim documents)
-      final claimsSnapshot = await _firestore
-          .collection('claims')
-          .where('status', whereIn: ['processing', 'settled', 'denied'])
-          .get();
-      
-      final vetProviders = <String>{};
-      for (final doc in claimsSnapshot.docs) {
-        final documents = doc.data()['documents'] as List?;
-        if (documents != null) {
-          for (final docData in documents) {
-            final metadata = docData['metadata'] as Map<String, dynamic>?;
-            final provider = metadata?['providerName'] as String?;
-            if (provider != null && provider.isNotEmpty) {
-              vetProviders.add(provider);
-            }
-          }
-        }
-      }
-      final sortedProviders = vetProviders.toList()..sort();
+      final breeds = (data['breeds'] as List?)?.cast<String>() ?? <String>[];
+      final regions = (data['regions'] as List?)?.cast<String>() ?? <String>[];
+      final sortedProviders =
+          (data['vetProviders'] as List?)?.cast<String>() ?? <String>[];
 
       setState(() {
         _breeds = breeds;
@@ -117,75 +88,21 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Replace with Cloud Function call for better performance
-      // For now, we'll aggregate client-side for development
-      
-      // Query claims with filters
-      Query query = _firestore.collection('claims');
+      final callable = _functions.httpsCallable('getClaimsAnalytics');
+      final resp = await callable.call({
+        'startDate': _startDate.toIso8601String(),
+        'endDate': _endDate.toIso8601String(),
+        if (_selectedBreed != null) 'breed': _selectedBreed,
+        if (_selectedAgeRange != null) 'ageRange': _selectedAgeRange,
+        if (_selectedRegion != null) 'region': _selectedRegion,
+        if (_selectedVetProvider != null) 'vetProvider': _selectedVetProvider,
+      });
 
-      // Date range filter
-      query = query
-          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(_startDate))
-          .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(_endDate));
+      final data = (resp.data is Map)
+          ? (resp.data as Map).cast<String, dynamic>()
+          : <String, dynamic>{};
 
-      final claimsSnapshot = await query.get();
-      
-      // Filter by breed, age, region, vet provider (client-side for now)
-      var filteredClaims = claimsSnapshot.docs;
-
-      // Apply client-side filters
-      if (_selectedBreed != null || _selectedAgeRange != null || _selectedRegion != null || _selectedVetProvider != null) {
-        final filteredList = <QueryDocumentSnapshot>[];
-        
-        for (final doc in filteredClaims) {
-          final data = doc.data() as Map<String, dynamic>;
-          bool includeDoc = true;
-          
-          // Breed filter
-          if (_selectedBreed != null) {
-            final petDoc = await _firestore.collection('pets').doc(data['petId']).get();
-            if (petDoc.data()?['breed'] != _selectedBreed) {
-              includeDoc = false;
-            }
-          }
-          
-          // Region filter
-          if (_selectedRegion != null && includeDoc) {
-            final ownerDoc = await _firestore.collection('users').doc(data['ownerId']).get();
-            final address = ownerDoc.data()?['address'] as Map<String, dynamic>?;
-            if (address?['state'] != _selectedRegion) {
-              includeDoc = false;
-            }
-          }
-          
-          // Vet provider filter
-          if (_selectedVetProvider != null && includeDoc) {
-            final documents = data['documents'] as List?;
-            bool hasProvider = false;
-            if (documents != null) {
-              for (final docData in documents) {
-                final metadata = docData['metadata'] as Map<String, dynamic>?;
-                if (metadata?['providerName'] == _selectedVetProvider) {
-                  hasProvider = true;
-                  break;
-                }
-              }
-            }
-            if (!hasProvider) {
-              includeDoc = false;
-            }
-          }
-          
-          if (includeDoc) {
-            filteredList.add(doc);
-          }
-        }
-        
-        filteredClaims = filteredList;
-      }
-
-      // Aggregate data
-      final analytics = await _aggregateClaimsData(filteredClaims);
+      final analytics = _normalizeAnalyticsPayload(data);
 
       setState(() {
         _analyticsData = analytics;
@@ -197,90 +114,59 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
     }
   }
 
-  /// Aggregate claims data for analytics
-  Future<Map<String, dynamic>> _aggregateClaimsData(List<QueryDocumentSnapshot> claims) async {
-    // Claims by month
-    final claimsByMonth = <String, int>{};
-    final amountsByMonth = <String, double>{};
-    
-    // Decision distribution
-    int autoApproved = 0;
-    int manualApproved = 0;
-    int denied = 0;
-    int pending = 0;
-    
-    // AI confidence distribution
-    final confidenceBuckets = <String, int>{
-      '0-20%': 0,
-      '20-40%': 0,
-      '40-60%': 0,
-      '60-80%': 0,
-      '80-100%': 0,
-    };
-    
-    // Average amounts
-    double totalAmount = 0;
-    int settledCount = 0;
+  Map<String, dynamic> _normalizeAnalyticsPayload(Map<String, dynamic> raw) {
+    final claimsByMonthRaw = raw['claimsByMonth'];
+    final amountsByMonthRaw = raw['amountsByMonth'];
+    final confidenceRaw = raw['confidenceBuckets'];
 
-    for (final doc in claims) {
-      final data = doc.data() as Map<String, dynamic>;
-      
-      // By month
-      final createdAt = (data['createdAt'] as Timestamp).toDate();
-      final monthKey = DateFormat('MMM yyyy').format(createdAt);
-      claimsByMonth[monthKey] = (claimsByMonth[monthKey] ?? 0) + 1;
-      
-      // Amount by month
-      final amount = (data['claimAmount'] as num?)?.toDouble() ?? 0;
-      amountsByMonth[monthKey] = (amountsByMonth[monthKey] ?? 0) + amount;
-      
-      // Decision distribution
-      final status = data['status'] as String?;
-      final aiDecision = data['aiDecision'] as String?;
-      final humanOverride = data['humanOverride'] as Map<String, dynamic>?;
-      
-      if (status == 'settled') {
-        if (humanOverride == null && aiDecision == 'approve') {
-          autoApproved++;
-        } else {
-          manualApproved++;
-        }
-        totalAmount += amount;
-        settledCount++;
-      } else if (status == 'denied') {
-        denied++;
-      } else {
-        pending++;
-      }
-      
-      // AI confidence distribution
-      final aiConfidence = (data['aiConfidenceScore'] as num?)?.toDouble();
-      if (aiConfidence != null) {
-        if (aiConfidence < 0.2) {
-          confidenceBuckets['0-20%'] = confidenceBuckets['0-20%']! + 1;
-        } else if (aiConfidence < 0.4) {
-          confidenceBuckets['20-40%'] = confidenceBuckets['20-40%']! + 1;
-        } else if (aiConfidence < 0.6) {
-          confidenceBuckets['40-60%'] = confidenceBuckets['40-60%']! + 1;
-        } else if (aiConfidence < 0.8) {
-          confidenceBuckets['60-80%'] = confidenceBuckets['60-80%']! + 1;
-        } else {
-          confidenceBuckets['80-100%'] = confidenceBuckets['80-100%']! + 1;
-        }
+    final claimsByMonth = <String, int>{};
+    if (claimsByMonthRaw is Map) {
+      for (final entry in claimsByMonthRaw.entries) {
+        final key = entry.key.toString();
+        final value = entry.value;
+        if (value is num) claimsByMonth[key] = value.toInt();
       }
     }
+
+    final amountsByMonth = <String, double>{};
+    if (amountsByMonthRaw is Map) {
+      for (final entry in amountsByMonthRaw.entries) {
+        final key = entry.key.toString();
+        final value = entry.value;
+        if (value is num) amountsByMonth[key] = value.toDouble();
+      }
+    }
+
+    final confidenceBuckets10 = <String, int>{};
+    if (confidenceRaw is Map) {
+      for (final entry in confidenceRaw.entries) {
+        final key = entry.key.toString();
+        final value = entry.value;
+        if (value is num) confidenceBuckets10[key] = value.toInt();
+      }
+    }
+
+    int bucket(String label) => confidenceBuckets10[label] ?? 0;
+
+    final confidenceBuckets = <String, int>{
+      '0-20%': bucket('0-10%') + bucket('10-20%'),
+      '20-40%': bucket('20-30%') + bucket('30-40%'),
+      '40-60%': bucket('40-50%') + bucket('50-60%'),
+      '60-80%': bucket('60-70%') + bucket('70-80%'),
+      '80-100%': bucket('80-90%') + bucket('90-100%'),
+    };
 
     return {
       'claimsByMonth': claimsByMonth,
       'amountsByMonth': amountsByMonth,
-      'autoApproved': autoApproved,
-      'manualApproved': manualApproved,
-      'denied': denied,
-      'pending': pending,
+      'autoApproved': (raw['autoApproved'] as num?)?.toInt() ?? 0,
+      'manualApproved': (raw['manualApproved'] as num?)?.toInt() ?? 0,
+      'denied': (raw['denied'] as num?)?.toInt() ?? 0,
+      'pending': (raw['pending'] as num?)?.toInt() ?? 0,
       'confidenceBuckets': confidenceBuckets,
-      'totalClaims': claims.length,
-      'averageAmount': settledCount > 0 ? totalAmount / settledCount : 0,
-      'totalPaidOut': totalAmount,
+      'totalClaims': (raw['totalClaims'] as num?)?.toInt() ?? 0,
+      'averageAmount': (raw['averageAmount'] as num?)?.toDouble() ?? 0,
+      'totalPaidOut': (raw['totalPaidOut'] as num?)?.toDouble() ?? 0,
     };
   }
 
@@ -409,6 +295,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                 _startDate = picked.start;
                 _endDate = picked.end;
               });
+              _loadFilterOptions();
               _loadAnalytics();
             }
           },
@@ -481,6 +368,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
       _startDate = DateTime.now().subtract(const Duration(days: 90));
       _endDate = DateTime.now();
     });
+    _loadFilterOptions();
     _loadAnalytics();
   }
 

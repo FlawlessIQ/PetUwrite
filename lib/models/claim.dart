@@ -13,22 +13,25 @@ class Claim {
   final double claimAmount;
   final String currency;
   final String description;
-  final List<String> attachments; // URLs to uploaded documents (vet records, receipts, photos)
-  
+  final List<String>
+  attachments; // URLs to uploaded documents (vet records, receipts, photos)
+
   // AI Decision Support
   final double? aiConfidenceScore; // 0.0 - 1.0
   final AIDecision? aiDecision;
-  final Map<String, dynamic>? aiReasoningExplanation; // SHAP-style explainability
-  
+  final Map<String, dynamic>?
+  aiReasoningExplanation; // SHAP-style explainability
+
   // Human Override
-  final Map<String, dynamic>? humanOverride; // { overriddenBy, overrideReason, overrideTimestamp }
-  
+  final Map<String, dynamic>?
+  humanOverride; // { overriddenBy, overrideReason, overrideTimestamp }
+
   // Claim Status & Lifecycle
   final ClaimStatus status;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? settledAt;
-  
+
   // Advisory Lock for Concurrent Review (10-minute timeout)
   final String? reviewLockedBy; // Admin user ID holding the lock
   final DateTime? reviewLockedAt; // When the lock was acquired
@@ -70,10 +73,11 @@ class Claim {
       description: map['description'] as String,
       attachments: List<String>.from(map['attachments'] as List? ?? []),
       aiConfidenceScore: map['aiConfidenceScore'] as double?,
-      aiDecision: map['aiDecision'] != null 
+      aiDecision: map['aiDecision'] != null
           ? AIDecision.fromString(map['aiDecision'] as String)
           : null,
-      aiReasoningExplanation: map['aiReasoningExplanation'] as Map<String, dynamic>?,
+      aiReasoningExplanation:
+          map['aiReasoningExplanation'] as Map<String, dynamic>?,
       humanOverride: map['humanOverride'] as Map<String, dynamic>?,
       status: ClaimStatus.fromString(map['status'] as String),
       createdAt: map['createdAt'] != null
@@ -82,11 +86,11 @@ class Claim {
       updatedAt: map['updatedAt'] != null
           ? (map['updatedAt'] as Timestamp).toDate()
           : DateTime.now(),
-      settledAt: map['settledAt'] != null 
+      settledAt: map['settledAt'] != null
           ? (map['settledAt'] as Timestamp).toDate()
           : null,
       reviewLockedBy: map['reviewLockedBy'] as String?,
-      reviewLockedAt: map['reviewLockedAt'] != null 
+      reviewLockedAt: map['reviewLockedAt'] != null
           ? (map['reviewLockedAt'] as Timestamp).toDate()
           : null,
     );
@@ -113,7 +117,9 @@ class Claim {
       'updatedAt': Timestamp.fromDate(updatedAt),
       'settledAt': settledAt != null ? Timestamp.fromDate(settledAt!) : null,
       'reviewLockedBy': reviewLockedBy,
-      'reviewLockedAt': reviewLockedAt != null ? Timestamp.fromDate(reviewLockedAt!) : null,
+      'reviewLockedAt': reviewLockedAt != null
+          ? Timestamp.fromDate(reviewLockedAt!)
+          : null,
     };
   }
 
@@ -163,36 +169,42 @@ class Claim {
       attachments: attachments ?? this.attachments,
       aiConfidenceScore: aiConfidenceScore ?? this.aiConfidenceScore,
       aiDecision: aiDecision ?? this.aiDecision,
-      aiReasoningExplanation: aiReasoningExplanation ?? this.aiReasoningExplanation,
+      aiReasoningExplanation:
+          aiReasoningExplanation ?? this.aiReasoningExplanation,
       humanOverride: humanOverride ?? this.humanOverride,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       settledAt: settledAt ?? this.settledAt,
-      reviewLockedBy: clearReviewLock ? null : (reviewLockedBy ?? this.reviewLockedBy),
-      reviewLockedAt: clearReviewLock ? null : (reviewLockedAt ?? this.reviewLockedAt),
+      reviewLockedBy: clearReviewLock
+          ? null
+          : (reviewLockedBy ?? this.reviewLockedBy),
+      reviewLockedAt: clearReviewLock
+          ? null
+          : (reviewLockedAt ?? this.reviewLockedAt),
     );
   }
 
   /// Check if claim is currently locked for review
   bool get isReviewLocked {
     if (reviewLockedBy == null || reviewLockedAt == null) return false;
-    
+
     // Lock expires after 10 minutes
     final lockExpiry = reviewLockedAt!.add(const Duration(minutes: 10));
     return DateTime.now().isBefore(lockExpiry);
   }
-  
+
   /// Check if claim lock has expired
   bool get hasExpiredLock {
     if (reviewLockedBy == null || reviewLockedAt == null) return false;
-    
+
     final lockExpiry = reviewLockedAt!.add(const Duration(minutes: 10));
     return DateTime.now().isAfter(lockExpiry);
   }
 
   /// Check if claim was overridden by human
-  bool get hasHumanOverride => humanOverride != null && humanOverride!.isNotEmpty;
+  bool get hasHumanOverride =>
+      humanOverride != null && humanOverride!.isNotEmpty;
 
   /// Check if AI made a decision
   bool get hasAIDecision => aiDecision != null;
@@ -248,6 +260,7 @@ enum ClaimStatus {
   draft('draft'),
   submitted('submitted'),
   processing('processing'),
+  awaitingInfo('awaiting_info'),
   settling('settling'), // Intermediate state for payout processing lock
   settled('settled'),
   denied('denied'),
@@ -262,6 +275,13 @@ enum ClaimStatus {
         return ClaimStatus.draft;
       case 'submitted':
         return ClaimStatus.submitted;
+      case 'awaiting_info':
+      case 'awaiting-info':
+      case 'needs_info':
+      case 'needs-info':
+      case 'awaiting_documents':
+      case 'awaiting-documents':
+        return ClaimStatus.awaitingInfo;
       case 'pending':
       case 'in_review':
       case 'in-review':
@@ -298,6 +318,8 @@ enum ClaimStatus {
         return 'Submitted';
       case ClaimStatus.processing:
         return 'Processing';
+      case ClaimStatus.awaitingInfo:
+        return 'Awaiting Info';
       case ClaimStatus.settling:
         return 'Settling';
       case ClaimStatus.settled:
@@ -314,7 +336,8 @@ enum ClaimStatus {
 enum AIDecision {
   approve('approve'),
   deny('deny'),
-  escalate('escalate');
+  escalate('escalate'),
+  needsInfo('needs_info');
 
   final String value;
   const AIDecision(this.value);
@@ -327,6 +350,9 @@ enum AIDecision {
         return AIDecision.deny;
       case 'escalate':
         return AIDecision.escalate;
+      case 'needs_info':
+      case 'needs-info':
+        return AIDecision.needsInfo;
       default:
         throw ArgumentError('Invalid AI decision: $value');
     }
@@ -339,7 +365,9 @@ enum AIDecision {
       case AIDecision.deny:
         return 'Deny';
       case AIDecision.escalate:
-        return 'Escalate to Human';
+        return 'Escalate';
+      case AIDecision.needsInfo:
+        return 'Needs Info';
     }
   }
 }
@@ -349,7 +377,8 @@ CollectionReference<Claim> getClaimsCollection() {
   return FirebaseFirestore.instance
       .collection('claims')
       .withConverter<Claim>(
-        fromFirestore: (snapshot, _) => Claim.fromMap(snapshot.data()!, snapshot.id),
+        fromFirestore: (snapshot, _) =>
+            Claim.fromMap(snapshot.data()!, snapshot.id),
         toFirestore: (claim, _) => claim.toMap(),
       );
 }
@@ -512,7 +541,8 @@ class RiskBandAnalytics {
     required this.partialCount,
   });
 
-  double get totalApprovedAmount => averageClaimAmount * (approvedCount + partialCount);
+  double get totalApprovedAmount =>
+      averageClaimAmount * (approvedCount + partialCount);
 
   double get approvalRate {
     if (claimCount == 0) return 0.0;

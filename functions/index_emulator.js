@@ -8,6 +8,7 @@
 
 const openaiProxy = require("./openaiProxy");
 const claimsReconciliation = require("./claimsReconciliation");
+const reimbursements = require("./reimbursements");
 
 const {onCall} = require("firebase-functions/v2/https");
 
@@ -16,7 +17,18 @@ exports.ping = onCall(async () => ({ok: true, emulated: true}));
 
 // Claims pipeline (E2E)
 exports.processClaimDecision = openaiProxy.processClaimDecision;
+exports.getClaimAttachmentExtractionHealth = openaiProxy.getClaimAttachmentExtractionHealth;
+exports.onClaimUpdatedAutoDecision = openaiProxy.onClaimUpdatedAutoDecision;
+exports.onClaimAttachmentCreated = openaiProxy.onClaimAttachmentCreated;
+exports.onClaimAttachmentUpdated = openaiProxy.onClaimAttachmentUpdated;
+exports.retryClaimAttachmentExtractions = openaiProxy.retryClaimAttachmentExtractions;
 exports.processClaimPayout = claimsReconciliation.processClaimPayout;
+
+// Customer reimbursement method (Stripe Connect onboarding)
+exports.createReimbursementOnboardingLink =
+	reimbursements.createReimbursementOnboardingLink;
+exports.refreshReimbursementSetupStatus =
+	reimbursements.refreshReimbursementSetupStatus;
 
 // Useful helpers for local ops/debug (safe, no external dependencies)
 exports.retryFailedOperation = claimsReconciliation.retryFailedOperation;

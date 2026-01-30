@@ -424,6 +424,33 @@ service cloud.firestore {
       );
       // Never allow deletion of claims
       allow delete: if false;
+
+      // Claim attachment metadata records (used for deterministic server-side extraction)
+      match /attachments/{attachmentId} {
+        function isClaimOwnerByLookup() {
+          return isAuthenticated() &&
+            get(/databases/$(database)/documents/claims/$(claimId)).data.ownerId == request.auth.uid;
+        }
+
+        allow read: if isAdmin() || isClaimOwnerByLookup();
+
+        // Owners can create queued attachment records with safe metadata only.
+        allow create: if isClaimOwnerByLookup() &&
+          request.resource.data.keys().hasOnly([
+            'downloadUrl',
+            'storagePath',
+            'fileName',
+            'contentType',
+            'uploadedAt',
+            'uploadedBy',
+            'extractionStatus'
+          ]) &&
+          request.resource.data.uploadedBy == request.auth.uid &&
+          request.resource.data.extractionStatus == 'queued';
+
+        // Owners cannot update or delete attachment records; server automation owns status/text.
+        allow update, delete: if isAdmin();
+      }
       
       // Payout records - owner can read their own, only system can write
       match /payout/{payoutId} {

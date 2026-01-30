@@ -614,6 +614,13 @@ exports.reconcileClaimsState = claimsReconciliation.reconcileClaimsState;
 exports.retryFailedOperation = claimsReconciliation.retryFailedOperation;
 exports.processClaimPayout = claimsReconciliation.processClaimPayout;
 
+// Export reimbursement setup (customer payout method via Stripe Connect)
+const reimbursements = require("./reimbursements");
+exports.createReimbursementOnboardingLink =
+  reimbursements.createReimbursementOnboardingLink;
+exports.refreshReimbursementSetupStatus =
+  reimbursements.refreshReimbursementSetupStatus;
+
 // Export AI training export functions
 const aiTrainingExport = require("./aiTrainingExport");
 exports.exportAITrainingBatch = aiTrainingExport.exportAITrainingBatch;
@@ -647,6 +654,11 @@ exports.analyzeRisk = openaiProxy.analyzeRisk;
 exports.analyzeClaimDocument = openaiProxy.analyzeClaimDocument;
 exports.makeClaimDecision = openaiProxy.makeClaimDecision;
 exports.processClaimDecision = openaiProxy.processClaimDecision;
+exports.getClaimAttachmentExtractionHealth = openaiProxy.getClaimAttachmentExtractionHealth;
+exports.onClaimUpdatedAutoDecision = openaiProxy.onClaimUpdatedAutoDecision;
+exports.onClaimAttachmentCreated = openaiProxy.onClaimAttachmentCreated;
+exports.onClaimAttachmentUpdated = openaiProxy.onClaimAttachmentUpdated;
+exports.retryClaimAttachmentExtractions = openaiProxy.retryClaimAttachmentExtractions;
 
 // Export underwriting rules (public callable for unauth quote flows)
 const underwritingRulesPublic = require("./underwritingRulesPublic");
@@ -678,3 +690,10 @@ exports.computePortfolioMetricsSnapshot = benchmarking.computePortfolioMetricsSn
 // Export payment functions
 exports.createPaymentIntent = payment.createPaymentIntent;
 exports.handlePaymentIntentSucceeded = payment.handlePaymentIntentSucceeded;
+
+// Export admin claims data helpers (admin-only callables)
+const adminClaimsData = require("./adminClaimsData");
+exports.getPetNamesAdmin = adminClaimsData.getPetNamesAdmin;
+exports.getPolicyAndPetAdmin = adminClaimsData.getPolicyAndPetAdmin;
+exports.getClaimsAnalyticsFilterOptionsAdmin =
+  adminClaimsData.getClaimsAnalyticsFilterOptionsAdmin;

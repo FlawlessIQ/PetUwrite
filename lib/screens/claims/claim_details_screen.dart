@@ -1,34 +1,290 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/claim.dart';
 import '../../services/claim_tracker_service.dart';
+import '../../services/claims_service.dart';
+import 'claim_intake_screen.dart';
 import '../../theme/clovara_theme.dart';
 import '../../widgets/claim_timeline_widget.dart';
 import '../../widgets/clover_avatar.dart';
 
-class ClaimDetailsScreen extends StatelessWidget {
+class ClaimDetailsScreen extends StatefulWidget {
   final String claimId;
 
-  const ClaimDetailsScreen({
-    super.key,
-    required this.claimId,
-  });
+  const ClaimDetailsScreen({super.key, required this.claimId});
+
+  @override
+  State<ClaimDetailsScreen> createState() => _ClaimDetailsScreenState();
+}
+
+class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
+  final ClaimsService _claimsService = ClaimsService();
+  bool _busy = false;
+
+  Future<void> _setupReimbursementMethod(
+    BuildContext context,
+    Claim claim,
+  ) async {
+    try {
+      setState(() => _busy = true);
+
+      String? maybeHttpUrl;
+      final base = Uri.base;
+      if (base.scheme == 'http' || base.scheme == 'https') {
+        maybeHttpUrl = base.origin;
+      }
+
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('createReimbursementOnboardingLink')
+          .call({
+            if (maybeHttpUrl != null) 'returnUrl': maybeHttpUrl,
+            if (maybeHttpUrl != null) 'refreshUrl': maybeHttpUrl,
+          });
+
+      final data = (result.data as Map?)?.cast<String, dynamic>() ?? {};
+      final url = data['url'] as String?;
+      if (url == null || url.isEmpty) {
+        throw Exception('Missing onboarding URL');
+      }
+
+      final uri = Uri.parse(url);
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Open this link to finish setup: $url')),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Reimbursement setup failed: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _refreshReimbursementSetupStatus(BuildContext context) async {
+    try {
+      setState(() => _busy = true);
+
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('refreshReimbursementSetupStatus')
+          .call();
+
+      final data = (result.data as Map?)?.cast<String, dynamic>() ?? {};
+      final onboarded = data['onboarded'] == true;
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            onboarded
+                ? 'Reimbursement method is ready.'
+                : 'Still not complete. Finish setup in Stripe, then refresh again.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Refresh failed: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _uploadDocuments(BuildContext context, Claim claim) async {
+    try {
+      setState(() => _busy = true);
+
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        withData: true,
+        type: FileType.custom,
+        allowedExtensions: const ['pdf', 'png', 'jpg', 'jpeg'],
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final claimRef = getClaimDocument(claim.claimId);
+      int uploaded = 0;
+
+      for (final f in result.files) {
+        final name = f.name;
+        final upload = kIsWeb
+            ? (f.bytes == null
+                  ? null
+                  : await _claimsService
+                        .uploadClaimDocumentFromBytesWithMetadata(
+                          f.bytes!,
+                          name,
+                          claim.claimId,
+                        ))
+            : (f.path == null
+                  ? null
+                  : await _claimsService.uploadClaimDocumentWithMetadata(
+                      f.path!,
+                      claim.claimId,
+                    ));
+
+        if (upload == null) {
+          continue;
+        }
+
+        final url = upload['downloadUrl'] as String;
+        final storagePath = upload['storagePath'] as String;
+        final fileName = (upload['fileName'] as String?) ?? name;
+        final contentType = upload['contentType'] as String?;
+
+        // Track the attachment for robust backend automation (extraction + retries).
+        // Best-effort: if Firestore rules block this subcollection write, server-side
+        // automation can still hydrate attachment records from claim.attachments URLs.
+        try {
+          await claimRef.collection('attachments').add({
+            'downloadUrl': url,
+            'storagePath': storagePath,
+            'fileName': fileName,
+            'contentType': contentType,
+            'uploadedAt': FieldValue.serverTimestamp(),
+            'uploadedBy': FirebaseAuth.instance.currentUser?.uid,
+            'extractionStatus': 'queued',
+          });
+        } catch (e) {
+          print(
+            '⚠️ ClaimDetails attachment metadata write blocked; continuing. error=$e',
+          );
+        }
+
+        await claimRef.update({
+          'attachments': FieldValue.arrayUnion([url]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        uploaded++;
+      }
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            uploaded == 0
+                ? 'No documents uploaded'
+                : 'Uploaded $uploaded document${uploaded == 1 ? '' : 's'}',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _submitClaim(BuildContext context, Claim claim) async {
+    if (claim.status != ClaimStatus.draft) return;
+
+    if (claim.description.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add a description before submitting.')),
+      );
+      return;
+    }
+
+    final submitWithoutDocs = claim.attachments.isEmpty
+        ? await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Submit without documents?'),
+              content: const Text(
+                'You haven\'t uploaded any receipts or vet records yet. You can submit now and add documents later, but it may delay review.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Submit'),
+                ),
+              ],
+            ),
+          )
+        : true;
+
+    if (submitWithoutDocs != true) return;
+
+    try {
+      setState(() => _busy = true);
+
+      await getClaimDocument(claim.claimId).update({
+        'status': ClaimStatus.submitted.value,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Kick off processing (best-effort).
+      try {
+        await FirebaseFunctions.instance
+            .httpsCallable('processClaimDecision')
+            .call({'claimId': claim.claimId});
+      } catch (_) {
+        // Ignore; claim can be processed later by backend.
+      }
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Claim submitted.')));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Submit failed: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _continueWithClover(BuildContext context, Claim claim) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ClaimIntakeScreen(
+          policyId: claim.policyId,
+          petId: claim.petId,
+          draftClaimId: claim.claimId,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Claim Status'),
-      ),
+      appBar: AppBar(title: const Text('Claim Status')),
       body: StreamBuilder<DocumentSnapshot<Claim>>(
-        stream: getClaimDocument(claimId).snapshots(),
+        stream: getClaimDocument(widget.claimId).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return _ErrorState(message: 'Failed to load claim: ${snapshot.error}');
+            return _ErrorState(
+              message: 'Failed to load claim: ${snapshot.error}',
+            );
           }
 
           if (!snapshot.hasData) {
@@ -47,14 +303,17 @@ class ClaimDetailsScreen extends StatelessWidget {
           final eta = ClaimTrackerService.getEstimatedTimeRemaining(claim);
           final updates = ClaimTrackerService.getDetailedUpdates(claim);
 
+          final canUpload =
+              claim.status == ClaimStatus.draft ||
+              claim.status == ClaimStatus.submitted ||
+              claim.status == ClaimStatus.processing ||
+              claim.status == ClaimStatus.awaitingInfo;
+          final canSubmit = claim.status == ClaimStatus.draft;
+
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
-              _HeaderCard(
-                claim: claim,
-                progress: progress,
-                eta: eta,
-              ),
+              _HeaderCard(claim: claim, progress: progress, eta: eta),
               const SizedBox(height: 16),
               Center(
                 child: CloverAvatar(
@@ -66,6 +325,16 @@ class ClaimDetailsScreen extends StatelessWidget {
                   showGlow: claim.status == ClaimStatus.processing,
                 ),
               ),
+              const SizedBox(height: 14),
+              _ActionCard(
+                busy: _busy,
+                claim: claim,
+                canUpload: canUpload,
+                canSubmit: canSubmit,
+                onContinue: () => _continueWithClover(context, claim),
+                onUpload: () => _uploadDocuments(context, claim),
+                onSubmit: () => _submitClaim(context, claim),
+              ),
               const SizedBox(height: 16),
               ClaimTimelineWidget(claim: claim, showTimestamps: true),
               const SizedBox(height: 16),
@@ -73,9 +342,123 @@ class ClaimDetailsScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _DecisionCard(claim: claim),
               const SizedBox(height: 16),
-              _PayoutStatusCard(claimId: claimId),
+              _ReimbursementMethodCard(
+                ownerId: claim.ownerId,
+                busy: _busy,
+                onSetup: () => _setupReimbursementMethod(context, claim),
+                onRefresh: () => _refreshReimbursementSetupStatus(context),
+              ),
               const SizedBox(height: 16),
-              _AttachmentsCard(attachments: claim.attachments),
+              _PayoutStatusCard(claimId: widget.claimId),
+              const SizedBox(height: 16),
+              _AttachmentsCard(
+                attachments: claim.attachments,
+                busy: _busy,
+                canUpload: canUpload,
+                onUpload: () => _uploadDocuments(context, claim),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
+    required this.claim,
+    required this.busy,
+    required this.canUpload,
+    required this.canSubmit,
+    required this.onContinue,
+    required this.onUpload,
+    required this.onSubmit,
+  });
+
+  final Claim claim;
+  final bool busy;
+  final bool canUpload;
+  final bool canSubmit;
+  final VoidCallback onContinue;
+  final VoidCallback onUpload;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDraft = claim.status == ClaimStatus.draft;
+
+    final primary = isDraft
+        ? FilledButton.icon(
+            onPressed: busy ? null : onContinue,
+            icon: const Icon(Icons.chat_bubble_outline),
+            label: const Text('Continue with Clover'),
+          )
+        : FilledButton.icon(
+            onPressed: busy || !canUpload ? null : onUpload,
+            icon: const Icon(Icons.upload_file_outlined),
+            label: const Text('Upload documents'),
+          );
+
+    final upload = OutlinedButton.icon(
+      onPressed: busy || !canUpload ? null : onUpload,
+      icon: const Icon(Icons.upload_file_outlined),
+      label: const Text('Upload'),
+    );
+
+    final submit = OutlinedButton.icon(
+      onPressed: busy || !canSubmit ? null : onSubmit,
+      icon: const Icon(Icons.check_circle_outline),
+      label: const Text('Submit'),
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ClovaraColors.border),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 520;
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                primary,
+                if (isDraft) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: upload),
+                      const SizedBox(width: 10),
+                      Expanded(child: submit),
+                    ],
+                  ),
+                ] else ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Upload receipts or vet records to keep things moving.',
+                    style: ClovaraTypography.bodySmall.copyWith(
+                      color: ClovaraColors.slate,
+                    ),
+                  ),
+                ],
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: primary),
+              if (isDraft) ...[
+                const SizedBox(width: 12),
+                upload,
+                const SizedBox(width: 10),
+                submit,
+              ],
             ],
           );
         },
@@ -131,8 +514,8 @@ class _PayoutStatusCard extends StatelessWidget {
         final amountText = amount == null
             ? '—'
             : (currency == 'USD'
-            ? '\$${amount.toStringAsFixed(2)}'
-                : '${amount.toStringAsFixed(2)} $currency');
+                  ? '\$${amount.toStringAsFixed(2)}'
+                  : '${amount.toStringAsFixed(2)} $currency');
 
         return Container(
           padding: const EdgeInsets.all(18),
@@ -156,8 +539,10 @@ class _PayoutStatusCard extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(999),
@@ -221,6 +606,127 @@ class _PayoutStatusCard extends StatelessWidget {
                   ),
                 ],
               ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ReimbursementMethodCard extends StatelessWidget {
+  final String ownerId;
+  final bool busy;
+  final VoidCallback onSetup;
+  final VoidCallback onRefresh;
+
+  const _ReimbursementMethodCard({
+    required this.ownerId,
+    required this.busy,
+    required this.onSetup,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (ownerId.trim().isEmpty) return const SizedBox.shrink();
+
+    final userStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(ownerId)
+        .snapshots();
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: userStream,
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data() ?? const <String, dynamic>{};
+        final connectAccountId = data['stripeConnectAccountId'] as String?;
+        final onboarded = data['stripeConnectOnboarded'] == true;
+
+        final ready =
+            connectAccountId != null &&
+            connectAccountId.isNotEmpty &&
+            onboarded;
+
+        final (label, color) = ready
+            ? ('READY', ClovaraColors.forest)
+            : ('NOT SET UP', ClovaraColors.sunset);
+
+        return Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: ClovaraColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Reimbursement method',
+                      style: ClovaraTypography.h3.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: color.withOpacity(0.25)),
+                    ),
+                    child: Text(
+                      label,
+                      style: ClovaraTypography.bodySmall.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                ready
+                    ? 'Bank transfer is ready. If your claim is approved, this helps us send your reimbursement faster.'
+                    : 'Set up bank transfer now to avoid delays if your claim is approved.',
+                style: ClovaraTypography.bodySmall.copyWith(
+                  color: ClovaraColors.slate,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Powered by Stripe (we never store your bank details)',
+                      style: ClovaraTypography.bodySmall.copyWith(
+                        color: ClovaraColors.slate,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  OutlinedButton(
+                    onPressed: busy ? null : onRefresh,
+                    child: const Text('Refresh'),
+                  ),
+                  const SizedBox(width: 10),
+                  FilledButton.icon(
+                    onPressed: busy ? null : onSetup,
+                    icon: const Icon(Icons.account_balance_outlined, size: 18),
+                    label: Text(ready ? 'Manage' : 'Set up'),
+                  ),
+                ],
+              ),
             ],
           ),
         );
@@ -340,10 +846,7 @@ class _StatusChip extends StatelessWidget {
   final ClaimStatus status;
   final Color color;
 
-  const _StatusChip({
-    required this.status,
-    required this.color,
-  });
+  const _StatusChip({required this.status, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -351,6 +854,7 @@ class _StatusChip extends StatelessWidget {
       ClaimStatus.draft => 'DRAFT',
       ClaimStatus.submitted => 'SUBMITTED',
       ClaimStatus.processing => 'PROCESSING',
+      ClaimStatus.awaitingInfo => 'INFO NEEDED',
       ClaimStatus.settling => 'PAYMENT',
       ClaimStatus.settled => 'SETTLED',
       ClaimStatus.denied => 'DENIED',
@@ -436,6 +940,10 @@ class _DecisionCard extends StatelessWidget {
     final explanation = reasoning['explanation'] as String?;
     final flags = (reasoning['flagsForReview'] as List?)?.cast<dynamic>();
 
+    final isDenied = claim.status == ClaimStatus.denied;
+    final awaitingInfo = claim.status == ClaimStatus.awaitingInfo;
+    final inProgress = !isDenied && claim.status == ClaimStatus.processing;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -447,25 +955,37 @@ class _DecisionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Decision details',
+            isDenied
+                ? 'Decision'
+                : awaitingInfo
+                ? 'Information needed'
+                : 'Review update',
             style: ClovaraTypography.h3.copyWith(
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 12),
-          if (claim.aiDecision != null)
+          if (awaitingInfo)
             Text(
-              'AI recommendation: ${claim.aiDecision!.displayName}',
+              "We need a bit more information to complete review. Upload the requested documents (or reply in Clover to clarify details) and we'll continue automatically.",
               style: ClovaraTypography.bodySmall.copyWith(
                 color: ClovaraColors.slate,
-                fontWeight: FontWeight.w600,
               ),
             ),
-          if (denialReason != null && denialReason.trim().isNotEmpty) ...[
+          if (inProgress)
+            Text(
+              "Review in progress — we're verifying your documents and policy details now.",
+              style: ClovaraTypography.bodySmall.copyWith(
+                color: ClovaraColors.slate,
+              ),
+            ),
+          if (isDenied &&
+              denialReason != null &&
+              denialReason.trim().isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
-              'Denial reason: $denialReason',
+              'Reason: $denialReason',
               style: ClovaraTypography.bodySmall.copyWith(
                 color: ClovaraColors.error,
                 fontWeight: FontWeight.w600,
@@ -484,24 +1004,26 @@ class _DecisionCard extends StatelessWidget {
           if (flags != null && flags.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              'Flags for review',
+              'To keep things moving',
               style: ClovaraTypography.bodySmall.copyWith(
                 color: ClovaraColors.slate,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 6),
-            ...flags.take(6).map(
-              (f) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  '• ${f.toString()}',
-                  style: ClovaraTypography.bodySmall.copyWith(
-                    color: ClovaraColors.slate,
+            ...flags
+                .take(6)
+                .map(
+                  (f) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      '• ${f.toString()}',
+                      style: ClovaraTypography.bodySmall.copyWith(
+                        color: ClovaraColors.slate,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
           ],
         ],
       ),
@@ -512,7 +1034,16 @@ class _DecisionCard extends StatelessWidget {
 class _AttachmentsCard extends StatelessWidget {
   final List<String> attachments;
 
-  const _AttachmentsCard({required this.attachments});
+  final bool busy;
+  final bool canUpload;
+  final VoidCallback onUpload;
+
+  const _AttachmentsCard({
+    required this.attachments,
+    required this.busy,
+    required this.canUpload,
+    required this.onUpload,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -526,12 +1057,24 @@ class _AttachmentsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Documents',
-            style: ClovaraTypography.h3.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Documents',
+                  style: ClovaraTypography.h3.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (canUpload)
+                OutlinedButton.icon(
+                  onPressed: busy ? null : onUpload,
+                  icon: const Icon(Icons.upload_file_outlined, size: 18),
+                  label: const Text('Upload'),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           if (attachments.isEmpty)
@@ -542,9 +1085,7 @@ class _AttachmentsCard extends StatelessWidget {
               ),
             )
           else
-            ...attachments.map(
-              (url) => _AttachmentRow(url: url),
-            ),
+            ...attachments.map((url) => _AttachmentRow(url: url)),
         ],
       ),
     );
@@ -556,37 +1097,131 @@ class _AttachmentRow extends StatelessWidget {
 
   const _AttachmentRow({required this.url});
 
+  String _friendlyName(String value) {
+    try {
+      final uri = Uri.parse(value);
+      final segments = uri.pathSegments;
+
+      // Firebase Storage download URLs look like:
+      // /v0/b/<bucket>/o/<urlEncodedObjectPath>?alt=media&token=...
+      final oIndex = segments.indexOf('o');
+      if (oIndex != -1 && oIndex + 1 < segments.length) {
+        final objectPath = Uri.decodeComponent(segments[oIndex + 1]);
+        final parts = objectPath.split('/').where((p) => p.trim().isNotEmpty);
+        final last = parts.isEmpty ? null : parts.last;
+        if (last != null && last.trim().isNotEmpty) return last;
+      }
+
+      // Generic URLs: use last path segment.
+      if (segments.isNotEmpty) {
+        final last = segments.last;
+        if (last.trim().isNotEmpty) return Uri.decodeComponent(last);
+      }
+    } catch (_) {
+      // Ignore and fall back.
+    }
+    return 'Document';
+  }
+
+  IconData _iconFor(String nameOrUrl) {
+    final lower = nameOrUrl.toLowerCase();
+    if (lower.endsWith('.pdf')) return Icons.picture_as_pdf_outlined;
+    if (lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.webp')) {
+      return Icons.image_outlined;
+    }
+    return Icons.description_outlined;
+  }
+
+  Future<void> _open(BuildContext context) async {
+    try {
+      final uri = Uri.parse(url);
+      if (uri.scheme != 'http' && uri.scheme != 'https') {
+        throw Exception('Invalid document URL');
+      }
+
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok && context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Open this link: $url')));
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not open document: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final name = _friendlyName(url);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          const Icon(Icons.description_outlined, size: 18, color: ClovaraColors.slate),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              url,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: ClovaraTypography.bodySmall.copyWith(
-                color: ClovaraColors.slate,
-              ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _open(context),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: ClovaraColors.mist,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: ClovaraColors.border),
+            ),
+            child: Row(
+              children: [
+                Icon(_iconFor(name), size: 18, color: ClovaraColors.slate),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ClovaraTypography.bodySmall.copyWith(
+                          color: ClovaraColors.forest,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tap to open',
+                        style: ClovaraTypography.bodySmall.copyWith(
+                          color: ClovaraColors.slate,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Open',
+                  onPressed: () => _open(context),
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                ),
+                IconButton(
+                  tooltip: 'Copy link',
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: url));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Copied document link')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.copy, size: 18),
+                ),
+              ],
             ),
           ),
-          IconButton(
-            tooltip: 'Copy link',
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: url));
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Copied document link')),
-                );
-              }
-            },
-            icon: const Icon(Icons.copy, size: 18),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -621,6 +1256,8 @@ Color _statusColor(ClaimStatus status) {
     case ClaimStatus.denied:
       return ClovaraColors.error;
     case ClaimStatus.processing:
+      return ClovaraColors.sunset;
+    case ClaimStatus.awaitingInfo:
       return ClovaraColors.sunset;
     case ClaimStatus.submitted:
       return ClovaraColors.info;

@@ -1261,52 +1261,50 @@ class _HeroFeatureRow extends StatelessWidget {
             : 1;
 
         const gap = 12.0;
-        final tileMinHeight = cols == 4 ? 148.0 : 132.0;
+        // Ensure enough vertical room for icon + 2-line title + 2-line body
+        // across common web font scaling.
+        final tileMinHeight = cols == 4 ? 192.0 : 148.0;
         final centerText = cols == 1;
 
         if (cols == 4) {
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (int i = 0; i < items.length; i++) ...[
-                  Expanded(
-                    child: _HeroFeatureCard(
-                      item: items[i],
-                      minHeight: tileMinHeight,
-                      centerText: centerText,
-                    ),
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (int i = 0; i < items.length; i++) ...[
+                Expanded(
+                  child: _HeroFeatureCard(
+                    item: items[i],
+                    minHeight: tileMinHeight,
+                    centerText: centerText,
                   ),
-                  if (i != items.length - 1) const SizedBox(width: gap),
-                ],
+                ),
+                if (i != items.length - 1) const SizedBox(width: gap),
               ],
-            ),
+            ],
           );
         }
 
         if (cols == 2) {
           Widget rowFor(int i0, int i1) {
-            return IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: _HeroFeatureCard(
-                      item: items[i0],
-                      minHeight: tileMinHeight,
-                      centerText: centerText,
-                    ),
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _HeroFeatureCard(
+                    item: items[i0],
+                    minHeight: tileMinHeight,
+                    centerText: centerText,
                   ),
-                  const SizedBox(width: gap),
-                  Expanded(
-                    child: _HeroFeatureCard(
-                      item: items[i1],
-                      minHeight: tileMinHeight,
-                      centerText: centerText,
-                    ),
+                ),
+                const SizedBox(width: gap),
+                Expanded(
+                  child: _HeroFeatureCard(
+                    item: items[i1],
+                    minHeight: tileMinHeight,
+                    centerText: centerText,
                   ),
-                ],
-              ),
+                ),
+              ],
             );
           }
 
@@ -1349,63 +1347,91 @@ class _HeroFeatureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleStyle = Theme.of(context).textTheme.titleMedium!.copyWith(
-      fontWeight: FontWeight.w800,
-      color: AppColors.deepGreen,
-      height: 1.15,
-    );
-    final bodyStyle = Theme.of(
-      context,
-    ).textTheme.bodySmall!.copyWith(color: AppColors.textMuted, height: 1.4);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isTightHeight =
+            constraints.maxHeight.isFinite && constraints.maxHeight <= 152;
+        final effectiveMinHeight =
+            (constraints.maxHeight.isFinite &&
+                constraints.maxHeight < minHeight)
+            ? 0.0
+            : minHeight;
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: minHeight),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface2,
-          borderRadius: AppRadii.br16,
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: centerText
-              ? CrossAxisAlignment.center
-              : CrossAxisAlignment.start,
-          children: [
-            Align(
-              alignment: Alignment.center,
-              child: Container(
-                height: 56,
-                width: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.surface3,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.border),
+        final titleStyle = Theme.of(context).textTheme.titleMedium!.copyWith(
+          fontWeight: FontWeight.w700,
+          color: AppColors.deepGreen,
+          height: 1.15,
+          fontSize: isTightHeight ? 14.5 : null,
+        );
+
+        final bodyStyle = Theme.of(context).textTheme.bodySmall!.copyWith(
+          color: AppColors.textMuted,
+          height: 1.35,
+          fontSize: isTightHeight ? 12.5 : null,
+        );
+
+        final iconBox = isTightHeight ? 48.0 : 56.0;
+        final iconSize = isTightHeight ? 24.0 : 28.0;
+        final pad = isTightHeight ? 14.0 : 16.0;
+        final titleLines = isTightHeight ? 1 : 2;
+        final bodyLines = isTightHeight ? 1 : 2;
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(minHeight: effectiveMinHeight),
+          child: Container(
+            padding: EdgeInsets.all(pad),
+            decoration: BoxDecoration(
+              color: AppColors.surface2,
+              borderRadius: AppRadii.br16,
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: centerText
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.center,
+                  child: Container(
+                    height: iconBox,
+                    width: iconBox,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface3,
+                      borderRadius: BorderRadius.circular(
+                        isTightHeight ? 16 : 18,
+                      ),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Icon(
+                      item.icon,
+                      size: iconSize,
+                      color: AppColors.deepGreen,
+                    ),
+                  ),
                 ),
-                child: Icon(item.icon, size: 28, color: AppColors.deepGreen),
-              ),
+                SizedBox(height: isTightHeight ? 10 : 12),
+                Text(
+                  item.title,
+                  style: titleStyle,
+                  textAlign: centerText ? TextAlign.center : TextAlign.start,
+                  maxLines: titleLines,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                ),
+                SizedBox(height: isTightHeight ? 6 : 8),
+                Text(
+                  item.body,
+                  style: bodyStyle,
+                  textAlign: centerText ? TextAlign.center : TextAlign.start,
+                  maxLines: bodyLines,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              item.title,
-              style: titleStyle,
-              textAlign: centerText ? TextAlign.center : TextAlign.start,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              softWrap: true,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              item.body,
-              style: bodyStyle,
-              textAlign: centerText ? TextAlign.center : TextAlign.start,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              softWrap: true,
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

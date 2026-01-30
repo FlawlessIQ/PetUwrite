@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../ui/components/clovara_logo.dart';
 import '../ui/components/max_width.dart';
 import '../ui/tokens.dart';
@@ -18,16 +19,111 @@ import '../services/underwriting_case_service.dart';
 class CustomerHomeScreen extends StatefulWidget {
   final bool isPremium;
 
-  const CustomerHomeScreen({
-    super.key,
-    this.isPremium = false,
-  });
+  const CustomerHomeScreen({super.key, this.isPremium = false});
 
   @override
   State<CustomerHomeScreen> createState() => _CustomerHomeScreenState();
 }
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
+  static String _normalizePolicyStatus(Object? raw) {
+    final text = raw?.toString().trim();
+    if (text == null || text.isEmpty) return '';
+    final lower = text.toLowerCase();
+    // Support legacy enum-style serialization like "PolicyStatus.active".
+    if (lower.startsWith('policystatus.')) {
+      return lower.substring('policystatus.'.length);
+    }
+    return lower;
+  }
+
+  static DateTime? _parsePolicyDate(Object? raw) {
+    if (raw == null) return null;
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is DateTime) return raw;
+    if (raw is String) {
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) return null;
+      try {
+        return DateTime.parse(trimmed);
+      } catch (_) {
+        return null;
+      }
+    }
+    if (raw is int) {
+      // Best-effort: some legacy docs may store millis.
+      return DateTime.fromMillisecondsSinceEpoch(raw);
+    }
+    if (raw is num) {
+      return DateTime.fromMillisecondsSinceEpoch(raw.toInt());
+    }
+    return null;
+  }
+
+  static String? _policyPetId(Map<String, dynamic> data) {
+    final pet = data['pet'];
+    if (pet is Map) {
+      final id = pet['id'] ?? pet['petId'];
+      final text = id?.toString().trim();
+      if (text != null && text.isNotEmpty) return text;
+    }
+    final fallback = data['petId']?.toString().trim();
+    if (fallback != null && fallback.isNotEmpty) return fallback;
+    return null;
+  }
+
+  static DateTime _policySortDate(Map<String, dynamic> data) {
+    final createdAt = _parsePolicyDate(data['createdAt']);
+    final effectiveDate = _parsePolicyDate(data['effectiveDate']);
+    return createdAt ?? effectiveDate ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  static bool _isActivePolicy(Map<String, dynamic> data) {
+    final status = _normalizePolicyStatus(data['status']);
+    if (status != 'active') return false;
+
+    final now = DateTime.now();
+    final effectiveDate = _parsePolicyDate(data['effectiveDate']);
+    final expirationDate = _parsePolicyDate(data['expirationDate']);
+
+    if (effectiveDate != null && now.isBefore(effectiveDate)) {
+      return false;
+    }
+    if (expirationDate != null && !now.isBefore(expirationDate)) {
+      return false;
+    }
+    return true;
+  }
+
+  static List<QueryDocumentSnapshot> _dedupePoliciesByPet(
+    List<QueryDocumentSnapshot> policies,
+  ) {
+    final byPetId = <String, QueryDocumentSnapshot>{};
+
+    for (final doc in policies) {
+      final data = (doc.data() as Map).cast<String, dynamic>();
+      final petId = _policyPetId(data) ?? doc.id;
+      final existing = byPetId[petId];
+      if (existing == null) {
+        byPetId[petId] = doc;
+        continue;
+      }
+
+      final existingData = (existing.data() as Map).cast<String, dynamic>();
+      if (_policySortDate(data).isAfter(_policySortDate(existingData))) {
+        byPetId[petId] = doc;
+      }
+    }
+
+    final deduped = byPetId.values.toList(growable: false);
+    deduped.sort((a, b) {
+      final ad = (a.data() as Map).cast<String, dynamic>();
+      final bd = (b.data() as Map).cast<String, dynamic>();
+      return _policySortDate(bd).compareTo(_policySortDate(ad));
+    });
+    return deduped;
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -56,20 +152,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   ),
                   child: MaxWidth(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _buildHeader(context, user, isMobile),
                         const SizedBox(height: 12),
-                        _buildWelcomeMessage(user, isMobile),
-                        const SizedBox(height: 16),
-                        _buildQuickStats(user, isMobile),
+                        _buildHeroTopCards(user, isMobile),
+                        const SizedBox(height: 14),
+                        _buildQuickActions(context, isMobile),
                       ],
                     ),
                   ),
                 ),
               ),
             ),
-            
+
             // Pending Quotes Section
             SliverToBoxAdapter(
               child: Padding(
@@ -99,7 +195,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 ),
               ),
             ),
-            
+
             // Active Policies Section
             SliverToBoxAdapter(
               child: Padding(
@@ -112,7 +208,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 ),
               ),
             ),
-            
+
             // Recent Claims Section
             SliverToBoxAdapter(
               child: Padding(
@@ -125,25 +221,38 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 ),
               ),
             ),
-            
-            // Quick Actions
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding,
-                  vertical: 18,
-                ),
-                child: MaxWidth(child: _buildQuickActions(context, isMobile)),
-              ),
-            ),
-            
+
             // Bottom Padding
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 40),
-            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeroTopCards(User? user, bool isMobile) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 860;
+        final welcome = _buildWelcomeMessage(user, isMobile);
+        final stats = _buildQuickStats(user, isMobile);
+
+        if (!isDesktop) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [welcome, const SizedBox(height: 14), stats],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 5, child: welcome),
+            const SizedBox(width: 14),
+            Expanded(flex: 7, child: stats),
+          ],
+        );
+      },
     );
   }
 
@@ -181,15 +290,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildWelcomeMessage(User? user, bool isMobile) {
-    final titleStyle = Theme.of(context).textTheme.headlineSmall?.copyWith(
-          color: AppColors.deepGreen,
-          fontWeight: FontWeight.w800,
-        );
+    final titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+      color: AppColors.deepGreen,
+      fontWeight: FontWeight.w700,
+      fontSize: isMobile ? 18 : 20,
+      height: 1.15,
+    );
 
-    final subtitleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: AppColors.textMuted,
-          height: 1.3,
-        );
+    final subtitleStyle = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted, height: 1.3);
 
     return Container(
       padding: EdgeInsets.all(isMobile ? 16 : 18),
@@ -219,20 +329,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           .where('ownerId', isEqualTo: user.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        final policies = snapshot.data?.docs ?? [];
-        final uniquePets = <String>{};
-        
-        for (final doc in policies) {
-          final data = doc.data() as Map<String, dynamic>;
-          final petData = data['pet'] as Map<String, dynamic>?;
-          if (petData != null && petData['id'] != null) {
-            uniquePets.add(petData['id']);
-          }
-        }
+        final docs = snapshot.data?.docs ?? const <QueryDocumentSnapshot>[];
+        final active = docs
+            .where((d) => _isActivePolicy((d.data() as Map).cast<String, dynamic>()))
+            .toList(growable: false);
+        final deduped = _dedupePoliciesByPet(active);
+        final uniquePets = <String>{
+          for (final d in deduped)
+            _policyPetId((d.data() as Map).cast<String, dynamic>()) ?? d.id,
+        };
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final stacked = constraints.maxWidth < 560;
+            // Prefer a clean 2-up row on most mobile widths; only stack when
+            // extremely narrow.
+            final stacked = constraints.maxWidth < 360;
             final children = [
               _buildStatCard(
                 icon: Icons.pets,
@@ -242,7 +353,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               ),
               _buildStatCard(
                 icon: Icons.description_outlined,
-                count: policies.length.toString(),
+                count: deduped.length.toString(),
                 label: 'Policies',
                 isMobile: isMobile,
               ),
@@ -250,6 +361,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
             if (stacked) {
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   children[0],
                   const SizedBox(height: 12),
@@ -277,6 +389,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     required String label,
     required bool isMobile,
   }) {
+    final countStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+      color: AppColors.deepGreen,
+      fontWeight: FontWeight.w700,
+      fontSize: isMobile ? 18 : 20,
+      height: 1.1,
+    );
+
+    final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: AppColors.textMuted,
+      fontWeight: FontWeight.w500,
+      height: 1.25,
+    );
+
     return Container(
       padding: EdgeInsets.all(isMobile ? 16 : 18),
       decoration: BoxDecoration(
@@ -295,33 +420,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.border),
             ),
-            child: Icon(
-              icon,
-              color: AppColors.green,
-              size: 22,
-            ),
+            child: Icon(icon, color: AppColors.green, size: 22),
           ),
           const SizedBox(height: 10),
-          Text(
-            count,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.deepGreen,
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textMuted,
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
+          Text(count, style: countStyle),
+          Text(label, style: labelStyle),
         ],
       ),
     );
   }
 
-  Widget _buildPendingQuotesSection(BuildContext context, User? user, bool isMobile) {
+  Widget _buildPendingQuotesSection(
+    BuildContext context,
+    User? user,
+    bool isMobile,
+  ) {
     if (user == null) return const SizedBox.shrink();
 
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -340,7 +453,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           subtitle: 'Pick up where you left off.',
           child: Column(
             children: pendingQuotes
-                .map((quote) => _buildPendingQuoteCard(context, quote, isMobile))
+                .map(
+                  (quote) => _buildPendingQuoteCard(context, quote, isMobile),
+                )
                 .toList(growable: false),
           ),
         );
@@ -402,8 +517,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       : 'Saved underwriting found',
                   subtitle: belongsToUser
                       ? (petName != null && petName.isNotEmpty
-                          ? 'Upload follow-up documents for $petName'
-                          : 'Upload follow-up documents to continue')
+                            ? 'Upload follow-up documents for $petName'
+                            : 'Upload follow-up documents to continue')
                       : 'This saved case belongs to a different account on this device.',
                   onTap: belongsToUser
                       ? () {
@@ -426,7 +541,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildPendingQuoteCard(
-      BuildContext context, Map<String, dynamic> quote, bool isMobile) {
+    BuildContext context,
+    Map<String, dynamic> quote,
+    bool isMobile,
+  ) {
     final quoteData = quote['quoteData'] as Map<String, dynamic>?;
     final answers = quoteData?['answers'] as Map<String, dynamic>?;
     final petName = answers?['petName'] as String?;
@@ -443,7 +561,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _buildPoliciesSection(BuildContext context, User? user, bool isMobile) {
+  Widget _buildPoliciesSection(
+    BuildContext context,
+    User? user,
+    bool isMobile,
+  ) {
     if (user == null) return const SizedBox.shrink();
 
     return StreamBuilder<QuerySnapshot>(
@@ -456,16 +578,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           return const SizedBox.shrink();
         }
 
-        final policies = snapshot.data!.docs;
+        final active = snapshot.data!.docs
+            .where((d) => _isActivePolicy((d.data() as Map).cast<String, dynamic>()))
+            .toList(growable: false);
+        if (active.isEmpty) return const SizedBox.shrink();
+        final policies = _dedupePoliciesByPet(active);
 
         return _PortalSection(
           title: 'My policies',
           subtitle: 'Your active coverage at a glance.',
           child: Column(
-            children: policies.take(2).map((policy) {
-              final data = policy.data() as Map<String, dynamic>;
-              return _buildPolicyCard(context, data, isMobile);
-            }).toList(growable: false),
+            children: policies
+                .take(2)
+                .map((policy) {
+                  final data = policy.data() as Map<String, dynamic>;
+                  return _buildPolicyCard(context, data, isMobile);
+                })
+                .toList(growable: false),
           ),
         );
       },
@@ -473,7 +602,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildPolicyCard(
-      BuildContext context, Map<String, dynamic> policy, bool isMobile) {
+    BuildContext context,
+    Map<String, dynamic> policy,
+    bool isMobile,
+  ) {
     final petData = policy['pet'] as Map<String, dynamic>?;
     final petName = petData?['name'] as String? ?? 'Pet';
     final planData = policy['plan'] as Map<String, dynamic>?;
@@ -491,15 +623,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             : Text(
                 '\$${monthlyPremium.toStringAsFixed(0)}/mo',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.green,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  color: AppColors.green,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
               ),
       ),
     );
   }
 
-  Widget _buildRecentClaimsSection(BuildContext context, User? user, bool isMobile) {
+  Widget _buildRecentClaimsSection(
+    BuildContext context,
+    User? user,
+    bool isMobile,
+  ) {
     if (user == null) return const SizedBox.shrink();
 
     return StreamBuilder<QuerySnapshot>(
@@ -541,7 +678,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildClaimCard(
-      BuildContext context, QueryDocumentSnapshot claimDoc, bool isMobile) {
+    BuildContext context,
+    QueryDocumentSnapshot claimDoc,
+    bool isMobile,
+  ) {
     final claim = claimDoc.data() as Map<String, dynamic>;
     final claimType = claim['claimType'] as String? ?? 'Claim';
     final status = claim['status'] as String? ?? 'pending';
@@ -566,12 +706,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: _PortalListItem(
-        leading: (status.toLowerCase() == 'settled' ||
+        leading:
+            (status.toLowerCase() == 'settled' ||
                 status.toLowerCase() == 'approved')
             ? Icons.check_circle
             : (status.toLowerCase() == 'settling')
-                ? Icons.payments
-                : Icons.pending,
+            ? Icons.payments
+            : Icons.pending,
         leadingColor: statusColor,
         title: claimType,
         subtitle: statusLabel,
@@ -579,9 +720,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ? Text(
                 '\$${amount.toStringAsFixed(0)}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.deepGreen,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  color: AppColors.deepGreen,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
               )
             : null,
         onTap: () {
@@ -603,11 +745,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         'title': 'Get a Quote',
         'subtitle': 'AI-powered quotes',
         'onTap': () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ConversationalQuoteFlow(),
-              ),
-            ),
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ConversationalQuoteFlow(),
+          ),
+        ),
       },
       {
         'icon': Icons.medical_services_outlined,
@@ -628,8 +770,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       subtitle: 'Start a quote, file a claim, or get support.',
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final columns = constraints.maxWidth >= 980 ? 3 : (constraints.maxWidth >= 640 ? 2 : 1);
-          final itemWidth = (constraints.maxWidth - (12 * (columns - 1))) / columns;
+          final columns = constraints.maxWidth >= 980
+              ? 3
+              : (constraints.maxWidth >= 640 ? 2 : 1);
+          final itemWidth =
+              (constraints.maxWidth - (12 * (columns - 1))) / columns;
 
           return Wrap(
             spacing: 12,
@@ -668,9 +813,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error resuming quote: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error resuming quote: $e')));
       }
     }
   }
@@ -679,40 +824,251 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Get user's policies
+    // Load policies and recent claims (client-side filter drafts to avoid
+    // requiring extra composite indexes).
     final policiesSnapshot = await FirebaseFirestore.instance
         .collection('policies')
         .where('ownerId', isEqualTo: user.uid)
         .get();
 
-    if (policiesSnapshot.docs.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You need an active policy to file a claim'),
-          ),
-        );
-      }
+    final allPolicies = policiesSnapshot.docs;
+    final activePolicies = allPolicies
+        .where((p) => _isActivePolicy((p.data() as Map).cast<String, dynamic>()))
+        .toList(growable: false);
+    final claimablePolicies = _dedupePoliciesByPet(activePolicies);
+
+    if (claimablePolicies.isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You need an active policy to file a claim'),
+        ),
+      );
       return;
     }
 
-    // Use first policy
-    final policy = policiesSnapshot.docs.first.data();
-    final petData = policy['pet'] as Map<String, dynamic>?;
-    final petId = petData?['id'] as String?;
-    final policyId = policiesSnapshot.docs.first.id;
+    final recentClaimsSnapshot = await FirebaseFirestore.instance
+        .collection('claims')
+        .where('ownerId', isEqualTo: user.uid)
+        .limit(30)
+        .get();
 
-    if (petId != null && context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ClaimIntakeScreen(
-            policyId: policyId,
-            petId: petId,
-          ),
-        ),
-      );
+    final policyPetNameByPetId = <String, String>{};
+    for (final p in claimablePolicies) {
+      final data = (p.data() as Map).cast<String, dynamic>();
+      final petId = _policyPetId(data);
+      if (petId == null) continue;
+
+      final pet = data['pet'];
+      final name =
+          (pet is Map ? pet['name'] : null)?.toString().trim() ?? '';
+      policyPetNameByPetId[petId] = name.isEmpty ? 'Pet' : name;
     }
+
+    final drafts =
+        recentClaimsSnapshot.docs
+            .where(
+              (d) =>
+                  (d.data()['status'] as String? ?? '').toLowerCase() ==
+                  'draft',
+            )
+            .toList(growable: false)
+          ..sort((a, b) {
+            final ta = a.data()['updatedAt'];
+            final tb = b.data()['updatedAt'];
+            final da = ta is Timestamp
+                ? ta.toDate()
+                : DateTime.fromMillisecondsSinceEpoch(0);
+            final db = tb is Timestamp
+                ? tb.toDate()
+                : DateTime.fromMillisecondsSinceEpoch(0);
+            return db.compareTo(da);
+          });
+
+    if (!context.mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          top: false,
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.72,
+            minChildSize: 0.45,
+            maxChildSize: 0.92,
+            builder: (context, controller) {
+              return ListView(
+                controller: controller,
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.borderStrong,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'File a claim',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: AppColors.deepGreen,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    drafts.isEmpty
+                        ? 'Start a new claim for a policy below.'
+                        : 'Start a new claim, or continue a draft.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textMuted,
+                      height: 1.35,
+                    ),
+                  ),
+
+                  if (drafts.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Continue a draft',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.deepGreen,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    for (final d in drafts.take(8)) ...[
+                      _PortalListItem(
+                        leading: Icons.chat_bubble_outline,
+                        title: _draftTitle(d.data()),
+                        subtitle: _draftSubtitle(
+                          d.data(),
+                          policyPetNameByPetId,
+                        ),
+                        trailing: const Icon(
+                          Icons.chevron_right,
+                          color: AppColors.textSubtle,
+                        ),
+                        onTap: () {
+                          final data = d.data();
+                          final policyId = (data['policyId'] as String?) ?? '';
+                          final petId = (data['petId'] as String?) ?? '';
+                          if (policyId.isEmpty || petId.isEmpty) return;
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ClaimIntakeScreen(
+                                policyId: policyId,
+                                petId: petId,
+                                draftClaimId: d.id,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  ],
+
+                  const SizedBox(height: 8),
+                  Text(
+                    'Start a new claim',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppColors.deepGreen,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  for (final p in claimablePolicies) ...[
+                    _PortalListItem(
+                      leading: Icons.description_outlined,
+                      title: _policyTitle(
+                        (p.data() as Map).cast<String, dynamic>(),
+                      ),
+                      subtitle: _policySubtitle(
+                        (p.data() as Map).cast<String, dynamic>(),
+                      ),
+                      trailing: const Icon(
+                        Icons.add_circle_outline,
+                        color: AppColors.green,
+                      ),
+                      onTap: () {
+                        final data =
+                            (p.data() as Map).cast<String, dynamic>();
+                        final petData = data['pet'] as Map<String, dynamic>?;
+                        final petId = petData?['id']?.toString();
+                        if (petId == null || petId.isEmpty) return;
+
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ClaimIntakeScreen(
+                              policyId: p.id,
+                              petId: petId,
+                              ignoreExistingDrafts: true,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  static String _draftTitle(Map<String, dynamic> data) {
+    final type = (data['claimType'] as String?)?.trim();
+    if (type == null || type.isEmpty) return 'Draft claim';
+    return '${type[0].toUpperCase()}${type.substring(1)} claim';
+  }
+
+  static String _draftSubtitle(
+    Map<String, dynamic> data,
+    Map<String, String> petNameByPetId,
+  ) {
+    final petId = (data['petId'] as String?)?.trim();
+    final petName = (petId != null && petId.isNotEmpty)
+        ? (petNameByPetId[petId] ?? 'Pet')
+        : 'Pet';
+    final incident = data['incidentDate'];
+    final date = incident is Timestamp
+        ? incident.toDate()
+        : (incident is DateTime ? incident : null);
+    final dateText = date == null
+        ? 'In progress'
+        : 'Incident ${DateFormat.yMMMd().format(date)}';
+    return '$petName • $dateText';
+  }
+
+  static String _policyTitle(Map<String, dynamic> data) {
+    final petData = data['pet'] as Map<String, dynamic>?;
+    final petName = petData?['name']?.toString().trim();
+    return (petName == null || petName.isEmpty) ? 'Policy' : petName;
+  }
+
+  static String _policySubtitle(Map<String, dynamic> data) {
+    final planData = data['plan'] as Map<String, dynamic>?;
+    final planName = planData?['name']?.toString().trim();
+    return (planName == null || planName.isEmpty)
+        ? 'Start a new claim'
+        : planName;
   }
 
   void _handleSignOut(BuildContext context) async {
@@ -757,16 +1113,16 @@ class _PortalSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
-          color: AppColors.deepGreen,
-          fontWeight: FontWeight.w800,
-        );
+    final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+      color: AppColors.deepGreen,
+      fontWeight: FontWeight.w700,
+    );
 
-    final subtitleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: AppColors.textMuted,
-          height: 1.35,
-          fontWeight: FontWeight.w600,
-        );
+    final subtitleStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: AppColors.textMuted,
+      height: 1.35,
+      fontWeight: FontWeight.w500,
+    );
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -824,14 +1180,15 @@ class _PortalListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: enabled ? AppColors.deepGreen : AppColors.textSubtle,
-          fontWeight: FontWeight.w800,
-        );
+      color: enabled ? AppColors.deepGreen : AppColors.textSubtle,
+      fontWeight: FontWeight.w700,
+      fontSize: 15.5,
+    );
 
-    final subtitleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: enabled ? AppColors.textMuted : AppColors.textSubtle,
-          fontWeight: FontWeight.w600,
-        );
+    final subtitleStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: enabled ? AppColors.textMuted : AppColors.textSubtle,
+      fontWeight: FontWeight.w500,
+    );
 
     return Material(
       color: AppColors.surface2,
@@ -865,9 +1222,19 @@ class _PortalListItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: titleStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      title,
+                      style: titleStyle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: subtitleStyle, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(
+                      subtitle,
+                      style: subtitleStyle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -902,15 +1269,16 @@ class _PortalActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: AppColors.deepGreen,
-          fontWeight: FontWeight.w800,
-        );
+      color: AppColors.deepGreen,
+      fontWeight: FontWeight.w700,
+      fontSize: 15.5,
+    );
 
-    final subtitleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: AppColors.textMuted,
-          height: 1.3,
-          fontWeight: FontWeight.w600,
-        );
+    final subtitleStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: AppColors.textMuted,
+      height: 1.3,
+      fontWeight: FontWeight.w500,
+    );
 
     return Material(
       color: AppColors.surface,

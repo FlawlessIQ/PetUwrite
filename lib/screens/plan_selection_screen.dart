@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../auth/login_screen.dart';
 import '../auth/customer_home_screen.dart';
 import '../models/risk_score.dart';
 import '../models/owner.dart';

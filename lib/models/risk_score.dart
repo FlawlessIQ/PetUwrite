@@ -1,4 +1,5 @@
 /// Model class for risk assessment scoring
+library;
 import 'underwriting_exclusion.dart';
 
 class RiskScore {

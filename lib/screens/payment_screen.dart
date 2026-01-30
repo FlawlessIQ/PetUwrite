@@ -948,7 +948,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
               ),
             );
-          }).toList(),
+          }),
 
           const CheckoutDivider(),
 

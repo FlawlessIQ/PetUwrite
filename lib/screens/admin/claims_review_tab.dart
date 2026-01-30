@@ -23,9 +23,11 @@ class ClaimsReviewTab extends StatefulWidget {
 
 class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   final Map<String, String> _petNameCache = <String, String>{};
-  final Map<String, Future<String>> _petNameFutures = <String, Future<String>>{};
+  final Map<String, Future<String>> _petNameFutures =
+      <String, Future<String>>{};
   final Set<String> _petNamePrewarmed = <String>{};
 
   String _selectedFilter = 'all';
@@ -157,7 +159,9 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
               return Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: cards.map((c) => SizedBox(width: 360, child: c)).toList(),
+                children: cards
+                    .map((c) => SizedBox(width: 360, child: c))
+                    .toList(),
               );
             },
           ),
@@ -189,7 +193,10 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
               decoration: InputDecoration(
                 labelText: 'Queue',
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 labelStyle: theme.textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.colorScheme.onSurface.withOpacity(0.70),
@@ -198,9 +205,18 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
               icon: const Icon(Icons.expand_more, size: 18),
               items: const [
                 DropdownMenuItem(value: 'all', child: Text('All Pending')),
-                DropdownMenuItem(value: 'escalated', child: Text('AI Escalated')),
-                DropdownMenuItem(value: 'high_value', child: Text('High Value')),
-                DropdownMenuItem(value: 'low_confidence', child: Text('Low Confidence')),
+                DropdownMenuItem(
+                  value: 'escalated',
+                  child: Text('AI Escalated'),
+                ),
+                DropdownMenuItem(
+                  value: 'high_value',
+                  child: Text('High Value'),
+                ),
+                DropdownMenuItem(
+                  value: 'low_confidence',
+                  child: Text('Low Confidence'),
+                ),
               ],
               onChanged: (value) {
                 if (value == null) return;
@@ -236,9 +252,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Text('Error loading claims: ${snapshot.error}'),
-          );
+          return Center(child: Text('Error loading claims: ${snapshot.error}'));
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -246,15 +260,15 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_outline,
-                    size: 64, color: Colors.grey[400]),
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'No claims requiring review',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -262,7 +276,10 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
         }
 
         final claims = snapshot.data!.docs
-            .map((doc) => Claim.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+            .map(
+              (doc) =>
+                  Claim.fromMap(doc.data() as Map<String, dynamic>, doc.id),
+            )
             .where((claim) {
               if (_searchQuery.isEmpty) return true;
               return claim.claimId.toLowerCase().contains(_searchQuery) ||
@@ -287,8 +304,13 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
                 selectedCount: _selectedClaimIds.length,
                 onSelectVisible: sortedClaims.isEmpty
                     ? null
-                    : () => setState(() => _selectedClaimIds.addAll(sortedClaims.map((c) => c.claimId))),
-                onClearSelection: () => setState(() => _selectedClaimIds.clear()),
+                    : () => setState(
+                        () => _selectedClaimIds.addAll(
+                          sortedClaims.map((c) => c.claimId),
+                        ),
+                      ),
+                onClearSelection: () =>
+                    setState(() => _selectedClaimIds.clear()),
                 actions: [
                   TextButton.icon(
                     onPressed: _selectedClaimIds.isEmpty
@@ -303,7 +325,10 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
                                   'For now, open a claim to review and decide.',
                                 ),
                                 actions: [
-                                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Close'),
+                                  ),
                                 ],
                               ),
                             );
@@ -317,111 +342,124 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
               Expanded(
                 child: AdminSelectableDataTable<Claim>(
                   items: sortedClaims,
-            getId: (c) => c.claimId,
-            selectedIds: _selectedClaimIds,
-            onSelectedIdsChanged: (next) => setState(() {
-              _selectedClaimIds
-                ..clear()
-                ..addAll(next);
-            }),
-            sortColumnIndex: _sortColumnIndex,
-            sortAscending: _sortAscending,
-            columns: [
-              const DataColumn(label: Text('Pet Name')),
-              const DataColumn(label: Text('Claim ID')),
-              DataColumn(
-                label: const Text('Amount'),
-                numeric: true,
-                onSort: (index, asc) => setState(() {
-                  _sortColumnIndex = index;
-                  _sortAscending = asc;
-                }),
-              ),
-              DataColumn(
-                label: const Text('AI Confidence'),
-                numeric: true,
-                onSort: (index, asc) => setState(() {
-                  _sortColumnIndex = index;
-                  _sortAscending = asc;
-                }),
-              ),
-              const DataColumn(label: Text('Status')),
-              DataColumn(
-                label: const Text('Date'),
-                onSort: (index, asc) => setState(() {
-                  _sortColumnIndex = index;
-                  _sortAscending = asc;
-                }),
-              ),
-              const DataColumn(label: Text('Actions')),
-            ],
-            buildCells: (context, claim) {
-              final confidence = claim.aiConfidenceScore;
-              final confidencePercent = confidence != null ? (confidence * 100).toStringAsFixed(1) : 'N/A';
+                  getId: (c) => c.claimId,
+                  selectedIds: _selectedClaimIds,
+                  onSelectedIdsChanged: (next) => setState(() {
+                    _selectedClaimIds
+                      ..clear()
+                      ..addAll(next);
+                  }),
+                  sortColumnIndex: _sortColumnIndex,
+                  sortAscending: _sortAscending,
+                  columns: [
+                    const DataColumn(label: Text('Pet Name')),
+                    const DataColumn(label: Text('Claim ID')),
+                    DataColumn(
+                      label: const Text('Amount'),
+                      numeric: true,
+                      onSort: (index, asc) => setState(() {
+                        _sortColumnIndex = index;
+                        _sortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text('AI Confidence'),
+                      numeric: true,
+                      onSort: (index, asc) => setState(() {
+                        _sortColumnIndex = index;
+                        _sortAscending = asc;
+                      }),
+                    ),
+                    const DataColumn(label: Text('Status')),
+                    DataColumn(
+                      label: const Text('Date'),
+                      onSort: (index, asc) => setState(() {
+                        _sortColumnIndex = index;
+                        _sortAscending = asc;
+                      }),
+                    ),
+                    const DataColumn(label: Text('Actions')),
+                  ],
+                  buildCells: (context, claim) {
+                    final confidence = claim.aiConfidenceScore;
+                    final confidencePercent = confidence != null
+                        ? (confidence * 100).toStringAsFixed(1)
+                        : 'N/A';
 
-              return [
-                DataCell(
-                  FutureBuilder<String>(
-                    future: _getPetNameCached(claim.petId),
-                    builder: (context, snapshot) {
-                      return Text(
-                        snapshot.data ?? 'Loading…',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      );
-                    },
-                  ),
-                  onTap: () => _openClaimDetail(claim),
-                ),
-                DataCell(
-                  Text(
-                    claim.claimId,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: ClovaraColors.kTextGrey,
-                    ),
-                  ),
-                  onTap: () => _openClaimDetail(claim),
-                ),
-                DataCell(
-                  Text(
-                    '\$${claim.claimAmount.toStringAsFixed(2)}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  onTap: () => _openClaimDetail(claim),
-                ),
-                DataCell(
-                  _buildConfidenceBadge(confidencePercent: confidencePercent, confidence: confidence),
-                  onTap: () => _openClaimDetail(claim),
-                ),
-                DataCell(
-                  _buildStatusBadge(claim.status),
-                  onTap: () => _openClaimDetail(claim),
-                ),
-                DataCell(
-                  Text(
-                    DateFormat('MMM d').format(claim.createdAt),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: ClovaraColors.kTextGrey,
-                    ),
-                  ),
-                  onTap: () => _openClaimDetail(claim),
-                ),
-                DataCell(
-                  ElevatedButton(
-                    onPressed: () => _openClaimDetail(claim),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: ClovaraColors.clover,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    return [
+                      DataCell(
+                        FutureBuilder<String>(
+                          future: _getPetNameCached(claim.petId),
+                          builder: (context, snapshot) {
+                            return Text(
+                              snapshot.data ?? 'Loading…',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            );
+                          },
+                        ),
+                        onTap: () => _openClaimDetail(claim),
                       ),
-                    ),
-                    child: const Text('Review', style: TextStyle(fontSize: 12)),
-                  ),
-                ),
-              ];
-            },
+                      DataCell(
+                        Text(
+                          claim.claimId,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: ClovaraColors.kTextGrey,
+                          ),
+                        ),
+                        onTap: () => _openClaimDetail(claim),
+                      ),
+                      DataCell(
+                        Text(
+                          '\$${claim.claimAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        onTap: () => _openClaimDetail(claim),
+                      ),
+                      DataCell(
+                        _buildConfidenceBadge(
+                          confidencePercent: confidencePercent,
+                          confidence: confidence,
+                        ),
+                        onTap: () => _openClaimDetail(claim),
+                      ),
+                      DataCell(
+                        _buildStatusBadge(claim.status),
+                        onTap: () => _openClaimDetail(claim),
+                      ),
+                      DataCell(
+                        Text(
+                          DateFormat('MMM d').format(claim.createdAt),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: ClovaraColors.kTextGrey,
+                          ),
+                        ),
+                        onTap: () => _openClaimDetail(claim),
+                      ),
+                      DataCell(
+                        ElevatedButton(
+                          onPressed: () => _openClaimDetail(claim),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ClovaraColors.clover,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Review',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    ];
+                  },
                 ),
               ),
             ],
@@ -484,7 +522,10 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
     });
   }
 
-  Widget _buildConfidenceBadge({required String confidencePercent, required double? confidence}) {
+  Widget _buildConfidenceBadge({
+    required String confidencePercent,
+    required double? confidence,
+  }) {
     Color confidenceColor = ClovaraColors.kTextGrey;
     if (confidence != null) {
       if (confidence >= 0.85) {
@@ -515,8 +556,6 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
     );
   }
 
-
-
   /// Build status badge
   Widget _buildStatusBadge(ClaimStatus status) {
     Color color;
@@ -534,6 +573,10 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
       case ClaimStatus.processing:
         color = ClovaraColors.kWarning;
         text = 'Processing';
+        break;
+      case ClaimStatus.awaitingInfo:
+        color = ClovaraColors.kWarning;
+        text = 'Info Needed';
         break;
       case ClaimStatus.settling:
         color = ClovaraColors.clover;
@@ -589,27 +632,73 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
   void _prewarmPetNames(Iterable<String> petIds) {
     // Prewarm a bounded set of visible petIds to reduce per-row FutureBuilder churn.
     // Safe to call every build; it dedupes.
-    final ids = petIds.where((id) => id.isNotEmpty).take(75).toList(growable: false);
+    final ids = petIds
+        .where((id) => id.isNotEmpty)
+        .take(75)
+        .toList(growable: false);
     if (ids.isEmpty) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+
+      final toFetch = <String>[];
       for (final id in ids) {
         if (_petNameCache.containsKey(id)) continue;
         if (_petNamePrewarmed.contains(id)) continue;
         _petNamePrewarmed.add(id);
-        _getPetNameCached(id);
+        toFetch.add(id);
+      }
+
+      if (toFetch.isNotEmpty) {
+        _fetchPetNamesBatch(toFetch);
       }
     });
+  }
+
+  Future<void> _fetchPetNamesBatch(List<String> petIds) async {
+    final ids = petIds
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (ids.isEmpty) return;
+
+    try {
+      final callable = _functions.httpsCallable('getPetNamesAdmin');
+      final resp = await callable.call({'petIds': ids});
+      final data = (resp.data is Map)
+          ? (resp.data as Map).cast<String, dynamic>()
+          : <String, dynamic>{};
+      final namesRaw = data['names'];
+      if (namesRaw is Map) {
+        final names = namesRaw.map(
+          (k, v) => MapEntry(k.toString(), v.toString()),
+        );
+        if (!mounted) return;
+        setState(() {
+          _petNameCache.addAll(names);
+        });
+      }
+    } catch (_) {
+      // Best-effort only; individual rows will fall back to Unknown.
+    }
   }
 
   /// Get pet name from Firestore
   Future<String> _getPetName(String petId) async {
     const fallback = 'Unknown Pet';
     try {
-      final doc = await _firestore.collection('pets').doc(petId).get();
-      if (doc.exists) {
-        final name = (doc.data()?['name'] ?? 'Unknown Pet').toString();
+      final callable = _functions.httpsCallable('getPetNamesAdmin');
+      final resp = await callable.call({
+        'petIds': [petId],
+      });
+      final data = (resp.data is Map)
+          ? (resp.data as Map).cast<String, dynamic>()
+          : <String, dynamic>{};
+
+      final namesRaw = data['names'];
+      if (namesRaw is Map) {
+        final name = (namesRaw[petId] ?? fallback).toString();
         _petNameCache[petId] = name;
         return name;
       }
@@ -643,6 +732,7 @@ class ClaimDetailDialog extends StatefulWidget {
 
 class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
   final ClaimDocumentAIService _docService = ClaimDocumentAIService();
   final TextEditingController _reasonController = TextEditingController();
 
@@ -671,15 +761,20 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
       // Load documents
       _documents = await _docService.getClaimDocuments(widget.claim.claimId);
 
-      // Load policy data
-      final policyDoc =
-          await _firestore.collection('policies').doc(widget.claim.policyId).get();
-      _policyData = policyDoc.data();
+      // Load policy + pet via admin callable (avoids direct reads of sensitive collections)
+      final callable = _functions.httpsCallable('getPolicyAndPetAdmin');
+      final resp = await callable.call({
+        'policyId': widget.claim.policyId,
+        'petId': widget.claim.petId,
+      });
+      final payload = (resp.data is Map)
+          ? (resp.data as Map).cast<String, dynamic>()
+          : <String, dynamic>{};
 
-      // Load pet data
-      final petDoc =
-          await _firestore.collection('pets').doc(widget.claim.petId).get();
-      _petData = petDoc.data();
+      final policy = payload['policy'];
+      final pet = payload['pet'];
+      _policyData = policy is Map ? policy.cast<String, dynamic>() : null;
+      _petData = pet is Map ? pet.cast<String, dynamic>() : null;
 
       setState(() => _isLoading = false);
     } catch (e) {
@@ -782,10 +877,14 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
         children: [
           _buildInfoRow('Pet Name', _petData?['name'] ?? 'Loading...'),
           _buildInfoRow('Claim Type', widget.claim.claimType.displayName),
-          _buildInfoRow('Incident Date',
-              DateFormat('MMM d, yyyy').format(widget.claim.incidentDate)),
           _buildInfoRow(
-              'Claim Amount', '\$${widget.claim.claimAmount.toStringAsFixed(2)}'),
+            'Incident Date',
+            DateFormat('MMM d, yyyy').format(widget.claim.incidentDate),
+          ),
+          _buildInfoRow(
+            'Claim Amount',
+            '\$${widget.claim.claimAmount.toStringAsFixed(2)}',
+          ),
           _buildInfoRow('Status', widget.claim.status.displayName),
           const SizedBox(height: 12),
           Text(
@@ -821,7 +920,10 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: _getConfidenceColor(confidence).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -873,7 +975,10 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
       title: 'Uploaded Documents (${_documents.length})',
       icon: Icons.attach_file,
       child: _documents.isEmpty
-          ? Text('No documents uploaded', style: TextStyle(color: Colors.grey[600]))
+          ? Text(
+              'No documents uploaded',
+              style: TextStyle(color: Colors.grey[600]),
+            )
           : Column(
               children: _documents.map((doc) {
                 return Container(
@@ -888,8 +993,11 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.description,
-                              color: ClovaraColors.clover, size: 20),
+                          Icon(
+                            Icons.description,
+                            color: ClovaraColors.clover,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -899,7 +1007,9 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: doc.isLegitimate
                                   ? ClovaraColors.clover.withOpacity(0.1)
@@ -911,20 +1021,27 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: doc.isLegitimate ? ClovaraColors.clover : Colors.red,
+                                color: doc.isLegitimate
+                                    ? ClovaraColors.clover
+                                    : Colors.red,
                               ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text('Total: \$${doc.totalCharge.toStringAsFixed(2)}',
-                          style: TextStyle(fontSize: 12)),
-                      Text('Treatment: ${doc.treatment}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                       Text(
-                          'Confidence: ${(doc.confidenceScore * 100).toStringAsFixed(1)}%',
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                        'Total: \$${doc.totalCharge.toStringAsFixed(2)}',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      Text(
+                        'Treatment: ${doc.treatment}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      Text(
+                        'Confidence: ${(doc.confidenceScore * 100).toStringAsFixed(1)}%',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
                     ],
                   ),
                 );
@@ -942,11 +1059,14 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
         children: [
           _buildInfoRow('Policy ID', widget.claim.policyId),
           if (_policyData != null) ...[
-            _buildInfoRow('Risk Score',
-                (_policyData!['riskScore'] ?? 0.0).toStringAsFixed(1)),
             _buildInfoRow(
-                'Premium',
-                '\$${(_policyData!['premiumAmount'] ?? 0.0).toStringAsFixed(2)}/month'),
+              'Risk Score',
+              (_policyData!['riskScore'] ?? 0.0).toStringAsFixed(1),
+            ),
+            _buildInfoRow(
+              'Premium',
+              '\$${(_policyData!['premiumAmount'] ?? 0.0).toStringAsFixed(2)}/month',
+            ),
             if (_policyData!['wasManuallyApproved'] == true)
               Container(
                 margin: const EdgeInsets.only(top: 8),
@@ -957,7 +1077,11 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning, color: ClovaraColors.kWarning, size: 16),
+                    Icon(
+                      Icons.warning,
+                      color: ClovaraColors.kWarning,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'This policy was manually approved (high risk)',
@@ -1059,7 +1183,10 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                     )
                   : Text(
                       _getSubmitButtonText(),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
             ),
           ),
@@ -1165,7 +1292,9 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
   Future<void> _submitDecision() async {
     if (_reasonController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please provide a reason for your decision')),
+        const SnackBar(
+          content: Text('Please provide a reason for your decision'),
+        ),
       );
       return;
     }
@@ -1189,7 +1318,8 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
       ClaimStatus newStatus;
       switch (_selectedDecision) {
         case 'approve':
-          newStatus = ClaimStatus.settling; // Use settling status for payout lock
+          newStatus =
+              ClaimStatus.settling; // Use settling status for payout lock
           break;
         case 'deny':
           newStatus = ClaimStatus.denied;
@@ -1204,47 +1334,51 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
       // Use optimistic locking with Firestore transaction
       await _firestore.runTransaction((transaction) async {
         // Read current claim state
-        final claimRef = _firestore.collection('claims').doc(widget.claim.claimId);
+        final claimRef = _firestore
+            .collection('claims')
+            .doc(widget.claim.claimId);
         final currentClaim = await transaction.get(claimRef);
-        
+
         if (!currentClaim.exists) {
           throw Exception('Claim no longer exists');
         }
-        
+
         final currentData = currentClaim.data()!;
-        
+
         // Check if already has humanOverride (someone else reviewed)
         if (currentData['humanOverride'] != null) {
-          final existingOverride = currentData['humanOverride'] as Map<String, dynamic>;
-          final existingEmail = existingOverride['overriddenByEmail'] as String?;
+          final existingOverride =
+              currentData['humanOverride'] as Map<String, dynamic>;
+          final existingEmail =
+              existingOverride['overriddenByEmail'] as String?;
           throw Exception(
-            'Claim was already reviewed by $existingEmail. Please refresh to see the latest decision.'
+            'Claim was already reviewed by $existingEmail. Please refresh to see the latest decision.',
           );
         }
-        
+
         // Check if status changed (e.g., another admin approved/denied)
         final currentStatus = currentData['status'] as String;
         if (currentStatus != widget.claim.status.value) {
           throw Exception(
-            'Claim status has changed to "$currentStatus". Please refresh and try again.'
+            'Claim status has changed to "$currentStatus". Please refresh and try again.',
           );
         }
-        
+
         // Check if claim is locked for payout processing
         if (currentStatus == 'settling') {
           final processingBy = currentData['processingBy'] as String?;
           throw Exception(
-            'Claim is currently being processed for payout by $processingBy.'
+            'Claim is currently being processed for payout by $processingBy.',
           );
         }
-        
+
         // Verify claim is in processing status
         if (currentStatus != 'processing') {
           throw Exception(
-            'Claim must be in processing status (current: $currentStatus)'
+            'Claim must be in processing status (current: $currentStatus)',
           );
         }
-        
+
         // Safe to update - no conflicts detected
         transaction.update(claimRef, {
           'humanOverride': humanOverride,
@@ -1254,17 +1388,16 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
             'processingBy': user.uid, // Lock for payout
             'settlingStartedAt': Timestamp.fromDate(now),
           },
-          if (_selectedDecision == 'deny')
-            'deniedAt': Timestamp.fromDate(now),
+          if (_selectedDecision == 'deny') 'deniedAt': Timestamp.fromDate(now),
         });
-        
+
         // Log to audit trail within transaction
         final auditRef = _firestore
             .collection('claims')
             .doc(widget.claim.claimId)
             .collection('ai_audit_trail')
             .doc(); // Generate ID
-        
+
         transaction.set(auditRef, {
           'claimId': widget.claim.claimId,
           'timestamp': FieldValue.serverTimestamp(),
@@ -1279,10 +1412,10 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
       // If approved, kick off server-side payout processing.
       if (_selectedDecision == 'approve') {
         try {
-          final callable = FirebaseFunctions.instance.httpsCallable('processClaimPayout');
-          await callable.call({
-            'claimId': widget.claim.claimId,
-          });
+          final callable = FirebaseFunctions.instance.httpsCallable(
+            'processClaimPayout',
+          );
+          await callable.call({'claimId': widget.claim.claimId});
         } catch (e) {
           // Don't block the admin's decision; reconciliation/retries can recover.
           if (mounted) {
@@ -1303,9 +1436,11 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_selectedDecision == 'approve'
-                ? 'Claim approved — payout initiated'
-                : 'Decision submitted successfully'),
+            content: Text(
+              _selectedDecision == 'approve'
+                  ? 'Claim approved — payout initiated'
+                  : 'Decision submitted successfully',
+            ),
             backgroundColor: ClovaraColors.kSuccessMint,
           ),
         );

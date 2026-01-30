@@ -10,6 +10,20 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const logger = functions.logger;
 
+async function isAdminCaller(context) {
+  try {
+    if (!context?.auth) return false;
+    if (context.auth.token?.admin === true) return true;
+
+    const userDoc = await db.collection('users').doc(context.auth.uid).get();
+    const role = userDoc.exists ? userDoc.data()?.userRole : null;
+    return role === 2 || role === 3 || role === '2' || role === '3';
+  } catch (e) {
+    logger.warn('isAdminCaller check failed', { error: e?.message });
+    return false;
+  }
+}
+
 /**
  * Cloud Function to aggregate claims analytics data
  * 
@@ -37,10 +51,7 @@ exports.getClaimsAnalytics = functions.https.onCall(async (data, context) => {
     }
 
     // Verify admin role
-    const userDoc = await db.collection('users').doc(context.auth.uid).get();
-    const userRole = userDoc.data()?.userRole;
-    
-    if (userRole !== 2) {
+    if (!(await isAdminCaller(context))) {
       throw new functions.https.HttpsError(
         'permission-denied',
         'User must have admin role'
@@ -123,6 +134,9 @@ async function aggregateClaimsData(claimsDocs, filters) {
   const amountsByMonth = {};
   const autoApprovalByMonth = {};
   const manualReviewByMonth = {};
+
+  const petCache = new Map();
+  const ownerCache = new Map();
   
   // AI confidence histogram (10% buckets)
   const confidenceBuckets = {
@@ -165,13 +179,29 @@ async function aggregateClaimsData(claimsDocs, filters) {
     const claimData = doc.data();
     
     // Fetch related data for all claims
-    const petDoc = await db.collection('pets').doc(claimData.petId).get();
-    const petData = petDoc.data();
-    const breed = petData?.breed || 'Unknown';
-    
-    const ownerDoc = await db.collection('users').doc(claimData.ownerId).get();
-    const ownerData = ownerDoc.data();
-    const region = ownerData?.address?.state || 'Unknown';
+    let breed = 'Unknown';
+    if (claimData.petId) {
+      if (petCache.has(claimData.petId)) {
+        breed = petCache.get(claimData.petId);
+      } else {
+        const petDoc = await db.collection('pets').doc(claimData.petId).get();
+        const petData = petDoc.data();
+        breed = petData?.breed || 'Unknown';
+        petCache.set(claimData.petId, breed);
+      }
+    }
+
+    let region = 'Unknown';
+    if (claimData.ownerId) {
+      if (ownerCache.has(claimData.ownerId)) {
+        region = ownerCache.get(claimData.ownerId);
+      } else {
+        const ownerDoc = await db.collection('users').doc(claimData.ownerId).get();
+        const ownerData = ownerDoc.data();
+        region = ownerData?.address?.state || 'Unknown';
+        ownerCache.set(claimData.ownerId, region);
+      }
+    }
     
     // Apply filters
     if (filters.breed && breed !== filters.breed) {
