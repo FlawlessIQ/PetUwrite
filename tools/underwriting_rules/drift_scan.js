@@ -23,6 +23,7 @@ const IGNORE_DIRS = new Set([
   '.git',
   'build',
   'node_modules',
+  'test',
   'ios',
   'android',
   'macos',
