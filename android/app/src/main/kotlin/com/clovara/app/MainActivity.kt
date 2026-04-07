@@ -1,4 +1,4 @@
-package com.petunderwriter.pet_underwriter_ai
+package com.clovara.app
 
 import io.flutter.embedding.android.FlutterActivity
 

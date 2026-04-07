@@ -228,11 +228,9 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
           child: SafeArea(
             child: Row(
               children: [
-                const ClovaraLogoLockup(
-                  boxedMark: true,
-                  markSize: 40,
-                  textSize: 32,
-                  compact: false,
+                const ClovaraLogo(
+                  size: ClovaraLogoSize.large,
+                  showText: true,
                 ),
                 const Spacer(),
                 TextButton.icon(

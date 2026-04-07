@@ -16,6 +16,27 @@ import 'package:flutter/foundation.dart'
 /// );
 /// ```
 class DefaultFirebaseOptions {
+  static const String _androidApiKey = String.fromEnvironment(
+    'FIREBASE_ANDROID_API_KEY',
+    defaultValue: '',
+  );
+  static const String _androidAppId = String.fromEnvironment(
+    'FIREBASE_ANDROID_APP_ID',
+    defaultValue: '',
+  );
+  static const String _androidProjectId = String.fromEnvironment(
+    'FIREBASE_ANDROID_PROJECT_ID',
+    defaultValue: 'pet-underwriter-ai',
+  );
+  static const String _androidMessagingSenderId = String.fromEnvironment(
+    'FIREBASE_ANDROID_MESSAGING_SENDER_ID',
+    defaultValue: '984654950987',
+  );
+  static const String _androidStorageBucket = String.fromEnvironment(
+    'FIREBASE_ANDROID_STORAGE_BUCKET',
+    defaultValue: 'pet-underwriter-ai.firebasestorage.app',
+  );
+
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;
@@ -53,16 +74,24 @@ class DefaultFirebaseOptions {
     storageBucket: 'pet-underwriter-ai.firebasestorage.app',
   );
 
-  static const FirebaseOptions android = FirebaseOptions(
-    // TODO: Configure Android via FlutterFire CLI.
-    // Kept as placeholders because this workspace doesn't include
-    // `android/app/google-services.json`.
-    apiKey: 'YOUR_ANDROID_API_KEY',
-    appId: '1:984654950987:android:YOUR_APP_ID',
-    messagingSenderId: '984654950987',
-    projectId: 'pet-underwriter-ai',
-    storageBucket: 'pet-underwriter-ai.firebasestorage.app',
-  );
+  static FirebaseOptions get android {
+    if (_androidApiKey.isEmpty || _androidAppId.isEmpty) {
+      throw UnsupportedError(
+        'Android Firebase is not configured. Provide '
+        'FIREBASE_ANDROID_API_KEY and FIREBASE_ANDROID_APP_ID via '
+        '--dart-define, or run FlutterFire again to regenerate '
+        'lib/firebase_options.dart with Android values.',
+      );
+    }
+
+    return const FirebaseOptions(
+      apiKey: _androidApiKey,
+      appId: _androidAppId,
+      messagingSenderId: _androidMessagingSenderId,
+      projectId: _androidProjectId,
+      storageBucket: _androidStorageBucket,
+    );
+  }
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDdkRf16WBtP3wTpHJgO6RvhgAeOLtW6_I',

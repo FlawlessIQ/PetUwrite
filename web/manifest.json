@@ -1,11 +1,11 @@
 {
-    "name": "pet_underwriter_ai",
-    "short_name": "pet_underwriter_ai",
+    "name": "Clovara",
+    "short_name": "Clovara",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F3F7F5",
+    "theme_color": "#0B241D",
+    "description": "Modern pet insurance with transparent coverage, digital claims, and clearer reimbursements.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

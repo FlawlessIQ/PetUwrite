@@ -259,9 +259,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Widget _buildHeader(BuildContext context, User? user, bool isMobile) {
     return Row(
       children: [
-        ClovaraLogoLockup(
-          markSize: isMobile ? 34 : 38,
-          textSize: isMobile ? 22 : 24,
+        ClovaraLogo(
+          size: ClovaraLogoSize.medium,
+          showText: true,
         ),
         const Spacer(),
         Tooltip(

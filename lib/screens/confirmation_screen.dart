@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/checkout_state.dart';
 import '../models/policy_exclusion.dart';
 import '../services/draft_service.dart';
@@ -180,14 +181,6 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
         await DraftService().clearAll();
       } catch (_) {
         // Ignore cleanup errors.
-      }
-
-      // Send email notification
-      try {
-        await _policyService.sendPolicyEmail(policy);
-      } catch (e) {
-        // Best-effort only; policy is already created.
-        print('⚠️ Policy email failed (ignored): $e');
       }
 
       setState(() {
@@ -560,14 +553,8 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
 
             // Action Buttons
             PrimaryButton(
-              text: 'Go to Dashboard',
-              onPressed: () {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/dashboard',
-                  (route) => false,
-                );
-              },
+              text: 'Create your account',
+              onPressed: () => context.go('/sign-in'),
             ),
             const SizedBox(height: 12),
             SecondaryButton(
@@ -713,6 +700,18 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
       );
 
       final pdfUrl = await _policyService.generatePolicyPDF(policy);
+      final pdfUri = Uri.tryParse(pdfUrl);
+      if (pdfUri == null) {
+        throw Exception('Invalid PDF URL');
+      }
+
+      final opened = await launchUrl(
+        pdfUri,
+        mode: LaunchMode.platformDefault,
+      );
+      if (!opened) {
+        throw Exception('Unable to open generated PDF');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -721,17 +720,10 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
               children: [
                 Icon(Icons.check_circle, color: Colors.white),
                 SizedBox(width: 12),
-                Text('PDF downloaded successfully!'),
+                Text('Policy PDF opened successfully!'),
               ],
             ),
             backgroundColor: Colors.green,
-            action: SnackBarAction(
-              label: 'OPEN',
-              textColor: Colors.white,
-              onPressed: () {
-                print('PDF URL: $pdfUrl');
-              },
-            ),
           ),
         );
       }

@@ -4,11 +4,14 @@ import 'package:go_router/go_router.dart';
 import '../auth/auth_gate.dart';
 import '../auth/login_screen.dart';
 import '../pages/article_detail_page.dart';
+import '../pages/contact_page.dart';
 import '../pages/coverage_page.dart';
 import '../pages/faq_page.dart';
 import '../pages/home_page.dart';
 import '../pages/how_it_works_page.dart';
 import '../pages/learn_page.dart';
+import '../pages/privacy_page.dart';
+import '../pages/terms_page.dart';
 import '../screens/auth_required_checkout.dart';
 import '../screens/conversational_quote_flow.dart';
 import '../ui/components/app_shell.dart';
@@ -30,7 +33,6 @@ GoRouter createAppRouter() {
           //  - /?bgOpacity=0.6
           //  - /?bgTint=1
           final bgDebug = state.uri.queryParameters['bgDebug'] == '1';
-          final bgTint = state.uri.queryParameters['bgTint'] == '1';
           final bgOpacityRaw = state.uri.queryParameters['bgOpacity'];
           // Make the background noticeably present by default.
           final bgOpacity = (double.tryParse(bgOpacityRaw ?? '') ?? 0.8).clamp(
@@ -38,11 +40,7 @@ GoRouter createAppRouter() {
             1.0,
           );
           return AppShell(
-            background: _HomeBackdrop(
-              debug: bgDebug,
-              tint: bgTint,
-              opacity: bgOpacity,
-            ),
+            background: _HomeBackdrop(debug: bgDebug, opacity: bgOpacity),
             child: child,
           );
         },
@@ -80,6 +78,21 @@ GoRouter createAppRouter() {
             path: '/faq',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: FaqPage()),
+          ),
+          GoRoute(
+            path: '/privacy',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: PrivacyPage()),
+          ),
+          GoRoute(
+            path: '/terms',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: TermsPage()),
+          ),
+          GoRoute(
+            path: '/contact',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ContactPage()),
           ),
         ],
       ),
@@ -132,132 +145,60 @@ GoRouter createAppRouter() {
 }
 
 class _HomeBackdrop extends StatelessWidget {
-  const _HomeBackdrop({
-    required this.debug,
-    required this.tint,
-    required this.opacity,
-  });
+  const _HomeBackdrop({required this.debug, required this.opacity});
 
   final bool debug;
-  final bool tint;
   final double opacity;
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    final tintStrength = (tint ? 0.42 : 0.32) * opacity;
     return IgnorePointer(
       child: Stack(
         children: [
-          // Base color so the page reads consistently.
           Positioned.fill(
             child: ColoredBox(color: Theme.of(context).scaffoldBackgroundColor),
           ),
           Positioned.fill(
             child: Opacity(
-              // Default is subtle; can be overridden via ?bgOpacity=...
-              opacity: opacity,
-              child: RepaintBoundary(
-                child: _Tintable(
-                  enabled: tint,
-                  color: primary,
-                  child: const DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: AppColors.auroraGradient,
-                    ),
-                  ),
-                ),
+              opacity: (opacity * 0.7).clamp(0.0, 1.0),
+              child: const DecoratedBox(
+                decoration: BoxDecoration(gradient: AppColors.auroraGradient),
               ),
             ),
           ),
-
-          // Dark green wash (this is the primary "tint" the user wants).
-          Positioned.fill(
-            child: ColoredBox(
-              color: AppColors.deepGreen.withOpacity(
-                tintStrength.clamp(0.0, 0.75),
-              ),
-            ),
-          ),
-
-          // Soft glow blobs (helps the background remain noticeable behind white panels).
           Positioned.fill(
             child: Opacity(
-              opacity: (opacity * 0.75).clamp(0.0, 1.0),
+              opacity: (opacity * 0.55).clamp(0.0, 1.0),
               child: Stack(
                 children: [
                   Positioned(
-                    left: -120,
-                    top: 80,
+                    left: -140,
+                    top: 10,
                     child: _GlowBlob(
-                      size: 420,
-                      color: primary.withOpacity(0.10),
+                      size: 360,
+                      color: AppColors.signalBlue.withOpacity(0.16),
                     ),
                   ),
                   Positioned(
-                    right: -140,
-                    top: 420,
+                    right: -120,
+                    top: 260,
                     child: _GlowBlob(
-                      size: 520,
+                      size: 340,
                       color: AppColors.accentOrange.withOpacity(0.08),
+                    ),
+                  ),
+                  Positioned(
+                    left: 220,
+                    top: 560,
+                    child: _GlowBlob(
+                      size: 300,
+                      color: AppColors.mint.withOpacity(0.16),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
-          // Diagonal slabs to make the background read (even without Lottie).
-          Positioned.fill(
-            child: Opacity(
-              opacity: (opacity * 0.75).clamp(0.0, 1.0),
-              child: Transform.rotate(
-                angle: -0.12,
-                child: Align(
-                  alignment: Alignment.center,
-                  child: FractionallySizedBox(
-                    widthFactor: 1.4,
-                    child: Column(
-                      children: [
-                        const Spacer(flex: 2),
-                        Expanded(
-                          flex: 2,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: AppColors.surface3.withOpacity(0.95),
-                              borderRadius: BorderRadius.circular(48),
-                            ),
-                          ),
-                        ),
-                        const Spacer(flex: 3),
-                        Expanded(
-                          flex: 2,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: primary.withOpacity(0.085),
-                              borderRadius: BorderRadius.circular(48),
-                            ),
-                          ),
-                        ),
-                        const Spacer(flex: 2),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Subtle repeating stripes (always on) so the background reads.
-          // Kept above slabs so it's still visible around panels.
-          Positioned.fill(
-            child: Opacity(
-              opacity: (opacity * 0.55).clamp(0.0, 1.0),
-              child: const _SubtleStripes(),
-            ),
-          ),
-
-          // Gentle wash to keep it subtle and insurance-grade.
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -265,10 +206,9 @@ class _HomeBackdrop extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    // Keep this very light; heavier values can completely mask the animation.
-                    Theme.of(context).scaffoldBackgroundColor.withOpacity(0.18),
-                    Theme.of(context).scaffoldBackgroundColor.withOpacity(0.04),
-                    Theme.of(context).scaffoldBackgroundColor.withOpacity(0.18),
+                    Theme.of(context).scaffoldBackgroundColor.withOpacity(0.08),
+                    Theme.of(context).scaffoldBackgroundColor.withOpacity(0.01),
+                    Theme.of(context).scaffoldBackgroundColor.withOpacity(0.10),
                   ],
                   stops: const [0.0, 0.5, 1.0],
                 ),
@@ -279,31 +219,6 @@ class _HomeBackdrop extends StatelessWidget {
           if (debug) const Positioned.fill(child: _BgDebugOverlay()),
         ],
       ),
-    );
-  }
-}
-
-class _Tintable extends StatelessWidget {
-  const _Tintable({
-    required this.enabled,
-    required this.color,
-    required this.child,
-  });
-
-  final bool enabled;
-  final Color color;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!enabled) return child;
-    return ColorFiltered(
-      // Soft tint for debugging; should not collapse everything into dark green.
-      colorFilter: ColorFilter.mode(
-        color.withOpacity(0.28),
-        BlendMode.softLight,
-      ),
-      child: child,
     );
   }
 }
@@ -322,31 +237,6 @@ class _GlowBlob extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: [BoxShadow(color: color, blurRadius: 90, spreadRadius: 50)],
-      ),
-    );
-  }
-}
-
-class _SubtleStripes extends StatelessWidget {
-  const _SubtleStripes();
-
-  @override
-  Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          tileMode: TileMode.repeated,
-          colors: [
-            Colors.transparent,
-            Colors.transparent,
-            primary.withOpacity(0.22),
-            primary.withOpacity(0.22),
-          ],
-          stops: const [0.0, 0.46, 0.46, 0.58],
-        ),
       ),
     );
   }

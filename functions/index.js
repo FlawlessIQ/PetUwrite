@@ -23,7 +23,7 @@ const pdfExtractionAlerts = require("./pdfExtractionAlerts");
 const imageExtraction = require("./imageExtraction");
 
 // Import policy email functions
-// const policyEmails = require("./policyEmails"); // Temporarily disabled due to nodemailer issue
+const policyEmails = require("./policyEmails");
 
 // Import admin dashboard functions
 // const adminDashboard = require("./adminDashboard"); // Temporarily disabled
@@ -43,6 +43,128 @@ setGlobalOptions({
 
 // Callable: policy creation (admin write; used as fallback when Firestore client rules deny).
 exports.createPolicy = policies.createPolicy;
+
+function isActivePolicyStatus(status) {
+  const normalized = (status || "").toString().trim().toLowerCase();
+  return normalized === "active" || normalized === "policystatus.active";
+}
+
+async function handlePolicyActivated(policyId, policyData) {
+  // Policies already embed owner/pet snapshots. Use those first and only
+  // fall back to fetching canonical documents when needed.
+  const ownerDoc = policyData.ownerId ?
+    await admin
+        .firestore()
+        .collection("users")
+        .doc(policyData.ownerId)
+        .get() :
+    null;
+  const petDoc = policyData.petId ?
+    await admin
+        .firestore()
+        .collection("pets")
+        .doc(policyData.petId)
+        .get() :
+    null;
+
+  const ownerData = {
+    ...(ownerDoc?.exists ? ownerDoc.data() : {}),
+    ...(policyData.owner && typeof policyData.owner === "object" ?
+      policyData.owner :
+      {}),
+  };
+  const petData = {
+    ...(petDoc?.exists ? petDoc.data() : {}),
+    ...(policyData.pet && typeof policyData.pet === "object" ?
+      policyData.pet :
+      {}),
+  };
+  const policyDeliveryData = {
+    ...policyData,
+    owner: ownerData,
+    pet: petData,
+  };
+
+  let pdfResult = null;
+  try {
+    pdfResult = await policyEmails.generatePolicyPDFForPolicy({
+      policyId,
+      policyNumber: policyData.policyNumber,
+      policyData: policyDeliveryData,
+    });
+  } catch (error) {
+    logger.error("Policy PDF generation failed", {
+      policyId,
+      error: error.message,
+    });
+  }
+
+  if (ownerData.email) {
+    try {
+      const recipientName = `${ownerData.firstName || ""} ${ownerData.lastName || ""}`.trim();
+      await policyEmails.sendPolicyEmailForPolicy({
+        policyId,
+        policyNumber: policyData.policyNumber,
+        recipientEmail: ownerData.email,
+        recipientName,
+        policyData: policyDeliveryData,
+      });
+    } catch (error) {
+      logger.error("Policy email failed", {
+        policyId,
+        error: error.message,
+        email: ownerData.email,
+      });
+    }
+  } else {
+    logger.warn("Skipping policy email because no owner email was found", {
+      policyId,
+      ownerId: policyData.ownerId,
+    });
+  }
+
+  // Set up payment reminders based on payment schedule
+  const paymentSchedule = policyData.paymentSchedule;
+  const nextPaymentDate = calculateNextPaymentDate(
+      policyData.effectiveDate,
+      paymentSchedule,
+  );
+
+  await admin.firestore().collection("paymentReminders").doc(policyId).set({
+    policyId: policyId,
+    ownerId: policyData.ownerId,
+    nextPaymentDate: nextPaymentDate,
+    paymentSchedule: paymentSchedule,
+    amount: policyData.plan.monthlyPremium,
+    createdAt: FieldValue.serverTimestamp(),
+    status: "pending",
+  }, {merge: true});
+
+  // Log analytics event
+  await admin.firestore().collection("analytics").doc(`policy_bound_${policyId}`).set({
+    event: "policy_bound",
+    policyId: policyId,
+    policyNumber: policyData.policyNumber,
+    ownerId: policyData.ownerId,
+    petId: policyData.petId,
+    timestamp: FieldValue.serverTimestamp(),
+    metadata: {
+      planTier: policyData.plan.tier,
+      monthlyPremium: policyData.plan.monthlyPremium,
+      paymentSchedule: paymentSchedule,
+      pdfGenerated: !!pdfResult?.pdfUrl,
+    },
+  }, {merge: true});
+
+  await admin.firestore().collection("policies").doc(policyId).set({
+    activationProcessedAt: FieldValue.serverTimestamp(),
+  }, {merge: true});
+
+  logger.info("Policy binding processed successfully", {
+    policyId: policyId,
+    pdfGenerated: !!pdfResult?.pdfUrl,
+  });
+}
 
 /**
  * Triggered when a new quote is created
@@ -146,8 +268,8 @@ exports.onPolicyBound = onDocumentUpdated(
       const policyId = event.params.policyId;
 
       // Check if policy status changed to active
-      if (beforeStatus !== "PolicyStatus.active" &&
-          afterStatus === "PolicyStatus.active") {
+      if (!isActivePolicyStatus(beforeStatus) &&
+          isActivePolicyStatus(afterStatus)) {
         logger.info("Policy bound (activated)", {
           policyId: policyId,
           previousStatus: beforeStatus,
@@ -156,78 +278,7 @@ exports.onPolicyBound = onDocumentUpdated(
         const policyData = after.data();
 
         try {
-          // Get owner information
-          const ownerDoc = await admin
-              .firestore()
-              .collection("users")
-              .doc(policyData.ownerId)
-              .get();
-
-          if (!ownerDoc.exists) {
-            logger.error("Owner not found", {ownerId: policyData.ownerId});
-            return;
-          }
-
-          const ownerData = ownerDoc.data();
-
-          // Get pet information
-          const petDoc = await admin
-              .firestore()
-              .collection("pets")
-              .doc(policyData.petId)
-              .get();
-
-          const petData = petDoc.exists ? petDoc.data() : null;
-
-          // TODO: Send policy confirmation email
-          logger.info("Policy confirmation email would be sent to:", {
-            email: ownerData.email,
-            policyNumber: policyData.policyNumber,
-            petName: petData?.name || "Unknown",
-          });
-
-          // TODO: Generate policy documents (PDF)
-          // This would use a library like PDFKit or call a document
-          // generation service
-          logger.info("Policy documents would be generated", {
-            policyId: policyId,
-          });
-
-          // Set up payment reminders based on payment schedule
-          const paymentSchedule = policyData.paymentSchedule;
-          const nextPaymentDate = calculateNextPaymentDate(
-              policyData.effectiveDate,
-              paymentSchedule,
-          );
-
-          await admin.firestore().collection("paymentReminders").add({
-            policyId: policyId,
-            ownerId: policyData.ownerId,
-            nextPaymentDate: nextPaymentDate,
-            paymentSchedule: paymentSchedule,
-            amount: policyData.plan.monthlyPremium,
-            createdAt: FieldValue.serverTimestamp(),
-            status: "pending",
-          });
-
-          // Log analytics event
-          await admin.firestore().collection("analytics").add({
-            event: "policy_bound",
-            policyId: policyId,
-            policyNumber: policyData.policyNumber,
-            ownerId: policyData.ownerId,
-            petId: policyData.petId,
-            timestamp: FieldValue.serverTimestamp(),
-            metadata: {
-              planTier: policyData.plan.tier,
-              monthlyPremium: policyData.plan.monthlyPremium,
-              paymentSchedule: paymentSchedule,
-            },
-          });
-
-          logger.info("Policy binding processed successfully", {
-            policyId: policyId,
-          });
+          await handlePolicyActivated(policyId, policyData);
 
           return {success: true, policyId: policyId};
         } catch (error) {
@@ -240,6 +291,34 @@ exports.onPolicyBound = onDocumentUpdated(
       }
 
       return null;
+    },
+);
+
+exports.onPolicyCreatedActive = onDocumentCreated(
+    "policies/{policyId}",
+    async (event) => {
+      const snapshot = event.data;
+      if (!snapshot) {
+        logger.warn("No data associated with the policy create event");
+        return;
+      }
+
+      const policyData = snapshot.data();
+      const policyId = event.params.policyId;
+      if (!isActivePolicyStatus(policyData.status)) {
+        return null;
+      }
+
+      try {
+        await handlePolicyActivated(policyId, policyData);
+        return {success: true, policyId};
+      } catch (error) {
+        logger.error("Error processing created active policy", {
+          error: error.message,
+          policyId,
+        });
+        throw error;
+      }
     },
 );
 
@@ -505,10 +584,9 @@ exports.extractPdfText = pdfExtraction.extractPdfText;
 exports.extractImageText = imageExtraction.extractImageText;
 
 // Export policy email functions
-// Temporarily disabled due to nodemailer issue
-// exports.sendPolicyEmail = policyEmails.sendPolicyEmail;
-// exports.generatePolicyPDF = policyEmails.generatePolicyPDF;
-// exports.checkExpiringPolicies = policyEmails.checkExpiringPolicies;
+exports.sendPolicyEmail = policyEmails.sendPolicyEmail;
+exports.generatePolicyPDF = policyEmails.generatePolicyPDF;
+exports.checkExpiringPolicies = policyEmails.checkExpiringPolicies;
 
 // Export admin dashboard functions
 // Temporarily disabled
@@ -689,6 +767,9 @@ exports.computePortfolioMetricsSnapshot = benchmarking.computePortfolioMetricsSn
 
 // Export payment functions
 exports.createPaymentIntent = payment.createPaymentIntent;
+exports.createCustomer = payment.createCustomer;
+exports.createSubscription = payment.createSubscription;
+exports.cancelSubscription = payment.cancelSubscription;
 exports.handlePaymentIntentSucceeded = payment.handlePaymentIntentSucceeded;
 
 // Export admin claims data helpers (admin-only callables)

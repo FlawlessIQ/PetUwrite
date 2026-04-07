@@ -437,17 +437,17 @@ class CheckoutProvider extends ChangeNotifier {
     }
   }
 
-  /// Get step icon
+  /// Get step icon (Material icon code point as string — consumed by checkout_screen)
   String getStepIcon(CheckoutStep step) {
     switch (step) {
       case CheckoutStep.review:
-        return '📋';
+        return 'review';
       case CheckoutStep.ownerDetails:
-        return '✍️';
+        return 'owner';
       case CheckoutStep.payment:
-        return '💳';
+        return 'payment';
       case CheckoutStep.confirmation:
-        return '✅';
+        return 'confirmation';
     }
   }
 }

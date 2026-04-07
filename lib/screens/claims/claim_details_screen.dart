@@ -237,14 +237,9 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      // Kick off processing (best-effort).
-      try {
-        await FirebaseFunctions.instance
-            .httpsCallable('processClaimDecision')
-            .call({'claimId': claim.claimId});
-      } catch (_) {
-        // Ignore; claim can be processed later by backend.
-      }
+      // The server-side onClaimUpdatedAutoDecision Firestore trigger
+      // automatically processes the claim when status changes to
+      // "submitted", so no explicit callable needed here.
 
       if (!context.mounted) return;
       ScaffoldMessenger.of(

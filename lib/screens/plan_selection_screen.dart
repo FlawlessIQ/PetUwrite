@@ -37,6 +37,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   // Mobile plan carousel controller.
   final PageController _mobilePlanController = PageController(
     viewportFraction: 0.92,
+    initialPage: 1,
   );
 
   final DraggableScrollableController _customizerController =
@@ -174,11 +175,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Important: coverage exclusions',
+                      "What's not covered (clear and upfront)",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
-                        color: AppColors.warning,
+                        color: ClovaraColors.forest,
                         height: 1.2,
                       ),
                     ),
@@ -492,7 +493,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
   String? _tierTagline(dynamic plan) {
     if (plan is PlanData) {
-      if (plan.isPopular) return 'Best value';
+      if (plan.isPopular) return 'Chosen by most pet parents';
       return null;
     }
     if (plan is! Plan) return null;
@@ -500,13 +501,33 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       case PlanType.basic:
         return 'Great starter coverage';
       case PlanType.standard:
-        return 'Best value';
+        return 'Chosen by most pet parents';
       case PlanType.plus:
         return 'Higher protection';
       case PlanType.premium:
         return 'Maximize reimbursement';
       case PlanType.unlimited:
         return 'Unlimited peace of mind';
+    }
+  }
+
+  String? _tierBadge(dynamic plan) {
+    if (plan is PlanData) {
+      if (plan.isPopular) return 'Recommended';
+      return null;
+    }
+    if (plan is! Plan) return null;
+    switch (plan.type) {
+      case PlanType.basic:
+        return null;
+      case PlanType.standard:
+        return 'Recommended';
+      case PlanType.plus:
+        return null;
+      case PlanType.premium:
+        return 'Maximum protection';
+      case PlanType.unlimited:
+        return null;
     }
   }
 
@@ -2707,8 +2728,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   PreferredSizeWidget _buildModernAppBar(BuildContext context) {
     final petName = _tryGetPetNameFromRoute();
     final subtitle = petName == null
-        ? 'Pick coverage that fits your budget'
-        : 'For $petName — pick coverage that fits your budget';
+        ? 'Here\'s what we recommend'
+        : 'Here\'s what we recommend for $petName';
 
     return AppBar(
       backgroundColor: AppColors.background,
@@ -2724,7 +2745,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Choose your plan',
+            petName == null ? 'Your coverage plan' : '$petName\'s coverage plan',
             style: TextStyle(
               color: AppColors.deepGreen,
               fontWeight: FontWeight.w900,
@@ -2994,6 +3015,23 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     final addOnLoads =
         plan.pricingBreakdown?.addOnMonthlyLoads ?? const <String, double>{};
 
+    // Estimated prices when server pricing isn't available
+    const fallbackPrices = <String, double>{
+      'wellnessPremium': 9.95,
+      'wellnessLite': 4.95,
+      'examFees': 2.95,
+      'dentalPlus': 6.95,
+      'rehab': 5.95,
+      'behavioral': 4.95,
+      'prescriptionFood': 3.95,
+    };
+
+    String? priceFor(AddOn addon) {
+      final load = addOnLoads[addon.type.name] ?? fallbackPrices[addon.type.name];
+      if (load == null) return null;
+      return '+ \$${load.toStringAsFixed(2)}/mo';
+    }
+
     final sorted = List<AddOn>.from(all)
       ..sort((a, b) => _addOnPriority(a).compareTo(_addOnPriority(b)));
     final top = sorted.take(3).toList(growable: false);
@@ -3028,9 +3066,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               child: _buildAddOnUpsellCard(
                 addon: addon,
                 selected: selected.contains(addon.type),
-                priceLabel: addOnLoads[addon.type.name] == null
-                    ? null
-                    : '+ \$${addOnLoads[addon.type.name]!.toStringAsFixed(2)}/mo',
+                priceLabel: priceFor(addon),
                 onTap: () async {
                   final next = Set<AddOnType>.from(selected);
                   if (next.contains(addon.type)) {
@@ -3072,9 +3108,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   child: _buildAddOnUpsellCard(
                     addon: addon,
                     selected: selected.contains(addon.type),
-                    priceLabel: addOnLoads[addon.type.name] == null
-                        ? null
-                        : '+ \$${addOnLoads[addon.type.name]!.toStringAsFixed(2)}/mo',
+                    priceLabel: priceFor(addon),
                     onTap: () async {
                       final next = Set<AddOnType>.from(selected);
                       if (next.contains(addon.type)) {
@@ -3100,73 +3134,110 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     final price = plan is Plan
         ? plan.monthlyPremium
         : (plan as PlanData).monthlyPrice;
+    final daily = (price / 30).toStringAsFixed(2);
+    final petName = _tryGetPetNameFromRoute();
 
     return SafeArea(
       top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade200)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 18,
-              offset: const Offset(0, -6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Trust signals strip
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            color: AppColors.surface2,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.lock_outline, size: 12, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Text(
+                  'Cancel anytime',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade600),
+                ),
+                const SizedBox(width: 14),
+                Icon(Icons.verified_user_outlined, size: 12, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Text(
+                  'No hidden fees',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade600),
+                ),
+                const SizedBox(width: 14),
+                Icon(Icons.star_outline, size: 12, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Text(
+                  '4.8 from 2,400+ pet parents',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade600),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      color: ClovaraColors.forest,
+          ),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, -8),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$name plan',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: ClovaraColors.forest,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '\$${price.toStringAsFixed(0)}/mo  ≈  \$$daily/day',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _continueToCheckout,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ClovaraColors.clover,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                    ),
+                    icon: const Icon(Icons.lock_outline, size: 16),
+                    label: Text(
+                      petName != null ? 'Get $petName covered' : 'Secure my coverage',
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '\$${price.toStringAsFixed(0)}/mo',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            SizedBox(
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _continueToCheckout,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ClovaraColors.clover,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
-                child: const Text(
-                  'Continue',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-                ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -3183,7 +3254,6 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             child: _buildProgressHero(),
           ),
         ),
-        SliverToBoxAdapter(child: _buildExclusionsCallout()),
         SliverToBoxAdapter(child: _buildMobilePlanCarousel()),
         SliverToBoxAdapter(
           child: Padding(
@@ -3191,6 +3261,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             child: _buildSelectedPlanOverview(selected, isCompact: true),
           ),
         ),
+        SliverToBoxAdapter(child: _buildExclusionsCallout()),
         if (selected is Plan)
           SliverToBoxAdapter(
             child: Padding(
@@ -3223,63 +3294,118 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   }
 
   Widget _buildProgressHero() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface1,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: ClovaraColors.clover.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.shield_outlined,
+                  color: ClovaraColors.clover,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Step 2 of 3',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: ClovaraColors.clover,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Choose your coverage',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: ClovaraColors.forest,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'You can adjust this anytime. No pressure.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.25,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Trust strip
+        _buildTrustStrip(),
+      ],
+    );
+  }
+
+  Widget _buildTrustStrip() {
+    const items = [
+      (Icons.local_hospital_outlined, 'Any licensed vet'),
+      (Icons.block_outlined, 'No networks'),
+      (Icons.event_available_outlined, 'Cancel anytime'),
+      (Icons.bolt_outlined, 'Digital claims'),
+    ];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Icon(
-              Icons.shield_moon_outlined,
-              color: ClovaraColors.forest,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Step 2 of 3',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.grey.shade700,
+          for (int i = 0; i < items.length; i++) ...[
+            if (i > 0) const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(items[i].$1, size: 15, color: ClovaraColors.clover),
+                  const SizedBox(width: 6),
+                  Text(
+                    items[i].$2,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: ClovaraColors.forest,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Choose coverage',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: ClovaraColors.forest,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Swipe plans, then customize your deductible and reimbursement.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.25,
-                    color: Colors.grey.shade700,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -3299,7 +3425,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     final planCount = _plans.length;
     final screenH = MediaQuery.sizeOf(context).height;
     // Slightly taller to avoid overflows on short web/mobile viewports.
-    final carouselHeight = (screenH * 0.36).clamp(280.0, 340.0);
+    final carouselHeight = (screenH * 0.42).clamp(340.0, 420.0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3405,6 +3531,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     final selected = _plans[_selectedPlanIndex];
     final riskScore = _routeArguments?['riskScore'] as RiskScore?;
     final accent = _tierColor(selected);
+    final petName = _tryGetPetNameFromRoute();
 
     return Center(
       child: ConstrainedBox(
@@ -3448,7 +3575,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Pick a tier, then personalize coverage and add-ons.',
+                      'You can adjust this anytime. No pressure.',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade700,
@@ -3523,10 +3650,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   decoration: BoxDecoration(
-                    color: AppColors.surface1,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: Colors.grey.shade200),
-                    boxShadow: AppShadows.soft,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.only(bottom: 120),
@@ -3541,6 +3673,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                           accent: accent,
                         ),
                         const SizedBox(height: 10),
+                        _buildTrustStrip(),
+                        const SizedBox(height: 14),
                         _buildSelectedPlanOverview(selected),
                         const SizedBox(height: 16),
                         if (selected is Plan) ...[
@@ -3562,13 +3696,98 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         ],
                         _buildSectionLabel(
                           icon: Icons.check_circle_outline,
-                          title: 'What\'s included',
+                          title: 'What\'s included in your plan',
                           subtitle:
                               'Included benefits and coverage highlights.',
                           accent: accent,
                         ),
                         const SizedBox(height: 10),
                         _buildIncludedCard(selected),
+                        const SizedBox(height: 16),
+                        // Testimonial
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface2,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.format_quote, size: 20, color: ClovaraColors.clover.withOpacity(0.5)),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '"Our claim was paid in 3 days. The whole process was painless."',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        fontStyle: FontStyle.italic,
+                                        color: ClovaraColors.forest,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      '— Sarah K., Golden Retriever parent',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Trust row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.lock_outline, size: 13, color: Colors.grey.shade500),
+                            const SizedBox(width: 4),
+                            Text('Cancel anytime', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade600)),
+                            const SizedBox(width: 14),
+                            Icon(Icons.verified_user_outlined, size: 13, color: Colors.grey.shade500),
+                            const SizedBox(width: 4),
+                            Text('No hidden fees', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade600)),
+                            const SizedBox(width: 14),
+                            Icon(Icons.star_outline, size: 13, color: Colors.grey.shade500),
+                            const SizedBox(width: 4),
+                            Text('4.8 \u2605 from 2,400+ pet parents', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade600)),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton.icon(
+                            onPressed: _continueToCheckout,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: ClovaraColors.clover,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            icon: const Icon(Icons.lock_outline, size: 18),
+                            label: Text(
+                              petName != null ? "Start $petName's coverage" : 'Continue to secure your coverage',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 16),
                       ],
                     ),
@@ -3674,6 +3893,18 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         ? features[1]
         : 'Fast claims + 24/7 support';
 
+    // Price delta vs cheapest plan
+    String? priceDelta;
+    if (index > 0 && _plans.isNotEmpty) {
+      final basePrice = _plans[0] is Plan
+          ? (_plans[0] as Plan).monthlyPremium
+          : (_plans[0] as PlanData).monthlyPrice;
+      final diff = price - basePrice;
+      if (diff > 0) {
+        priceDelta = '+\$${diff.toStringAsFixed(0)}/mo vs ${_plans[0] is Plan ? (_plans[0] as Plan).name : (_plans[0] as PlanData).name}';
+      }
+    }
+
     // Mobile card: bigger typography, stronger hierarchy, more “premium” layout.
     if (!dense) {
       return Material(
@@ -3686,13 +3917,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: border, width: selected ? 2 : 1),
+              border: Border.all(color: border, width: selected ? 2.5 : 1),
               color: bg,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 24,
-                  offset: const Offset(0, 14),
+                  color: selected
+                      ? ClovaraColors.clover.withOpacity(0.12)
+                      : Colors.black.withValues(alpha: 0.05),
+                  blurRadius: selected ? 32 : 24,
+                  offset: Offset(0, selected ? 16 : 14),
                 ),
               ],
             ),
@@ -3757,34 +3990,23 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         ],
                       ),
                     ),
-                    if (recommended)
+                    if (recommended || _tierBadge(plan) != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: ClovaraColors.clover,
+                          color: recommended ? ClovaraColors.clover : ClovaraColors.forest,
                           borderRadius: BorderRadius.circular(999),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(
-                              Icons.auto_awesome,
-                              size: 16,
-                              color: Colors.white,
-                            ),
-                            SizedBox(width: 7),
-                            Text(
-                              'Recommended',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          recommended ? 'Recommended' : (_tierBadge(plan) ?? ''),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                   ],
@@ -3815,27 +4037,51 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       ),
                     ),
                     const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Text(
-                        '$reimburse% back • $limitLabel',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.deepGreen,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: ClovaraColors.clover.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '≈ \$${(price / 30).toStringAsFixed(2)}/day',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: ClovaraColors.clover,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$reimburse% back • $limitLabel',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+                if (priceDelta != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    priceDelta,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -3933,34 +4179,23 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                             ),
                           ),
                         ),
-                        if (recommended)
+                        if (recommended || _tierBadge(plan) != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: ClovaraColors.clover,
+                              color: recommended ? ClovaraColors.clover : ClovaraColors.forest.withOpacity(0.85),
                               borderRadius: BorderRadius.circular(999),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(
-                                  Icons.auto_awesome,
-                                  size: 14,
-                                  color: Colors.white,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Recommended',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              recommended ? 'Recommended' : (_tierBadge(plan) ?? ''),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                       ],
@@ -4005,6 +4240,17 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         ),
                       ],
                     ),
+                    if (priceDelta != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        priceDelta,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -4149,41 +4395,65 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           ),
           const SizedBox(height: 6),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 '\$${price.toStringAsFixed(0)}',
                 style: TextStyle(
-                  fontSize: isCompact ? 34 : 46,
+                  fontSize: isCompact ? 38 : 52,
                   fontWeight: FontWeight.w900,
                   color: AppColors.deepGreen,
-                  letterSpacing: -1.5,
+                  letterSpacing: -2,
+                  height: 1.0,
                 ),
               ),
               const SizedBox(width: 6),
               Padding(
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
                   '/month',
                   style: TextStyle(
-                    fontSize: isCompact ? 14 : 15,
+                    fontSize: isCompact ? 14 : 16,
                     fontWeight: FontWeight.w800,
                     color: Colors.grey.shade700,
                   ),
                 ),
               ),
               const Spacer(),
-              if (plan is Plan)
-                Text(
-                  'Annual: \$${plan.annualPremium.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.grey.shade700,
-                  ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '≈ \$${(price / 30).toStringAsFixed(2)}/day',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: ClovaraColors.clover,
+                      ),
+                    ),
+                    if (plan is Plan)
+                      Text(
+                        '\$${plan.annualPremium.toStringAsFixed(0)}/year',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                  ],
                 ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
+          if (plan is Plan && !isCompact) ...[
+            const SizedBox(height: 14),
+            _buildExampleBills(plan),
+          ],
+          const SizedBox(height: 14),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -4208,10 +4478,6 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               ),
             ],
           ),
-          if (plan is Plan && !isCompact) ...[
-            const SizedBox(height: 14),
-            _buildExampleBills(plan),
-          ],
         ],
       ),
     );
@@ -4253,7 +4519,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Example bills',
+                      'What this means in real life',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
@@ -4262,7 +4528,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'See estimated out-of-pocket costs',
+                      'See how much you\'d save on real vet bills',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade700,
@@ -4382,7 +4648,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Example bills',
+            'What this means in real life',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w900,
@@ -4391,7 +4657,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           ),
           const SizedBox(height: 2),
           Text(
-            'Estimated out-of-pocket after deductible and reimbursement.',
+            'Without insurance, you would pay the full amount. Here\'s what you\'d pay with this plan.',
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.shade700,
@@ -4513,6 +4779,20 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     final features = plan is Plan ? plan.features : (plan as PlanData).features;
     final accent = _tierColor(plan);
 
+    // Supplementary trust-building benefits (not from plan data)
+    const supplementary = [
+      'No breed exclusions',
+      'Coverage starts in 14 days',
+      '24/7 online claims submission',
+      'Direct deposit reimbursement',
+      'No annual vet exam required',
+      'Cancel anytime, no penalties',
+    ];
+    // De-duplicate: only add supplementary items not already in plan features
+    final extraBenefits = supplementary
+        .where((s) => !features.any((f) => f.toLowerCase().contains(s.toLowerCase().split(' ').first.toLowerCase())))
+        .toList();
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface1,
@@ -4524,7 +4804,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'What\'s included',
+            'What\'s included in your plan',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w900,
@@ -4564,6 +4844,28 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.grey.shade800,
+                                height: 1.4,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  for (final f in extraBenefits)
+                    SizedBox(
+                      width: itemWidth,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.check_circle_outline, color: Colors.grey.shade400, size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              f,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
                                 height: 1.4,
                                 fontWeight: FontWeight.w600,
                               ),

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/checkout_state.dart';
+import '../services/policy_service.dart';
 import '../theme/clovara_theme.dart';
 import '../ui/tokens.dart';
 import '../ui/components/clovara_logo.dart';
@@ -23,6 +25,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  final PolicyService _policyService = PolicyService();
 
   @override
   void initState() {
@@ -79,11 +82,9 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const ClovaraLogoLockup(
-                              compact: true,
-                              boxedMark: false,
-                              markSize: 20,
-                              textSize: 20,
+                            const ClovaraLogo(
+                              size: ClovaraLogoSize.small,
+                              showText: true,
                             ),
                             const SizedBox(height: 12),
                             Align(
@@ -155,6 +156,10 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
 
   /// Success header with checkmark and message
   Widget _buildSuccessHeader(PolicyDocument policy) {
+    final effectiveDateLabel = DateFormat('MMM d, yyyy').format(
+      policy.effectiveDate,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -185,7 +190,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
         ),
         const SizedBox(height: 8),
         Text(
-          '${policy.pet.name} is now protected with ${policy.plan.name} coverage',
+          '${policy.pet.name}\'s ${policy.plan.name} coverage begins $effectiveDateLabel',
           style: TextStyle(
             fontFamily: ClovaraTypography.inter,
             fontSize: 18,
@@ -683,13 +688,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                       label: 'Download Policy',
                       icon: Icons.download_rounded,
                       isPrimary: false,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Downloading policy documents...'),
-                          ),
-                        );
-                      },
+                      onTap: () => _downloadPolicy(context, policy),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -698,13 +697,7 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                       label: 'Go to Dashboard',
                       icon: Icons.arrow_forward,
                       isPrimary: true,
-                      onTap: () {
-                        Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          '/home',
-                          (route) => false,
-                        );
-                      },
+                      onTap: () => context.go('/app'),
                     ),
                   ),
                 ],
@@ -719,26 +712,14 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
                 label: 'Go to Dashboard',
                 icon: Icons.arrow_forward,
                 isPrimary: true,
-                onTap: () {
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/home',
-                    (route) => false,
-                  );
-                },
+                onTap: () => context.go('/app'),
               ),
               const SizedBox(height: 12),
               _buildActionButton(
                 label: 'Download Policy',
                 icon: Icons.download_rounded,
                 isPrimary: false,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Downloading policy documents...'),
-                    ),
-                  );
-                },
+                onTap: () => _downloadPolicy(context, policy),
               ),
             ],
           );
@@ -855,5 +836,46 @@ class _PolicyConfirmationScreenState extends State<PolicyConfirmationScreen>
       return '${(amount / 1000).toStringAsFixed(0)}K';
     }
     return amount.toStringAsFixed(0);
+  }
+
+  Future<void> _downloadPolicy(
+    BuildContext context,
+    PolicyDocument policy,
+  ) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Generating policy PDF...')),
+      );
+
+      final pdfUrl = await _policyService.generatePolicyPDF(policy);
+      final pdfUri = Uri.tryParse(pdfUrl);
+      if (pdfUri == null) {
+        throw Exception('Invalid PDF URL');
+      }
+
+      final opened = await launchUrl(
+        pdfUri,
+        mode: LaunchMode.platformDefault,
+      );
+      if (!opened) {
+        throw Exception('Unable to open generated PDF');
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Policy PDF opened successfully'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to open policy PDF: ${e.toString()}'),
+          backgroundColor: ClovaraColors.kError,
+        ),
+      );
+    }
   }
 }

@@ -1,18 +1,93 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../ui/components/article_tile.dart';
-import '../ui/components/badges.dart';
-import '../ui/components/bento_grid.dart';
-import '../ui/components/buttons.dart';
-import '../ui/components/gradient_border.dart';
-import '../ui/components/hero_stage.dart';
 import '../ui/components/max_width.dart';
-import '../ui/components/premium_card.dart';
-import '../ui/components/section_break.dart';
 import '../ui/components/section.dart';
-import '../ui/helpers/responsive_grid.dart';
 import '../ui/tokens.dart';
+
+class _Article {
+  const _Article(
+      {required this.title,
+      required this.summary,
+      required this.tags,
+      required this.readTime});
+  final String title;
+  final String summary;
+  final List<String> tags;
+  final String readTime;
+}
+
+const _articles = <_Article>[
+  _Article(
+      title: 'What does pet insurance actually cover?',
+      summary:
+          'A plain-language breakdown of accident & illness plans, accident-only plans, and common exclusions.',
+      tags: ['Coverage'],
+      readTime: '4 min'),
+  _Article(
+      title: 'How deductibles, reimbursement, and limits work together',
+      summary:
+          'Understand the three settings that shape your premium and your out-of-pocket costs.',
+      tags: ['Pricing'],
+      readTime: '5 min'),
+  _Article(
+      title: 'Pre-existing conditions explained',
+      summary:
+          'What counts as pre-existing, how insurers evaluate medical history, and what to expect.',
+      tags: ['Coverage', 'Pre-existing'],
+      readTime: '3 min'),
+  _Article(
+      title: 'How to file a pet insurance claim',
+      summary:
+          'Step-by-step: from vet visit to reimbursement \u2014 including what documents you need.',
+      tags: ['Claims'],
+      readTime: '4 min'),
+  _Article(
+      title: 'Is pet insurance worth it?',
+      summary:
+          'A realistic look at when insurance makes sense, what it costs, and how to decide.',
+      tags: ['Pricing'],
+      readTime: '6 min'),
+  _Article(
+      title: 'Choosing the right plan for your pet',
+      summary:
+          'How breed, age, and lifestyle affect your coverage needs \u2014 and what to prioritize.',
+      tags: ['Coverage', 'Pricing'],
+      readTime: '5 min'),
+  _Article(
+      title: 'What to expect during the waiting period',
+      summary:
+          'Why waiting periods exist, how long they last, and what happens if your pet gets sick before they end.',
+      tags: ['Coverage'],
+      readTime: '3 min'),
+  _Article(
+      title: 'Understanding wellness vs. insurance coverage',
+      summary:
+          'Why wellness isn\u2019t included in standard plans and how to budget for routine care.',
+      tags: ['Coverage', 'Vet care'],
+      readTime: '4 min'),
+  _Article(
+      title: 'Common claim mistakes and how to avoid them',
+      summary:
+          'Tips to make the claims process smooth: documentation, timing, and record-keeping.',
+      tags: ['Claims'],
+      readTime: '3 min'),
+  _Article(
+      title: 'How Clovara is different from traditional pet insurance',
+      summary:
+          'Transparency, plain language, and a modern claims experience \u2014 here\u2019s what sets us apart.',
+      tags: ['Coverage'],
+      readTime: '4 min'),
+];
+
+const _allTags = [
+  'All',
+  'Coverage',
+  'Pricing',
+  'Claims',
+  'Pre-existing',
+  'Vet care'
+];
 
 class LearnPage extends StatefulWidget {
   const LearnPage({super.key});
@@ -22,303 +97,268 @@ class LearnPage extends StatefulWidget {
 }
 
 class _LearnPageState extends State<LearnPage> {
-  String _filter = 'All';
+  String _selectedTag = 'All';
 
-  static const filters = [
-    'All',
-    'Coverage',
-    'Pricing',
-    'Claims',
-    'Pre-existing',
-    'Vet care',
-  ];
+  List<_Article> get _filtered => _selectedTag == 'All'
+      ? _articles
+      : _articles.where((a) => a.tags.contains(_selectedTag)).toList();
 
   @override
   Widget build(BuildContext context) {
-    final articles = _articles().where((a) {
-      if (_filter == 'All') return true;
-      return a.category == _filter;
-    }).toList();
-
     return Column(
       children: [
-        Section(
-          child: MaxWidth(
-            child: HeroStage(
-              left: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Learn: pet insurance, explained like a friend would.',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.displaySmall!.copyWith(fontSize: 38),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Short guides to help you choose coverage, understand claims, and avoid surprise assumptions.',
-                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        for (final f in filters)
-                          Pill(
-                            label: f,
-                            isSelected: _filter == f,
-                            onTap: () => setState(() => _filter = f),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              right: BentoGrid(
-                primary: ClipRRect(
-                  borderRadius: AppRadii.br24,
-                  child: Container(
-                    color: AppColors.surface,
-                    child: AspectRatio(
-                      aspectRatio: 1.20,
-                      child: Image.asset(
-                        'assets/images/learning image.png',
-                        fit: BoxFit.cover,
-                        filterQuality: FilterQuality.medium,
-                      ),
-                    ),
-                  ),
-                ),
-                secondary: const [
-                  MiniFeatureTile(
-                    icon: Icons.menu_book,
-                    title: 'Clear language',
-                    body: 'No jargon. No fine print surprises in the basics.',
-                  ),
-                  MiniFeatureTile(
-                    icon: Icons.checklist,
-                    title: 'Practical checklists',
-                    body: 'Know what to gather before you submit a claim.',
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        const SectionBreak(
-          fromColor: AppColors.background,
-          toColor: AppColors.surface2,
-        ),
-
+        Section(verticalPadding: 28, child: MaxWidth(child: _LearnHero())),
         Section(
           backgroundColor: AppColors.surface2,
+          verticalPadding: 28,
           child: MaxWidth(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Featured articles',
-                        style: Theme.of(context).textTheme.headlineSmall!,
-                      ),
-                    ),
-                    SecondaryButton(
-                      label: 'Get a quote',
-                      icon: Icons.pets,
-                      onPressed: () => context.go('/quote'),
-                    ),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _Eyebrow(label: 'Topics'),
+                  const SizedBox(height: 12),
+                  Text('Browse by topic',
+                      style:
+                          Theme.of(context).textTheme.headlineLarge!),
+                  const SizedBox(height: 16),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    for (final tag in _allTags)
+                      _FilterChip(
+                          label: tag,
+                          selected: _selectedTag == tag,
+                          onTap: () =>
+                              setState(() => _selectedTag = tag)),
+                  ]),
+                  const SizedBox(height: 28),
+                  ...[
+                    for (int i = 0; i < _filtered.length; i++) ...[
+                      _ArticleCard(article: _filtered[i]),
+                      if (i < _filtered.length - 1)
+                        const SizedBox(height: 12),
+                    ],
                   ],
-                ),
-                const SizedBox(height: 14),
-                ResponsiveGrid(
-                  gap: 18,
-                  children: [
-                    for (final a in articles)
-                      ArticleTile(
-                        category: a.category,
-                        title: a.title,
-                        excerpt: a.excerpt,
-                        readTime: a.readTime,
-                        onTap: () => context.go('/learn/${a.slug}'),
-                      ),
-                  ],
-                ),
-              ],
-            ),
+                  if (_filtered.isEmpty)
+                    Padding(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 40),
+                        child: Center(
+                            child: Text('No articles for this topic yet.',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge!
+                                    .copyWith(
+                                        color: AppColors.textMuted)))),
+                ]),
           ),
         ),
-
-        const SectionBreak(
-          fromColor: AppColors.surface2,
-          toColor: AppColors.background,
-          flip: true,
-        ),
-
         Section(
-          child: MaxWidth(
-            child: GradientBorder(
-              radius: AppRadii.br24,
-              child: PremiumCard(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final stacked = constraints.maxWidth < 720;
-                    final copy = Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Prefer learning as you go?',
-                          style: Theme.of(context).textTheme.headlineSmall!,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Start a quote and we\'ll explain plan settings in context—deductible, reimbursement %, and annual limits.',
-                          style: Theme.of(context).textTheme.bodyMedium!
-                              .copyWith(color: AppColors.textMuted),
-                        ),
-                      ],
-                    );
-
-                    if (stacked) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          copy,
-                          const SizedBox(height: 14),
-                          PrimaryButton(
-                            label: 'Get a quote',
-                            icon: Icons.pets,
-                            onPressed: () => context.go('/quote'),
-                          ),
-                        ],
-                      );
-                    }
-
-                    return Row(
-                      children: [
-                        Expanded(child: copy),
-                        const SizedBox(width: 14),
-                        PrimaryButton(
-                          label: 'Get a quote',
-                          icon: Icons.pets,
-                          onPressed: () => context.go('/quote'),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        ),
+            verticalPadding: 28,
+            child: MaxWidth(child: _LearnClosingCta())),
       ],
     );
   }
+}
 
-  List<_Article> _articles() {
-    return const [
-      _Article(
-        slug: 'accident-and-illness-explained',
-        category: 'Coverage',
-        title: 'Accident & illness coverage: what it really means',
-        excerpt:
-            'A clear breakdown of common covered costs and the fine print that matters.',
-        readTime: '5 min read',
-      ),
-      _Article(
-        slug: 'covered-vs-not-covered',
-        category: 'Coverage',
-        title: 'Covered vs not covered: the simple checklist',
-        excerpt:
-            'A quick way to predict what\'s likely eligible—and what typically isn\'t.',
-        readTime: '4 min read',
-      ),
-      _Article(
-        slug: 'deductible-vs-reimbursement',
-        category: 'Pricing',
-        title: 'Deductible vs reimbursement: choosing the right balance',
-        excerpt: 'How plan settings influence premium today and costs later.',
-        readTime: '6 min read',
-      ),
-      _Article(
-        slug: 'annual-limit-what-to-pick',
-        category: 'Pricing',
-        title: 'Annual limits: how to pick a number you won\'t regret',
-        excerpt:
-            'A pragmatic way to think about worst-case scenarios and peace of mind.',
-        readTime: '6 min read',
-      ),
-      _Article(
-        slug: 'claims-basics',
-        category: 'Claims',
-        title: 'Claims basics: what to submit and what happens next',
-        excerpt:
-            'Invoice, medical notes, timelines—and how to avoid back-and-forth.',
-        readTime: '5 min read',
-      ),
-      _Article(
-        slug: 'claim-timelines',
-        category: 'Claims',
-        title: 'Claim timelines: why review can take time (and what helps)',
-        excerpt:
-            'What reviewers look for and how to submit clean documentation.',
-        readTime: '5 min read',
-      ),
-      _Article(
-        slug: 'pre-existing-conditions',
-        category: 'Pre-existing',
-        title: 'Pre-existing conditions: what counts and what doesn\'t',
-        excerpt:
-            'Symptoms vs diagnosis, medical record review, and common examples.',
-        readTime: '7 min read',
-      ),
-      _Article(
-        slug: 'enroll-early-why-it-matters',
-        category: 'Pre-existing',
-        title: 'Why enrolling early matters more than you think',
-        excerpt:
-            'A gentle explanation of why timing affects eligibility for future care.',
-        readTime: '4 min read',
-      ),
-      _Article(
-        slug: 'choosing-a-vet-in-emergencies',
-        category: 'Vet care',
-        title: 'Choosing a vet in emergencies: what to ask and what to save',
-        excerpt:
-            'Tips for itemized invoices and the notes that speed up review.',
-        readTime: '6 min read',
-      ),
-      _Article(
-        slug: 'medication-and-followup-coverage',
-        category: 'Vet care',
-        title: 'Medications and follow-ups: when they\'re typically eligible',
-        excerpt:
-            'How prescriptions, rechecks, and follow-up visits are commonly handled.',
-        readTime: '5 min read',
-      ),
-    ];
+class _LearnHero extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final isMobile = constraints.maxWidth < 780;
+      return ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 660),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _Eyebrow(label: 'Learn'),
+              const SizedBox(height: 14),
+              Text(
+                  'Learn how pet insurance actually works',
+                  style: Theme.of(context)
+                      .textTheme
+                      .displaySmall!
+                      .copyWith(
+                          fontSize: isMobile ? 36 : 46,
+                          height: 1.02,
+                          letterSpacing: -1.2)),
+              const SizedBox(height: 14),
+              Text(
+                  'Short, clear guides to help you understand coverage, pricing, and claims \u2014 before you buy.',
+                  style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                      color: AppColors.text,
+                      fontSize: 18,
+                      height: 1.6)),
+            ]),
+      );
+    });
   }
 }
 
-class _Article {
-  const _Article({
-    required this.slug,
-    required this.category,
-    required this.title,
-    required this.excerpt,
-    required this.readTime,
-  });
+class _FilterChip extends StatelessWidget {
+  const _FilterChip(
+      {required this.label,
+      required this.selected,
+      required this.onTap});
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
-  final String slug;
-  final String category;
-  final String title;
-  final String excerpt;
-  final String readTime;
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+            color: selected ? AppColors.deepGreen : AppColors.surface1,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+                color:
+                    selected ? AppColors.deepGreen : AppColors.border)),
+        child: Text(label,
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                color: selected ? Colors.white : AppColors.textMuted,
+                fontWeight: FontWeight.w700)),
+      ),
+    );
+  }
+}
+
+class _ArticleCard extends StatelessWidget {
+  const _ArticleCard({required this.article});
+  final _Article article;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+          color: AppColors.surface1,
+          borderRadius: AppRadii.br16,
+          border: Border.all(color: AppColors.border)),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              for (final tag in article.tags) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: AppColors.surface2,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Text(tag,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall!
+                          .copyWith(
+                              color: AppColors.green,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11)),
+                ),
+                const SizedBox(width: 6),
+              ],
+              const Spacer(),
+              Text(article.readTime,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall!
+                      .copyWith(
+                          color: AppColors.textSubtle, fontSize: 12)),
+            ]),
+            const SizedBox(height: 12),
+            Text(article.title,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium!
+                    .copyWith(
+                        color: AppColors.deepGreen,
+                        fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Text(article.summary,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium!
+                    .copyWith(
+                        color: AppColors.textMuted, height: 1.5)),
+          ]),
+    );
+  }
+}
+
+class _LearnClosingCta extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+      decoration: BoxDecoration(
+          color: AppColors.deepGreen, borderRadius: AppRadii.br24),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final stacked = constraints.maxWidth < 720;
+        final copy = Column(
+            crossAxisAlignment: stacked
+                ? CrossAxisAlignment.center
+                : CrossAxisAlignment.start,
+            children: [
+              Text('Ready to see what it costs?',
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall!
+                      .copyWith(color: Colors.white)),
+              const SizedBox(height: 8),
+              Text(
+                  'Get a personalized price for your pet in about two minutes.',
+                  textAlign:
+                      stacked ? TextAlign.center : TextAlign.left,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium!
+                      .copyWith(
+                          color: Colors.white.withValues(alpha: 0.78))),
+            ]);
+        final actions = ElevatedButton(
+            onPressed: () => context.go('/quote'),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.deepGreen,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 32, vertical: 18),
+                shape: const RoundedRectangleBorder(
+                    borderRadius: AppRadii.br12),
+                textStyle: const TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 16)),
+            child: const Text('See your price'));
+        if (stacked) {
+          return Column(children: [
+            copy,
+            const SizedBox(height: 20),
+            actions,
+          ]);
+        }
+        return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: copy),
+              const SizedBox(width: 20),
+              actions,
+            ]);
+      }),
+    );
+  }
+}
+
+class _Eyebrow extends StatelessWidget {
+  const _Eyebrow({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Text(label.toUpperCase(),
+      style: Theme.of(context).textTheme.bodySmall!.copyWith(
+          color: AppColors.green,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
+          fontSize: 12));
 }

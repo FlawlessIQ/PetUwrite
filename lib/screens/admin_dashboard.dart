@@ -93,34 +93,18 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const ClovaraMark(size: 32),
+            const ClovaraLogo(
+              size: ClovaraLogoSize.small,
+              showText: true,
+              color: Colors.white,
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Clovara',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  _getTabTitle(),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
-              ],
+            Text(
+              _getTabTitle(),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.normal,
+              ),
             ),
           ],
         ),

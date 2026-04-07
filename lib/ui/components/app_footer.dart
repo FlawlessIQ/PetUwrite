@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../tokens.dart';
-import 'buttons.dart';
+import 'clovara_logo.dart';
 import 'max_width.dart';
 
 class AppFooter extends StatelessWidget {
@@ -11,129 +11,161 @@ class AppFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.surface2,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 28),
-        child: MaxWidth(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final narrow = constraints.maxWidth < 760;
-                  final cols = [
-                    _FooterColumn(
-                      title: 'Product',
-                      links: [
-                        _FooterLink('Coverage', '/coverage'),
-                        _FooterLink('How it works', '/how-it-works'),
-                        _FooterLink('FAQ', '/faq'),
-                      ],
-                      compact: narrow,
-                    ),
-                    _FooterColumn(
-                      title: 'Learn',
-                      links: [
-                        _FooterLink('Education hub', '/learn'),
-                        _FooterLink('Claims basics', '/learn/claims-basics'),
-                        _FooterLink(
-                          'Pre-existing conditions',
-                          '/learn/pre-existing-conditions',
-                        ),
-                      ],
-                      compact: narrow,
-                    ),
-                    _FooterColumn(
-                      title: 'Account',
-                      links: [
-                        _FooterLink('Sign in', '/sign-in'),
-                        _FooterLink('Get a quote', '/quote'),
-                      ],
-                      compact: narrow,
-                    ),
-                    _FooterColumn(
-                      title: 'Company',
-                      links: [
-                        _FooterLink('Support', '/faq'),
-                        _FooterLink('Contact', '/faq'),
-                      ],
-                      compact: narrow,
-                    ),
-                  ];
+      color: Colors.white,
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: AppColors.border)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 36),
+          child: MaxWidth(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final narrow = constraints.maxWidth < 900;
+                    final brandBlock = ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const ClovaraLogo(
+                            size: ClovaraLogoSize.small,
+                            showText: true,
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'Pet insurance built to feel clear before you buy and supportive when your pet needs care.',
+                            style: Theme.of(context).textTheme.bodyMedium!
+                                .copyWith(color: AppColors.textMuted),
+                          ),
+                          const SizedBox(height: 14),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: const [
+                              _FooterBadge(label: 'Any licensed vet'),
+                              _FooterBadge(label: 'Digital claims'),
+                              _FooterBadge(label: 'Clear coverage'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
 
-                  if (narrow) {
-                    return Column(
+                    final cols = [
+                      _FooterColumn(
+                        title: 'Product',
+                        links: [
+                          _FooterLink('Coverage', '/coverage'),
+                          _FooterLink('How it works', '/how-it-works'),
+                          _FooterLink('FAQ', '/faq'),
+                        ],
+                      ),
+                      _FooterColumn(
+                        title: 'Resources',
+                        links: [
+                          _FooterLink('Education hub', '/learn'),
+                          _FooterLink('Claims basics', '/learn/claims-basics'),
+                          _FooterLink(
+                            'Pre-existing conditions',
+                            '/learn/pre-existing-conditions',
+                          ),
+                        ],
+                      ),
+                      _FooterColumn(
+                        title: 'Company',
+                        links: [
+                          _FooterLink('Contact', '/contact'),
+                          _FooterLink('Privacy', '/privacy'),
+                          _FooterLink('Terms', '/terms'),
+                        ],
+                      ),
+                    ];
+
+                    if (narrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          brandBlock,
+                          const SizedBox(height: 24),
+                          for (int i = 0; i < cols.length; i++) ...[
+                            cols[i],
+                            if (i != cols.length - 1)
+                              const SizedBox(height: 16),
+                          ],
+                        ],
+                      );
+                    }
+
+                    return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Expanded(flex: 2, child: brandBlock),
+                        const SizedBox(width: 28),
                         for (int i = 0; i < cols.length; i++) ...[
-                          cols[i],
-                          if (i != cols.length - 1) const SizedBox(height: 14),
+                          Expanded(child: cols[i]),
+                          if (i != cols.length - 1) const SizedBox(width: 18),
                         ],
                       ],
                     );
-                  }
-
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: cols[0]),
-                      const SizedBox(width: 18),
-                      Expanded(child: cols[1]),
-                      const SizedBox(width: 18),
-                      Expanded(child: cols[2]),
-                      const SizedBox(width: 18),
-                      Expanded(child: cols[3]),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 22),
-              const Divider(height: 1),
-              const SizedBox(height: 16),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final narrow = constraints.maxWidth < 560;
-                  final legalText = Text(
-                    '© ${_year()} Clovara. Pet insurance plans are underwritten by licensed carriers. Coverage is subject to policy terms and waiting periods.',
-                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                      color: AppColors.textSubtle,
-                      height: 1.35,
-                    ),
-                  );
-
-                  final links = Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextLink(
-                        label: 'Privacy',
-                        onTap: () =>
-                            _toast(context, 'Privacy policy coming soon.'),
+                  },
+                ),
+                const SizedBox(height: 24),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final narrow = constraints.maxWidth < 560;
+                    final legalText = Text(
+                      '© ${_year()} Clovara. Insurance coverage is subject to underwriting, policy terms, exclusions, state availability, and waiting periods.',
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                        color: AppColors.textSubtle,
                       ),
-                      const SizedBox(width: 6),
-                      TextLink(
-                        label: 'Terms',
-                        onTap: () => _toast(context, 'Terms coming soon.'),
-                      ),
-                    ],
-                  );
-
-                  if (narrow) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [legalText, const SizedBox(height: 10), links],
                     );
-                  }
 
-                  return Row(
-                    children: [
-                      Expanded(child: legalText),
-                      const SizedBox(width: 12),
-                      links,
-                    ],
-                  );
-                },
-              ),
-            ],
+                    final links = Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        _FooterInlineLink(
+                          label: 'Privacy',
+                          onTap: () => context.go('/privacy'),
+                        ),
+                        _FooterInlineLink(
+                          label: 'Terms',
+                          onTap: () => context.go('/terms'),
+                        ),
+                        _FooterInlineLink(
+                          label: 'Contact',
+                          onTap: () => context.go('/contact'),
+                        ),
+                      ],
+                    );
+
+                    if (narrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          legalText,
+                          const SizedBox(height: 12),
+                          links,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        Expanded(child: legalText),
+                        const SizedBox(width: 12),
+                        links,
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -141,46 +173,33 @@ class AppFooter extends StatelessWidget {
   }
 
   static int _year() => DateTime.now().year;
-
-  static void _toast(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
 }
 
 class _FooterColumn extends StatelessWidget {
-  const _FooterColumn({
-    required this.title,
-    required this.links,
-    required this.compact,
-  });
+  const _FooterColumn({required this.title, required this.links});
+
   final String title;
   final List<_FooterLink> links;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final titleStyle = compact
-        ? Theme.of(context).textTheme.titleSmall!.copyWith(
-            color: AppColors.deepGreen,
-            fontWeight: FontWeight.w800,
-          )
-        : Theme.of(context).textTheme.titleMedium!.copyWith(
-            color: AppColors.deepGreen,
-            fontWeight: FontWeight.w800,
-          );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: titleStyle),
-        SizedBox(height: compact ? 8 : 10),
-        for (final l in links) ...[
-          _FooterTextLink(
-            label: l.label,
-            onTap: () => context.go(l.path),
-            compact: compact,
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium!.copyWith(
+            color: AppColors.deepGreen,
+            fontWeight: FontWeight.w800,
           ),
-          SizedBox(height: compact ? 2 : 4),
+        ),
+        const SizedBox(height: 10),
+        for (final link in links) ...[
+          _FooterTextLink(
+            label: link.label,
+            onTap: () => context.go(link.path),
+          ),
+          const SizedBox(height: 4),
         ],
       ],
     );
@@ -188,15 +207,10 @@ class _FooterColumn extends StatelessWidget {
 }
 
 class _FooterTextLink extends StatefulWidget {
-  const _FooterTextLink({
-    required this.label,
-    required this.onTap,
-    required this.compact,
-  });
+  const _FooterTextLink({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;
-  final bool compact;
 
   @override
   State<_FooterTextLink> createState() => _FooterTextLinkState();
@@ -207,32 +221,19 @@ class _FooterTextLinkState extends State<_FooterTextLink> {
 
   @override
   Widget build(BuildContext context) {
-    final style =
-        (widget.compact
-                ? Theme.of(context).textTheme.bodySmall
-                : Theme.of(context).textTheme.bodyMedium)!
-            .copyWith(
-              color: AppColors.deepGreen,
-              fontWeight: FontWeight.w600,
-              decoration: _hover
-                  ? TextDecoration.underline
-                  : TextDecoration.none,
-              decorationThickness: 2,
-            );
-
     return FocusableActionDetector(
-      onShowHoverHighlight: (v) => setState(() => _hover = v),
+      onShowHoverHighlight: (value) => setState(() => _hover = value),
       child: InkWell(
         onTap: widget.onTap,
         borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: 4,
-            vertical: widget.compact ? 4 : 6,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: AnimatedDefaultTextStyle(
             duration: const Duration(milliseconds: 160),
-            style: style,
+            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+              color: _hover ? AppColors.deepGreen : AppColors.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
             child: Text(widget.label),
           ),
         ),
@@ -243,6 +244,57 @@ class _FooterTextLinkState extends State<_FooterTextLink> {
 
 class _FooterLink {
   _FooterLink(this.label, this.path);
+
   final String label;
   final String path;
+}
+
+class _FooterBadge extends StatelessWidget {
+  const _FooterBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.borderStrong),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+          color: AppColors.deepGreen,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _FooterInlineLink extends StatelessWidget {
+  const _FooterInlineLink({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+            color: AppColors.deepGreen,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
 }

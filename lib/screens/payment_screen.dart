@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode, kReleaseMode;
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../payments/stripe_payment_element.dart'
-    if (dart.library.io) '../payments/stripe_payment_element_stub.dart';
+import '../payments/stripe_payment_element_stub.dart'
+    if (dart.library.html) '../payments/stripe_payment_element.dart';
 import '../models/checkout_state.dart';
 import '../services/draft_service.dart';
 import '../services/quote_engine.dart';
@@ -21,9 +20,25 @@ import '../ui/components/clovara_logo.dart';
 import '../ui/components/max_width.dart';
 import '../ui/components/save_resume_dialog.dart';
 
+class PaymentScreenController {
+  Future<void> Function()? _submit;
+
+  bool get isAttached => _submit != null;
+
+  Future<void> submit() async {
+    final submit = _submit;
+    if (submit == null) {
+      throw StateError('Payment screen is not attached');
+    }
+    await submit();
+  }
+}
+
 /// Step 3: Payment screen with Stripe integration
 class PaymentScreen extends StatefulWidget {
-  const PaymentScreen({super.key});
+  const PaymentScreen({super.key, this.controller});
+
+  final PaymentScreenController? controller;
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -66,10 +81,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   void initState() {
     super.initState();
+    widget.controller?._submit = _submitFromPinnedBar;
     _loadPendingCheckoutPaymentState();
     if (kIsWeb) {
       _paymentElementKey = GlobalKey<_PaymentElementWidgetState>();
       _initializePaymentIntent();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant PaymentScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?._submit = null;
+      widget.controller?._submit = _submitFromPinnedBar;
     }
   }
 
@@ -89,18 +114,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final policyId =
           'policy_${user.uid}_${DateTime.now().millisecondsSinceEpoch}';
 
-      final callable = FirebaseFunctions.instance.httpsCallable(
-        'createPaymentIntent',
+      final response = await _stripeService.createPaymentIntent(
+        amount: amount,
+        currency: 'usd',
+        policyId: policyId,
       );
-      final response = await callable.call({
-        'amount': (amount * 100).round(), // Convert to cents
-        'currency': 'usd',
-        'policyId': policyId,
-      });
 
-      if (response.data != null && response.data['clientSecret'] != null) {
+      if (response['clientSecret'] != null) {
         setState(() {
-          _clientSecret = response.data['clientSecret'];
+          _clientSecret = response['clientSecret'] as String;
         });
         print('✅ PaymentIntent created with clientSecret');
       }
@@ -201,7 +223,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     ).showSnackBar(SnackBar(content: Text('Saved. Resume code: $pretty')));
 
     if (!context.mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    context.go('/');
   }
 
   Future<void> _copyResumeCodeToClipboard() async {
@@ -251,8 +273,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   void dispose() {
+    widget.controller?._submit = null;
     _couponController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitFromPinnedBar() async {
+    final provider = context.read<CheckoutProvider>();
+    final plan = provider.selectedPlan;
+    if (plan == null) {
+      setState(() {
+        _errorMessage = 'Your plan is still loading. Please try again.';
+      });
+      return;
+    }
+    await _handlePayment(context, provider, plan);
   }
 
   Future<void> _applyCoupon() async {
@@ -398,11 +433,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
                     return Row(
                       children: [
-                        const ClovaraLogoLockup(
-                          compact: true,
-                          boxedMark: false,
-                          markSize: 20,
-                          textSize: 20,
+                        const ClovaraLogo(
+                          size: ClovaraLogoSize.small,
+                          showText: true,
                         ),
                         const Spacer(),
                         TextButton.icon(
@@ -617,7 +650,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           const SizedBox(height: 12),
           InlineBanner(
             type: BannerType.success,
-            message: 'Coverage starts immediately after payment',
+            message:
+                'Coverage begins on your policy effective date after payment',
             margin: EdgeInsets.zero,
           ),
         ],
@@ -1109,7 +1143,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Coverage starts immediately after payment',
+                      'Coverage begins on your policy effective date after payment',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.blue.shade900,
@@ -1815,6 +1849,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
     CheckoutProvider provider,
     plan,
   ) async {
+    final requiresExclusionsAck = provider.exclusions.isNotEmpty;
+    if (requiresExclusionsAck && !_exclusionsAcknowledged) {
+      setState(() {
+        _errorMessage =
+            'Please acknowledge the coverage exclusions before continuing.';
+      });
+      return;
+    }
+
     setState(() {
       _isProcessing = true;
       _errorMessage = null;
@@ -1943,8 +1986,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         paymentSheetParameters: stripe.SetupPaymentSheetParameters(
           paymentIntentClientSecret: paymentIntentData['clientSecret'],
           merchantDisplayName: 'Pet Underwriter AI',
-          customerId: paymentIntentData['customerId'],
-          customerEphemeralKeySecret: paymentIntentData['ephemeralKey'],
+          customerId: paymentIntentData['customerId'] as String?,
+          customerEphemeralKeySecret:
+              paymentIntentData['ephemeralKey'] as String?,
           style: ThemeMode.system,
           appearance: const stripe.PaymentSheetAppearance(
             colors: stripe.PaymentSheetAppearanceColors(primary: Colors.blue),
@@ -1958,13 +2002,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
       // Payment successful
       final paymentInfo = PaymentInfo(
         paymentIntentId: paymentIntentData['paymentIntentId'],
-        paymentMethodId: paymentIntentData['paymentMethodId'],
+        paymentMethodId: null,
         amount: finalAmount,
         currency: 'usd',
         status: 'succeeded',
         paidAt: DateTime.now(),
-        last4: paymentIntentData['last4'],
-        brand: paymentIntentData['brand'],
+        last4: null,
+        brand: null,
         couponCode: _appliedCouponCode,
         discountAmount: _discountAmount,
       );
@@ -2040,8 +2084,7 @@ class _PaymentElementWidgetState extends State<_PaymentElementWidget> {
       child: _StripePaymentElementWrapper(
         key: _elementKey,
         clientSecret: widget.clientSecret,
-        publishableKey:
-            'pk_test_51SI7vTPzjq9wJkU5zFAJvBSWvFLKfu9Be4klAyLdG8IOjHpQwsw8My1WxhrbagFztc549VKyQAmAtCklGOpbeo4v00IAlWsINb',
+        publishableKey: StripeService.publishableKey,
       ),
     );
   }

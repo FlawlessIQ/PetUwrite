@@ -5,6 +5,9 @@ import '../tokens.dart';
 
 const String _clovaraMarkAsset = 'assets/images/clovara_mark_refined.svg';
 
+// ---------------------------------------------------------------------------
+// ClovaraMark – renders ONLY the SVG logo mark (no text).
+// ---------------------------------------------------------------------------
 class ClovaraMark extends StatelessWidget {
   const ClovaraMark({
     super.key,
@@ -31,6 +34,98 @@ class ClovaraMark extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// ClovaraLogo – the canonical logo component for all UI surfaces.
+//
+//   [ LOGO MARK ]  Clovara
+//
+// Props:
+//   • size          – small | medium | large (controls mark + text sizing)
+//   • showText      – false for icon-only contexts (compact nav, avatar, etc.)
+//   • color         – optional tint applied to both mark and text
+// ---------------------------------------------------------------------------
+enum ClovaraLogoSize { small, medium, large }
+
+class ClovaraLogo extends StatelessWidget {
+  const ClovaraLogo({
+    super.key,
+    this.size = ClovaraLogoSize.medium,
+    this.showText = true,
+    this.color,
+  });
+
+  final ClovaraLogoSize size;
+  final bool showText;
+  final Color? color;
+
+  double get _markSize {
+    switch (size) {
+      case ClovaraLogoSize.small:
+        return 20;
+      case ClovaraLogoSize.medium:
+        return 26;
+      case ClovaraLogoSize.large:
+        return 40;
+    }
+  }
+
+  double get _textSize {
+    switch (size) {
+      case ClovaraLogoSize.small:
+        return 16;
+      case ClovaraLogoSize.medium:
+        return 20;
+      case ClovaraLogoSize.large:
+        return 34;
+    }
+  }
+
+  double get _spacing {
+    switch (size) {
+      case ClovaraLogoSize.small:
+        return 8;
+      case ClovaraLogoSize.medium:
+        return 10;
+      case ClovaraLogoSize.large:
+        return 14;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveColor = color ?? AppColors.deepGreen;
+
+    final mark = ClovaraMark(size: _markSize);
+
+    if (!showText) return mark;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        mark,
+        SizedBox(width: _spacing),
+        Text(
+          'Clovara',
+          style: TextStyle(
+            fontFamily: 'Public Sans',
+            fontSize: _textSize,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.6,
+            color: effectiveColor,
+            height: 1.0,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Backwards-compatible alias – delegates to ClovaraLogo.
+// Deprecated: migrate all call-sites to ClovaraLogo.
+// ---------------------------------------------------------------------------
+@Deprecated('Use ClovaraLogo instead')
 class ClovaraLogoLockup extends StatelessWidget {
   const ClovaraLogoLockup({
     super.key,
@@ -49,45 +144,18 @@ class ClovaraLogoLockup extends StatelessWidget {
   final Color? markColor;
   final Color? textColor;
 
+  ClovaraLogoSize get _mappedSize {
+    if (markSize <= 22) return ClovaraLogoSize.small;
+    if (markSize <= 30) return ClovaraLogoSize.medium;
+    return ClovaraLogoSize.large;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final effectiveTextColor = textColor ?? AppColors.deepGreen;
-
-    final style = Theme.of(context).textTheme.headlineLarge?.copyWith(
-          color: effectiveTextColor,
-          fontSize: textSize ?? (compact ? 18 : 40),
-          fontWeight: FontWeight.w800,
-          letterSpacing: -1,
-        );
-
-    final mark = boxedMark
-        ? Container(
-            padding: EdgeInsets.all(compact ? 8 : 12),
-            decoration: BoxDecoration(
-              color: AppColors.surface2,
-              borderRadius: BorderRadius.circular(compact ? 14 : 16),
-              border: Border.all(
-                color: AppColors.borderStrong,
-                width: 2,
-              ),
-            ),
-            child: ClovaraMark(
-              size: markSize,
-              color: markColor,
-            ),
-          )
-        : ClovaraMark(
-            size: markSize,
-            color: markColor,
-          );
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        mark,
-        SizedBox(width: compact ? 10 : 16),
-        Text('Clovara', style: style),
-      ],
+    return ClovaraLogo(
+      size: _mappedSize,
+      showText: true,
+      color: textColor ?? markColor,
     );
   }
 }

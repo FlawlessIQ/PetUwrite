@@ -1,18 +1,25 @@
-import 'dart:async';
+#!/usr/bin/env python3
+"""Write the refactored conversational quote flow."""
+
+import os
+
+content = r'''import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import '../ai/clover_persona.dart';
 import '../ai/clover_response_adapter.dart';
 import '../data/breed_catalog.dart';
-import '../services/breed_size_guide.dart';
+import '../data/breed_size_guide.dart';
 import '../models/owner.dart';
 import '../models/pet.dart';
-import '../screens/ai_analysis_screen_v2.dart';
-import '../auth/customer_home_screen.dart';
-import '../auth/login_screen.dart';
+import '../screens/ai_analysis_screen.dart';
+import '../screens/customer_home_screen.dart';
+import '../screens/login_screen.dart';
 import '../services/conversational_ai_service.dart';
 import '../services/draft_service.dart';
 import '../services/marketing_attribution_service.dart';
@@ -132,7 +139,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   // Services
   late ConversationalAIService _aiService;
   late CloverResponseAdapter _cloverAdapter;
-  EligibilityResult? _earlyEligibility;
+  QuickCheckResult? _earlyEligibility;
 
   // Auth
   StreamSubscription<User?>? _authSubscription;
@@ -140,23 +147,24 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   // Autofocus tracking
   int _lastAutofocusQuestionIndex = -1;
 
-
+  // Keys for scroll-into-view
+  final GlobalKey _activeBotPromptKey = GlobalKey();
+  final GlobalKey _activeInlineOptionsKey = GlobalKey();
 
   // ---- Questions (one-per-step) -----------------------------------------
   late final List<QuestionData> _questions = [
     // 0 — Owner name
     QuestionData(
       id: 'welcome',
-      question: "Let's find the right plan for your pet. What's your first name?",
+      question: "Hi! I'm Clover — let's find the right plan for your pet. What's your name?",
       type: QuestionType.text,
       field: 'ownerName',
       placeholder: 'Your first name',
-      subtitle: 'This takes about two minutes.',
     ),
     // 1 — Pet name
     QuestionData(
       id: 'petName',
-      question: "Great to meet you, {ownerName}. What's your pet's name?",
+      question: "Nice to meet you, {ownerName}! What's your pet's name?",
       type: QuestionType.text,
       field: 'petName',
       placeholder: "Your pet's name",
@@ -175,7 +183,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     // 3 — Sex
     QuestionData(
       id: 'sex',
-      question: "And is {petName} male or female?",
+      question: "Got it — and is {petName} male or female?",
       type: QuestionType.choice,
       field: 'gender',
       options: [
@@ -201,7 +209,6 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       type: QuestionType.breedPicker,
       field: 'breed',
       placeholder: 'Search or pick a breed',
-      subtitle: 'You can search or choose a common breed.',
     ),
     // 6 — Age
     QuestionData(
@@ -209,7 +216,6 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       question: "How old is {petName}?",
       type: QuestionType.agePicker,
       field: 'age',
-      subtitle: 'A quick estimate is perfect.',
     ),
     // 7 — Weight
     QuestionData(
@@ -217,12 +223,11 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       question: "About how much does {petName} weigh?",
       type: QuestionType.weightPicker,
       field: 'weight',
-      subtitle: 'A rough number is all I need.',
     ),
     // 8 — Pre-existing conditions
     QuestionData(
       id: 'hasConditions',
-      question: "Has {petName} ever been diagnosed with a health condition?",
+      question: "Does {petName} have any pre-existing health conditions?",
       type: QuestionType.choice,
       field: 'hasPreExistingConditions',
       options: [
@@ -233,11 +238,10 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     // 9 — Condition types (conditional)
     QuestionData(
       id: 'conditionTypes',
-      question: "Which of these applies to {petName}?",
+      question: "No worries — lots of pets have them. Which conditions apply to {petName}?",
       type: QuestionType.multiSelect,
       field: 'preExistingConditionTypes',
       condition: (a) => a['hasPreExistingConditions'] == true,
-      subtitle: 'Choose every condition that fits.',
       options: [
         ChoiceOption(value: 'Allergies / Skin', label: 'Allergies / Skin', icon: Icons.healing),
         ChoiceOption(value: 'Joint / Mobility', label: 'Joint / Mobility', icon: Icons.accessibility_new),
@@ -253,7 +257,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     // 10 — Other condition text (conditional)
     QuestionData(
       id: 'conditionOtherText',
-      question: "Tell me a little more about the other condition.",
+      question: "Could you describe the other condition(s)?",
       type: QuestionType.text,
       field: 'preExistingConditionOtherText',
       placeholder: 'e.g. epilepsy, ear infections, etc.',
@@ -265,7 +269,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     // 11 — Treatment status (conditional)
     QuestionData(
       id: 'conditionTreatment',
-      question: "Is {petName} receiving treatment or medication right now?",
+      question: "Is {petName} currently receiving treatment or medication for any of these?",
       type: QuestionType.choice,
       field: 'isReceivingTreatment',
       condition: (a) => a['hasPreExistingConditions'] == true,
@@ -278,20 +282,18 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     // 12 — Email
     QuestionData(
       id: 'email',
-      question: "Where should I send the quote?",
+      question: "Almost done! What's a good email to send your quote to?",
       type: QuestionType.text,
       field: 'email',
       placeholder: 'you@email.com',
-      subtitle: 'I’ll send the quote summary here.',
     ),
     // 13 — Zip code
     QuestionData(
       id: 'zipCode',
-      question: "What zip code should I price for?",
+      question: "Last one — what's your zip code? (Pricing can vary by location.)",
       type: QuestionType.text,
       field: 'zipCode',
       placeholder: '10001',
-      subtitle: 'Rates can vary slightly by location.',
     ),
   ];
 
@@ -300,7 +302,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   @override
   void initState() {
     super.initState();
-    MarketingAttributionService().ensureSessionStarted();
+    MarketingAttributionService.instance.captureCurrentAttribution();
     _aiService = ConversationalAIService();
     _cloverAdapter = CloverResponseAdapter();
     _setupAuthListener();
@@ -332,11 +334,14 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     if (_answers.isEmpty) return;
     try {
       await UserSessionService().savePendingQuote(_answers);
-      try {
-        final draftService = DraftService();
-        await draftService.upsertQuoteDraft(quoteData: _answers);
-      } catch (_) {
-        // Draft save is best-effort
+      await DraftService.save(answers: _answers, messages: []);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await DraftService.saveToFirestore(
+          uid: user.uid,
+          answers: _answers,
+          messages: [],
+        );
       }
     } catch (e) {
       print('⚠️ Error saving pending quote: $e');
@@ -346,7 +351,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   Future<void> _copyResumeCode() async {
     await _savePendingQuote();
     if (!mounted) return;
-    SaveResumeDialog.show(context, ensureSaved: () => _savePendingQuote());
+    SaveResumeDialog.show(context, answers: _answers);
   }
 
   // ---- Pre-fill --------------------------------------------------------
@@ -364,7 +369,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       }
 
       final profile = await UserSessionService().getUserProfile();
-      if (profile.isNotEmpty) {
+      if (profile != null) {
         if (profile['firstName'] != null) {
           _answers['ownerName'] ??=
               '${profile['firstName']} ${profile['lastName'] ?? ''}'.trim();
@@ -391,7 +396,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   // ---- Conversation engine ---------------------------------------------
 
   Future<void> _startConversation() async {
-    await Future.delayed(const Duration(milliseconds: 420));
+    await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
     _showNextQuestion();
   }
@@ -431,29 +436,33 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       _isWaitingForInput = false;
     });
 
-    // Keep question prompts deterministic so the guided flow has a stable,
-    // intentional rhythm instead of varying prompt copy step to step.
+    // Generate question text — try AI first with a fast timeout
     String questionText = _formatQuestion(question.question);
+    try {
+      final context = _getQuestionContext(question);
+      final aiResponse = await _aiService
+          .generateBotResponse(
+            questionId: question.id,
+            previousAnswers: _answers,
+            questionContext: context,
+          )
+          .timeout(const Duration(seconds: 2));
 
-    await Future.delayed(
-      Duration(
-        milliseconds: switch (question.type) {
-          QuestionType.text => 120,
-          QuestionType.choice => 90,
-          QuestionType.multiSelect => 110,
-          QuestionType.breedPicker => 110,
-          QuestionType.agePicker => 90,
-          QuestionType.weightPicker => 90,
-          _ => 100,
-        },
-      ),
-    );
+      if (aiResponse != null && aiResponse.trim().isNotEmpty) {
+        questionText = _cloverAdapter.adaptResponse(
+          aiResponse,
+          context: context,
+          petName: _answers['petName'] as String?,
+        );
+      }
+    } catch (_) {
+      // Use template text
+    }
 
     // Stream the bot message
     await _streamBotMessage(questionText, question);
 
     if (!mounted) return;
-    await Future.delayed(const Duration(milliseconds: 90));
     setState(() {
       _isTyping = false;
       _isWaitingForInput = true;
@@ -473,10 +482,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     setState(() => _messages.add(msg));
 
     // Chunked streaming animation
-    await Future.delayed(const Duration(milliseconds: 70));
-    final totalUpdates = text.length < 70
-      ? 12 + math.Random().nextInt(5)
-      : 16 + math.Random().nextInt(6);
+    final totalUpdates = 28 + math.Random().nextInt(13);
     final charsPerTick = math.max(1, (text.length / totalUpdates).ceil());
     int shown = 0;
     while (shown < text.length) {
@@ -490,9 +496,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
           questionData: question,
         );
       });
-      await Future.delayed(
-        Duration(milliseconds: 16 + math.Random().nextInt(8)),
-      );
+      await Future.delayed(Duration(milliseconds: 12 + math.Random().nextInt(5)));
     }
 
     _scrollToBottom();
@@ -511,8 +515,6 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
               .contains(value.trim().toLowerCase());
 
       if (isYes && _pendingField != null) {
-        final confirmedField = _pendingField!;
-        final confirmedValue = _pendingValue;
         _answers[_pendingField!] = _pendingValue;
         _awaitingConfirmation = false;
         _pendingField = null;
@@ -521,8 +523,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
         _addUserMessage(displayText ?? value.toString());
         _textController.clear();
         _currentQuestion++;
-        await _tryUpdateUserProfile(confirmedField, confirmedValue);
-        await Future.delayed(const Duration(milliseconds: 220));
+        await _tryUpdateUserProfile(_pendingField ?? '', _pendingValue);
         _showNextQuestion();
         return;
       } else if (isNo) {
@@ -537,9 +538,9 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
           _isTyping = true;
           _isWaitingForInput = false;
         });
-        await Future.delayed(const Duration(milliseconds: 280));
+        await Future.delayed(const Duration(milliseconds: 400));
         await _streamBotMessage(
-          "Thanks — let’s fix that.",
+          "No problem — let's try again.",
           _questions[_currentQuestion],
         );
         setState(() {
@@ -566,13 +567,13 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       try {
         final validation = await _aiService
             .validateAndCorrectInput(
-              questionId: question.id,
+              field: question.field,
               userInput: value,
               context: _answers,
             )
             .timeout(const Duration(seconds: 3));
-        if (validation['needsConfirmation'] == true) {
-          final corrected = validation['correctedValue'] ?? validation['corrected'];
+        if (validation != null && validation['needsConfirmation'] == true) {
+          final corrected = validation['correctedValue'];
           if (corrected != null && corrected != value) {
             _pendingValue = corrected;
             _pendingField = question.field;
@@ -601,7 +602,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       await _handleConditionSelection(value);
     } else if (question.id == 'hasConditions' && value == true) {
       // Empathetic transition to condition types
-      await Future.delayed(const Duration(milliseconds: 240));
+      await Future.delayed(const Duration(milliseconds: 300));
     }
 
     // Update user profile if applicable
@@ -609,8 +610,9 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
 
     _currentQuestion++;
 
-    await Future.delayed(const Duration(milliseconds: 240));
-    await _showNextQuestion();
+    setState(() => _isTyping = false);
+    await Future.delayed(const Duration(milliseconds: 400));
+    _showNextQuestion();
   }
 
   void _addUserMessage(String text) {
@@ -632,6 +634,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
           firstName: parts.first,
           lastName: parts.length > 1 ? parts.skip(1).join(' ') : '',
         );
+      } else if (field == 'email' && value is String && value.isNotEmpty) {
+        await UserSessionService().updateUserProfile(email: value);
       } else if (field == 'zipCode' && value is String && value.isNotEmpty) {
         await UserSessionService().updateUserProfile(zipCode: value);
       }
@@ -882,46 +886,27 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     return formatted;
   }
 
-  String _stepCategory() {
-    if (_currentQuestion >= _questions.length) return 'Almost done';
-    final id = _questions[_currentQuestion].id;
-    switch (id) {
-      case 'welcome':
-      case 'email':
-      case 'zipCode':
-        return 'About you';
-      case 'petName':
-      case 'species':
-      case 'sex':
-      case 'neutered':
-      case 'breed':
-      case 'age':
-      case 'weight':
-        return 'About your pet';
-      case 'hasConditions':
-      case 'conditionTypes':
-      case 'conditionOtherText':
-      case 'conditionTreatment':
-        return 'Health history';
-      default:
-        return 'Guided quote';
+  String _getQuestionContext(QuestionData question) {
+    if (question.id == 'welcome' || question.id == 'petName') {
+      return 'greeting';
+    } else if (question.id.contains('condition') ||
+        question.id.contains('health') ||
+        question.id == 'hasConditions') {
+      return 'health_conditions';
+    } else if (question.id == 'email' || question.id == 'zipCode') {
+      return 'completion';
+    } else {
+      return 'collecting_info';
     }
   }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
-      final maxExtent = _scrollController.position.maxScrollExtent;
-      if (maxExtent <= 80) return;
-
-      final target = maxExtent.clamp(0.0, maxExtent);
-      final distance = (target - _scrollController.offset).abs();
-      if (distance <= 12) return;
-
       _scrollController.animateTo(
-        target,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
+        _scrollController.position.maxScrollExtent + 120,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
       );
     });
   }
@@ -993,7 +978,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   }
 
   // =====================================================================
-  //  BUILD — Focus Mode
+  //  BUILD
   // =====================================================================
 
   @override
@@ -1001,33 +986,26 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     _scheduleAutofocusIfNeeded();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAF8),
+      backgroundColor: const Color(0xFFF7F7F5),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final isNarrow = constraints.maxWidth < 560;
-            final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+            final isMobile = constraints.maxWidth < 600;
 
             if (_messages.isEmpty && !_isTyping) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: ClovaraColors.clover.withOpacity(0.08),
-                      ),
-                      child: const Center(child: ClovaraMark(size: 28)),
+                    CircularProgressIndicator(
+                      color: ClovaraColors.clover,
+                      strokeWidth: 2.5,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     Text(
-                      'Getting things ready\u2026',
+                      'Clover is getting ready...',
                       style: ClovaraTypography.body.copyWith(
                         color: ClovaraColors.forest,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -1036,46 +1014,24 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
             }
 
             return MaxWidth(
-              maxWidth: 600,
+              maxWidth: 680,
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  _buildMinimalHeader(),
+                  _buildHeader(),
                   Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, viewport) {
-                        return SingleChildScrollView(
-                          controller: _scrollController,
-                          padding: EdgeInsets.fromLTRB(
-                            isNarrow ? 20 : 24,
-                            isNarrow ? 14 : 20,
-                            isNarrow ? 20 : 24,
-                            keyboardOpen ? 16 : (isNarrow ? 24 : 40),
-                          ),
-                          child: SizedBox(
-                            height: math.max(
-                              viewport.maxHeight - (keyboardOpen ? 8 : 20),
-                              isNarrow ? 420.0 : 500.0,
-                            ).toDouble(),
-                            child: Column(
-                              children: [
-                                _buildAnswerChips(),
-                                SizedBox(height: isNarrow ? 12 : 20),
-                                if (!keyboardOpen) const Spacer(flex: 2),
-                                Center(
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      maxWidth: isNarrow ? 420 : 520,
-                                    ),
-                                    child: _buildFocusedStep(),
-                                  ),
-                                ),
-                                if (!keyboardOpen) const Spacer(flex: 3),
-                                SizedBox(height: isNarrow ? 8 : 14),
-                              ],
-                            ),
-                          ),
-                        );
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 16 : 24,
+                        vertical: 24,
+                      ),
+                      itemCount: _messages.length + (_isTyping ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == _messages.length && _isTyping) {
+                          return _buildTypingIndicator();
+                        }
+                        return _buildMessageBubble(_messages[index]);
                       },
                     ),
                   ),
@@ -1115,26 +1071,33 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     });
   }
 
-  // ---- Minimal header --------------------------------------------------
+  // ---- Header ----------------------------------------------------------
 
-  Widget _buildMinimalHeader() {
+  Widget _buildHeader() {
     final answered = _messages.where((m) => !m.isBot).length;
     final total = _questions.where((q) => q.shouldShow(_answers)).length;
     final progress = total > 0 ? (answered / total).clamp(0.0, 1.0) : 0.0;
-    final currentStep = total > 0 ? (answered + 1).clamp(1, total) : 0;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFAFAF8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        color: ClovaraColors.forest,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Row(
             children: [
+              // Home
               _headerIconButton(
-                icon: Icons.arrow_back_rounded,
-                tooltip: 'Back',
+                icon: Icons.home_outlined,
+                tooltip: 'Back to website home',
                 onPressed: () async {
                   if (_answers.isNotEmpty || _messages.isNotEmpty) {
                     final shouldLeave = await showDialog<bool>(
@@ -1151,7 +1114,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                           ),
                           ElevatedButton(
                             onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('Leave'),
+                            child: const Text('Go to home'),
                           ),
                         ],
                       ),
@@ -1162,52 +1125,48 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                   context.go('/');
                 },
               ),
-              const SizedBox(width: 8),
+              // Bot avatar
               Container(
-                width: 48,
-                height: 48,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: ClovaraColors.clover.withOpacity(0.08),
                   shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: ClovaraColors.clover.withOpacity(0.25),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
-                child: const Center(child: ClovaraMark(size: 26)),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Clovara',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: ClovaraColors.forest,
-                  letterSpacing: -0.5,
-                ),
+                child: const Center(child: ClovaraMark(size: 24)),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: total > 0
-                    ? Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'Step $currentStep',
-                              style: ClovaraTypography.bodySmall.copyWith(
-                                color: ClovaraColors.forest.withOpacity(0.6),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                            TextSpan(
-                              text: ' of $total',
-                              style: ClovaraTypography.bodySmall.copyWith(
-                                color: ClovaraColors.forest.withOpacity(0.35),
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : const SizedBox.shrink(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      CloverPersona.fullName,
+                      style: ClovaraTypography.h3.copyWith(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      _isTyping ? 'typing...' : 'Here to help',
+                      style: ClovaraTypography.bodySmall.copyWith(
+                        color: _isTyping
+                            ? ClovaraColors.clover
+                            : Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               if (_answers.isNotEmpty)
                 _headerIconButton(
@@ -1219,9 +1178,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                 stream: FirebaseAuth.instance.authStateChanges(),
                 builder: (context, snapshot) {
                   return _headerIconButton(
-                    icon: snapshot.hasData
-                        ? Icons.account_circle_outlined
-                        : Icons.login_rounded,
+                    icon: snapshot.hasData ? Icons.account_circle : Icons.login,
                     tooltip: snapshot.hasData ? 'Account' : 'Sign in',
                     onPressed: () {
                       if (snapshot.hasData) {
@@ -1247,31 +1204,15 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
             ],
           ),
           const SizedBox(height: 10),
-          Stack(
-            children: [
-              Container(
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: progress,
-                child: Container(
-                  height: 4,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        ClovaraColors.clover.withOpacity(0.5),
-                        ClovaraColors.clover.withOpacity(0.65),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-            ],
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.white.withOpacity(0.15),
+              valueColor: AlwaysStoppedAnimation(ClovaraColors.clover),
+              minHeight: 3,
+            ),
           ),
         ],
       ),
@@ -1286,324 +1227,47 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     return IconButton(
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon, color: ClovaraColors.forest.withOpacity(0.6), size: 22),
+      icon: Icon(icon, color: Colors.white, size: 22),
       splashRadius: 20,
       padding: const EdgeInsets.all(8),
       constraints: const BoxConstraints(),
     );
   }
 
-  // ---- Answer summary chips --------------------------------------------
+  // ---- Typing indicator ------------------------------------------------
 
-  Widget _buildAnswerChips() {
-    final userMessages = _messages.where((m) => !m.isBot).toList();
-    if (userMessages.isEmpty) {
-      return const SizedBox(height: 40);
-    }
-
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: userMessages.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final msg = userMessages[index];
-          final idx = _messages.indexOf(msg);
-          final botMsg = idx > 0
-              ? _messages.sublist(0, idx).lastWhere(
-                    (m) => m.isBot,
-                    orElse: () => msg,
-                  )
-              : null;
-          final chipIcon = _chipIconFor(botMsg?.questionData?.id);
-
-          return AnimatedOpacity(
-            duration: const Duration(milliseconds: 180),
-            opacity: index == userMessages.length - 1 ? 0.95 : 0.72,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9FAF7),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.grey.shade200),
+  Widget _buildTypingIndicator() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _botAvatar(animate: true),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+                bottomLeft: Radius.circular(6),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (chipIcon != null && botMsg?.questionData?.id == 'petName') ...[
-                    Icon(
-                      chipIcon,
-                      size: 13,
-                      color: Colors.grey.shade500,
-                    ),
-                    const SizedBox(width: 5),
-                  ],
-                  Text(
-                    msg.text.length > 28
-                        ? '${msg.text.substring(0, 25)}...'
-                        : msg.text,
-                    style: ClovaraTypography.bodySmall.copyWith(
-                      color: ClovaraColors.forest.withOpacity(0.55),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  IconData? _chipIconFor(String? questionId) {
-    switch (questionId) {
-      case 'welcome':
-        return Icons.person_outline;
-      case 'petName':
-        return Icons.pets;
-      case 'species':
-        return Icons.category_outlined;
-      case 'breed':
-        return Icons.search;
-      case 'age':
-        return Icons.cake_outlined;
-      case 'weight':
-        return Icons.fitness_center;
-      case 'hasConditions':
-      case 'conditionTypes':
-        return Icons.favorite_outline;
-      case 'email':
-        return Icons.email_outlined;
-      case 'zipCode':
-        return Icons.location_on_outlined;
-      default:
-        return null;
-    }
-  }
-
-  // ---- Focused step (question + options) --------------------------------
-
-  Widget _buildFocusedStep() {
-    final width = MediaQuery.sizeOf(context).width;
-    final isNarrow = width < 560;
-    final botMessages = _messages.where((m) => m.isBot).toList();
-    if (botMessages.isEmpty) {
-      return _isTyping ? _buildThinkingState() : const SizedBox.shrink();
-    }
-
-    final lastBotMsg = botMessages.last;
-    final questionData = lastBotMsg.questionData;
-    final hasText = lastBotMsg.text.isNotEmpty;
-    final isTransitioning = _isTyping && !_isWaitingForInput;
-
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.topCenter,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(
-          isNarrow ? 0 : 4,
-          isNarrow ? 10 : 18,
-          isNarrow ? 0 : 4,
-          isNarrow ? 0 : 10,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isTransitioning)
-              _buildTransitionState(isNarrow: isNarrow)
-            else ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: ClovaraColors.forest.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  _stepCategory(),
-                  style: ClovaraTypography.bodySmall.copyWith(
-                    color: ClovaraColors.forest.withOpacity(0.4),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ),
-              SizedBox(height: isNarrow ? 14 : 18),
-              if (_isTyping && !hasText) _buildThinkingState(),
-              if (hasText)
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 360),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) {
-                    final slide = Tween<Offset>(
-                      begin: const Offset(0, 0.08),
-                      end: Offset.zero,
-                    ).animate(animation);
-                    final scale = Tween<double>(
-                      begin: 0.985,
-                      end: 1,
-                    ).animate(
-                      CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                      ),
-                    );
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: slide,
-                        child: ScaleTransition(scale: scale, child: child),
-                      ),
-                    );
-                  },
-                  child: Text(
-                    lastBotMsg.text,
-                    key: ValueKey(lastBotMsg.timestamp.microsecondsSinceEpoch),
-                    style: ClovaraTypography.h2.copyWith(
-                      color: ClovaraColors.forest,
-                      fontSize: isNarrow ? 24 : 28,
-                      fontWeight: FontWeight.w500,
-                      height: 1.35,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                ),
-              if (questionData?.subtitle != null) ...[
-                SizedBox(height: isNarrow ? 10 : 12),
-                Text(
-                  questionData!.subtitle!,
-                  style: ClovaraTypography.body.copyWith(
-                    color: ClovaraColors.forest.withOpacity(0.45),
-                    fontWeight: FontWeight.w500,
-                    height: 1.45,
-                    fontSize: isNarrow ? 14 : 15,
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
-              SizedBox(height: _isWaitingForInput ? (isNarrow ? 24 : 30) : 12),
-              if (_isWaitingForInput && questionData != null)
-                TweenAnimationBuilder<double>(
-                  duration: const Duration(milliseconds: 340),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, child) {
-                    return Opacity(
-                      opacity: value,
-                      child: Transform.translate(
-                        offset: Offset(0, 14.0 * (1 - value)),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: _buildInlineOptions(questionData),
-                ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTransitionState({required bool isNarrow}) {
-    final petName = (_answers['petName'] as String?)?.trim();
-
-    return Container(
-      constraints: BoxConstraints(minHeight: isNarrow ? 188 : 220),
-      padding: EdgeInsets.all(isNarrow ? 18 : 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(3, (i) => _buildDot(i)),
+            ),
           ),
         ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: ClovaraColors.forest.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              'Answer saved',
-              style: ClovaraTypography.bodySmall.copyWith(
-                color: ClovaraColors.forest.withOpacity(0.4),
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
-              ),
-            ),
-          ),
-          SizedBox(height: isNarrow ? 16 : 18),
-          Text(
-            petName == null || petName.isEmpty
-                ? 'I\'m shaping the next question for you.'
-                : 'I\'m shaping the next step for $petName.',
-            style: ClovaraTypography.h2.copyWith(
-              color: ClovaraColors.forest.withOpacity(0.85),
-              fontSize: isNarrow ? 22 : 26,
-              fontWeight: FontWeight.w500,
-              height: 1.35,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'One clean decision at a time, with the next step already in motion.',
-            style: ClovaraTypography.body.copyWith(
-              color: ClovaraColors.forest.withOpacity(0.48),
-              fontWeight: FontWeight.w500,
-              height: 1.45,
-              fontSize: isNarrow ? 14 : 15,
-            ),
-          ),
-          SizedBox(height: isNarrow ? 18 : 22),
-          _buildThinkingState(compact: true),
-        ],
-      ),
-    );
-  }
-
-  // ---- Thinking state --------------------------------------------------
-
-  Widget _buildThinkingState({bool compact = false}) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: compact ? 0 : 24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(999),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const ClovaraMark(size: 16),
-            const SizedBox(width: 10),
-            ...List.generate(3, (i) => _buildDot(i)),
-          ],
-        ),
       ),
     );
   }
@@ -1620,7 +1284,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
           height: 7,
           margin: EdgeInsets.only(right: index < 2 ? 5 : 0),
           decoration: BoxDecoration(
-            color: ClovaraColors.clover.withOpacity(0.2 + animValue * 0.6),
+            color: ClovaraColors.forest.withOpacity(0.25 + animValue * 0.55),
             shape: BoxShape.circle,
           ),
         );
@@ -1628,6 +1292,174 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       onEnd: () {
         if (mounted) setState(() {});
       },
+    );
+  }
+
+  // ---- Message bubble --------------------------------------------------
+
+  Widget _buildMessageBubble(ChatMessage message) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Row(
+        mainAxisAlignment:
+            message.isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (message.isBot) ...[
+            _botAvatar(),
+            const SizedBox(width: 10),
+          ],
+          Flexible(
+            child: TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 400),
+              tween: Tween(begin: 0.0, end: 1.0),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return Transform.translate(
+                  offset: Offset(
+                    message.isBot ? 8 * (1 - value) : -8 * (1 - value),
+                    0,
+                  ),
+                  child: Opacity(opacity: value, child: child),
+                );
+              },
+              child: Column(
+                crossAxisAlignment: message.isBot
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.end,
+                children: [
+                  _buildBubbleContent(message),
+                  // Inline options for the active bot question
+                  if (message.isBot &&
+                      message.questionData != null &&
+                      _isWaitingForInput &&
+                      _messages.indexOf(message) == _messages.length - 1) ...[
+                    const SizedBox(height: 14),
+                    KeyedSubtree(
+                      key: _activeInlineOptionsKey,
+                      child: _buildInlineOptions(message.questionData!),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          if (!message.isBot) ...[
+            const SizedBox(width: 10),
+            _userAvatar(),
+          ] else
+            const SizedBox(width: 50),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBubbleContent(ChatMessage message) {
+    final isActiveBotPrompt = message.isBot &&
+        message.questionData != null &&
+        _isWaitingForInput &&
+        _messages.indexOf(message) == _messages.length - 1;
+
+    final bubble = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: message.isBot ? Colors.white : ClovaraColors.forest,
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(20),
+          topRight: const Radius.circular(20),
+          bottomLeft: Radius.circular(message.isBot ? 6 : 20),
+          bottomRight: Radius.circular(message.isBot ? 20 : 6),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        message.text,
+        style: ClovaraTypography.body.copyWith(
+          color: message.isBot ? ClovaraColors.forest : Colors.white,
+          fontSize: 15,
+          height: 1.45,
+        ),
+      ),
+    );
+
+    if (!isActiveBotPrompt) return bubble;
+    return KeyedSubtree(key: _activeBotPromptKey, child: bubble);
+  }
+
+  // ---- Avatars ---------------------------------------------------------
+
+  Widget _botAvatar({bool animate = false}) {
+    final avatar = Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: ClovaraColors.clover.withOpacity(0.18),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Center(child: ClovaraMark(size: 22)),
+    );
+
+    if (!animate) return avatar;
+
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 1000),
+      tween: Tween(begin: 0.95, end: 1.0),
+      builder: (_, value, child) {
+        final pulse = 0.95 + 0.05 * (1 - (value * 2 - 1).abs());
+        return Transform.scale(scale: pulse, child: child);
+      },
+      onEnd: () {
+        if (mounted) setState(() {});
+      },
+      child: avatar,
+    );
+  }
+
+  Widget _userAvatar() {
+    final ownerName = (_answers['ownerName'] as String?)?.trim();
+    final initial = (ownerName != null && ownerName.isNotEmpty)
+        ? ownerName.characters.first.toUpperCase()
+        : null;
+
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: ClovaraColors.forest,
+        boxShadow: [
+          BoxShadow(
+            color: ClovaraColors.clover.withOpacity(0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: initial == null
+            ? const Icon(Icons.person, color: Colors.white, size: 18)
+            : Text(
+                initial,
+                style: ClovaraTypography.h3.copyWith(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+      ),
     );
   }
 
@@ -1757,8 +1589,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: Colors.black.withOpacity(0.08),
-                width: 1,
+                color: ClovaraColors.clover.withOpacity(0.2),
+                width: 1.4,
               ),
             ),
             child: Row(
@@ -1955,12 +1787,12 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                   decoration: BoxDecoration(
                     color: title == 'Popular'
-                        ? const Color(0xFFF9FAF7)
+                        ? ClovaraColors.clover.withOpacity(0.08)
                         : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: title == 'Popular'
-                          ? ClovaraColors.forest.withOpacity(0.12)
+                          ? ClovaraColors.clover.withOpacity(0.22)
                           : Colors.grey.shade300,
                       width: 1.1,
                     ),
@@ -1985,57 +1817,29 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   // ---- Age picker (inline chips) ---------------------------------------
 
   Widget _buildAgePickerInline(QuestionData question) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _HorizontalScrollPicker(
-          min: 0,
-          max: 20,
-          step: 1,
-          initialValue: 3,
-          unit: '',
-          labelBuilder: (v) => v == 0 ? '<1' : '$v',
-          onChanged: (_) {},
-          onConfirm: (v) {
-            final label = v == 0 ? '< 1 year' : '$v year${v == 1 ? '' : 's'}';
-            _handleUserResponse(v, displayText: label);
-          },
-        ),
-      ],
+    final replies = _getQuickRepliesForQuestion(question);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: replies.map((r) {
+        return _OptionPill(
+          label: r.label,
+          onTap: () => _handleUserResponse(
+            int.tryParse(r.value) ?? r.value,
+            displayText: r.label,
+          ),
+        );
+      }).toList(),
     );
   }
 
-  // ---- Weight picker (inline scroll) -----------------------------------
+  // ---- Weight picker (inline chips + helper) ---------------------------
 
   Widget _buildWeightPickerInline(QuestionData question) {
     final species = (_answers['species'] as String?)?.toLowerCase();
     final breed = _answers['breed'] as String?;
+    final replies = _getQuickRepliesForQuestion(question);
     final helper = _weightHelperText(species: species, breed: breed);
-
-    final int weightMin;
-    final int weightMax;
-    final int weightStep;
-    final int weightInitial;
-
-    if (species == 'cat') {
-      weightMin = 4;
-      weightMax = 25;
-      weightStep = 1;
-      weightInitial = 10;
-    } else {
-      weightMin = 5;
-      weightMax = 200;
-      weightStep = 5;
-      // Try to start near breed average
-      final range = BreedSizeGuide.expectedAdultWeightLbs(breed);
-      if (range != null) {
-        final mid = ((range.minLbs + range.maxLbs) / 2).round();
-        // Snap to nearest step
-        weightInitial = (mid / weightStep).round() * weightStep;
-      } else {
-        weightInitial = 45;
-      }
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2050,16 +1854,18 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
           ),
           const SizedBox(height: 10),
         ],
-        _HorizontalScrollPicker(
-          min: weightMin,
-          max: weightMax,
-          step: weightStep,
-          initialValue: weightInitial,
-          unit: 'lbs',
-          onChanged: (_) {},
-          onConfirm: (v) {
-            _handleUserResponse(v, displayText: '$v lbs');
-          },
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: replies.map((r) {
+            return _OptionPill(
+              label: r.label,
+              onTap: () => _handleUserResponse(
+                int.tryParse(r.value) ?? r.value,
+                displayText: r.label,
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
@@ -2098,8 +1904,6 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   // ---- Bottom input area -----------------------------------------------
 
   Widget _buildInputArea() {
-    final width = MediaQuery.sizeOf(context).width;
-    final isNarrow = width < 560;
     final question = _questions[_currentQuestion];
 
     // No keyboard input for tappable question types
@@ -2112,32 +1916,27 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     }
 
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        isNarrow ? 16 : 20,
-        8,
-        isNarrow ? 16 : 20,
-        isNarrow ? 24 : 32,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(isNarrow ? 24 : 28),
-            border: Border.all(
-              color: Colors.black.withOpacity(0.06),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F3F2),
+                  borderRadius: BorderRadius.circular(24),
+                ),
                 child: TextField(
                   controller: _textController,
                   focusNode: _focusNode,
@@ -2147,20 +1946,14 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                   textCapitalization: TextCapitalization.words,
                   style: ClovaraTypography.body.copyWith(
                     color: ClovaraColors.forest,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
                   ),
                   decoration: InputDecoration(
-                    hintText: question.placeholder ?? 'Type here\u2026',
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                    ),
+                    hintText: question.placeholder ?? 'Type your answer...',
+                    hintStyle: TextStyle(color: Colors.grey.shade500),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: isNarrow ? 16 : 18,
-                      vertical: isNarrow ? 16 : 14,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
                     ),
                   ),
                   onSubmitted: (value) {
@@ -2168,41 +1961,25 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                   },
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: ClovaraColors.clover,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: ClovaraColors.clover.withOpacity(0.2),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    onPressed: () {
-                      if (_textController.text.isNotEmpty) {
-                        _handleUserResponse(_textController.text);
-                      }
-                    },
-                    icon: const Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              decoration: BoxDecoration(
+                color: ClovaraColors.forest,
+                shape: BoxShape.circle,
               ),
-            ],
-          ),
+              child: IconButton(
+                onPressed: () {
+                  if (_textController.text.isNotEmpty) {
+                    _handleUserResponse(_textController.text);
+                  }
+                },
+                icon: const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 20),
+                padding: const EdgeInsets.all(10),
+                constraints: const BoxConstraints(),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -2230,29 +2007,21 @@ class _OptionPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(999),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
         decoration: BoxDecoration(
           color: selected
-              ? ClovaraColors.forest.withOpacity(0.06)
+              ? ClovaraColors.clover.withOpacity(0.12)
               : Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
-                ? ClovaraColors.forest
-                : Colors.black.withOpacity(0.08),
-            width: selected ? 1.5 : 1,
+                ? ClovaraColors.clover
+                : ClovaraColors.clover.withOpacity(0.22),
+            width: selected ? 1.6 : 1.3,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(selected ? 0.06 : 0.03),
-              blurRadius: selected ? 14 : 8,
-              offset: Offset(0, selected ? 5 : 2),
-            ),
-          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -2260,19 +2029,17 @@ class _OptionPill extends StatelessWidget {
             if (icon != null) ...[
               Icon(
                 selected ? Icons.check_circle : icon,
-                size: 18,
-                color: selected
-                    ? ClovaraColors.forest
-                    : ClovaraColors.forest.withOpacity(0.35),
+                size: 17,
+                color: selected ? ClovaraColors.clover : ClovaraColors.forest.withOpacity(0.7),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
             ],
             Text(
               label,
               style: ClovaraTypography.body.copyWith(
                 color: ClovaraColors.forest,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                fontSize: 15,
+                fontSize: 14,
               ),
             ),
           ],
@@ -2300,27 +2067,10 @@ class _ActionButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
-          gradient: enabled
-              ? LinearGradient(
-                  colors: [
-                    ClovaraColors.clover,
-                    ClovaraColors.clover.withOpacity(0.88),
-                  ],
-                )
-              : null,
-          color: enabled ? null : Colors.grey.shade300,
+          color: enabled ? ClovaraColors.clover : Colors.grey.shade300,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: enabled
-              ? [
-                  BoxShadow(
-                    color: ClovaraColors.clover.withOpacity(0.22),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : [],
         ),
         child: Center(
           child: Text(
@@ -2336,212 +2086,14 @@ class _ActionButton extends StatelessWidget {
     );
   }
 }
+'''
 
-// ---------------------------------------------------------------------------
-// Horizontal scroll picker — ruler-style number selector
-// ---------------------------------------------------------------------------
+path = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'lib', 'screens', 'conversational_quote_flow.dart',
+)
 
-class _HorizontalScrollPicker extends StatefulWidget {
-  final int min;
-  final int max;
-  final int step;
-  final int initialValue;
-  final String unit;
-  final String Function(int)? labelBuilder;
-  final ValueChanged<int> onChanged;
-  final ValueChanged<int> onConfirm;
+with open(path, 'w') as f:
+    f.write(content)
 
-  const _HorizontalScrollPicker({
-    required this.min,
-    required this.max,
-    this.step = 1,
-    required this.initialValue,
-    this.unit = '',
-    this.labelBuilder,
-    required this.onChanged,
-    required this.onConfirm,
-  });
-
-  @override
-  State<_HorizontalScrollPicker> createState() =>
-      _HorizontalScrollPickerState();
-}
-
-class _HorizontalScrollPickerState extends State<_HorizontalScrollPicker> {
-  late final FixedExtentScrollController _controller;
-  late int _selectedValue;
-  late final List<int> _values;
-
-  static const double _itemWidth = 56.0;
-
-  @override
-  void initState() {
-    super.initState();
-    _values = [];
-    for (int v = widget.min; v <= widget.max; v += widget.step) {
-      _values.add(v);
-    }
-    _selectedValue = widget.initialValue.clamp(widget.min, widget.max);
-    // Snap to nearest step
-    final idx = _closestIndex(_selectedValue);
-    _selectedValue = _values[idx];
-    _controller = FixedExtentScrollController(initialItem: idx);
-  }
-
-  int _closestIndex(int value) {
-    int best = 0;
-    int bestDist = (value - _values[0]).abs();
-    for (int i = 1; i < _values.length; i++) {
-      final dist = (value - _values[i]).abs();
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = i;
-      }
-    }
-    return best;
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  String _label(int v) =>
-      widget.labelBuilder != null ? widget.labelBuilder!(v) : '$v';
-
-  @override
-  Widget build(BuildContext context) {
-    final displayLabel = _label(_selectedValue);
-    final displayUnit = widget.unit.isNotEmpty ? ' ${widget.unit}' : '';
-
-    return Column(
-      children: [
-        // Current value display
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 150),
-          child: Text(
-            '$displayLabel$displayUnit',
-            key: ValueKey(_selectedValue),
-            style: ClovaraTypography.h2.copyWith(
-              color: ClovaraColors.forest,
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Scroll picker
-        SizedBox(
-          height: 64,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // The rotated list wheel (horizontal)
-              RotatedBox(
-                quarterTurns: -1,
-                child: SizedBox(
-                  width: 64,
-                  child: ListWheelScrollView.useDelegate(
-                    controller: _controller,
-                    itemExtent: _itemWidth,
-                    diameterRatio: 6.0,
-                    physics: const FixedExtentScrollPhysics(),
-                    perspective: 0.002,
-                    onSelectedItemChanged: (index) {
-                      setState(() => _selectedValue = _values[index]);
-                      widget.onChanged(_values[index]);
-                    },
-                    childDelegate: ListWheelChildBuilderDelegate(
-                      childCount: _values.length,
-                      builder: (context, index) {
-                        final v = _values[index];
-                        final isSelected = v == _selectedValue;
-                        return RotatedBox(
-                          quarterTurns: 1,
-                          child: Center(
-                            child: AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 150),
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: isSelected ? 20 : 14,
-                                fontWeight: isSelected
-                                    ? FontWeight.w800
-                                    : FontWeight.w500,
-                                color: isSelected
-                                    ? ClovaraColors.forest
-                                    : ClovaraColors.forest.withOpacity(0.35),
-                              ),
-                              child: Text(_label(v)),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-
-              // Center highlight indicator
-              IgnorePointer(
-                child: Container(
-                  width: _itemWidth,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    border: Border.symmetric(
-                      vertical: BorderSide(
-                        color: ClovaraColors.forest.withOpacity(0.15),
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        // Swipe hint
-        Text(
-          '← swipe to adjust →',
-          style: ClovaraTypography.bodySmall.copyWith(
-            color: Colors.grey.shade500,
-            fontSize: 11,
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Confirm button
-        SizedBox(
-          width: double.infinity,
-          child: InkWell(
-            onTap: () => widget.onConfirm(_selectedValue),
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: ClovaraColors.clover,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Text(
-                  'Confirm $displayLabel$displayUnit',
-                  style: ClovaraTypography.body.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
+print(f'✅ Wrote {len(content)} chars to {path}')

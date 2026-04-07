@@ -12,8 +12,7 @@ class AppTopNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.offWhite,
-      elevation: 0,
+      color: Colors.white,
       child: Container(
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: AppColors.border)),
@@ -23,30 +22,20 @@ class AppTopNav extends StatelessWidget {
           child: MaxWidth(
             padding: const EdgeInsets.symmetric(horizontal: 18),
             child: SizedBox(
-              height: 64,
+              height: 72,
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final compact = constraints.maxWidth < 820;
+                  final compact = constraints.maxWidth < 960;
                   return Row(
                     children: [
                       InkWell(
                         onTap: () => context.go('/'),
-                        borderRadius: BorderRadius.circular(14),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 8,
-                          ),
-                          child: Row(
-                            children: [
-                              const ClovaraLogoLockup(
-                                compact: true,
-                                boxedMark: false,
-                                markSize: 26,
-                                textSize: 18,
-                                markColor: AppColors.deepGreen,
-                              ),
-                            ],
+                        borderRadius: BorderRadius.circular(16),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: ClovaraLogo(
+                            size: ClovaraLogoSize.medium,
+                            showText: true,
                           ),
                         ),
                       ),
@@ -54,9 +43,10 @@ class AppTopNav extends StatelessWidget {
                       if (!compact) ...[
                         _NavLink(label: 'Coverage', path: '/coverage'),
                         _NavLink(label: 'How it works', path: '/how-it-works'),
-                        _NavLink(label: 'Learn', path: '/learn'),
+                        _NavLink(label: 'Resources', path: '/learn'),
                         _NavLink(label: 'FAQ', path: '/faq'),
-                        const SizedBox(width: 12),
+                        _NavLink(label: 'Contact', path: '/contact'),
+                        const SizedBox(width: 14),
                         SecondaryButton(
                           label: 'Sign in',
                           onPressed: () => context.go('/sign-in'),
@@ -64,7 +54,7 @@ class AppTopNav extends StatelessWidget {
                         const SizedBox(width: 10),
                         PrimaryButton(
                           label: 'Get a quote',
-                          icon: Icons.pets,
+                          icon: Icons.favorite_border_rounded,
                           onPressed: () => context.go('/quote'),
                         ),
                       ] else ...[
@@ -88,7 +78,7 @@ class AppTopNav extends StatelessWidget {
   void _openMenu(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -101,7 +91,7 @@ class AppTopNav extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Explore',
+                  'Explore Clovara',
                   style: Theme.of(context).textTheme.titleLarge!.copyWith(
                     color: AppColors.deepGreen,
                     fontSize: 18,
@@ -110,8 +100,9 @@ class AppTopNav extends StatelessWidget {
                 const SizedBox(height: 12),
                 _SheetLink(label: 'Coverage', path: '/coverage'),
                 _SheetLink(label: 'How it works', path: '/how-it-works'),
-                _SheetLink(label: 'Learn', path: '/learn'),
+                _SheetLink(label: 'Resources', path: '/learn'),
                 _SheetLink(label: 'FAQ', path: '/faq'),
+                _SheetLink(label: 'Contact', path: '/contact'),
                 const SizedBox(height: 10),
                 SecondaryButton(
                   label: 'Sign in',
@@ -123,7 +114,7 @@ class AppTopNav extends StatelessWidget {
                 const SizedBox(height: 10),
                 PrimaryButton(
                   label: 'Get a quote',
-                  icon: Icons.pets,
+                  icon: Icons.favorite_border_rounded,
                   onPressed: () {
                     Navigator.pop(context);
                     context.go('/quote');
@@ -140,6 +131,7 @@ class AppTopNav extends StatelessWidget {
 
 class _NavLink extends StatefulWidget {
   const _NavLink({required this.label, required this.path});
+
   final String label;
   final String path;
 
@@ -158,20 +150,17 @@ class _NavLinkState extends State<_NavLink> {
       onExit: (_) => setState(() => _hover = false),
       child: InkWell(
         onTap: () => context.go(widget.path),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: AnimatedDefaultTextStyle(
             duration: const Duration(milliseconds: 160),
             style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-              fontWeight: FontWeight.w700,
+              fontSize: 15,
               color: selected || _hover
                   ? AppColors.deepGreen
                   : AppColors.textMuted,
-              decoration: _hover
-                  ? TextDecoration.underline
-                  : TextDecoration.none,
-              decorationThickness: 2,
+              fontWeight: FontWeight.w700,
             ),
             child: Text(widget.label),
           ),
@@ -183,6 +172,7 @@ class _NavLinkState extends State<_NavLink> {
 
 class _SheetLink extends StatelessWidget {
   const _SheetLink({required this.label, required this.path});
+
   final String label;
   final String path;
 

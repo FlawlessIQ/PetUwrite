@@ -19,12 +19,25 @@ Authoritative documentation lives in:
 
 - Flutter SDK (3.x)
 - Firebase CLI
-- Node.js (for Cloud Functions)
+- Node.js 20.x (for Cloud Functions)
 
 ### Install and run
 
 - `flutter pub get`
+- Copy `.env.example` to `.env.local` if you need backend/script environment variables
+- `cd functions && npm install && cd ..`
 - `flutter run -d chrome` (or your preferred device)
+
+Functions note:
+
+- The Functions workspace is pinned to Node 20 via [functions/package.json](functions/package.json)
+- A matching local version hint is checked in via [.nvmrc](.nvmrc)
+
+Android note:
+
+- This workspace does not include `android/app/google-services.json`
+- For Android runs, pass Firebase values via `--dart-define` or regenerate `lib/firebase_options.dart`
+- See [docs/setup/ENV_SETUP_GUIDE.md](docs/setup/ENV_SETUP_GUIDE.md)
 
 ### Cloud Functions
 

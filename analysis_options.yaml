@@ -10,8 +10,6 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
-  exclude:
-    - lib/auth/customer_home_screen_old_backup.dart
   # The project currently has a sizable lint backlog (legacy prints, deprecated
   # APIs, etc.). Keep analysis strict for actual compile-time issues, but don't
   # fail CI on non-critical lints until they're cleaned up.

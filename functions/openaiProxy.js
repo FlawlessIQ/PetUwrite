@@ -374,6 +374,49 @@ async function processClaimDecisionCore({
   const attachments = normalizeStringArray(claim.attachments);
   const inputHash = computeAutomationInputHash(claim);
 
+  // ── Deduplication guard ──────────────────────────────────────────────
+  // If another invocation (callable or Firestore trigger) already
+  // processed this exact input hash recently, return the cached result
+  // instead of making a duplicate AI call.
+  const existingAutomation = claim.automation || {};
+  if (
+    existingAutomation.inputHash === inputHash &&
+    existingAutomation.lastDecision &&
+    existingAutomation.lastDecision !== "pending_extraction"
+  ) {
+    const lastProcessed = existingAutomation.lastProcessedAt;
+    const lastProcessedMs = lastProcessed?.toMillis
+      ? lastProcessed.toMillis()
+      : (lastProcessed?._seconds ? lastProcessed._seconds * 1000 : 0);
+    const ageMs = Date.now() - lastProcessedMs;
+    // If processed within the last 60 seconds, skip (race-condition window).
+    if (ageMs < 60_000) {
+      console.log(
+        `processClaimDecisionCore: skipping duplicate for ${claimId} ` +
+        `(inputHash=${inputHash.slice(0, 8)}… age=${ageMs}ms)`
+      );
+      return {
+        success: true,
+        claimId,
+        skipped: true,
+        reason: "duplicate_input_hash",
+        decision: {
+          decision: existingAutomation.lastDecision,
+          confidence: claim.aiConfidenceScore ?? 0,
+          reasoning: claim.aiReasoningExplanation?.explanation || "",
+          denialReason: claim.aiReasoningExplanation?.denialReason || null,
+          requiredDocuments: claim.aiReasoningExplanation?.requiredDocuments || [],
+          questionsForCustomer: claim.aiReasoningExplanation?.questionsForCustomer || [],
+          discrepancies: claim.aiReasoningExplanation?.discrepancies || [],
+          flagsForReview: claim.aiReasoningExplanation?.flagsForReview || [],
+        },
+        status: status,
+        modelUsed: existingAutomation.modelUsed || null,
+        provider: existingAutomation.provider || null,
+      };
+    }
+  }
+
   async function hydrateStructuredAttachmentsFromUrls() {
     if (!attachments.length) return 0;
 

@@ -43,6 +43,7 @@ class CheckoutScreen extends StatefulWidget {
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final GlobalKey<owner_details.OwnerDetailsScreenState> _ownerDetailsKey =
       GlobalKey<owner_details.OwnerDetailsScreenState>();
+  final PaymentScreenController _paymentController = PaymentScreenController();
 
   @override
   void initState() {
@@ -384,8 +385,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Widget _buildBottomCTA(CheckoutProvider provider) {
     if (provider.currentStep == CheckoutStep.ownerDetails) {
+      final petName = provider.pet?.name;
       return PinnedCTABar(
-        primaryText: 'Continue to Payment',
+        primaryText: petName != null ? "Secure $petName's coverage" : 'Continue to Payment',
         onPrimaryPressed: () {
           // Use GlobalKey to access the owner details screen's state
           final ownerDetailsState = _ownerDetailsKey.currentState;
@@ -431,106 +433,86 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     BuildContext context,
     CheckoutProvider provider,
   ) async {
-    // Similar to above - payment logic should be in PaymentScreen
-    // This is just the navigation trigger
-    provider.nextStep();
+    try {
+      await _paymentController.submit();
+    } on StateError {
+      provider.setError('Payment form is still loading. Please try again.');
+    }
   }
 
   Widget _buildBrandedHeader(CheckoutProvider provider) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
       decoration: BoxDecoration(
         color: AppColors.surface1,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          // Top Bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Back Button
-              if (provider.currentStep != CheckoutStep.confirmation)
+          // Back Button
+          if (provider.currentStep != CheckoutStep.confirmation)
+            IconButton(
+              icon: const Icon(
+                Icons.arrow_back,
+                color: AppColors.textMuted,
+                size: 20,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            )
+          else
+            const SizedBox(width: 20),
+
+          // Logo centered
+          Expanded(
+            child: Center(
+              child: ClovaraLogo(
+                size: ClovaraLogoSize.small,
+                showText: true,
+              ),
+            ),
+          ),
+
+          // Actions
+          if (provider.currentStep != CheckoutStep.confirmation)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 IconButton(
+                  tooltip: 'Save & resume later',
                   icon: const Icon(
-                    Icons.arrow_back,
-                    color: AppColors.textMuted,
-                    size: 24,
+                    Icons.bookmark_border_rounded,
+                    color: AppColors.deepGreen,
+                    size: 20,
                   ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  onPressed: () => _showSaveResumeCode(context),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                )
-              else
-                const SizedBox(width: 24),
-
-              // Logo/Title
-              Expanded(
-                child: Center(
-                  child: ClovaraLogoLockup(
-                    compact: false,
-                    boxedMark: true,
-                    markSize: 40,
-                    textSize: 32,
-                  ),
                 ),
-              ),
-
-              // Actions
-              if (provider.currentStep != CheckoutStep.confirmation)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Save Button
-                    IconButton(
-                      tooltip: 'Save & resume later',
-                      icon: const Icon(
-                        Icons.bookmark_border_rounded,
-                        color: AppColors.deepGreen,
-                        size: 24,
-                      ),
-                      onPressed: () => _showSaveResumeCode(context),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 16),
-                    // Close Button
-                    IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        color: AppColors.textMuted,
-                        size: 24,
-                      ),
-                      onPressed: () => _handleExit(context),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                )
-              else
-                const SizedBox(width: 24),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-
-          // Current Step Title
-          Text(
-            provider.getStepName(provider.currentStep),
-            style: ClovaraTypography.h3.copyWith(
-              color: AppColors.green,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
-          ),
+                const SizedBox(width: 12),
+                IconButton(
+                  icon: const Icon(
+                    Icons.close,
+                    color: AppColors.textMuted,
+                    size: 20,
+                  ),
+                  onPressed: () => _handleExit(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            )
+          else
+            const SizedBox(width: 20),
         ],
       ),
     );
@@ -538,16 +520,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Widget _buildStepIndicator(CheckoutProvider provider) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
       ),
       child: Column(
         children: [
@@ -565,24 +541,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     Expanded(
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
-                        height: 4,
+                        height: 3,
                         decoration: BoxDecoration(
                           color: isActive
                               ? ClovaraColors.clover
-                              : Colors.grey.shade300,
+                              : Colors.grey.shade200,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                     ),
                     if (index < CheckoutStep.values.length - 1)
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                   ],
                 ),
               );
             }),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
           // Step circles
           Row(
@@ -609,6 +585,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  IconData _stepMaterialIcon(CheckoutStep step) {
+    switch (step) {
+      case CheckoutStep.review:
+        return Icons.fact_check_outlined;
+      case CheckoutStep.ownerDetails:
+        return Icons.person_outline;
+      case CheckoutStep.payment:
+        return Icons.credit_card_outlined;
+      case CheckoutStep.confirmation:
+        return Icons.verified_outlined;
+    }
+  }
+
   Widget _buildStepItem({
     required CheckoutStep step,
     required bool isActive,
@@ -617,7 +606,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     required CheckoutProvider provider,
   }) {
     final stepName = provider.getStepName(step);
-    final stepIcon = provider.getStepIcon(step);
 
     Color circleColor;
     Color iconColor;
@@ -641,44 +629,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: isCurrent ? 48 : 40,
-          height: isCurrent ? 48 : 40,
+          duration: const Duration(milliseconds: 250),
+          width: isCurrent ? 36 : 30,
+          height: isCurrent ? 36 : 30,
           decoration: BoxDecoration(
             color: circleColor,
             shape: BoxShape.circle,
             boxShadow: isCurrent
                 ? [
                     BoxShadow(
-                      color: ClovaraColors.clover.withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      color: ClovaraColors.clover.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
                   ]
                 : [],
           ),
           child: Center(
             child: isPast
-                ? Icon(Icons.check_rounded, color: iconColor, size: 24)
-                : Text(
-                    stepIcon,
-                    style: TextStyle(
-                      fontSize: isCurrent ? 22 : 20,
-                      color: iconColor,
-                    ),
-                  ),
+                ? Icon(Icons.check_rounded, color: iconColor, size: 16)
+                : Icon(_stepMaterialIcon(step), color: iconColor, size: isCurrent ? 17 : 15),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 5),
         Text(
           stepName,
           style: TextStyle(
-            fontSize: 12,
-            fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+            fontSize: 11,
+            fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
             color: textColor,
           ),
           textAlign: TextAlign.center,
-          maxLines: 2,
+          maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
       ],
@@ -734,7 +716,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         content = owner_details.OwnerDetailsScreen(key: _ownerDetailsKey);
         break;
       case CheckoutStep.payment:
-        content = const PaymentScreen();
+        content = PaymentScreen(controller: _paymentController);
         break;
       case CheckoutStep.confirmation:
         content = const ConfirmationScreen();

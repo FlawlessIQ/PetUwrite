@@ -27,12 +27,19 @@ class HeroStage extends StatelessWidget {
       child: Stack(
         children: [
           const Positioned.fill(child: _AuroraMeshBackground()),
-          const _NoiseOverlay(opacity: 0.05),
+          const _NoiseOverlay(opacity: 0.035),
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: radius,
                 border: Border.all(color: AppColors.borderTint),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x140B241D),
+                    blurRadius: 32,
+                    offset: Offset(0, 18),
+                  ),
+                ],
               ),
             ),
           ),
@@ -68,11 +75,7 @@ class HeroStage extends StatelessWidget {
                 if (bottom == null) return row;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    row,
-                    const SizedBox(height: 16),
-                    bottom!,
-                  ],
+                  children: [row, const SizedBox(height: 16), bottom!],
                 );
               },
             ),
@@ -92,9 +95,7 @@ class _AuroraMeshBackground extends StatelessWidget {
       children: [
         Positioned.fill(
           child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: AppColors.auroraGradient,
-            ),
+            decoration: BoxDecoration(gradient: AppColors.auroraGradient),
           ),
         ),
         Positioned.fill(
@@ -104,7 +105,7 @@ class _AuroraMeshBackground extends StatelessWidget {
                 center: const Alignment(-0.6, -0.8),
                 radius: 1.2,
                 colors: [
-                  AppColors.deepGreen.withOpacity(0.10),
+                  AppColors.deepGreen.withOpacity(0.12),
                   Colors.transparent,
                 ],
               ),
@@ -118,7 +119,7 @@ class _AuroraMeshBackground extends StatelessWidget {
                 center: const Alignment(0.9, 0.2),
                 radius: 1.0,
                 colors: [
-                  AppColors.accentOrange.withOpacity(0.10),
+                  AppColors.signalBlue.withOpacity(0.10),
                   Colors.transparent,
                 ],
               ),
@@ -128,7 +129,7 @@ class _AuroraMeshBackground extends StatelessWidget {
         Positioned.fill(
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: AppColors.surface.withOpacity(0.70),
+              color: AppColors.surface.withOpacity(0.78),
             ),
           ),
         ),
@@ -146,9 +147,7 @@ class _NoiseOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: IgnorePointer(
-        child: CustomPaint(
-          painter: _NoisePainter(opacity: opacity),
-        ),
+        child: CustomPaint(painter: _NoisePainter(opacity: opacity)),
       ),
     );
   }
@@ -168,7 +167,7 @@ class _NoisePainter extends CustomPainter {
     for (int i = 0; i < count; i++) {
       final dx = rnd.nextDouble() * size.width;
       final dy = rnd.nextDouble() * size.height;
-      final r = rnd.nextDouble() * 0.9 + 0.2;
+      final r = rnd.nextDouble() * 0.7 + 0.2;
       canvas.drawCircle(Offset(dx, dy), r, paint);
     }
   }

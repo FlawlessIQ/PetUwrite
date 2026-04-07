@@ -4,7 +4,7 @@ class MaxWidth extends StatelessWidget {
   const MaxWidth({
     super.key,
     required this.child,
-    this.maxWidth = 1160,
+    this.maxWidth = 1120,
     this.padding = const EdgeInsets.symmetric(horizontal: 20),
   });
 

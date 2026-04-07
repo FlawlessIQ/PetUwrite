@@ -34,17 +34,31 @@ class _PremiumCardState extends State<PremiumCard> {
     final borderColor = _focus
         ? AppColors.green.withOpacity(0.45)
         : (_hover && interactive)
-            ? AppColors.borderTint
-            : AppColors.border;
+        ? AppColors.borderTint
+        : AppColors.border;
 
     final shadows = !widget.showShadow
         ? const <BoxShadow>[]
         : (_hover && interactive)
-            ? AppShadows.hover
-            : AppShadows.soft;
+        ? const [
+            BoxShadow(
+              color: Color(0x220B241D),
+              blurRadius: 30,
+              offset: Offset(0, 18),
+            ),
+          ]
+        : const [
+            BoxShadow(
+              color: Color(0x140B241D),
+              blurRadius: 20,
+              offset: Offset(0, 10),
+            ),
+          ];
 
     return FocusableActionDetector(
-      mouseCursor: interactive ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      mouseCursor: interactive
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
       onShowHoverHighlight: (v) => setState(() => _hover = v),
       onShowFocusHighlight: (v) => setState(() => _focus = v),
       child: AnimatedScale(
@@ -65,10 +79,7 @@ class _PremiumCardState extends State<PremiumCard> {
             child: InkWell(
               borderRadius: widget.radius,
               onTap: widget.onTap,
-              child: Padding(
-                padding: widget.padding,
-                child: widget.child,
-              ),
+              child: Padding(padding: widget.padding, child: widget.child),
             ),
           ),
         ),

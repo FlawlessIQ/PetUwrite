@@ -298,9 +298,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ClovaraLogoLockup(
-            markSize: isMobile ? 40 : 56,
-            textSize: isMobile ? 32 : 48,
+          ClovaraLogo(
+            size: isMobile ? ClovaraLogoSize.medium : ClovaraLogoSize.large,
+            showText: true,
           ),
         ],
       ),

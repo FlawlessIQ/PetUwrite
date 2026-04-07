@@ -55,6 +55,16 @@ class Policy {
   }
   
   factory Policy.fromJson(Map<String, dynamic> json) {
+    final rawStatus = json['status']?.toString().trim() ?? '';
+    final normalizedStatus = rawStatus.toLowerCase().startsWith('policystatus.')
+        ? rawStatus.substring('PolicyStatus.'.length)
+        : rawStatus;
+    final rawPaymentSchedule = json['paymentSchedule']?.toString().trim() ?? '';
+    final normalizedPaymentSchedule =
+        rawPaymentSchedule.toLowerCase().startsWith('paymentschedule.')
+            ? rawPaymentSchedule.substring('PaymentSchedule.'.length)
+            : rawPaymentSchedule;
+
     return Policy(
       id: json['id'] as String,
       policyNumber: json['policyNumber'] as String,
@@ -66,11 +76,16 @@ class Policy {
       effectiveDate: DateTime.parse(json['effectiveDate'] as String),
       expirationDate: DateTime.parse(json['expirationDate'] as String),
       status: PolicyStatus.values.firstWhere(
-        (e) => e.toString() == json['status'],
+        (e) =>
+            e.toString() == rawStatus ||
+            e.name.toLowerCase() == normalizedStatus.toLowerCase(),
         orElse: () => PolicyStatus.pending,
       ),
       paymentSchedule: PaymentSchedule.values.firstWhere(
-        (e) => e.toString() == json['paymentSchedule'],
+        (e) =>
+            e.toString() == rawPaymentSchedule ||
+            e.name.toLowerCase() ==
+                normalizedPaymentSchedule.toLowerCase(),
         orElse: () => PaymentSchedule.monthly,
       ),
       claims: (json['claims'] as List<dynamic>?)

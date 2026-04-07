@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../tokens.dart';
 
@@ -27,7 +28,18 @@ class PrimaryButton extends StatelessWidget {
         gradient: enabled ? AppColors.ctaGradient : null,
         color: enabled ? null : AppColors.borderStrong,
         borderRadius: AppRadii.br16,
-        boxShadow: enabled ? AppShadows.soft : null,
+        border: enabled
+            ? Border.all(color: AppColors.greenDark.withOpacity(0.16))
+            : null,
+        boxShadow: enabled
+            ? const [
+                BoxShadow(
+                  color: Color(0x1F126B4D),
+                  blurRadius: 18,
+                  offset: Offset(0, 8),
+                ),
+              ]
+            : null,
       ),
       child: ElevatedButton(
         onPressed: enabled ? onPressed : null,
@@ -36,10 +48,15 @@ class PrimaryButton extends StatelessWidget {
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
               shape: const RoundedRectangleBorder(borderRadius: AppRadii.br16),
               textStyle:
-                  textStyle ?? const TextStyle(fontWeight: FontWeight.w700),
+                  textStyle ??
+                  GoogleFonts.publicSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    letterSpacing: 0.1,
+                  ),
             ).copyWith(
               overlayColor: WidgetStateProperty.all(
                 Colors.white.withOpacity(0.10),
@@ -105,10 +122,15 @@ class SecondaryButton extends StatelessWidget {
       style:
           OutlinedButton.styleFrom(
             foregroundColor: AppColors.deepGreen,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            backgroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
             side: const BorderSide(color: AppColors.borderStrong),
             shape: const RoundedRectangleBorder(borderRadius: AppRadii.br16),
-            textStyle: const TextStyle(fontWeight: FontWeight.w700),
+            textStyle: GoogleFonts.publicSans(
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              letterSpacing: 0.1,
+            ),
           ).copyWith(
             overlayColor: WidgetStateProperty.all(
               AppColors.green.withOpacity(0.08),
@@ -160,7 +182,7 @@ class _TextLinkState extends State<TextLink> {
             duration: const Duration(milliseconds: 160),
             style: Theme.of(context).textTheme.bodyMedium!.copyWith(
               color: AppColors.deepGreen,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               decoration: _hover
                   ? TextDecoration.underline
                   : TextDecoration.none,

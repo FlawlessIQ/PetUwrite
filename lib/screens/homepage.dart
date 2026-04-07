@@ -467,29 +467,9 @@ class Homepage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Logo
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: ClovaraColors.mist,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: ClovaraColors.clover.withOpacity(0.3),
-                width: 2,
-              ),
-            ),
-            child: ClovaraMark(size: isMobile ? 40 : 56),
-          ),
-          const SizedBox(width: 16),
-          // Brand name
-          Text(
-            'Clovara',
-            style: ClovaraTypography.h1.copyWith(
-              color: ClovaraColors.forest,
-              fontSize: isMobile ? 32 : 48,
-              fontWeight: FontWeight.bold,
-              letterSpacing: -1,
-            ),
+          ClovaraLogo(
+            size: isMobile ? ClovaraLogoSize.medium : ClovaraLogoSize.large,
+            showText: true,
           ),
         ],
       ),

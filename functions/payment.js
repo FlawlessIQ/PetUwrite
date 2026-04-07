@@ -30,6 +30,10 @@ function getStripeClient() {
   return require("stripe")(key);
 }
 
+function getStripeApiVersion() {
+  return process.env.STRIPE_API_VERSION || "2024-06-20";
+}
+
 exports.createPaymentIntent = onCall(async (request) => {
   const uid = request.auth?.uid;
   if (!uid) {
@@ -40,7 +44,13 @@ exports.createPaymentIntent = onCall(async (request) => {
   }
 
   const data = request.data || {};
-  const {amount, currency = "usd", policyId, metadata = {}} = data;
+  const {
+    amount,
+    currency = "usd",
+    policyId,
+    metadata = {},
+    email,
+  } = data;
 
   // Validate inputs
   if (!amount || typeof amount !== "number" || amount <= 0) {
@@ -54,7 +64,13 @@ exports.createPaymentIntent = onCall(async (request) => {
   try {
     // Get or create Stripe customer
     const stripe = getStripeClient();
-    const customerId = await getOrCreateStripeCustomer(stripe, uid);
+    const customerId = await getOrCreateStripeCustomer(stripe, uid, {
+      emailHint: typeof email === "string" ? email.trim() : null,
+    });
+    const ephemeralKey = await stripe.ephemeralKeys.create(
+      {customer: customerId},
+      {apiVersion: getStripeApiVersion()},
+    );
 
     // Create PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
@@ -90,7 +106,9 @@ exports.createPaymentIntent = onCall(async (request) => {
     return {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
+      paymentIntent: paymentIntent.id,
       customerId: customerId,
+      ephemeralKey: ephemeralKey.secret,
       amount: paymentIntent.amount,
       currency: paymentIntent.currency,
     };
@@ -104,16 +122,12 @@ exports.createPaymentIntent = onCall(async (request) => {
 /**
  * Get or create Stripe customer for a user
  * @param {string} userId - Firebase user ID
+ * @param {object} options - optional hints for bootstrap
  * @returns {string} Stripe customer ID
  */
-async function getOrCreateStripeCustomer(stripe, userId) {
+async function getOrCreateStripeCustomer(stripe, userId, options = {}) {
   const userDoc = await admin.firestore().collection("users").doc(userId).get();
-  
-  if (!userDoc.exists) {
-    throw new HttpsError("not-found", "User profile not found");
-  }
-
-  const userData = userDoc.data();
+  const userData = userDoc.exists ? (userDoc.data() || {}) : {};
 
   // Check if customer already exists
   if (userData.stripeCustomerId) {
@@ -122,7 +136,7 @@ async function getOrCreateStripeCustomer(stripe, userId) {
 
   // Create new Stripe customer
   const customer = await stripe.customers.create({
-    email: userData.email || null,
+    email: userData.email || options.emailHint || null,
     metadata: {
       userId,
       firebaseUid: userId,
@@ -130,15 +144,134 @@ async function getOrCreateStripeCustomer(stripe, userId) {
   });
 
   // Save customer ID to user profile
-  await admin.firestore().collection("users").doc(userId).update({
+  await admin.firestore().collection("users").doc(userId).set({
     stripeCustomerId: customer.id,
+    ...(userData.email || !options.emailHint ? {} : {email: options.emailHint}),
     updatedAt: FieldValue.serverTimestamp(),
-  });
+  }, {merge: true});
 
   logger.info("Created Stripe customer", {customerId: customer.id, uid: userId});
 
   return customer.id;
 }
+
+exports.createCustomer = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  try {
+    const stripe = getStripeClient();
+    const customerId = await getOrCreateStripeCustomer(stripe, uid, {
+      emailHint: typeof request.data?.email === "string" ?
+        request.data.email.trim() :
+        null,
+    });
+    return {customerId};
+  } catch (error) {
+    logger.error("Error creating customer", {error: error?.message ?? String(error)});
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("internal", `Failed to create customer: ${error?.message ?? String(error)}`);
+  }
+});
+
+exports.createSubscription = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const data = request.data || {};
+  const {priceId, policyId, email} = data;
+
+  if (!priceId || typeof priceId !== "string") {
+    throw new HttpsError("invalid-argument", "priceId is required");
+  }
+
+  if (!policyId || typeof policyId !== "string") {
+    throw new HttpsError("invalid-argument", "policyId is required");
+  }
+
+  try {
+    const stripe = getStripeClient();
+    const customerId = await getOrCreateStripeCustomer(stripe, uid, {
+      emailHint: typeof email === "string" ? email.trim() : null,
+    });
+    const ephemeralKey = await stripe.ephemeralKeys.create(
+      {customer: customerId},
+      {apiVersion: getStripeApiVersion()},
+    );
+
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{price: priceId}],
+      payment_behavior: "default_incomplete",
+      payment_settings: {save_default_payment_method: "on_subscription"},
+      expand: ["latest_invoice.payment_intent"],
+      metadata: {
+        userId: uid,
+        policyId,
+      },
+    });
+
+    const paymentIntent = subscription.latest_invoice &&
+      subscription.latest_invoice.payment_intent;
+    const clientSecret = paymentIntent && paymentIntent.client_secret;
+
+    if (!clientSecret) {
+      throw new HttpsError(
+        "internal",
+        "Stripe subscription did not return a client secret",
+      );
+    }
+
+    return {
+      subscriptionId: subscription.id,
+      customerId,
+      ephemeralKey: ephemeralKey.secret,
+      clientSecret,
+    };
+  } catch (error) {
+    logger.error("Error creating subscription", {error: error?.message ?? String(error)});
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("internal", `Failed to create subscription: ${error?.message ?? String(error)}`);
+  }
+});
+
+exports.cancelSubscription = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const subscriptionId = request.data?.subscriptionId;
+  if (!subscriptionId || typeof subscriptionId !== "string") {
+    throw new HttpsError("invalid-argument", "subscriptionId is required");
+  }
+
+  try {
+    const stripe = getStripeClient();
+    const customerId = await getOrCreateStripeCustomer(stripe, uid);
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    if (subscription.customer !== customerId) {
+      throw new HttpsError(
+        "permission-denied",
+        "Subscription does not belong to the authenticated user",
+      );
+    }
+
+    const canceled = await stripe.subscriptions.cancel(subscriptionId);
+    return {
+      subscriptionId: canceled.id,
+      status: canceled.status,
+    };
+  } catch (error) {
+    logger.error("Error canceling subscription", {error: error?.message ?? String(error)});
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("internal", `Failed to cancel subscription: ${error?.message ?? String(error)}`);
+  }
+});
 
 /**
  * Confirm Payment Intent status (webhook or manual check)

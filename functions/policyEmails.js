@@ -1,17 +1,19 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-const {FieldValue} = require('firebase-admin/firestore');
-const nodemailer = require('nodemailer');
-const PDFDocument = require('pdfkit');
-const { Storage } = require('@google-cloud/storage');
+const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
+const logger = require("firebase-functions/logger");
+const admin = require("firebase-admin");
+const {FieldValue} = require("firebase-admin/firestore");
+const nodemailer = require("nodemailer");
+const PDFDocument = require("pdfkit");
+const {Storage} = require("@google-cloud/storage");
 
-// Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
 const db = admin.firestore();
 const storage = new Storage();
+const POLICY_EMAIL_LOG_PREFIX = "policy_activation_";
 
 function getStorageBucketName() {
   const explicit = process.env.STORAGE_BUCKET;
@@ -25,304 +27,267 @@ function getStorageBucketName() {
     if (!raw) return undefined;
     const parsed = JSON.parse(raw);
     return parsed?.storageBucket;
-  } catch (e) {
+  } catch (_) {
     return undefined;
   }
 }
 
-// Configure email transporter (using SendGrid as example)
-const transporter = nodemailer.createTransport({
-  host: 'smtp.sendgrid.net',
-  port: 587,
-  auth: {
-    user: 'apikey',
-    pass: process.env.SENDGRID_API_KEY,
-  },
-});
-
-/**
- * Cloud Function to send policy email with PDF attachment
- */
-exports.sendPolicyEmail = functions.https.onCall(async (data, context) => {
-  try {
-    // Verify authentication
-    if (!context.auth) {
-      throw new functions.https.HttpsError(
-        'unauthenticated',
-        'User must be authenticated'
-      );
-    }
-
-    const {
-      policyId,
-      policyNumber,
-      recipientEmail,
-      recipientName,
-      policyData,
-    } = data;
-
-    // Validate required fields
-    if (!policyId || !recipientEmail || !policyData) {
-      throw new functions.https.HttpsError(
-        'invalid-argument',
-        'Missing required fields'
-      );
-    }
-
-    // Generate PDF
-    const pdfBuffer = await generatePolicyPDFBuffer(policyData);
-
-    // Email content
-    const mailOptions = {
-      from: 'Pet Underwriter AI <noreply@petunderwriter.ai>',
-      to: recipientEmail,
-      subject: `Your Pet Insurance Policy - ${policyNumber}`,
-      html: getPolicyEmailTemplate(recipientName, policyData),
-      attachments: [
-        {
-          filename: `Policy_${policyNumber}.pdf`,
-          content: pdfBuffer,
-          contentType: 'application/pdf',
-        },
-      ],
-    };
-
-    // Send email
-    await transporter.sendMail(mailOptions);
-
-    // Log email sent
-    await db.collection('email_logs').add({
-      policyId,
-      recipientEmail,
-      subject: mailOptions.subject,
-      sentAt: FieldValue.serverTimestamp(),
-      status: 'sent',
-    });
-
-    return { success: true, message: 'Email sent successfully' };
-  } catch (error) {
-    console.error('Error sending policy email:', error);
-    throw new functions.https.HttpsError('internal', error.message);
+function getSendGridApiKey() {
+  if (process.env.SENDGRID_API_KEY) {
+    return process.env.SENDGRID_API_KEY;
   }
-});
 
-/**
- * Cloud Function to generate policy PDF
- */
-exports.generatePolicyPDF = functions.https.onCall(async (data, context) => {
   try {
-    // Verify authentication
-    if (!context.auth) {
-      throw new functions.https.HttpsError(
-        'unauthenticated',
-        'User must be authenticated'
-      );
-    }
-
-    const { policyId, policyNumber, policyData } = data;
-
-    if (!policyId || !policyData) {
-      throw new functions.https.HttpsError(
-        'invalid-argument',
-        'Missing required fields'
-      );
-    }
-
-    // Generate PDF
-    const pdfBuffer = await generatePolicyPDFBuffer(policyData);
-
-    // Upload to Firebase Storage
-    const bucketName = getStorageBucketName();
-    if (!bucketName) {
-      throw new functions.https.HttpsError(
-        'failed-precondition',
-        'Missing storage bucket configuration (set STORAGE_BUCKET env var or storageBucket in FIREBASE_CONFIG)'
-      );
-    }
-
-    const bucket = storage.bucket(bucketName);
-    const fileName = `policies/${policyId}/${policyNumber}.pdf`;
-    const file = bucket.file(fileName);
-
-    await file.save(pdfBuffer, {
-      metadata: {
-        contentType: 'application/pdf',
-        metadata: {
-          policyId,
-          policyNumber,
-          createdAt: new Date().toISOString(),
-        },
-      },
-    });
-
-    // Make file publicly accessible (or use signed URL for private access)
-    const [url] = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    // Update policy document with PDF URL
-    await db.collection('policies').doc(policyId).update({
-      pdfUrl: url,
-      pdfGeneratedAt: FieldValue.serverTimestamp(),
-    });
-
-    return { success: true, pdfUrl: url };
-  } catch (error) {
-    console.error('Error generating policy PDF:', error);
-    throw new functions.https.HttpsError('internal', error.message);
+    const functions = require("firebase-functions");
+    return functions.config()?.sendgrid?.key || null;
+  } catch (_) {
+    return null;
   }
-});
+}
 
-/**
- * Generate PDF buffer from policy data
- */
+function createTransporter() {
+  const apiKey = getSendGridApiKey();
+  if (!apiKey) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host: "smtp.sendgrid.net",
+    port: 587,
+    auth: {
+      user: "apikey",
+      pass: apiKey,
+    },
+  });
+}
+
+function toDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value?.toDate === "function") return value.toDate();
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDate(value) {
+  const date = toDate(value);
+  return date ? date.toLocaleDateString("en-US") : "TBD";
+}
+
+function asNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function asStringArray(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+      .map((item) => (item == null ? "" : String(item).trim()))
+      .filter(Boolean);
+}
+
+function fullName(owner) {
+  const first = (owner?.firstName || "").toString().trim();
+  const last = (owner?.lastName || "").toString().trim();
+  return [first, last].filter(Boolean).join(" ").trim();
+}
+
+function normalizePolicyData(policyData) {
+  const owner = policyData?.owner && typeof policyData.owner === "object" ?
+    policyData.owner :
+    {};
+  const pet = policyData?.pet && typeof policyData.pet === "object" ?
+    policyData.pet :
+    {};
+  const plan = policyData?.plan && typeof policyData.plan === "object" ?
+    policyData.plan :
+    {};
+
+  return {
+    ...policyData,
+    policyNumber: policyData?.policyNumber || "Pending",
+    owner: {
+      firstName: owner.firstName || "",
+      lastName: owner.lastName || "",
+      email: owner.email || "",
+      phone: owner.phone || owner.phoneNumber || "",
+      addressLine1: owner.addressLine1 || owner.address?.street || "",
+      addressLine2: owner.addressLine2 || "",
+      city: owner.city || owner.address?.city || "",
+      state: owner.state || owner.address?.state || "",
+      zipCode: owner.zipCode || owner.address?.zipCode || owner.address?.zip || "",
+    },
+    pet: {
+      name: pet.name || "Pet",
+      species: pet.species || "Unknown",
+      breed: pet.breed || "Unknown",
+      age: asNumber(pet.age, 0),
+      gender: pet.gender || "Unknown",
+      weight: asNumber(pet.weight, 0),
+    },
+    plan: {
+      name: plan.name || plan.type || "Clovara Policy",
+      monthlyPremium: asNumber(plan.monthlyPremium, 0),
+      annualDeductible: asNumber(plan.annualDeductible, 0),
+      coPayPercentage: asNumber(plan.coPayPercentage, 20),
+      maxAnnualCoverage: plan.maxAnnualCoverage == null ?
+        null :
+        asNumber(plan.maxAnnualCoverage, 0),
+      features: asStringArray(plan.features),
+      exclusions: asStringArray(plan.exclusions),
+    },
+    effectiveDate: toDate(policyData?.effectiveDate),
+    expirationDate: toDate(policyData?.expirationDate),
+  };
+}
+
+function getPolicyEmailLogId(policyId) {
+  return `${POLICY_EMAIL_LOG_PREFIX}${policyId}`;
+}
+
 async function generatePolicyPDFBuffer(policyData) {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: 'LETTER', margin: 50 });
+      const normalized = normalizePolicyData(policyData);
+      const doc = new PDFDocument({size: "LETTER", margin: 50});
       const buffers = [];
 
-      doc.on('data', buffers.push.bind(buffers));
-      doc.on('end', () => {
-        const pdfBuffer = Buffer.concat(buffers);
-        resolve(pdfBuffer);
-      });
-
-      // Header
-      doc
-        .fontSize(24)
-        .fillColor('#1E40AF')
-        .text('Pet Insurance Policy', { align: 'center' })
-        .moveDown();
+      doc.on("data", buffers.push.bind(buffers));
+      doc.on("end", () => resolve(Buffer.concat(buffers)));
 
       doc
-        .fontSize(12)
-        .fillColor('#000000')
-        .text(`Policy Number: ${policyData.policyNumber}`, { align: 'center' })
-        .moveDown(2);
-
-      // Policy Holder Information
-      doc
-        .fontSize(16)
-        .fillColor('#1E40AF')
-        .text('Policy Holder Information')
-        .moveDown(0.5);
+          .fontSize(24)
+          .fillColor("#1E40AF")
+          .text("Pet Insurance Policy", {align: "center"})
+          .moveDown();
 
       doc
-        .fontSize(12)
-        .fillColor('#000000')
-        .text(`Name: ${policyData.owner.firstName} ${policyData.owner.lastName}`)
-        .text(`Email: ${policyData.owner.email}`)
-        .text(`Phone: ${policyData.owner.phone}`)
-        .text(
-          `Address: ${policyData.owner.addressLine1}${
-            policyData.owner.addressLine2 ? ', ' + policyData.owner.addressLine2 : ''
-          }`
-        )
-        .text(
-          `         ${policyData.owner.city}, ${policyData.owner.state} ${policyData.owner.zipCode}`
-        )
-        .moveDown(2);
-
-      // Pet Information
-      doc
-        .fontSize(16)
-        .fillColor('#1E40AF')
-        .text('Insured Pet Information')
-        .moveDown(0.5);
+          .fontSize(12)
+          .fillColor("#000000")
+          .text(`Policy Number: ${normalized.policyNumber}`, {align: "center"})
+          .moveDown(2);
 
       doc
-        .fontSize(12)
-        .fillColor('#000000')
-        .text(`Name: ${policyData.pet.name}`)
-        .text(`Species: ${policyData.pet.species}`)
-        .text(`Breed: ${policyData.pet.breed}`)
-        .text(`Age: ${policyData.pet.age} years`)
-        .text(`Gender: ${policyData.pet.gender}`)
-        .text(`Weight: ${policyData.pet.weight} lbs`)
-        .moveDown(2);
-
-      // Coverage Details
-      doc
-        .fontSize(16)
-        .fillColor('#1E40AF')
-        .text('Coverage Details')
-        .moveDown(0.5);
+          .fontSize(16)
+          .fillColor("#1E40AF")
+          .text("Policy Holder Information")
+          .moveDown(0.5);
 
       doc
-        .fontSize(12)
-        .fillColor('#000000')
-        .text(`Plan: ${policyData.plan.name}`)
-        .text(`Monthly Premium: $${policyData.plan.monthlyPremium.toFixed(2)}`)
-        .text(`Annual Premium: $${(policyData.plan.monthlyPremium * 12).toFixed(2)}`)
-        .text(`Annual Deductible: $${policyData.plan.annualDeductible.toFixed(0)}`)
-        .text(`Reimbursement: ${100 - policyData.plan.coPayPercentage}%`)
-        .text(`Annual Maximum: $${policyData.plan.maxAnnualCoverage.toLocaleString()}`)
-        .moveDown(2);
+          .fontSize(12)
+          .fillColor("#000000")
+          .text(`Name: ${fullName(normalized.owner) || "Unknown"}`)
+          .text(`Email: ${normalized.owner.email || "Unavailable"}`)
+          .text(`Phone: ${normalized.owner.phone || "Unavailable"}`)
+          .text(
+              `Address: ${normalized.owner.addressLine1 || "Unavailable"}${
+                normalized.owner.addressLine2 ?
+                  `, ${normalized.owner.addressLine2}` :
+                  ""
+              }`,
+          )
+          .text(
+              `         ${normalized.owner.city || ""}, ${normalized.owner.state || ""} ${normalized.owner.zipCode || ""}`.trim(),
+          )
+          .moveDown(2);
 
-      // Coverage Period
       doc
-        .fontSize(16)
-        .fillColor('#1E40AF')
-        .text('Coverage Period')
-        .moveDown(0.5);
+          .fontSize(16)
+          .fillColor("#1E40AF")
+          .text("Insured Pet Information")
+          .moveDown(0.5);
 
       doc
-        .fontSize(12)
-        .fillColor('#000000')
-        .text(
-          `Effective Date: ${new Date(policyData.effectiveDate).toLocaleDateString()}`
-        )
-        .text(
-          `Expiration Date: ${new Date(policyData.expirationDate).toLocaleDateString()}`
-        )
-        .moveDown(2);
+          .fontSize(12)
+          .fillColor("#000000")
+          .text(`Name: ${normalized.pet.name}`)
+          .text(`Species: ${normalized.pet.species}`)
+          .text(`Breed: ${normalized.pet.breed}`)
+          .text(`Age: ${normalized.pet.age} years`)
+          .text(`Gender: ${normalized.pet.gender}`)
+          .text(`Weight: ${normalized.pet.weight} lbs`)
+          .moveDown(2);
 
-      // Covered Benefits
       doc
-        .fontSize(16)
-        .fillColor('#1E40AF')
-        .text('Covered Benefits')
-        .moveDown(0.5);
+          .fontSize(16)
+          .fillColor("#1E40AF")
+          .text("Coverage Details")
+          .moveDown(0.5);
 
-      doc.fontSize(12).fillColor('#000000');
-      policyData.plan.features.forEach((feature) => {
-        doc.text(`• ${feature}`);
-      });
+      const annualMaximum = normalized.plan.maxAnnualCoverage == null ?
+        "Unlimited" :
+        `$${normalized.plan.maxAnnualCoverage.toLocaleString("en-US")}`;
+      doc
+          .fontSize(12)
+          .fillColor("#000000")
+          .text(`Plan: ${normalized.plan.name}`)
+          .text(`Monthly Premium: $${normalized.plan.monthlyPremium.toFixed(2)}`)
+          .text(`Annual Premium: $${(normalized.plan.monthlyPremium * 12).toFixed(2)}`)
+          .text(`Annual Deductible: $${normalized.plan.annualDeductible.toFixed(0)}`)
+          .text(`Reimbursement: ${100 - normalized.plan.coPayPercentage}%`)
+          .text(`Annual Maximum: ${annualMaximum}`)
+          .moveDown(2);
+
+      doc
+          .fontSize(16)
+          .fillColor("#1E40AF")
+          .text("Coverage Period")
+          .moveDown(0.5);
+
+      doc
+          .fontSize(12)
+          .fillColor("#000000")
+          .text(`Effective Date: ${formatDate(normalized.effectiveDate)}`)
+          .text(`Expiration Date: ${formatDate(normalized.expirationDate)}`)
+          .moveDown(2);
+
+      doc
+          .fontSize(16)
+          .fillColor("#1E40AF")
+          .text("Covered Benefits")
+          .moveDown(0.5);
+
+      doc.fontSize(12).fillColor("#000000");
+      const features = normalized.plan.features.length ?
+        normalized.plan.features :
+        ["Refer to your Clovara coverage summary for included benefits."];
+      features.forEach((feature) => doc.text(`- ${feature}`));
       doc.moveDown(2);
 
-      // Exclusions
       doc
-        .fontSize(16)
-        .fillColor('#1E40AF')
-        .text('Policy Exclusions')
-        .moveDown(0.5);
+          .fontSize(16)
+          .fillColor("#1E40AF")
+          .text("Policy Exclusions")
+          .moveDown(0.5);
 
-      doc.fontSize(12).fillColor('#000000');
-      policyData.plan.exclusions.forEach((exclusion) => {
-        doc.text(`• ${exclusion}`);
-      });
+      doc.fontSize(12).fillColor("#000000");
+      const exclusions = normalized.plan.exclusions.length ?
+        normalized.plan.exclusions :
+        ["See the full policy terms for applicable exclusions and waiting periods."];
+      exclusions.forEach((exclusion) => doc.text(`- ${exclusion}`));
       doc.moveDown(2);
 
-      // Footer
       doc
-        .fontSize(10)
-        .fillColor('#666666')
-        .text(
-          'This policy is subject to the terms and conditions outlined in your full policy documents.',
-          { align: 'center' }
-        )
-        .text('For questions or claims, contact support@petunderwriter.ai', {
-          align: 'center',
-        })
-        .moveDown();
+          .fontSize(10)
+          .fillColor("#666666")
+          .text(
+              "This policy is subject to the terms and conditions outlined in your full policy documents.",
+              {align: "center"},
+          )
+          .text("For questions or claims, contact support@clovara.com", {
+            align: "center",
+          })
+          .moveDown();
 
       doc
-        .fontSize(8)
-        .text(`Document generated on ${new Date().toLocaleDateString()}`, {
-          align: 'center',
-        });
+          .fontSize(8)
+          .text(`Document generated on ${formatDate(new Date())}`, {
+            align: "center",
+          });
 
       doc.end();
     } catch (error) {
@@ -331,10 +296,11 @@ async function generatePolicyPDFBuffer(policyData) {
   });
 }
 
-/**
- * Email template for policy confirmation
- */
 function getPolicyEmailTemplate(recipientName, policyData) {
+  const normalized = normalizePolicyData(policyData);
+  const displayName = recipientName || fullName(normalized.owner) || "Valued Customer";
+  const dashboardUrl = "https://pet-underwriter-ai.web.app/dashboard";
+
   return `
     <!DOCTYPE html>
     <html>
@@ -392,105 +358,349 @@ function getPolicyEmailTemplate(recipientName, policyData) {
     </head>
     <body>
       <div class="header">
-        <h1>🎉 Your Policy is Active!</h1>
-        <p>Welcome to Pet Underwriter AI</p>
+        <h1>Your Policy is Active!</h1>
+        <p>Welcome to Clovara</p>
       </div>
-      
+
       <div class="content">
-        <p>Dear ${recipientName || 'Valued Customer'},</p>
-        
-        <p>Congratulations! Your pet insurance policy is now <strong>active</strong> and your furry friend is protected.</p>
-        
+        <p>Dear ${displayName},</p>
+
+        <p>Your pet insurance policy is now <strong>active</strong> and your pet is protected.</p>
+
         <div class="policy-box">
           <h2>Policy Details</h2>
-          <p><strong>Policy Number:</strong> <span class="highlight">${policyData.policyNumber}</span></p>
-          <p><strong>Pet Name:</strong> ${policyData.pet.name}</p>
-          <p><strong>Plan:</strong> ${policyData.plan.name}</p>
-          <p><strong>Monthly Premium:</strong> $${policyData.plan.monthlyPremium.toFixed(2)}</p>
-          <p><strong>Coverage Start:</strong> ${new Date(policyData.effectiveDate).toLocaleDateString()}</p>
+          <p><strong>Policy Number:</strong> <span class="highlight">${normalized.policyNumber}</span></p>
+          <p><strong>Pet Name:</strong> ${normalized.pet.name}</p>
+          <p><strong>Plan:</strong> ${normalized.plan.name}</p>
+          <p><strong>Monthly Premium:</strong> $${normalized.plan.monthlyPremium.toFixed(2)}</p>
+          <p><strong>Coverage Start:</strong> ${formatDate(normalized.effectiveDate)}</p>
         </div>
-        
-        <h3>What's Next?</h3>
+
+        <h3>What&apos;s Next?</h3>
         <ol>
-          <li><strong>Review Your Policy:</strong> Your complete policy document is attached to this email.</li>
+          <li><strong>Review Your Policy:</strong> Your policy document is attached to this email.</li>
           <li><strong>Save Your Documents:</strong> Keep this email and the attached PDF for your records.</li>
-          <li><strong>Schedule a Checkup:</strong> Visit your vet and start using your coverage!</li>
-          <li><strong>File Claims Easily:</strong> Use our mobile app or website to submit claims.</li>
+          <li><strong>Use Your Dashboard:</strong> Review coverage and file claims online when you need to.</li>
         </ol>
-        
+
         <div style="text-align: center;">
-          <a href="https://petunderwriter.ai/dashboard" class="button">Go to Dashboard</a>
+          <a href="${dashboardUrl}" class="button">Go to Dashboard</a>
         </div>
-        
+
         <div class="policy-box">
           <h3>Need Help?</h3>
-          <p>Our support team is here for you 24/7:</p>
+          <p>Our support team is here for you:</p>
           <ul>
-            <li>📧 Email: support@petunderwriter.ai</li>
-            <li>📱 Phone: 1-800-PET-CARE</li>
-            <li>💬 Live Chat: Available on our website</li>
+            <li>Email: support@clovara.com</li>
           </ul>
         </div>
-        
-        <p>Thank you for choosing Pet Underwriter AI to protect your beloved pet!</p>
-        
+
+        <p>Thank you for choosing Clovara.</p>
+
         <p>Best regards,<br>
-        <strong>The Pet Underwriter AI Team</strong></p>
+        <strong>The Clovara Team</strong></p>
       </div>
-      
+
       <div class="footer">
-        <p>Pet Underwriter AI | Protecting Pets, Empowering Owners</p>
-        <p>This email was sent to ${policyData.owner.email}</p>
-        <p><a href="https://petunderwriter.ai/privacy">Privacy Policy</a> | <a href="https://petunderwriter.ai/terms">Terms of Service</a></p>
+        <p>Clovara</p>
+        <p>This email was sent to ${normalized.owner.email || "your email address"}</p>
       </div>
     </body>
     </html>
   `;
 }
 
-/**
- * Scheduled function to check for expiring policies
- */
-exports.checkExpiringPolicies = functions.pubsub
-  .schedule('0 0 * * *') // Run daily at midnight
-  .onRun(async (context) => {
-    try {
+async function generatePolicyPDFForPolicy({
+  policyId,
+  policyNumber,
+  policyData,
+  force = false,
+}) {
+  if (!policyId) {
+    throw new HttpsError("invalid-argument", "policyId is required");
+  }
+
+  const bucketName = getStorageBucketName();
+  if (!bucketName) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Missing storage bucket configuration (set STORAGE_BUCKET or storageBucket in FIREBASE_CONFIG)",
+    );
+  }
+
+  const policyRef = db.collection("policies").doc(policyId);
+  if (!force) {
+    const existingSnap = await policyRef.get();
+    const existingData = existingSnap.exists ? existingSnap.data() : null;
+    const existingPath = existingData?.pdfStoragePath;
+
+    if (existingPath) {
+      const existingFile = storage.bucket(bucketName).file(existingPath);
+      const [exists] = await existingFile.exists();
+      if (exists) {
+        const [pdfUrl] = await existingFile.getSignedUrl({
+          action: "read",
+          expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        });
+
+        await policyRef.set({
+          pdfUrl,
+          pdfLastSignedAt: FieldValue.serverTimestamp(),
+        }, {merge: true});
+
+        return {success: true, pdfUrl, reused: true, storagePath: existingPath};
+      }
+    }
+  }
+
+  const normalized = normalizePolicyData(policyData);
+  const pdfBuffer = await generatePolicyPDFBuffer(normalized);
+  const safePolicyNumber = (policyNumber || normalized.policyNumber || policyId)
+      .toString()
+      .replace(/[^\w.-]+/g, "_");
+  const storagePath = `policies/${policyId}/${safePolicyNumber}.pdf`;
+  const file = storage.bucket(bucketName).file(storagePath);
+
+  await file.save(pdfBuffer, {
+    metadata: {
+      contentType: "application/pdf",
+      metadata: {
+        policyId,
+        policyNumber: normalized.policyNumber,
+        createdAt: new Date().toISOString(),
+      },
+    },
+  });
+
+  const [pdfUrl] = await file.getSignedUrl({
+    action: "read",
+    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  });
+
+  await policyRef.set({
+    pdfUrl,
+    pdfStoragePath: storagePath,
+    pdfGeneratedAt: FieldValue.serverTimestamp(),
+    pdfLastSignedAt: FieldValue.serverTimestamp(),
+  }, {merge: true});
+
+  return {success: true, pdfUrl, reused: false, storagePath};
+}
+
+async function sendPolicyEmailForPolicy({
+  policyId,
+  policyNumber,
+  recipientEmail,
+  recipientName,
+  policyData,
+  force = false,
+}) {
+  if (!policyId) {
+    throw new HttpsError("invalid-argument", "policyId is required");
+  }
+
+  const normalized = normalizePolicyData(policyData);
+  const resolvedRecipient = (recipientEmail || normalized.owner.email || "")
+      .toString()
+      .trim();
+  if (!resolvedRecipient) {
+    logger.warn("Skipping policy email with no recipient", {policyId});
+    return {success: false, skipped: true, reason: "missing-recipient"};
+  }
+
+  const transporter = createTransporter();
+  if (!transporter) {
+    logger.warn("SENDGRID_API_KEY not configured, skipping policy email", {
+      policyId,
+      recipientEmail: resolvedRecipient,
+    });
+    return {
+      success: false,
+      skipped: true,
+      reason: "missing-sendgrid-config",
+    };
+  }
+
+  const logRef = db.collection("email_logs").doc(getPolicyEmailLogId(policyId));
+  if (!force) {
+    const shouldSend = await db.runTransaction(async (transaction) => {
+      const existingLog = await transaction.get(logRef);
+      const existingStatus = existingLog.exists ? existingLog.data()?.status : null;
+      if (existingStatus === "sent" || existingStatus === "processing") {
+        return false;
+      }
+
+      transaction.set(logRef, {
+        policyId,
+        recipientEmail: resolvedRecipient,
+        status: "processing",
+        updatedAt: FieldValue.serverTimestamp(),
+      }, {merge: true});
+      return true;
+    });
+
+    if (!shouldSend) {
+      return {success: true, skipped: true, reason: "already-sent"};
+    }
+  }
+
+  const pdfBuffer = await generatePolicyPDFBuffer(normalized);
+  const subject = `Your Clovara Pet Insurance Policy - ${policyNumber || normalized.policyNumber}`;
+
+  try {
+    await transporter.sendMail({
+      from: "Clovara <noreply@clovara.com>",
+      to: resolvedRecipient,
+      subject,
+      html: getPolicyEmailTemplate(
+          recipientName || fullName(normalized.owner),
+          normalized,
+      ),
+      attachments: [
+        {
+          filename: `Policy_${normalized.policyNumber}.pdf`,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+    });
+
+    await logRef.set({
+      policyId,
+      recipientEmail: resolvedRecipient,
+      subject,
+      sentAt: FieldValue.serverTimestamp(),
+      status: "sent",
+      updatedAt: FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    await db.collection("policies").doc(policyId).set({
+      policyEmailSentAt: FieldValue.serverTimestamp(),
+      policyEmailRecipient: resolvedRecipient,
+    }, {merge: true});
+
+    return {success: true, skipped: false, recipientEmail: resolvedRecipient};
+  } catch (error) {
+    await logRef.set({
+      policyId,
+      recipientEmail: resolvedRecipient,
+      status: "failed",
+      error: error.message || String(error),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, {merge: true});
+    throw error;
+  }
+}
+
+exports.sendPolicyEmail = onCall(
+    {
+      region: "us-central1",
+      invoker: "public",
+    },
+    async (request) => {
+      if (!request.auth) {
+        throw new HttpsError("unauthenticated", "User must be authenticated");
+      }
+
+      const {
+        policyId,
+        policyNumber,
+        recipientEmail,
+        recipientName,
+        policyData,
+      } = request.data || {};
+
+      if (!policyId || !policyData) {
+        throw new HttpsError(
+            "invalid-argument",
+            "Missing required fields: policyId and policyData",
+        );
+      }
+
+      return await sendPolicyEmailForPolicy({
+        policyId,
+        policyNumber,
+        recipientEmail,
+        recipientName,
+        policyData,
+      });
+    },
+);
+
+exports.generatePolicyPDF = onCall(
+    {
+      region: "us-central1",
+      invoker: "public",
+    },
+    async (request) => {
+      if (!request.auth) {
+        throw new HttpsError("unauthenticated", "User must be authenticated");
+      }
+
+      const {policyId, policyNumber, policyData} = request.data || {};
+      if (!policyId || !policyData) {
+        throw new HttpsError(
+            "invalid-argument",
+            "Missing required fields: policyId and policyData",
+        );
+      }
+
+      return await generatePolicyPDFForPolicy({
+        policyId,
+        policyNumber,
+        policyData,
+      });
+    },
+);
+
+exports.checkExpiringPolicies = onSchedule(
+    {
+      region: "us-central1",
+      schedule: "0 0 * * *",
+      timeZone: "UTC",
+    },
+    async () => {
+      const transporter = createTransporter();
+      if (!transporter) {
+        logger.warn("SENDGRID_API_KEY not configured, skipping renewal reminders");
+        return null;
+      }
+
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
       const expiringPolicies = await db
-        .collection('policies')
-        .where('status', '==', 'active')
-        .where('expirationDate', '<=', thirtyDaysFromNow.toISOString())
-        .get();
+          .collection("policies")
+          .where("status", "==", "active")
+          .where("expirationDate", "<=", thirtyDaysFromNow.toISOString())
+          .get();
 
-      console.log(`Found ${expiringPolicies.size} expiring policies`);
+      logger.info("Found expiring policies", {count: expiringPolicies.size});
 
-      const emailPromises = expiringPolicies.docs.map(async (doc) => {
-        const policy = doc.data();
-        const daysUntilExpiration = Math.floor(
-          (new Date(policy.expirationDate) - new Date()) / (1000 * 60 * 60 * 24)
+      await Promise.all(expiringPolicies.docs.map(async (docSnap) => {
+        const policy = normalizePolicyData(docSnap.data());
+        const recipient = policy.owner.email;
+        if (!recipient) {
+          return;
+        }
+
+        const expirationDate = toDate(policy.expirationDate) || new Date();
+        const daysUntilExpiration = Math.max(
+            0,
+            Math.floor((expirationDate - new Date()) / (1000 * 60 * 60 * 24)),
         );
 
-        // Send renewal reminder email
         await transporter.sendMail({
-          from: 'Pet Underwriter AI <noreply@petunderwriter.ai>',
-          to: policy.owner.email,
+          from: "Clovara <noreply@clovara.com>",
+          to: recipient,
           subject: `Policy Renewal Reminder - ${daysUntilExpiration} days remaining`,
           html: getRenewalReminderTemplate(policy, daysUntilExpiration),
         });
+      }));
 
-        console.log(`Sent renewal reminder to ${policy.owner.email}`);
-      });
-
-      await Promise.all(emailPromises);
-
-      return { success: true, count: expiringPolicies.size };
-    } catch (error) {
-      console.error('Error checking expiring policies:', error);
-      throw error;
-    }
-  });
+      return {success: true, count: expiringPolicies.size};
+    },
+);
 
 function getRenewalReminderTemplate(policy, daysRemaining) {
   return `
@@ -498,19 +708,24 @@ function getRenewalReminderTemplate(policy, daysRemaining) {
     <html>
     <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background-color: #FEF3C7; padding: 20px; border-radius: 8px; border-left: 4px solid #F59E0B;">
-        <h2 style="color: #92400E;">⏰ Policy Renewal Reminder</h2>
+        <h2 style="color: #92400E;">Policy Renewal Reminder</h2>
         <p>Your pet insurance policy for <strong>${policy.pet.name}</strong> is expiring in <strong>${daysRemaining} days</strong>.</p>
         <p><strong>Policy Number:</strong> ${policy.policyNumber}</p>
-        <p><strong>Expiration Date:</strong> ${new Date(policy.expirationDate).toLocaleDateString()}</p>
+        <p><strong>Expiration Date:</strong> ${formatDate(policy.expirationDate)}</p>
         <div style="margin: 30px 0; text-align: center;">
-          <a href="https://petunderwriter.ai/renew/${policy.policyId}" 
+          <a href="https://pet-underwriter-ai.web.app" 
              style="display: inline-block; background-color: #F59E0B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-            Renew Now
+            Review Policy
           </a>
         </div>
-        <p>Don't let your coverage lapse! Renew today to ensure continuous protection for your pet.</p>
+        <p>Don&apos;t let your coverage lapse. Review your policy before it expires.</p>
       </div>
     </body>
     </html>
   `;
 }
+
+exports.generatePolicyPDFBuffer = generatePolicyPDFBuffer;
+exports.generatePolicyPDFForPolicy = generatePolicyPDFForPolicy;
+exports.sendPolicyEmailForPolicy = sendPolicyEmailForPolicy;
+exports.normalizePolicyData = normalizePolicyData;

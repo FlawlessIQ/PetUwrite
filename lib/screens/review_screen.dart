@@ -98,19 +98,30 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Review Your Coverage',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                      Text(
+                        '${pet.name}\'s coverage summary',
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
-                        'Please review your pet and coverage details before proceeding',
+                        'Everything looks great — let\'s lock this in.',
                         style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey.shade700,
+                          fontSize: 15,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Step 1 of 4',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade400,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -143,11 +154,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       if (provider.exclusions.isNotEmpty)
                         const SizedBox(height: 16),
 
-                      // Coverage Details Card
-                      _buildCoverageDetailsCard(plan),
-                      const SizedBox(height: 16),
-
-                      // Features Card
+                      // Features Card (Coverage Details card removed — info already in plan banner)
                       _buildFeaturesCard(plan),
                       const SizedBox(height: 24),
 
@@ -206,9 +213,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   Widget _buildPetInfoCard(pet) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          color: Colors.white,
+        ),
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,16 +230,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFF16A34A).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
                     Icons.pets,
-                    size: 32,
-                    color: Colors.blue.shade700,
+                    size: 28,
+                    color: const Color(0xFF16A34A),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,15 +247,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       Text(
                         pet.name,
                         style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
                         ),
                       ),
+                      const SizedBox(height: 2),
                       Text(
-                        '${pet.breed} • ${pet.species}',
+                        '${pet.breed} \u2022 ${pet.species}',
                         style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey.shade700,
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -272,152 +287,86 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   Widget _buildPlanInfoCard(plan) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: _getPlanGradient(plan.type),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF0B3D2E),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Icon(_getPlanIcon(plan.type), size: 32, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          plan.name,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Text(
-                          plan.description,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ],
-                    ),
+              Icon(_getPlanIcon(plan.type), size: 24, color: Colors.white70),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  plan.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Monthly Premium',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      '\$${plan.monthlyPremium.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
                 ),
               ),
-              if (plan.multiPetDiscount > 0) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade100,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        color: Colors.green.shade700,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Multi-pet discount: -\$${plan.discountAmount.toStringAsFixed(2)}/mo',
-                        style: TextStyle(
-                          color: Colors.green.shade900,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
+              Text(
+                '\$${plan.monthlyPremium.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -1,
                 ),
-              ],
-
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Your selected configuration',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _pill('${plan.reimbursementPercent}% reimbursement'),
-                        _pill(
-                          '\$${plan.annualDeductible.toStringAsFixed(0)} deductible',
-                        ),
-                        _pill('${_formatAnnualLimit(plan)} annual limit'),
-                        if ((plan.selectedAddOns as List).isNotEmpty)
-                          _pill(
-                            'Add-ons: ${(plan.selectedAddOns as List).join(', ')}',
-                          ),
-                      ],
-                    ),
-                  ],
+              ),
+              Text(
+                '/mo',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white.withOpacity(0.6),
                 ),
               ),
             ],
           ),
-        ),
+          if (plan.multiPetDiscount > 0) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.green.shade400.withOpacity(0.25),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white70, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Multi-pet discount: -\$${plan.discountAmount.toStringAsFixed(2)}/mo',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _pill('${plan.reimbursementPercent}% reimbursement'),
+              _pill('\$${plan.annualDeductible.toStringAsFixed(0)} deductible'),
+              _pill('${_formatAnnualLimit(plan)} annual limit'),
+              if ((plan.selectedAddOns as List).isNotEmpty)
+                _pill('Add-ons: ${(plan.selectedAddOns as List).join(', ')}'),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -436,55 +385,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
           color: Colors.white,
           fontSize: 12,
           fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCoverageDetailsCard(plan) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Coverage Details',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            _buildCoverageRow(
-              'Annual Deductible',
-              '\$${plan.annualDeductible.toStringAsFixed(0)}',
-              'Amount you pay before coverage starts',
-              Icons.attach_money,
-            ),
-            const Divider(height: 32),
-            _buildCoverageRow(
-              'Reimbursement',
-              plan.coveragePercentage,
-              'Percentage of eligible costs covered',
-              Icons.pie_chart,
-            ),
-            const Divider(height: 32),
-            _buildCoverageRow(
-              'Annual Maximum',
-              '\$${(plan.maxAnnualCoverage / 1000).toStringAsFixed(0)}K',
-              'Maximum coverage per year',
-              Icons.trending_up,
-            ),
-            if (plan.coPayPercentage > 0) ...[
-              const Divider(height: 32),
-              _buildCoverageRow(
-                'Co-payment',
-                '${plan.coPayPercentage.toInt()}%',
-                'Your share of eligible costs',
-                Icons.handshake,
-              ),
-            ],
-          ],
         ),
       ),
     );
@@ -585,50 +485,76 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   Widget _buildFeaturesCard(plan) {
+    final features = (plan.features as List<dynamic>).cast<String>();
+    // Supplementary trust-building benefits
+    const supplementary = [
+      'No breed exclusions',
+      'Coverage starts in 14 days',
+      '24/7 online claims submission',
+      'Direct deposit reimbursement',
+      'No annual vet exam required',
+      'Cancel anytime, no penalties',
+    ];
+    final extra = supplementary
+        .where((s) => !features.any((f) => f.toLowerCase().contains(s.split(' ').first.toLowerCase())))
+        .toList();
+
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          color: Colors.white,
+        ),
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'What\'s Included',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              'What\'s included',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 16),
-            ...plan.features
+            const SizedBox(height: 14),
+            ...features
                 .take(8)
                 .map(
                   (feature) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.only(bottom: 10),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: 20,
-                          color: Colors.green.shade600,
-                        ),
-                        const SizedBox(width: 12),
+                        Icon(Icons.check_circle, size: 18, color: const Color(0xFF16A34A)),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             feature,
-                            style: const TextStyle(fontSize: 15),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade800),
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-            if (plan.features.length > 8)
-              TextButton(
-                onPressed: () {
-                  // Show all features dialog
-                },
-                child: Text('+ ${plan.features.length - 8} more features'),
+            ...extra.map(
+              (feature) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.check_circle_outline, size: 18, color: Colors.grey.shade400),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        feature,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade500),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            ),
           ],
         ),
       ),
@@ -654,60 +580,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
             value,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             textAlign: TextAlign.right,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCoverageRow(
-    String label,
-    String value,
-    String description,
-    IconData icon,
-  ) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 24, color: Colors.blue.shade700),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-              ),
-            ],
           ),
         ),
       ],
@@ -1110,34 +982,32 @@ class _ReviewScreenState extends State<ReviewScreen> {
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          child: const Text(
-            'Continue to Owner Details',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          child: Text(
+            'Continue for ${provider.pet?.name ?? 'your pet'}',
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_outline, size: 13, color: Colors.grey.shade500),
+            const SizedBox(width: 4),
+            Text('Cancel anytime', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade500)),
+            const SizedBox(width: 14),
+            Icon(Icons.verified_user_outlined, size: 13, color: Colors.grey.shade500),
+            const SizedBox(width: 4),
+            Text('No hidden fees', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade500)),
+          ],
+        ),
+        const SizedBox(height: 8),
         Text(
           'By continuing, you agree to our Terms of Service and Privacy Policy',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
           textAlign: TextAlign.center,
         ),
       ],
     );
-  }
-
-  List<Color> _getPlanGradient(planType) {
-    switch (planType.toString()) {
-      case 'PlanType.unlimited':
-        return [Colors.orange.shade800, Colors.amber.shade600];
-      case 'PlanType.premium':
-        return [Colors.purple.shade700, Colors.blue.shade700];
-      case 'PlanType.plus':
-        return [Colors.blue.shade700, Colors.green.shade700];
-      case 'PlanType.standard':
-        return [Colors.green.shade700, Colors.teal.shade700];
-      default:
-        return [Colors.blue.shade600, Colors.blue.shade800];
-    }
   }
 
   IconData _getPlanIcon(planType) {

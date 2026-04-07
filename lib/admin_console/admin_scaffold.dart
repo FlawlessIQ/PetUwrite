@@ -66,10 +66,10 @@ class AdminScaffold extends StatelessWidget {
                   ),
                 Padding(
                   padding: EdgeInsets.only(left: compact ? 0 : 6, right: 12),
-                  child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: const ClovaraMark(size: 22, color: Colors.white),
+                  child: const ClovaraLogo(
+                    size: ClovaraLogoSize.small,
+                    showText: false,
+                    color: Colors.white,
                   ),
                 ),
                 Expanded(

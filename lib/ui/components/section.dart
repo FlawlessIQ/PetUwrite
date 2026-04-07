@@ -22,9 +22,9 @@ class Section extends StatelessWidget {
             verticalPadding ??
             Breakpoints.select<double>(
               constraints: constraints,
-              mobile: 22,
-              tablet: 32,
-              desktop: 44,
+              mobile: 18,
+              tablet: 24,
+              desktop: 32,
             );
 
         final content = Padding(
