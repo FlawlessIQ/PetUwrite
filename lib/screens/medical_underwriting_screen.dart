@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -19,13 +19,16 @@ import '../services/underwriting_case_service.dart';
 import '../services/marketing_attribution_service.dart';
 import '../services/underwriting_integrity_engine.dart';
 import '../services/medical_facts_builder.dart';
+import '../services/medical_condition_fact_mapper.dart';
 import '../services/vet_history_parser.dart' hide Medication;
 import '../services/vet_document_reuse_detector.dart';
 import '../services/user_session_service.dart';
 import '../services/draft_service.dart';
 import '../ui/components/save_resume_dialog.dart';
 import '../theme/clovara_theme.dart';
+import '../ui/components/clovara_logo.dart';
 import '../widgets/underwriting_disclosure_dialog.dart';
+import '../ui/components/max_width.dart';
 import 'plan_selection_screen.dart';
 
 /// Comprehensive medical underwriting screen
@@ -107,6 +110,18 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
   bool _isUploadingVetRecord = false;
   String? _vetUploadStatus;
+
+  static const Set<String> _genericQuoteConditionLabels = {
+    'allergies / skin',
+    'joint / mobility',
+    'digestive',
+    'heart',
+    'cancer',
+    'diabetes',
+    'thyroid',
+    'kidney / urinary',
+    'other',
+  };
 
   // Raw vet text backstop for deterministic keyword extraction.
   final List<String> _rawVetTexts = [];
@@ -307,6 +322,101 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     return tokens.join(' ');
   }
 
+  String? _conditionFamilyKey(String name) {
+    final normalized = _normalizeConditionNameForKey(name);
+    if (normalized.isEmpty) return null;
+
+    bool hasAny(List<String> tokens) =>
+        tokens.any((token) => normalized.contains(token));
+
+    if (hasAny(const [
+      'joint',
+      'mobility',
+      'orthopedic',
+      'arthritis',
+      'arthritic',
+      'hip',
+      'elbow',
+      'stifle',
+      'patella',
+      'patellar',
+      'luxation',
+      'cruciate',
+      'ligament',
+      'lameness',
+      'limping',
+      'dysplasia',
+    ])) {
+      return 'orthopedic_joint_mobility';
+    }
+
+    if (hasAny(const [
+      'allerg',
+      'skin',
+      'dermat',
+      'itch',
+      'otitis',
+      'ear infection',
+      'hot spot',
+      'rash',
+    ])) {
+      return 'allergies_skin';
+    }
+
+    if (hasAny(const [
+      'digest',
+      'gastro',
+      'gi ',
+      'vomit',
+      'diarr',
+      'pancrea',
+      'ibd',
+      'stomach',
+      'intestinal',
+    ])) {
+      return 'digestive';
+    }
+
+    if (hasAny(const ['cardiac', 'heart', 'murmur', 'chf', 'cardiomyopathy'])) {
+      return 'heart';
+    }
+
+    if (hasAny(const ['cancer', 'tumor', 'tumour', 'lymphoma', 'carcinoma', 'sarcoma', 'mass'])) {
+      return 'cancer';
+    }
+
+    if (hasAny(const ['diabetes', 'diabetic'])) {
+      return 'diabetes';
+    }
+
+    if (hasAny(const ['thyroid', 'hyperthyroid', 'hypothyroid'])) {
+      return 'thyroid';
+    }
+
+    if (hasAny(const ['kidney', 'renal', 'urinary', 'bladder', 'uti', 'cystitis'])) {
+      return 'kidney_urinary';
+    }
+
+    return null;
+  }
+
+  bool _isGenericConditionLabel(String name) {
+    final normalized = _normalizeConditionNameForKey(name);
+    return _genericQuoteConditionLabels.contains(normalized);
+  }
+
+  bool _shouldTreatAsSameCondition(String existingName, String incomingName) {
+    final existingFamily = _conditionFamilyKey(existingName);
+    final incomingFamily = _conditionFamilyKey(incomingName);
+    if (existingFamily != null && existingFamily == incomingFamily) {
+      return true;
+    }
+
+    final existingCode = MedicalConditionFactMapper.conditionCodeFromName(existingName);
+    final incomingCode = MedicalConditionFactMapper.conditionCodeFromName(incomingName);
+    return existingCode.isNotEmpty && existingCode == incomingCode;
+  }
+
   bool _isPlaceholderDiagnosisDate(DateTime date) {
     // Quote-flow seeded conditions default to roughly "one year ago".
     final now = DateTime.now();
@@ -337,12 +447,14 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       if (existingName.isEmpty) continue;
       final existingKey = _conditionDedupKey(existingName);
       if (incomingKey.isNotEmpty && existingKey.isNotEmpty) {
-        if (incomingKey == existingKey) {
+        if (incomingKey == existingKey ||
+            _shouldTreatAsSameCondition(existingName, incomingName)) {
           index = i;
           break;
         }
       } else {
-        if (_normalizeConditionNameForKey(existingName) == incomingNorm) {
+        if (_normalizeConditionNameForKey(existingName) == incomingNorm ||
+            _shouldTreatAsSameCondition(existingName, incomingName)) {
           index = i;
           break;
         }
@@ -356,8 +468,12 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
     final existing = conditions[index];
 
+    final existingName = existing.name.trim();
+    final existingIsGeneric = _isGenericConditionLabel(existingName);
+    final incomingIsGeneric = _isGenericConditionLabel(incomingName);
     final shouldReplaceName =
-        incomingName.length > (existing.name.trim().length + 6);
+      (existingIsGeneric && !incomingIsGeneric) ||
+      (!incomingIsGeneric && incomingName.length > (existingName.length + 6));
 
     DateTime diagnosisDate = existing.diagnosisDate;
     if (_isPlaceholderDiagnosisDate(existing.diagnosisDate) &&
@@ -422,12 +538,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: ClovaraColors.mist,
       body: SafeArea(
         child: Column(
           children: [
-            _buildModernHeader(),
-            _buildProgressIndicator(),
+            _buildCompactHeader(),
             Expanded(
               child: FadeTransition(
                 opacity: _fadeAnimation,
@@ -449,193 +564,106 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     );
   }
 
-  Widget _buildModernHeader() {
+  Widget _buildCompactHeader() {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [ClovaraColors.forest, ClovaraColors.forest.withOpacity(0.9)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: ClovaraColors.forest.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: MaxWidth(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                  color: ClovaraColors.forest,
+                  onPressed: () => Navigator.pop(context),
+                  tooltip: 'Back',
                 ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: ClovaraColors.clover.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: ClovaraColors.clover.withOpacity(0.5),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                const SizedBox(width: 4),
+                const ClovaraLogo(
+                  size: ClovaraLogoSize.small,
+                  showText: false,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.pets, color: ClovaraColors.clover, size: 16),
-                      const SizedBox(width: 6),
                       Text(
-                        widget.pet.name,
-                        style: ClovaraTypography.body.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                        'Medical History',
+                        style: ClovaraTypography.h3.copyWith(
+                          color: ClovaraColors.forest,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${widget.pet.name} · ${_getStepTitle(_currentStep)}',
+                        style: ClovaraTypography.bodySmall.copyWith(
+                          color: ClovaraColors.slate,
                         ),
                       ),
                     ],
                   ),
                 ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: ClovaraColors.clover.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Step ${_currentStep + 1} of $_totalSteps',
+                    style: ClovaraTypography.label.copyWith(
+                      color: ClovaraColors.clover,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Medical History',
-              style: ClovaraTypography.h2.copyWith(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Help us understand ${widget.pet.name}\'s health better',
-              style: ClovaraTypography.body.copyWith(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 16,
-              ),
-            ),
+            const SizedBox(height: 12),
+            _buildProgressBar(),
+            const SizedBox(height: 4),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProgressIndicator() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      color: Colors.white,
-      child: Column(
-        children: [
-          Row(
-            children: List.generate(_totalSteps, (index) {
-              final isActive = index == _currentStep;
-              final isCompleted = index < _currentStep;
-
-              return Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(3),
-                          gradient: isCompleted || isActive
-                              ? LinearGradient(
-                                  colors: [
-                                    ClovaraColors.clover,
-                                    ClovaraColors.clover.withOpacity(0.8),
-                                  ],
-                                )
-                              : null,
-                          color: !(isCompleted || isActive)
-                              ? const Color(0xFFE0E0E0)
-                              : null,
-                        ),
-                      ),
-                    ),
-                    if (index < _totalSteps - 1) const SizedBox(width: 12),
-                  ],
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildProgressBar() {
+    return Row(
+      children: List.generate(_totalSteps, (index) {
+        final isActive = index == _currentStep;
+        final isCompleted = index < _currentStep;
+        return Expanded(
+          child: Row(
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _getStepTitle(_currentStep),
-                    style: ClovaraTypography.h3.copyWith(
-                      color: ClovaraColors.forest,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _getStepDescription(_currentStep),
-                    style: ClovaraTypography.body.copyWith(
-                      color: Colors.grey.shade600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: ClovaraColors.clover.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: ClovaraColors.clover.withOpacity(0.3),
-                    width: 1.5,
-                  ),
-                ),
-                child: Text(
-                  '${_currentStep + 1}/$_totalSteps',
-                  style: ClovaraTypography.h3.copyWith(
-                    color: ClovaraColors.clover,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+              Expanded(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(2),
+                    color: isCompleted || isActive
+                        ? ClovaraColors.clover
+                        : ClovaraColors.border,
                   ),
                 ),
               ),
+              if (index < _totalSteps - 1) const SizedBox(width: 8),
             ],
           ),
-        ],
-      ),
+        );
+      }),
     );
   }
+
+  // Progress indicator is now integrated into _buildCompactHeader via _buildProgressBar.
 
   String _getStepTitle(int step) {
     switch (step) {
@@ -650,196 +678,338 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     }
   }
 
-  String _getStepDescription(int step) {
-    switch (step) {
-      case 0:
-        return 'Current or past health conditions';
-      case 1:
-        return 'Treatment and known sensitivities';
-      case 2:
-        return 'Recent veterinary care';
-      default:
-        return '';
-    }
-  }
-
   Widget _buildConditionsStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildVetRecordUploadCard(),
-          const SizedBox(height: 16),
-          if (_conditions.isEmpty)
-            _buildEmptyState(
-              icon: Icons.favorite_outline,
-              title: 'No conditions yet',
-              message:
-                  'Add any medical conditions ${widget.pet.name} has or had',
-            )
-          else
-            ..._conditions.map((condition) => _buildConditionCard(condition)),
-          const SizedBox(height: 20),
-          _buildModernAddButton(
-            label: 'Add Medical Condition',
-            icon: Icons.add_rounded,
-            onPressed: _showAddConditionDialog,
-          ),
-          const SizedBox(height: 24),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: MaxWidth(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildVetRecordUploadCard(),
+            const SizedBox(height: 16),
+            if (_conditions.isEmpty)
+              _buildEmptyState(
+                icon: Icons.favorite_outline,
+                title: 'No conditions yet',
+                message:
+                    'Add any medical conditions ${widget.pet.name} has or had',
+              )
+            else
+              ..._conditions.map((condition) => _buildConditionCard(condition)),
+            const SizedBox(height: 20),
+            _buildModernAddButton(
+              label: 'Add Medical Condition',
+              icon: Icons.add_rounded,
+              onPressed: _showAddConditionDialog,
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildMedicationsAndAllergiesStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Medications Section
-          Text(
-            'Current Medications',
-            style: ClovaraTypography.h3.copyWith(
-              color: ClovaraColors.forest,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: MaxWidth(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Medications Section
+            Text(
+              'Current Medications',
+              style: ClovaraTypography.h3.copyWith(
+                color: ClovaraColors.forest,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          if (_medications.isEmpty)
-            _buildEmptyState(
-              icon: Icons.medication_outlined,
-              title: 'No medications yet',
-              message: 'Add medications ${widget.pet.name} is currently taking',
-            )
-          else
-            ..._medications.map((med) => _buildMedicationCard(med)),
-          const SizedBox(height: 16),
-          _buildModernAddButton(
-            label: 'Add Medication',
-            icon: Icons.add_rounded,
-            onPressed: _showAddMedicationDialog,
-          ),
-          const SizedBox(height: 32),
+            const SizedBox(height: 16),
+            if (_medications.isEmpty)
+              _buildEmptyState(
+                icon: Icons.medication_outlined,
+                title: 'No medications yet',
+                message: 'Add medications ${widget.pet.name} is currently taking',
+              )
+            else
+              ..._medications.map((med) => _buildMedicationCard(med)),
+            const SizedBox(height: 16),
+            _buildModernAddButton(
+              label: 'Add Medication',
+              icon: Icons.add_rounded,
+              onPressed: _showAddMedicationDialog,
+            ),
+            const SizedBox(height: 32),
 
-          // Allergies Section
-          Text(
-            'Known Allergies',
-            style: ClovaraTypography.h3.copyWith(
-              color: ClovaraColors.forest,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
+            // Allergies Section
+            Text(
+              'Known Allergies',
+              style: ClovaraTypography.h3.copyWith(
+                color: ClovaraColors.forest,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          if (_allergies.isEmpty)
-            _buildEmptyState(
-              icon: Icons.warning_amber_rounded,
-              title: 'No allergies recorded',
-              message: 'List any known allergies or sensitivities',
-            )
-          else
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: _allergies
-                  .map((allergy) => _buildModernAllergyChip(allergy))
-                  .toList(),
+            const SizedBox(height: 16),
+            if (_allergies.isEmpty)
+              _buildEmptyState(
+                icon: Icons.warning_amber_rounded,
+                title: 'No allergies recorded',
+                message: 'List any known allergies or sensitivities',
+              )
+            else
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: _allergies
+                    .map((allergy) => _buildModernAllergyChip(allergy))
+                    .toList(),
+              ),
+            const SizedBox(height: 16),
+            _buildModernAddButton(
+              label: 'Add Allergy',
+              icon: Icons.add_rounded,
+              onPressed: _showAddAllergyDialog,
             ),
-          const SizedBox(height: 16),
-          _buildModernAddButton(
-            label: 'Add Allergy',
-            icon: Icons.add_rounded,
-            onPressed: _showAddAllergyDialog,
-          ),
-          const SizedBox(height: 24),
-        ],
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildVetHistoryStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildVetRecordUploadCard(),
-          const SizedBox(height: 16),
-          if (_vetVisits.isEmpty)
-            _buildEmptyState(
-              icon: Icons.local_hospital_outlined,
-              title: 'No visits recorded',
-              message: 'Add recent veterinary visits and examinations',
-            )
-          else
-            ..._vetVisits.map((visit) => _buildVetVisitCard(visit)),
-          const SizedBox(height: 20),
-          _buildModernAddButton(
-            label: 'Add Vet Visit',
-            icon: Icons.add_rounded,
-            onPressed: _showAddVetVisitDialog,
-          ),
-          const SizedBox(height: 24),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: MaxWidth(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildVetRecordUploadCard(),
+            const SizedBox(height: 16),
+            if (_vetVisits.isEmpty)
+              _buildEmptyState(
+                icon: Icons.local_hospital_outlined,
+                title: 'No visits recorded',
+                message: 'Add recent veterinary visits and examinations',
+              )
+            else
+              ..._vetVisits.map((visit) => _buildVetVisitCard(visit)),
+            const SizedBox(height: 20),
+            _buildModernAddButton(
+              label: 'Add Vet Visit',
+              icon: Icons.add_rounded,
+              onPressed: _showAddVetVisitDialog,
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildVetRecordUploadCard() {
-    return Container(
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: ClovaraColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: ClovaraColors.clover.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.upload_file_rounded,
+                    color: ClovaraColors.clover,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Upload vet records',
+                        style: ClovaraTypography.body.copyWith(
+                          color: ClovaraColors.forest,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Add PDFs or photos (vet letters, discharge notes, invoices).',
+                        style: ClovaraTypography.bodySmall.copyWith(
+                          color: ClovaraColors.slate,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isUploadingVetRecord
+                        ? null
+                        : _uploadVetRecordPdfs,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ClovaraColors.forest,
+                      side: BorderSide(color: ClovaraColors.border),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: _isUploadingVetRecord
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Choose PDF(s)'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isUploadingVetRecord
+                        ? null
+                        : _uploadVetRecordImages,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ClovaraColors.forest,
+                      side: BorderSide(color: ClovaraColors.border),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: _isUploadingVetRecord
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Add photo(s)'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _isUploadingVetRecord
+                    ? null
+                    : (kIsWeb ? null : _takeVetRecordPhoto),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ClovaraColors.forest,
+                  side: BorderSide(color: ClovaraColors.border),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: Text(
+                  kIsWeb ? 'Take photo (not supported on web)' : 'Take photo',
+                ),
+              ),
+            ),
+            if (_vetUploadStatus != null) ...[
+              const SizedBox(height: 12),
+              _buildVetUploadStatusBanner(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVetUploadStatusBanner() {
+    final message = _vetUploadStatus;
+    if (message == null || message.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final lower = message.toLowerCase();
+    final isError = lower.contains('failed') || lower.contains('error');
+    final isSuccess = !isError &&
+        (lower.contains('applied') || lower.contains('uploaded') || lower.contains('parsed'));
+    final accent = isError
+        ? ClovaraColors.error
+        : _isUploadingVetRecord
+            ? ClovaraColors.clover
+            : isSuccess
+                ? ClovaraColors.success
+                : ClovaraColors.forest;
+    final background = isError
+        ? ClovaraColors.error.withOpacity(0.08)
+        : _isUploadingVetRecord
+            ? ClovaraColors.clover.withOpacity(0.06)
+            : isSuccess
+                ? ClovaraColors.success.withOpacity(0.08)
+                : ClovaraColors.mist;
+    final title = isError
+        ? 'We hit a problem with this upload'
+        : _isUploadingVetRecord
+            ? 'Parsing vet records...'
+            : isSuccess
+                ? 'Vet record update complete'
+                : 'Vet record status';
+    final icon = isError
+        ? Icons.error_outline_rounded
+        : _isUploadingVetRecord
+            ? Icons.hourglass_top_rounded
+            : Icons.check_circle_outline_rounded;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withOpacity(0.24)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: ClovaraColors.clover.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.upload_file_rounded,
-                  color: ClovaraColors.clover,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
+              if (_isUploadingVetRecord)
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    valueColor: AlwaysStoppedAnimation<Color>(accent),
+                  ),
+                )
+              else
+                Icon(icon, color: accent, size: 20),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Upload vet records',
-                      style: ClovaraTypography.h3.copyWith(
-                        color: ClovaraColors.forest,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                      title,
+                      style: ClovaraTypography.body.copyWith(
+                        color: accent,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Add PDFs or photos (vet letters, discharge notes, invoices).',
+                      message,
                       style: ClovaraTypography.body.copyWith(
-                        color: Colors.grey.shade600,
+                        color: Colors.grey.shade800,
                         fontSize: 13,
+                        height: 1.35,
                       ),
                     ),
                   ],
@@ -847,84 +1017,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _isUploadingVetRecord
-                      ? null
-                      : _uploadVetRecordPdfs,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ClovaraColors.forest,
-                    side: BorderSide(color: Colors.grey.shade300),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isUploadingVetRecord
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Choose PDF(s)'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _isUploadingVetRecord
-                      ? null
-                      : _uploadVetRecordImages,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ClovaraColors.forest,
-                    side: BorderSide(color: Colors.grey.shade300),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isUploadingVetRecord
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Add photo(s)'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: _isUploadingVetRecord
-                  ? null
-                  : (kIsWeb ? null : _takeVetRecordPhoto),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ClovaraColors.forest,
-                side: BorderSide(color: Colors.grey.shade300),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                kIsWeb ? 'Take photo (not supported on web)' : 'Take photo',
-              ),
-            ),
-          ),
-          if (_vetUploadStatus != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _vetUploadStatus!,
-              style: ClovaraTypography.body.copyWith(
-                color: Colors.grey.shade700,
-                fontSize: 12,
-              ),
+          if (_isUploadingVetRecord) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: const LinearProgressIndicator(minHeight: 5),
             ),
           ],
         ],
@@ -1306,6 +1403,12 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     var vetVisitsAdded = 0;
     var allergiesAdded = 0;
 
+    debugPrint('[MedicalHistoryApply] Autofill input: '
+        '${parsed.diagnoses.length} diagnoses, '
+        '${parsed.treatments.length} treatments, '
+        '${parsed.medications.length} medications, '
+        '${parsed.vaccinations.length} vaccinations');
+
     for (final d in parsed.diagnoses) {
       final condition = (d.condition).trim();
       if (condition.isEmpty) continue;
@@ -1462,6 +1565,10 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       );
     }
 
+    debugPrint('[MedicalHistoryApply] Autofill result: '
+        '$conditionsAdded conditions, $medicationsAdded medications, '
+        '$vetVisitsAdded visits, $allergiesAdded allergies added');
+
     return _VetAutofillResult(
       conditionsAdded: conditionsAdded,
       medicationsAdded: medicationsAdded,
@@ -1566,43 +1673,38 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     required String title,
     required String message,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(40),
+    return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200, width: 2),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: ClovaraColors.clover.withOpacity(0.1),
-              shape: BoxShape.circle,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: ClovaraColors.clover.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 36, color: ClovaraColors.clover),
             ),
-            child: Icon(icon, size: 40, color: ClovaraColors.clover),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            title,
-            style: ClovaraTypography.h3.copyWith(
-              color: ClovaraColors.forest,
-              fontWeight: FontWeight.bold,
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: ClovaraTypography.h3.copyWith(
+                color: ClovaraColors.forest,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: ClovaraTypography.body.copyWith(
-              color: Colors.grey.shade600,
-              fontSize: 14,
+            const SizedBox(height: 6),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: ClovaraTypography.bodySmall.copyWith(
+                color: ClovaraColors.slate,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1612,48 +1714,19 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     required IconData icon,
     required VoidCallback onPressed,
   }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: ClovaraColors.clover.withOpacity(0.3),
-            width: 2,
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: ClovaraColors.clover,
+          side: BorderSide(color: ClovaraColors.clover.withOpacity(0.3), width: 1.5),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: ClovaraColors.clover.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: ClovaraColors.clover.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: ClovaraColors.clover, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: ClovaraTypography.h3.copyWith(
-                color: ClovaraColors.clover,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -1661,330 +1734,262 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
   Widget _buildConditionCard(MedicalCondition condition) {
     final isOther = condition.name.trim().toLowerCase() == 'other';
+    final statusColor = _getStatusColor(condition.status);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _getStatusColor(condition.status).withOpacity(0.2),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: statusColor.withOpacity(0.2)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(condition.status).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.medical_services_rounded,
+                    color: statusColor,
+                    size: 22,
+                  ),
                 ),
-                child: Icon(
-                  Icons.medical_services_rounded,
-                  color: _getStatusColor(condition.status),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      condition.name,
-                      style: ClovaraTypography.h3.copyWith(
-                        color: ClovaraColors.forest,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    if (isOther) ...[
-                      const SizedBox(height: 6),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Tap Edit to enter the specific condition name.',
+                        condition.name,
                         style: ClovaraTypography.body.copyWith(
-                          color: Colors.orange.shade800,
-                          fontSize: 12,
+                          color: ClovaraColors.forest,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(
-                              condition.status,
-                            ).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            condition.status.toUpperCase(),
-                            style: TextStyle(
-                              color: _getStatusColor(condition.status),
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        if (isOther) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'NEEDS DETAILS',
-                              style: TextStyle(
-                                color: Colors.orange,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(width: 8),
+                      if (isOther) ...[
+                        const SizedBox(height: 4),
                         Text(
-                          _formatDate(condition.diagnosisDate),
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
+                          'Tap Edit to enter the specific condition name.',
+                          style: ClovaraTypography.bodySmall.copyWith(
+                            color: ClovaraColors.warning,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          _buildStatusChip(
+                            condition.status.toUpperCase(),
+                            statusColor,
+                          ),
+                          if (isOther)
+                            _buildStatusChip(
+                              'NEEDS DETAILS',
+                              ClovaraColors.warning,
+                            ),
+                          Text(
+                            _formatDate(condition.diagnosisDate),
+                            style: ClovaraTypography.bodySmall.copyWith(
+                              color: ClovaraColors.slate,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_rounded, size: 20),
+                  color: ClovaraColors.slate,
+                  onPressed: () => _showEditConditionDialog(condition),
+                  tooltip: 'Edit',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  color: ClovaraColors.slate,
+                  onPressed: () => _removeCondition(condition),
+                  tooltip: 'Remove',
+                ),
+              ],
+            ),
+            if (condition.treatment != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: ClovaraColors.mist,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.healing_rounded,
+                      size: 16,
+                      color: ClovaraColors.slate,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        condition.treatment!,
+                        style: ClovaraTypography.bodySmall.copyWith(
+                          color: ClovaraColors.slate,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.edit_rounded, color: Colors.grey.shade500),
-                    onPressed: () => _showEditConditionDialog(condition),
-                    tooltip: 'Edit',
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close_rounded,
-                      color: Colors.grey.shade400,
-                    ),
-                    onPressed: () => _removeCondition(condition),
-                    tooltip: 'Remove',
-                  ),
-                ],
-              ),
             ],
-          ),
-          if (condition.treatment != null) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.healing_rounded,
-                    size: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      condition.treatment!,
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.3,
+        ),
       ),
     );
   }
 
   Widget _buildMedicationCard(Medication medication) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF4A90E2).withOpacity(0.2),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: ClovaraColors.info.withOpacity(0.2)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: ClovaraColors.info.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.medication_rounded,
+                    color: ClovaraColors.info,
+                    size: 22,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.medication_rounded,
-                  color: Color(0xFF4A90E2),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            medication.name,
-                            style: ClovaraTypography.h3.copyWith(
-                              color: ClovaraColors.forest,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        if (medication.isOngoing)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF4CAF50).withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
                             child: Text(
-                              'ONGOING',
-                              style: TextStyle(
-                                color: const Color(0xFF4CAF50),
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
+                              medication.name,
+                              style: ClovaraTypography.body.copyWith(
+                                color: ClovaraColors.forest,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
-                      ],
+                          if (medication.isOngoing)
+                            _buildStatusChip('ONGOING', ClovaraColors.success),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${medication.dosage} • ${medication.frequency}',
+                        style: ClovaraTypography.bodySmall.copyWith(
+                          color: ClovaraColors.slate,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_rounded, size: 20),
+                  color: ClovaraColors.slate,
+                  onPressed: () => _showEditMedicationDialog(medication),
+                  tooltip: 'Edit',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  color: ClovaraColors.slate,
+                  onPressed: () => _removeMedication(medication),
+                  tooltip: 'Remove',
+                ),
+              ],
+            ),
+            if (medication.purpose != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: ClovaraColors.mist,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 16,
+                      color: ClovaraColors.slate,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${medication.dosage} • ${medication.frequency}',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 13,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        medication.purpose!,
+                        style: ClovaraTypography.bodySmall.copyWith(
+                          color: ClovaraColors.slate,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.edit_rounded, color: Colors.grey.shade400),
-                onPressed: () => _showEditMedicationDialog(medication),
-                tooltip: 'Edit',
-              ),
-              IconButton(
-                icon: Icon(Icons.close_rounded, color: Colors.grey.shade400),
-                onPressed: () => _removeMedication(medication),
-                tooltip: 'Remove',
-              ),
             ],
-          ),
-          if (medication.purpose != null) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    size: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      medication.purpose!,
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildModernAllergyChip(String allergy) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: const Color(0xFFFF9800).withOpacity(0.3),
-          width: 2,
+          color: ClovaraColors.warning.withOpacity(0.3),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF9800).withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1992,14 +1997,13 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
           Icon(
             Icons.warning_amber_rounded,
             size: 16,
-            color: const Color(0xFFFF9800),
+            color: ClovaraColors.warning,
           ),
           const SizedBox(width: 8),
           Text(
             allergy,
-            style: TextStyle(
+            style: ClovaraTypography.bodySmall.copyWith(
               color: ClovaraColors.forest,
-              fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -2009,7 +2013,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
             child: Icon(
               Icons.close_rounded,
               size: 18,
-              color: Colors.grey.shade600,
+              color: ClovaraColors.slate,
             ),
           ),
         ],
@@ -2019,194 +2023,145 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
   Widget _buildVetVisitCard(VetVisit visit) {
     final visitColor = _getVisitTypeColor(visit.visitType);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: visitColor.withOpacity(0.2), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: visitColor.withOpacity(0.2)),
       ),
-      child: Column(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: visitColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    _getVisitTypeIcon(visit.visitType),
+                    color: visitColor,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          _buildStatusChip(
+                            visit.visitType.toUpperCase(),
+                            visitColor,
+                          ),
+                          Text(
+                            _formatDate(visit.visitDate),
+                            style: ClovaraTypography.bodySmall.copyWith(
+                              color: ClovaraColors.slate,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        visit.clinic,
+                        style: ClovaraTypography.body.copyWith(
+                          color: ClovaraColors.forest,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        'Dr. ${visit.veterinarian}',
+                        style: ClovaraTypography.bodySmall.copyWith(
+                          color: ClovaraColors.slate,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_rounded, size: 20),
+                  color: ClovaraColors.slate,
+                  onPressed: () => _showEditVetVisitDialog(visit),
+                  tooltip: 'Edit',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  color: ClovaraColors.slate,
+                  onPressed: () => _removeVetVisit(visit),
+                  tooltip: 'Remove',
+                ),
+              ],
+            ),
+            if (visit.diagnosis != null || visit.treatment != null) ...[
+              const SizedBox(height: 12),
+              if (visit.diagnosis != null)
+                _buildDetailRow(
+                  icon: Icons.assignment_rounded,
+                  label: 'Diagnosis',
+                  value: visit.diagnosis!,
+                ),
+              if (visit.diagnosis != null && visit.treatment != null)
+                const SizedBox(height: 8),
+              if (visit.treatment != null)
+                _buildDetailRow(
+                  icon: Icons.healing_rounded,
+                  label: 'Treatment',
+                  value: visit.treatment!,
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: ClovaraColors.mist,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: visitColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+          Icon(icon, size: 16, color: ClovaraColors.slate),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: ClovaraTypography.label.copyWith(
+                    color: ClovaraColors.slate,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
                 ),
-                child: Icon(
-                  _getVisitTypeIcon(visit.visitType),
-                  color: visitColor,
-                  size: 24,
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: ClovaraTypography.bodySmall.copyWith(
+                    color: ClovaraColors.slate,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: visitColor.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            visit.visitType.toUpperCase(),
-                            style: TextStyle(
-                              color: visitColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _formatDate(visit.visitDate),
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      visit.clinic,
-                      style: ClovaraTypography.h3.copyWith(
-                        color: ClovaraColors.forest,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Dr. ${visit.veterinarian}',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.edit_rounded, color: Colors.grey.shade400),
-                onPressed: () => _showEditVetVisitDialog(visit),
-                tooltip: 'Edit',
-              ),
-              IconButton(
-                icon: Icon(Icons.close_rounded, color: Colors.grey.shade400),
-                onPressed: () => _removeVetVisit(visit),
-                tooltip: 'Remove',
-              ),
-            ],
+              ],
+            ),
           ),
-          if (visit.diagnosis != null || visit.treatment != null) ...[
-            const SizedBox(height: 16),
-            if (visit.diagnosis != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.assignment_rounded,
-                      size: 16,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Diagnosis',
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            visit.diagnosis!,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (visit.treatment != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.healing_rounded,
-                      size: 16,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Treatment',
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            visit.treatment!,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
         ],
       ),
     );
@@ -2215,28 +2170,28 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'active':
-        return Colors.red;
+        return ClovaraColors.error;
       case 'managed':
       case 'stable':
-        return Colors.orange;
+        return ClovaraColors.warning;
       case 'resolved':
-        return Colors.green;
+        return ClovaraColors.success;
       default:
-        return Colors.grey;
+        return ClovaraColors.slate;
     }
   }
 
   Color _getVisitTypeColor(String type) {
     switch (type.toLowerCase()) {
       case 'emergency':
-        return Colors.red;
+        return ClovaraColors.error;
       case 'surgery':
-        return Colors.purple;
+        return ClovaraColors.info;
       case 'checkup':
       case 'vaccination':
-        return Colors.green;
+        return ClovaraColors.success;
       default:
-        return Colors.blue;
+        return ClovaraColors.info;
     }
   }
 
@@ -2259,120 +2214,53 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
   Widget _buildNavigationButtons() {
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 12),
       child: SafeArea(
         top: false,
-        child: Row(
-          children: [
-            if (_currentStep > 0) ...[
-              Expanded(
-                child: Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: ClovaraColors.forest.withOpacity(0.2),
-                      width: 2,
-                    ),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: _previousStep,
-                      child: Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.arrow_back_ios_rounded,
-                              color: ClovaraColors.forest,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Back',
-                              style: ClovaraTypography.h3.copyWith(
-                                color: ClovaraColors.forest,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+        child: MaxWidth(
+          child: Row(
+            children: [
+              if (_currentStep > 0) ...[
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _previousStep,
+                    icon: const Icon(Icons.arrow_back_ios_rounded, size: 16),
+                    label: const Text('Back'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ClovaraColors.forest,
+                      side: BorderSide(color: ClovaraColors.border),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-            ],
-            Expanded(
-              flex: _currentStep > 0 ? 2 : 1,
-              child: Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      ClovaraColors.clover,
-                      ClovaraColors.clover.withOpacity(0.9),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                flex: _currentStep > 0 ? 2 : 1,
+                child: ElevatedButton(
+                  onPressed: _currentStep < _totalSteps - 1
+                      ? _nextStep
+                      : _complete,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _currentStep < _totalSteps - 1
+                            ? 'Continue'
+                            : 'Complete & View Plans',
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 16),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: ClovaraColors.clover.withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: _currentStep < _totalSteps - 1
-                        ? _nextStep
-                        : _complete,
-                    child: Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _currentStep < _totalSteps - 1
-                                ? 'Continue'
-                                : 'Complete & View Plans',
-                            style: ClovaraTypography.h3.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -2385,7 +2273,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         setState(() {
           _currentStep++;
         });
-        _pageController.jumpToPage(_currentStep);
+        _pageController.animateToPage(
+          _currentStep,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
         _fadeController.forward();
       });
     }
@@ -2397,7 +2289,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         setState(() {
           _currentStep--;
         });
-        _pageController.jumpToPage(_currentStep);
+        _pageController.animateToPage(
+          _currentStep,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
         _fadeController.forward();
       });
     }
@@ -2499,6 +2395,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
               );
             },
       );
+      debugPrint('[UnderwritingBridge] Calling integrity engine: '
+          '${built.facts.length} facts, '
+          '${_aiVetExtraction.length} vet extractions, '
+          'aiFailure=${built.aiFailure}, '
+          'ruleOutCodes=$computedRuleOutCodes');
       var assessment = await integrityEngine.assess(
         pet: updatedPet,
         riskScore: riskScore,
@@ -2512,6 +2413,10 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         aiVetExtractionForIntegrity: List<VetRecordData>.from(_aiVetExtraction),
         rawVetTextsForIntegrity: List<String>.from(_rawVetTexts),
       );
+      debugPrint('[UnderwritingBridge] Assessment result: '
+          'status=${assessment.underwritingStatus}, '
+          'reason=${assessment.reason}, '
+          'evidence=${assessment.requiredEvidence.map((e) => e.code).toList()}');
 
       // Deterministic escalation for repeated unresolved NEED_MORE_INFO.
       // We persist the counter in local route args to keep behavior stable
@@ -3114,210 +3019,210 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   }
 
   Widget _buildConditionDialog({MedicalCondition? editing}) {
-    return AlertDialog(
-      title: Text(
-        editing == null ? 'Add Medical Condition' : 'Edit Medical Condition',
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _conditionNameController,
-              decoration: const InputDecoration(
-                labelText: 'Condition Name *',
-                hintText: 'e.g., Chronic ear infections',
-                border: OutlineInputBorder(),
-              ),
+    return StatefulBuilder(
+      builder: (context, setDialogState) {
+        return AlertDialog(
+          title: Text(
+            editing == null ? 'Add Medical Condition' : 'Edit Medical Condition',
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _conditionNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Condition Name *',
+                    hintText: 'e.g., Chronic ear infections',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Congenital / since birth'),
+                  subtitle: const Text(
+                    'Mark when the condition has been present since birth.',
+                  ),
+                  value: _conditionIsCongenital,
+                  onChanged: (value) {
+                    setState(() => _conditionIsCongenital = value);
+                    setDialogState(() {});
+                  },
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  title: const Text('Diagnosis Date'),
+                  subtitle: Text(
+                    _conditionDiagnosisDate != null
+                        ? _formatDate(_conditionDiagnosisDate!)
+                        : 'Select date',
+                  ),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _conditionDiagnosisDate ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (date != null) {
+                      setState(() => _conditionDiagnosisDate = date);
+                      setDialogState(() {});
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _conditionStatus,
+                  decoration: const InputDecoration(
+                    labelText: 'Status',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: ['active', 'managed', 'stable', 'resolved']
+                      .map(
+                        (status) => DropdownMenuItem(
+                          value: status,
+                          child: Text(status.toUpperCase()),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _conditionStatus = value);
+                      setDialogState(() {});
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _conditionTreatmentController,
+                  decoration: const InputDecoration(
+                    labelText: 'Treatment',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _conditionNotesController,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Congenital / since birth'),
-              subtitle: const Text(
-                'Mark when the condition has been present since birth.',
-              ),
-              value: _conditionIsCongenital,
-              onChanged: (value) {
-                setState(() => _conditionIsCongenital = value);
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _clearConditionForm();
+                Navigator.pop(context);
               },
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 8),
-            ListTile(
-              title: const Text('Diagnosis Date'),
-              subtitle: Text(
-                _conditionDiagnosisDate != null
-                    ? _formatDate(_conditionDiagnosisDate!)
-                    : 'Select date',
-              ),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime.now(),
-                );
-                if (date != null) {
-                  setState(() => _conditionDiagnosisDate = date);
-                  Navigator.pop(context);
+            ElevatedButton(
+              onPressed: () {
+                if (_conditionNameController.text.isNotEmpty &&
+                    _conditionDiagnosisDate != null) {
                   if (editing == null) {
-                    _showAddConditionDialog();
+                    _addCondition();
                   } else {
-                    _showEditConditionDialog(editing);
+                    _updateCondition(editing);
                   }
+                  Navigator.pop(context);
                 }
               },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _conditionStatus,
-              decoration: const InputDecoration(
-                labelText: 'Status',
-                border: OutlineInputBorder(),
-              ),
-              items: ['active', 'managed', 'stable', 'resolved']
-                  .map(
-                    (status) => DropdownMenuItem(
-                      value: status,
-                      child: Text(status.toUpperCase()),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _conditionStatus = value);
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _conditionTreatmentController,
-              decoration: const InputDecoration(
-                labelText: 'Treatment',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _conditionNotesController,
-              decoration: const InputDecoration(
-                labelText: 'Notes',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
+              child: Text(editing == null ? 'Add' : 'Save'),
             ),
           ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            _clearConditionForm();
-            Navigator.pop(context);
-          },
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_conditionNameController.text.isNotEmpty &&
-                _conditionDiagnosisDate != null) {
-              if (editing == null) {
-                _addCondition();
-              } else {
-                _updateCondition(editing);
-              }
-              Navigator.pop(context);
-            }
-          },
-          child: Text(editing == null ? 'Add' : 'Save'),
-        ),
-      ],
+        );
+      },
     );
   }
 
   Widget _buildMedicationDialog({Medication? editing}) {
-    return AlertDialog(
-      title: Text(editing == null ? 'Add Medication' : 'Edit Medication'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _medicationNameController,
-              decoration: const InputDecoration(
-                labelText: 'Medication Name *',
-                border: OutlineInputBorder(),
-              ),
+    return StatefulBuilder(
+      builder: (context, setDialogState) {
+        return AlertDialog(
+          title: Text(editing == null ? 'Add Medication' : 'Edit Medication'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _medicationNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Medication Name *',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _medicationDosageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Dosage *',
+                    hintText: 'e.g., 75mg',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _medicationFrequencyController,
+                  decoration: const InputDecoration(
+                    labelText: 'Frequency *',
+                    hintText: 'e.g., twice daily',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _medicationPurposeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Purpose',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                CheckboxListTile(
+                  title: const Text('Ongoing'),
+                  value: _medicationIsOngoing,
+                  onChanged: (value) {
+                    setState(() => _medicationIsOngoing = value ?? true);
+                    setDialogState(() {});
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _medicationDosageController,
-              decoration: const InputDecoration(
-                labelText: 'Dosage *',
-                hintText: 'e.g., 75mg',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _medicationFrequencyController,
-              decoration: const InputDecoration(
-                labelText: 'Frequency *',
-                hintText: 'e.g., twice daily',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _medicationPurposeController,
-              decoration: const InputDecoration(
-                labelText: 'Purpose',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            CheckboxListTile(
-              title: const Text('Ongoing'),
-              value: _medicationIsOngoing,
-              onChanged: (value) {
-                setState(() => _medicationIsOngoing = value ?? true);
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _clearMedicationForm();
                 Navigator.pop(context);
-                if (editing == null) {
-                  _showAddMedicationDialog();
-                } else {
-                  _showEditMedicationDialog(editing);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (_medicationNameController.text.isNotEmpty &&
+                    _medicationDosageController.text.isNotEmpty &&
+                    _medicationFrequencyController.text.isNotEmpty) {
+                  if (editing == null) {
+                    _addMedication();
+                  } else {
+                    _updateMedication(editing);
+                  }
+                  Navigator.pop(context);
                 }
               },
+              child: Text(editing == null ? 'Add' : 'Save'),
             ),
           ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            _clearMedicationForm();
-            Navigator.pop(context);
-          },
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_medicationNameController.text.isNotEmpty &&
-                _medicationDosageController.text.isNotEmpty &&
-                _medicationFrequencyController.text.isNotEmpty) {
-              if (editing == null) {
-                _addMedication();
-              } else {
-                _updateMedication(editing);
-              }
-              Navigator.pop(context);
-            }
-          },
-          child: Text(editing == null ? 'Add' : 'Save'),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -3355,125 +3260,125 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
   }
 
   Widget _buildVetVisitDialog({VetVisit? editing}) {
-    return AlertDialog(
-      title: Text(editing == null ? 'Add Vet Visit' : 'Edit Vet Visit'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('Visit Date'),
-              subtitle: Text(
-                _visitDate != null ? _formatDate(_visitDate!) : 'Select date',
-              ),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime.now(),
-                );
-                if (date != null) {
-                  setState(() => _visitDate = date);
-                  Navigator.pop(context);
+    return StatefulBuilder(
+      builder: (context, setDialogState) {
+        return AlertDialog(
+          title: Text(editing == null ? 'Add Vet Visit' : 'Edit Vet Visit'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('Visit Date'),
+                  subtitle: Text(
+                    _visitDate != null ? _formatDate(_visitDate!) : 'Select date',
+                  ),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _visitDate ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (date != null) {
+                      setState(() => _visitDate = date);
+                      setDialogState(() {});
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _visitType,
+                  decoration: const InputDecoration(
+                    labelText: 'Visit Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  items:
+                      [
+                            'checkup',
+                            'emergency',
+                            'surgery',
+                            'follow-up',
+                            'vaccination',
+                          ]
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type.toUpperCase()),
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _visitType = value);
+                      setDialogState(() {});
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _vetNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Veterinarian *',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _clinicNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Clinic Name *',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _visitDiagnosisController,
+                  decoration: const InputDecoration(
+                    labelText: 'Diagnosis/Reason',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _visitTreatmentController,
+                  decoration: const InputDecoration(
+                    labelText: 'Treatment',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _clearVetVisitForm();
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (_visitDate != null &&
+                    _vetNameController.text.isNotEmpty &&
+                    _clinicNameController.text.isNotEmpty) {
                   if (editing == null) {
-                    _showAddVetVisitDialog();
+                    _addVetVisit();
                   } else {
-                    _showEditVetVisitDialog(editing);
+                    _updateVetVisit(editing);
                   }
+                  Navigator.pop(context);
                 }
               },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _visitType,
-              decoration: const InputDecoration(
-                labelText: 'Visit Type',
-                border: OutlineInputBorder(),
-              ),
-              items:
-                  [
-                        'checkup',
-                        'emergency',
-                        'surgery',
-                        'follow-up',
-                        'vaccination',
-                      ]
-                      .map(
-                        (type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(type.toUpperCase()),
-                        ),
-                      )
-                      .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _visitType = value);
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _vetNameController,
-              decoration: const InputDecoration(
-                labelText: 'Veterinarian *',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _clinicNameController,
-              decoration: const InputDecoration(
-                labelText: 'Clinic Name *',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _visitDiagnosisController,
-              decoration: const InputDecoration(
-                labelText: 'Diagnosis/Reason',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _visitTreatmentController,
-              decoration: const InputDecoration(
-                labelText: 'Treatment',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
+              child: Text(editing == null ? 'Add' : 'Save'),
             ),
           ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            _clearVetVisitForm();
-            Navigator.pop(context);
-          },
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_visitDate != null &&
-                _vetNameController.text.isNotEmpty &&
-                _clinicNameController.text.isNotEmpty) {
-              if (editing == null) {
-                _addVetVisit();
-              } else {
-                _updateVetVisit(editing);
-              }
-              Navigator.pop(context);
-            }
-          },
-          child: Text(editing == null ? 'Add' : 'Save'),
-        ),
-      ],
+        );
+      },
     );
   }
 

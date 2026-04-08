@@ -306,7 +306,10 @@ class Homepage extends StatelessWidget {
 
       if (resolved.draftType == 'quote') {
         if (context.mounted) {
-          context.push('/conversational-quote');
+          context.push(
+            '/conversational-quote',
+            extra: {'restorePendingDraft': true},
+          );
         }
         return;
       }

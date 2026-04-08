@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -103,7 +104,12 @@ class ChatMessage {
 // ---------------------------------------------------------------------------
 
 class ConversationalQuoteFlow extends StatefulWidget {
-  const ConversationalQuoteFlow({super.key});
+  const ConversationalQuoteFlow({
+    super.key,
+    this.restorePendingDraft = false,
+  });
+
+  final bool restorePendingDraft;
 
   @override
   State<ConversationalQuoteFlow> createState() =>
@@ -123,6 +129,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   int _currentQuestion = 0;
   bool _isTyping = false;
   bool _isWaitingForInput = false;
+  String _activePromptText = '';
 
   // Confirmation flow
   bool _awaitingConfirmation = false;
@@ -303,9 +310,25 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     MarketingAttributionService().ensureSessionStarted();
     _aiService = ConversationalAIService();
     _cloverAdapter = CloverResponseAdapter();
+    if (!widget.restorePendingDraft) {
+      unawaited(_clearStaleLocalProgress());
+    }
     _setupAuthListener();
+    unawaited(_ensureAnonymousSession());
     _prefillUserData();
     _startConversation();
+  }
+
+  /// Silently establish an anonymous Firebase session so Firestore writes,
+  /// Cloud Function calls, and Storage uploads work without requiring the
+  /// user to create an account. Real auth is only needed at checkout.
+  Future<void> _ensureAnonymousSession() async {
+    try {
+      if (FirebaseAuth.instance.currentUser != null) return;
+      await FirebaseAuth.instance.signInAnonymously();
+    } catch (e) {
+      debugPrint('[QuoteFlow] Anonymous auth failed (non-blocking): $e');
+    }
   }
 
   @override
@@ -349,6 +372,15 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     SaveResumeDialog.show(context, ensureSaved: () => _savePendingQuote());
   }
 
+  Future<void> _clearStaleLocalProgress() async {
+    try {
+      await UserSessionService().clearPendingQuote();
+      await UserSessionService().clearPendingCheckout();
+    } catch (e) {
+      print('⚠️ Error clearing stale local quote progress: $e');
+    }
+  }
+
   // ---- Pre-fill --------------------------------------------------------
 
   Future<void> _prefillUserData() async {
@@ -377,10 +409,12 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
         }
       }
 
-      final pending = await UserSessionService().getPendingQuote();
-      if (pending != null && pending.isNotEmpty) {
-        for (final entry in pending.entries) {
-          _answers[entry.key] ??= entry.value;
+      if (widget.restorePendingDraft) {
+        final pending = await UserSessionService().getPendingQuote();
+        if (pending != null && pending.isNotEmpty) {
+          for (final entry in pending.entries) {
+            _answers[entry.key] ??= entry.value;
+          }
         }
       }
     } catch (e) {
@@ -405,16 +439,9 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
         continue;
       }
       // If already answered, skip
-      if (_answers.containsKey(q.field) && _answers[q.field] != null) {
-        final val = _answers[q.field];
-        if (val is String && val.isNotEmpty) {
-          _currentQuestion++;
-          continue;
-        }
-        if (val is! String) {
-          _currentQuestion++;
-          continue;
-        }
+      if (_hasMeaningfulAnswer(_answers[q.field])) {
+        _currentQuestion++;
+        continue;
       }
       break;
     }
@@ -429,6 +456,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     setState(() {
       _isTyping = true;
       _isWaitingForInput = false;
+      _activePromptText = '';
     });
 
     // Keep question prompts deterministic so the guided flow has a stable,
@@ -483,6 +511,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       shown = math.min(shown + charsPerTick, text.length);
       if (!mounted) return;
       setState(() {
+        _activePromptText = text.substring(0, shown);
         _messages[_messages.length - 1] = ChatMessage(
           text: text.substring(0, shown),
           isBot: true,
@@ -538,10 +567,12 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
           _isWaitingForInput = false;
         });
         await Future.delayed(const Duration(milliseconds: 280));
-        await _streamBotMessage(
-          "Thanks — let’s fix that.",
-          _questions[_currentQuestion],
-        );
+        if (_currentQuestion >= 0 && _currentQuestion < _questions.length) {
+          await _streamBotMessage(
+            "Thanks — let’s fix that.",
+            _questions[_currentQuestion],
+          );
+        }
         setState(() {
           _isTyping = false;
           _isWaitingForInput = true;
@@ -550,7 +581,10 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       }
     }
 
+    if (_currentQuestion < 0 || _currentQuestion >= _questions.length) return;
     final question = _questions[_currentQuestion];
+    final hadExistingAnswer = _hasMeaningfulAnswer(_answers[question.field]);
+    final previousValue = _answers[question.field];
 
     // Display the user's message
     _addUserMessage(displayText ?? value.toString());
@@ -595,6 +629,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
 
     // Commit the answer
     _answers[question.field] = value;
+  _clearDependentAnswers(question, previousValue: previousValue, nextValue: value);
 
     // Handle conditions flow
     if (question.id == 'conditionTypes') {
@@ -607,9 +642,21 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     // Update user profile if applicable
     await _tryUpdateUserProfile(question.field, value);
 
+    final nextVisibleQuestion = _nextVisibleQuestionIndex(fromIndex: _currentQuestion);
+
     _currentQuestion++;
 
     await Future.delayed(const Duration(milliseconds: 240));
+    if (hadExistingAnswer) {
+      if (nextVisibleQuestion != null) {
+        _currentQuestion = nextVisibleQuestion;
+        _presentCurrentQuestion();
+      } else {
+        _currentQuestion = _currentQuestion.clamp(0, _questions.length - 1);
+        _presentCurrentQuestion();
+      }
+      return;
+    }
     await _showNextQuestion();
   }
 
@@ -644,7 +691,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     final petName = _answers['petName'] as String? ?? 'your pet';
     final conditions =
         answer is List ? answer.map((e) => e.toString()).toList() : <String>[];
-    if (conditions.isNotEmpty) {
+    if (conditions.isNotEmpty && _currentQuestion < _questions.length) {
       await Future.delayed(const Duration(milliseconds: 400));
       await _streamBotMessage(
         "Thanks for sharing that about $petName. I know health stuff can be stressful — we'll take it step by step.",
@@ -663,10 +710,12 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
           final joined = conditions.length <= 2
               ? conditions.join(' and ')
               : '${conditions.take(2).join(', ')} and ${conditions.length - 2} more';
-          await _streamBotMessage(
-            "One quick note: based on what you selected ($joined), we may not be able to offer a new policy for $petName. I'll still finish this up so we can confirm and share next steps.",
-            _questions[_currentQuestion],
-          );
+          if (_currentQuestion < _questions.length) {
+            await _streamBotMessage(
+              "One quick note: based on what you selected ($joined), we may not be able to offer a new policy for $petName. I'll still finish this up so we can confirm and share next steps.",
+              _questions[_currentQuestion],
+            );
+          }
           await Future.delayed(const Duration(milliseconds: 900));
         }
       } catch (e) {
@@ -908,6 +957,169 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     }
   }
 
+  bool _hasMeaningfulAnswer(dynamic value) {
+    if (value == null) return false;
+    if (value is String) return value.trim().isNotEmpty;
+    if (value is List) return value.isNotEmpty;
+    return true;
+  }
+
+  List<int> _visibleQuestionIndices() {
+    final indices = <int>[];
+    for (var index = 0; index < _questions.length; index++) {
+      if (_questions[index].shouldShow(_answers)) {
+        indices.add(index);
+      }
+    }
+    return indices;
+  }
+
+  int? _previousVisibleQuestionIndex() {
+    final visible = _visibleQuestionIndices();
+    final position = visible.indexOf(_currentQuestion);
+    if (position <= 0) return null;
+    return visible[position - 1];
+  }
+
+  int? _nextVisibleQuestionIndex({int? fromIndex}) {
+    final visible = _visibleQuestionIndices();
+    final currentIndex = fromIndex ?? _currentQuestion;
+    final position = visible.indexOf(currentIndex);
+    if (position == -1 || position >= visible.length - 1) return null;
+    return visible[position + 1];
+  }
+
+  void _presentCurrentQuestion() {
+    if (!mounted || _currentQuestion < 0 || _currentQuestion >= _questions.length) {
+      return;
+    }
+
+    final question = _questions[_currentQuestion];
+    final existingValue = _answers[question.field];
+    if (question.type == QuestionType.text || question.type == QuestionType.number) {
+      final text = existingValue == null ? '' : existingValue.toString();
+      _textController.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    } else {
+      _textController.clear();
+    }
+
+    setState(() {
+      _awaitingConfirmation = false;
+      _pendingField = null;
+      _pendingValue = null;
+      _isTyping = false;
+      _isWaitingForInput = true;
+      _activePromptText = _formatQuestion(question.question);
+    });
+
+    _scrollToBottom();
+    _scheduleAutofocusIfNeeded();
+  }
+
+  void _goToQuestion(int index) {
+    if (index < 0 || index >= _questions.length) return;
+    if (!_questions[index].shouldShow(_answers)) return;
+    setState(() {
+      _currentQuestion = index;
+    });
+    _presentCurrentQuestion();
+  }
+
+  void _clearDependentAnswers(
+    QuestionData question, {
+    required dynamic previousValue,
+    required dynamic nextValue,
+  }) {
+    if (_answersEqual(previousValue, nextValue)) {
+      _pruneHiddenAnswers();
+      return;
+    }
+
+    switch (question.field) {
+      case 'species':
+        _answers.remove('breed');
+        _answers.remove('weight');
+        break;
+      case 'breed':
+        _answers.remove('weight');
+        break;
+      case 'hasPreExistingConditions':
+        if (nextValue != true) {
+          _answers.remove('preExistingConditionTypes');
+          _answers.remove('preExistingConditionOtherText');
+          _answers.remove('isReceivingTreatment');
+          _earlyEligibility = null;
+        }
+        break;
+      case 'preExistingConditionTypes':
+        final selected = nextValue is List
+            ? nextValue.map((value) => value.toString()).toList()
+            : <String>[];
+        if (!selected.contains('Other')) {
+          _answers.remove('preExistingConditionOtherText');
+        }
+        if (selected.isEmpty) {
+          _answers.remove('isReceivingTreatment');
+          _earlyEligibility = null;
+        }
+        break;
+    }
+
+    _pruneHiddenAnswers();
+  }
+
+  void _pruneHiddenAnswers() {
+    final visibleFields = _questions
+        .where((question) => question.shouldShow(_answers))
+        .map((question) => question.field)
+        .toSet();
+    final knownFields = _questions.map((question) => question.field).toSet();
+    final staleFields = _answers.keys
+        .where((field) => knownFields.contains(field) && !visibleFields.contains(field))
+        .toList(growable: false);
+
+    for (final field in staleFields) {
+      _answers.remove(field);
+    }
+  }
+
+  bool _answersEqual(dynamic previousValue, dynamic nextValue) {
+    if (previousValue is List && nextValue is List) {
+      return listEquals(previousValue, nextValue);
+    }
+    return previousValue == nextValue;
+  }
+
+  String _displayAnswerForQuestion(QuestionData question) {
+    final value = _answers[question.field];
+    if (!_hasMeaningfulAnswer(value)) return '';
+
+    switch (question.type) {
+      case QuestionType.choice:
+        final option = question.options?.cast<ChoiceOption?>().firstWhere(
+              (candidate) => candidate?.value == value,
+              orElse: () => null,
+            );
+        return option?.label ?? value.toString();
+      case QuestionType.multiSelect:
+        final selections = (value as List).map((item) => item.toString()).toList();
+        if (selections.length <= 2) {
+          return selections.join(', ');
+        }
+        return '${selections.take(2).join(', ')} +${selections.length - 2}';
+      case QuestionType.agePicker:
+        final age = value is String ? int.tryParse(value) ?? 0 : (value as num).toInt();
+        return age == 0 ? '< 1 year' : '$age year${age == 1 ? '' : 's'}';
+      case QuestionType.weightPicker:
+        return '$value lbs';
+      default:
+        return value.toString();
+    }
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
@@ -1118,10 +1330,26 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   // ---- Minimal header --------------------------------------------------
 
   Widget _buildMinimalHeader() {
-    final answered = _messages.where((m) => !m.isBot).length;
-    final total = _questions.where((q) => q.shouldShow(_answers)).length;
-    final progress = total > 0 ? (answered / total).clamp(0.0, 1.0) : 0.0;
-    final currentStep = total > 0 ? (answered + 1).clamp(1, total) : 0;
+    final visibleQuestions = _questions
+      .where((q) => q.shouldShow(_answers))
+      .toList(growable: false);
+    final total = visibleQuestions.length;
+    final currentQuestionId =
+      _currentQuestion < _questions.length ? _questions[_currentQuestion].id : null;
+    final currentVisibleIndex = currentQuestionId == null
+      ? -1
+      : visibleQuestions.indexWhere((q) => q.id == currentQuestionId);
+    final answeredVisible = visibleQuestions
+        .where((q) => _hasMeaningfulAnswer(_answers[q.field]))
+        .length;
+    final currentStep = total == 0
+      ? 0
+      : currentVisibleIndex >= 0
+        ? currentVisibleIndex + 1
+        : answeredVisible.clamp(1, total);
+    final progress = total > 0 ? ((currentStep - 1) / total).clamp(0.0, 1.0) : 0.0;
+    final previousIndex = _previousVisibleQuestionIndex();
+    final nextIndex = _nextVisibleQuestionIndex();
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
@@ -1273,6 +1501,53 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
               ),
             ],
           ),
+          if (total > 0) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  onPressed: previousIndex == null
+                      ? null
+                      : () => _goToQuestion(previousIndex),
+                  icon: const Icon(Icons.chevron_left_rounded, size: 18),
+                  label: const Text('Previous'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ClovaraColors.forest,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Tap an answer chip to jump back and edit it.',
+                    style: ClovaraTypography.bodySmall.copyWith(
+                      color: ClovaraColors.forest.withOpacity(0.42),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: nextIndex == null
+                      ? null
+                      : () => _goToQuestion(nextIndex),
+                  icon: const Icon(Icons.chevron_right_rounded, size: 18),
+                  label: const Text('Next'),
+                  iconAlignment: IconAlignment.end,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ClovaraColors.forest,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -1296,8 +1571,12 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   // ---- Answer summary chips --------------------------------------------
 
   Widget _buildAnswerChips() {
-    final userMessages = _messages.where((m) => !m.isBot).toList();
-    if (userMessages.isEmpty) {
+    final answeredQuestions = _questions
+        .where((question) =>
+            question.shouldShow(_answers) &&
+            _hasMeaningfulAnswer(_answers[question.field]))
+        .toList(growable: false);
+    if (answeredQuestions.isEmpty) {
       return const SizedBox(height: 40);
     }
 
@@ -1306,51 +1585,57 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        itemCount: userMessages.length,
+        itemCount: answeredQuestions.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final msg = userMessages[index];
-          final idx = _messages.indexOf(msg);
-          final botMsg = idx > 0
-              ? _messages.sublist(0, idx).lastWhere(
-                    (m) => m.isBot,
-                    orElse: () => msg,
-                  )
-              : null;
-          final chipIcon = _chipIconFor(botMsg?.questionData?.id);
+          final question = answeredQuestions[index];
+          final chipIcon = _chipIconFor(question.id);
+          final chipText = _displayAnswerForQuestion(question);
+          final isCurrent = _currentQuestion < _questions.length &&
+              question.id == _questions[_currentQuestion].id;
 
           return AnimatedOpacity(
             duration: const Duration(milliseconds: 180),
-            opacity: index == userMessages.length - 1 ? 0.95 : 0.72,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9FAF7),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (chipIcon != null && botMsg?.questionData?.id == 'petName') ...[
-                    Icon(
-                      chipIcon,
-                      size: 13,
-                      color: Colors.grey.shade500,
-                    ),
-                    const SizedBox(width: 5),
-                  ],
-                  Text(
-                    msg.text.length > 28
-                        ? '${msg.text.substring(0, 25)}...'
-                        : msg.text,
-                    style: ClovaraTypography.bodySmall.copyWith(
-                      color: ClovaraColors.forest.withOpacity(0.55),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
+            opacity: isCurrent ? 0.98 : 0.8,
+            child: InkWell(
+              onTap: () => _goToQuestion(_questions.indexOf(question)),
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isCurrent
+                      ? ClovaraColors.forest.withOpacity(0.06)
+                      : const Color(0xFFF9FAF7),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: isCurrent
+                        ? ClovaraColors.forest.withOpacity(0.2)
+                        : Colors.grey.shade200,
                   ),
-                ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (chipIcon != null) ...[
+                      Icon(
+                        chipIcon,
+                        size: 13,
+                        color: Colors.grey.shade500,
+                      ),
+                      const SizedBox(width: 5),
+                    ],
+                    Text(
+                      chipText.length > 28
+                          ? '${chipText.substring(0, 25)}...'
+                          : chipText,
+                      style: ClovaraTypography.bodySmall.copyWith(
+                        color: ClovaraColors.forest.withOpacity(0.55),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -1390,14 +1675,12 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   Widget _buildFocusedStep() {
     final width = MediaQuery.sizeOf(context).width;
     final isNarrow = width < 560;
-    final botMessages = _messages.where((m) => m.isBot).toList();
-    if (botMessages.isEmpty) {
+    if (_currentQuestion < 0 || _currentQuestion >= _questions.length) {
       return _isTyping ? _buildThinkingState() : const SizedBox.shrink();
     }
 
-    final lastBotMsg = botMessages.last;
-    final questionData = lastBotMsg.questionData;
-    final hasText = lastBotMsg.text.isNotEmpty;
+    final questionData = _questions[_currentQuestion];
+    final hasText = _activePromptText.isNotEmpty;
     final isTransitioning = _isTyping && !_isWaitingForInput;
 
     return AnimatedSize(
@@ -1464,8 +1747,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                     );
                   },
                   child: Text(
-                    lastBotMsg.text,
-                    key: ValueKey(lastBotMsg.timestamp.microsecondsSinceEpoch),
+                    _activePromptText,
+                    key: ValueKey('${questionData.id}:$_activePromptText'),
                     style: ClovaraTypography.h2.copyWith(
                       color: ClovaraColors.forest,
                       fontSize: isNarrow ? 24 : 28,
@@ -1475,10 +1758,10 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                     ),
                   ),
                 ),
-              if (questionData?.subtitle != null) ...[
+              if (questionData.subtitle != null) ...[
                 SizedBox(height: isNarrow ? 10 : 12),
                 Text(
-                  questionData!.subtitle!,
+                  questionData.subtitle!,
                   style: ClovaraTypography.body.copyWith(
                     color: ClovaraColors.forest.withOpacity(0.45),
                     fontWeight: FontWeight.w500,
@@ -1488,7 +1771,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
                 ),
               ],
               SizedBox(height: _isWaitingForInput ? (isNarrow ? 24 : 30) : 12),
-              if (_isWaitingForInput && questionData != null)
+              if (_isWaitingForInput)
                 TweenAnimationBuilder<double>(
                   duration: const Duration(milliseconds: 340),
                   tween: Tween(begin: 0.0, end: 1.0),
@@ -1654,6 +1937,8 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   // ---- Choice pills (single-select) ------------------------------------
 
   Widget _buildChoiceOptions(QuestionData question) {
+    final selectedValue = _answers[question.field];
+
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -1661,6 +1946,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
         return _OptionPill(
           label: option.label,
           icon: option.icon,
+          selected: selectedValue == option.value,
           onTap: () => _handleUserResponse(option.value, displayText: option.label),
         );
       }).toList(),
@@ -1724,6 +2010,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   Widget _buildBreedPickerInline(QuestionData question) {
     final species = (_answers['species'] as String?)?.toLowerCase();
     final replies = _getQuickRepliesForQuestion(question);
+    final selectedBreed = _answers[question.field]?.toString();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1736,9 +2023,9 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
             children: replies.map((r) {
               return _OptionPill(
                 label: r.label,
+                selected: selectedBreed == r.value,
                 onTap: () {
                   _answers['breed'] = r.value;
-                  _autoFillWeightForBreed(r.value);
                   _handleUserResponse(r.value, displayText: r.label);
                 },
               );
@@ -1781,13 +2068,6 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
         ),
       ],
     );
-  }
-
-  void _autoFillWeightForBreed(String breed) {
-    final range = BreedSizeGuide.expectedAdultWeightLbs(breed);
-    if (range != null && !_answers.containsKey('weight')) {
-      _answers['weight'] = ((range.minLbs + range.maxLbs) / 2).round();
-    }
   }
 
   Future<void> _showBreedPicker() async {
@@ -1922,7 +2202,6 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
     );
 
     if (!mounted || selected == null) return;
-    _autoFillWeightForBreed(selected);
     _handleUserResponse(selected, displayText: selected);
   }
 
@@ -1985,6 +2264,11 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   // ---- Age picker (inline chips) ---------------------------------------
 
   Widget _buildAgePickerInline(QuestionData question) {
+    final ageValue = _answers[question.field];
+    final initialAge = ageValue is String
+        ? int.tryParse(ageValue) ?? 3
+        : (ageValue as num?)?.toInt() ?? 3;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1992,7 +2276,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
           min: 0,
           max: 20,
           step: 1,
-          initialValue: 3,
+          initialValue: initialAge.clamp(0, 20),
           unit: '',
           labelBuilder: (v) => v == 0 ? '<1' : '$v',
           onChanged: (_) {},
@@ -2037,6 +2321,11 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
       }
     }
 
+    final existingWeight = _answers[question.field];
+    final currentWeight = existingWeight is String
+      ? int.tryParse(existingWeight)
+      : (existingWeight as num?)?.round();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2054,7 +2343,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
           min: weightMin,
           max: weightMax,
           step: weightStep,
-          initialValue: weightInitial,
+          initialValue: (currentWeight ?? weightInitial).clamp(weightMin, weightMax),
           unit: 'lbs',
           onChanged: (_) {},
           onConfirm: (v) {
@@ -2100,6 +2389,7 @@ class _ConversationalQuoteFlowState extends State<ConversationalQuoteFlow>
   Widget _buildInputArea() {
     final width = MediaQuery.sizeOf(context).width;
     final isNarrow = width < 560;
+    if (_currentQuestion >= _questions.length) return const SizedBox.shrink();
     final question = _questions[_currentQuestion];
 
     // No keyboard input for tappable question types

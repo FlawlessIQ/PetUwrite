@@ -100,7 +100,14 @@ GoRouter createAppRouter() {
       // App flows (keep existing screens working)
       GoRoute(
         path: '/conversational-quote',
-        builder: (context, state) => const ConversationalQuoteFlow(),
+        builder: (context, state) {
+          final extra = state.extra;
+          final restorePendingDraft =
+              extra is Map<String, dynamic> && extra['restorePendingDraft'] == true;
+          return ConversationalQuoteFlow(
+            restorePendingDraft: restorePendingDraft,
+          );
+        },
       ),
 
       // Alias /quote => existing quote start flow

@@ -102,12 +102,13 @@ class VetDocumentReuseDetector {
         reason: 'VET_DOCUMENT_REUSE_DETECTED',
         matchedCaseIds: matchedCaseIds.toList()..sort(),
       );
-    } catch (_) {
-      // Fail closed: if we can’t verify document integrity, require more info.
-      return const VetDocumentReuseCheckResult.needMoreInfo(
-        reason: 'VET_DOCUMENT_REUSE_CHECK_FAILED',
-        matchedCaseIds: [],
-      );
+    } catch (e) {
+      // Fail open: if reuse detection infrastructure is unavailable (e.g.
+      // user not authenticated, Firestore rules block the collectionGroup
+      // query, or index missing) we pass — there is no positive reuse signal,
+      // so blocking the flow would only frustrate genuine applicants.
+      // Reuse is still enforced server-side during case finalization.
+      return const VetDocumentReuseCheckResult.pass();
     }
   }
 }

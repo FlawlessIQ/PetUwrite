@@ -122,7 +122,7 @@ class UserSessionService {
     String? address,
   }) async {
     final user = currentUser;
-    if (user == null) throw Exception('User not authenticated');
+    if (user == null) return; // Deferred until auth is available
 
     final updates = <String, dynamic>{
       'updatedAt': FieldValue.serverTimestamp(),

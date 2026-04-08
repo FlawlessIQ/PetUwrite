@@ -164,8 +164,22 @@ class Pet {
       uploadedRecords: json['uploadedRecords'] != null
           ? VetRecords.fromJson(json['uploadedRecords'] as Map<String, dynamic>)
           : null,
-      isReceivingTreatment: json['isReceivingTreatment'] as bool?,
+      isReceivingTreatment: _parseBoolish(json['isReceivingTreatment']),
     );
+  }
+
+  /// Parse a value that might be bool, String ('true', 'managed', 'unsure'),
+  /// or null into a nullable bool.  Used for fields that come from the
+  /// conversational quote flow where answers are stored as mixed types.
+  static bool? _parseBoolish(dynamic v) {
+    if (v == null) return null;
+    if (v is bool) return v;
+    if (v is String) {
+      final lower = v.toLowerCase().trim();
+      if (lower == 'true' || lower == '1' || lower == 'managed') return true;
+      if (lower == 'false' || lower == '0') return false;
+    }
+    return null;
   }
   
   Pet copyWith({

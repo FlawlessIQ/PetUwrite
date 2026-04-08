@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../ai/ai_service.dart';
 import '../config/emulator_config.dart';
@@ -48,6 +49,11 @@ class VetHistoryParser {
        _cloudFunctionImageUrl =
            cloudFunctionImageUrl ??
            EmulatorConfig.httpFunctionUrl('extractImageText');
+
+  /// Exposed for testing only. Use a static method to avoid needing Firebase.
+  @visibleForTesting
+  Map<String, dynamic> sanitizeVetJsonForTest(Map<String, dynamic> raw) =>
+      _sanitizeVetJson(raw);
 
   String _aiDebugTag() {
     try {
@@ -1612,15 +1618,87 @@ Return only valid JSON, no additional text.
     return (db.isAfter(da) ? db : da).toIso8601String().split('T').first;
   }
 
+  static final _monthNames = <String, int>{
+    'jan': 1, 'january': 1,
+    'feb': 2, 'february': 2,
+    'mar': 3, 'march': 3,
+    'apr': 4, 'april': 4,
+    'may': 5,
+    'jun': 6, 'june': 6,
+    'jul': 7, 'july': 7,
+    'aug': 8, 'august': 8,
+    'sep': 9, 'sept': 9, 'september': 9,
+    'oct': 10, 'october': 10,
+    'nov': 11, 'november': 11,
+    'dec': 12, 'december': 12,
+  };
+
   DateTime? _tryParseDate(dynamic v) {
     if (v is! String) return null;
     final s = v.trim();
     if (s.isEmpty) return null;
+
+    // 1) ISO 8601 / standard DateTime.parse formats.
     try {
       return DateTime.parse(s);
-    } catch (_) {
-      return null;
+    } catch (_) {}
+
+    final lower = s.toLowerCase();
+
+    // 2) "Month YYYY" or "Month DD, YYYY" or "DD Month YYYY".
+    final mdyMatch = RegExp(
+      r'(\w+)\s+(\d{1,2}),?\s+(\d{4})',
+    ).firstMatch(lower);
+    if (mdyMatch != null) {
+      final month = _monthNames[mdyMatch.group(1)];
+      final day = int.tryParse(mdyMatch.group(2) ?? '');
+      final year = int.tryParse(mdyMatch.group(3) ?? '');
+      if (month != null && day != null && year != null && year > 1900) {
+        return DateTime(year, month, day);
+      }
     }
+
+    // 3) "DD Month YYYY"
+    final dmyMatch = RegExp(
+      r'(\d{1,2})\s+(\w+)\s+(\d{4})',
+    ).firstMatch(lower);
+    if (dmyMatch != null) {
+      final day = int.tryParse(dmyMatch.group(1) ?? '');
+      final month = _monthNames[dmyMatch.group(2)];
+      final year = int.tryParse(dmyMatch.group(3) ?? '');
+      if (day != null && month != null && year != null && year > 1900) {
+        return DateTime(year, month, day);
+      }
+    }
+
+    // 4) "Month YYYY" (no day).
+    final myMatch = RegExp(
+      r'(\w+)\s+(\d{4})',
+    ).firstMatch(lower);
+    if (myMatch != null) {
+      final month = _monthNames[myMatch.group(1)];
+      final year = int.tryParse(myMatch.group(2) ?? '');
+      if (month != null && year != null && year > 1900) {
+        return DateTime(year, month);
+      }
+    }
+
+    // 5) MM/DD/YYYY or MM-DD-YYYY
+    final slashMatch = RegExp(
+      r'(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})',
+    ).firstMatch(s);
+    if (slashMatch != null) {
+      final a = int.tryParse(slashMatch.group(1) ?? '');
+      final b = int.tryParse(slashMatch.group(2) ?? '');
+      final year = int.tryParse(slashMatch.group(3) ?? '');
+      if (a != null && b != null && year != null && year > 1900) {
+        // Assume MM/DD/YYYY when month <= 12.
+        if (a >= 1 && a <= 12) return DateTime(year, a, b);
+        if (b >= 1 && b <= 12) return DateTime(year, b, a);
+      }
+    }
+
+    return null;
   }
 
   Map<String, dynamic> _sanitizeVetJson(Map<String, dynamic> raw) {
@@ -1693,18 +1771,42 @@ Return only valid JSON, no additional text.
 
     out['diagnoses'] = _sanitizeList(raw['diagnoses'], (m) {
       final condition = (m['condition'] as String?)?.trim();
+      if (condition == null || condition.isEmpty) {
+        debugPrint('[VetRecordParse] Dropped diagnosis: empty condition field '
+            '(raw: ${m.keys.toList()})');
+        return null;
+      }
+
       final status = (m['status'] as String?)?.trim();
       final severity = (m['severity'] as String?)?.trim();
-      final date = _tryParseDate(m['date']);
-      if (condition == null || condition.isEmpty) return null;
-      if (status == null || status.isEmpty) return null;
-      if (severity == null || severity.isEmpty) return null;
-      if (date == null) return null;
+      final rawDate = m['date'];
+      final date = _tryParseDate(rawDate);
+
+      // Default missing fields instead of dropping the entire diagnosis.
+      final effectiveDate = date ?? DateTime.now();
+      const validStatuses = {'active', 'resolved', 'chronic'};
+      final effectiveStatus =
+          (status != null && validStatuses.contains(status.toLowerCase()))
+              ? status.toLowerCase()
+              : 'active';
+      const validSeverities = {'mild', 'moderate', 'severe'};
+      final effectiveSeverity =
+          (severity != null && validSeverities.contains(severity.toLowerCase()))
+              ? severity.toLowerCase()
+              : 'unknown';
+
+      if (date == null || status == null || severity == null) {
+        debugPrint('[VetRecordParse] Diagnosis "$condition" recovered with '
+            'defaults: date=${date == null ? "defaulted (raw=$rawDate)" : "ok"}, '
+            'status=${status ?? "defaulted→$effectiveStatus"}, '
+            'severity=${severity ?? "defaulted→$effectiveSeverity"}');
+      }
+
       return {
         'condition': condition,
-        'date': date.toIso8601String().split('T').first,
-        'status': status,
-        'severity': severity,
+        'date': effectiveDate.toIso8601String().split('T').first,
+        'status': effectiveStatus,
+        'severity': effectiveSeverity,
         'notes': (m['notes'] as String?)?.trim(),
       };
     });
@@ -1724,6 +1826,14 @@ Return only valid JSON, no additional text.
         'status': status,
       };
     });
+
+    debugPrint('[VetRecordParse] _sanitizeVetJson summary: '
+        '${(out['diagnoses'] as List).length} diagnoses, '
+        '${(out['treatments'] as List).length} treatments, '
+        '${(out['medications'] as List).length} medications, '
+        '${(out['vaccinations'] as List).length} vaccinations, '
+        '${(out['surgeries'] as List).length} surgeries, '
+        '${(out['allergies'] as List).length} allergies');
 
     return out;
   }

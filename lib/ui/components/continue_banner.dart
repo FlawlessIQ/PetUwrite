@@ -84,7 +84,10 @@ class _ContinueBannerState extends State<ContinueBanner> {
       if (!mounted) return;
 
       if (resolved.draftType == 'quote') {
-        context.push('/conversational-quote');
+        context.push(
+          '/conversational-quote',
+          extra: {'restorePendingDraft': true},
+        );
         return;
       }
 
