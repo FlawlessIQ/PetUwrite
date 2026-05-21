@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { HowItWorksContent } from "@/components/pages/HowItWorksContent";
 
 export const metadata: Metadata = {
   title: "How it works",
@@ -23,11 +24,7 @@ export const metadata: Metadata = {
 export default function HowItWorksPage() {
   return (
     <main id="main-content" className="bg-clv-white">
-      <section className="mx-auto max-w-5xl px-5 py-24">
-        <h1 className="font-display text-[40px] font-bold leading-none tracking-[-0.03em] text-clv-charcoal md:text-[64px]">
-          How it works
-        </h1>
-      </section>
+      <HowItWorksContent />
     </main>
   );
 }

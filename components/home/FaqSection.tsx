@@ -8,7 +8,7 @@ export function FaqSection() {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <section className="bg-clv-paper py-20 md:py-28">
+    <section id="faq" className="bg-clv-paper py-20 md:py-28">
       <div className="mx-auto grid max-w-7xl gap-10 px-5 md:grid-cols-[0.8fr_1.2fr] md:px-8">
         <SectionHeading eyebrow="Common questions" title="Straight answers." />
         <div className="divide-y divide-clv-gray-border border-y border-clv-gray-border">

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AboutContent } from "@/components/pages/AboutContent";
 
 export const metadata: Metadata = {
   title: "About",
@@ -23,11 +24,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <main id="main-content" className="bg-clv-white">
-      <section className="mx-auto max-w-5xl px-5 py-24">
-        <h1 className="font-display text-[40px] font-bold leading-none tracking-[-0.03em] text-clv-charcoal md:text-[64px]">
-          About Clovara
-        </h1>
-      </section>
+      <AboutContent />
     </main>
   );
 }
