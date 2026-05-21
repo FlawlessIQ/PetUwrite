@@ -7,6 +7,7 @@ import { FaqSection } from "@/components/home/FaqSection";
 import { HowItWorksHome } from "@/components/home/HowItWorksHome";
 import { TestimonialsSection } from "@/components/home/TestimonialsSection";
 import { TrustBar } from "@/components/home/TrustBar";
+import { LazySection } from "@/components/shared/LazySection";
 
 export const metadata: Metadata = {
   title: "Pet insurance for dogs and cats",
@@ -57,13 +58,27 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       <Hero />
-      <TrustBar />
-      <CoverageBenefits />
-      <HowItWorksHome />
-      <ClaimsExperience />
-      <TestimonialsSection />
-      <FaqSection />
-      <BottomCta />
+      <LazySection minHeight={110}>
+        <TrustBar />
+      </LazySection>
+      <LazySection>
+        <CoverageBenefits />
+      </LazySection>
+      <LazySection>
+        <HowItWorksHome />
+      </LazySection>
+      <LazySection>
+        <ClaimsExperience />
+      </LazySection>
+      <LazySection>
+        <TestimonialsSection />
+      </LazySection>
+      <LazySection minHeight={640}>
+        <FaqSection />
+      </LazySection>
+      <LazySection minHeight={320}>
+        <BottomCta />
+      </LazySection>
     </main>
   );
 }
