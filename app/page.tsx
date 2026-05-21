@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/hero/Hero";
+import { BottomCta } from "@/components/home/BottomCta";
 import { ClaimsExperience } from "@/components/home/ClaimsExperience";
 import { CoverageBenefits } from "@/components/home/CoverageBenefits";
+import { FaqSection } from "@/components/home/FaqSection";
 import { HowItWorksHome } from "@/components/home/HowItWorksHome";
+import { TestimonialsSection } from "@/components/home/TestimonialsSection";
 import { TrustBar } from "@/components/home/TrustBar";
 
 export const metadata: Metadata = {
@@ -58,6 +61,9 @@ export default function HomePage() {
       <CoverageBenefits />
       <HowItWorksHome />
       <ClaimsExperience />
+      <TestimonialsSection />
+      <FaqSection />
+      <BottomCta />
     </main>
   );
 }
