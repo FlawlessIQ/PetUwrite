@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Hero } from "@/components/hero/Hero";
+import { TrustBar } from "@/components/home/TrustBar";
 
 export const metadata: Metadata = {
   title: "Pet insurance for dogs and cats",
@@ -20,20 +22,36 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        name: "Clovara",
+        url: "https://pet-underwriter-ai.web.app",
+        legalName: "FlawlessIQ Inc."
+      },
+      {
+        "@type": "WebSite",
+        name: "Clovara",
+        url: "https://pet-underwriter-ai.web.app",
+        potentialAction: {
+          "@type": "SearchAction",
+          target: "https://pet-underwriter-ai.web.app/quote",
+          "query-input": "required name=quote"
+        }
+      }
+    ]
+  };
+
   return (
     <main id="main-content" className="bg-clv-white">
-      <section className="mx-auto max-w-5xl px-5 py-24">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-clv-green">
-          Clovara
-        </p>
-        <h1 className="mt-4 font-display text-[40px] font-bold leading-none tracking-[-0.03em] text-clv-charcoal md:text-[64px]">
-          Pet insurance, finally done right.
-        </h1>
-        <p className="mt-5 max-w-xl text-base leading-[1.75] text-clv-gray">
-          The customer-facing rebuild is in progress. Phase 1a establishes the
-          design system and base project shell.
-        </p>
-      </section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <Hero />
+      <TrustBar />
     </main>
   );
 }

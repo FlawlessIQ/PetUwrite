@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { DM_Sans, Playfair_Display } from "next/font/google";
 import { PageTracker } from "@/components/layout/PageTracker";
+import { SiteNav } from "@/components/nav/SiteNav";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -72,6 +73,7 @@ export default function RootLayout({
           `}
         </Script>
         <PageTracker />
+        <SiteNav />
         {children}
       </body>
     </html>
