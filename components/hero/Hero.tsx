@@ -1,9 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { DogIllustration, CatIllustration } from "@/components/shared/SpeciesIllustrations";
 import { track } from "@/hooks/useAnalytics";
 import type { PetType } from "@/types";
 import { SpeciesToggle } from "./SpeciesToggle";
@@ -31,7 +31,7 @@ export function Hero() {
 
   return (
     <section className="bg-clv-white">
-      <div className="mx-auto grid min-h-[calc(100vh-81px)] max-w-7xl items-center gap-12 px-5 py-16 md:grid-cols-[55fr_45fr] md:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-190px)] max-w-7xl items-start gap-8 px-5 pb-8 pt-6 md:grid-cols-[55fr_45fr] md:px-8">
         <motion.div
           variants={stagger}
           initial="initial"
@@ -46,7 +46,7 @@ export function Hero() {
           </motion.p>
           <motion.h1
             variants={fadeUp}
-            className="mt-5 font-display text-[40px] font-bold leading-[0.98] tracking-[-0.03em] text-clv-charcoal md:text-[64px]"
+            className="mt-3 font-display text-[40px] font-bold leading-[0.98] tracking-[-0.03em] text-clv-charcoal md:text-[60px]"
           >
             Your vet bill
             <br />
@@ -56,18 +56,18 @@ export function Hero() {
           </motion.h1>
           <motion.p
             variants={fadeUp}
-            className="mt-6 max-w-[420px] text-[17px] leading-[1.75] text-clv-gray"
+            className="mt-5 max-w-[420px] text-[17px] leading-[1.75] text-clv-gray"
           >
             Clovara covers accidents, illness, and surgery — with no surprise
             exclusions and claims paid in 2 days.
           </motion.p>
-          <motion.div variants={fadeUp} className="mt-8 max-w-[340px]">
+          <motion.div variants={fadeUp} className="mt-6 max-w-[340px]">
             <SpeciesToggle value={species} onChange={chooseSpecies} />
             <p className="mt-3 text-[13px] font-medium text-clv-green">
               Get a quote for your {species}
             </p>
           </motion.div>
-          <motion.div variants={fadeUp} className="mt-6 max-w-[340px]">
+          <motion.div variants={fadeUp} className="mt-5 max-w-[340px]">
             <Link
               href="/quote"
               onClick={() => {
@@ -89,28 +89,44 @@ export function Hero() {
           initial={{ opacity: 0, x: 32 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="flex justify-center md:justify-end"
+          className="flex justify-center pt-2 md:justify-end"
         >
-          <motion.div
-            key={species}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-              y: [-6, 6, -6]
-            }}
-            transition={{
-              opacity: { duration: 0.3 },
-              scale: { duration: 0.3 },
-              y: {
-                duration: 3,
-                ease: "easeInOut",
-                repeat: Infinity
-              }
-            }}
-          >
-            {species === "dog" ? <DogIllustration /> : <CatIllustration />}
-          </motion.div>
+          <div className="relative w-full max-w-[540px]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={species}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="relative overflow-hidden rounded-[20px] shadow-[0_8px_40px_rgba(0,0,0,0.10)]"
+              >
+                <Image
+                  src={
+                    species === "dog"
+                      ? "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&q=80"
+                      : "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&q=80"
+                  }
+                  alt={species === "dog" ? "Happy dog" : "Happy cat"}
+                  width={540}
+                  height={500}
+                  priority
+                  className="h-auto w-full object-cover"
+                />
+                <div className="absolute bottom-5 left-5 flex items-center gap-3 rounded-xl bg-white px-4 py-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-clv-green text-xs font-bold text-white"
+                  >
+                    ✓
+                  </span>
+                  <span className="text-[13px] font-semibold text-clv-charcoal">
+                    Claims paid in 2 days
+                  </span>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </motion.div>
       </div>
     </section>
