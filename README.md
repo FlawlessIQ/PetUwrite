@@ -2,7 +2,7 @@
 
 This repository now contains a production-grade Next.js marketing site for Clovara, built with the App Router, TypeScript, Tailwind CSS, Framer Motion, and Lucide React.
 
-The legacy Flutter app source remains in the repo for reference, but the root web project is the Next.js site intended for Vercel deployment.
+The legacy Flutter app source remains in the repo for reference, but the root web project is the Next.js site deployed to Firebase Hosting as a static export.
 
 ## Quick Start
 
@@ -24,7 +24,7 @@ Open `http://localhost:3000`.
 ## Routes
 
 - `/` marketing homepage
-- `/about` founder and mission page
+- `/about` company and mission page
 - `/how-it-works` full explainer and FAQ
 - `/quote` four-step quote funnel
 - `/privacy` placeholder privacy page
@@ -33,9 +33,6 @@ Open `http://localhost:3000`.
 ## Launch TODOs
 
 - Replace the Segment placeholder write key in `app/layout.tsx`.
-- Replace placeholder partner logos in the social proof bar.
-- Replace placeholder investor logos on `/about`.
-- Replace founder bio and portrait placeholder on `/about`.
 - Replace placeholder testimonials with approved real testimonials.
 - Add state license numbers in `components/Footer.tsx`.
 - Replace placeholder privacy policy and terms pages with approved legal copy.
@@ -44,10 +41,11 @@ Open `http://localhost:3000`.
 
 ## Deployment
 
-The project includes `vercel.json` and is configured for Vercel's Next.js runtime.
+The project is configured for Firebase Hosting. `next.config.mjs` uses static export mode, so `npm run build` writes the deployable site to `out`.
 
 ```bash
 npm run build
+firebase deploy --only hosting
 ```
 
-The previous Firebase Hosting deployment scripts are still present for the legacy Flutter workflow, but the new production target is Vercel.
+Live Firebase Hosting URL: `https://pet-underwriter-ai.web.app`.
