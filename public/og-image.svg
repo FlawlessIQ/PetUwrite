@@ -1,0 +1,11 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#0B241D"/>
+  <rect x="72" y="72" width="1056" height="486" fill="#F7F3EC"/>
+  <text x="120" y="190" fill="#0B241D" font-family="Georgia, serif" font-size="82">Clovara</text>
+  <text x="120" y="295" fill="#0B241D" font-family="Georgia, serif" font-size="58">Pet insurance that finally</text>
+  <text x="120" y="365" fill="#0B241D" font-family="Georgia, serif" font-size="58">understands risk.</text>
+  <text x="120" y="450" fill="#2C2C2A" font-family="Arial, sans-serif" font-size="26">AI-powered underwriting. Transparent pricing. Real-time claims.</text>
+  <rect x="826" y="138" width="220" height="220" stroke="#C9A84C" stroke-width="8"/>
+  <text x="870" y="268" fill="#0B241D" font-family="Arial, sans-serif" font-size="40">$0.08</text>
+  <text x="852" y="316" fill="#2C2C2A" font-family="Arial, sans-serif" font-size="22">policy evaluation</text>
+</svg>

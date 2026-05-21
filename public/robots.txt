@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://pet-underwriter-ai.web.app
+
+# Sitemaps
+Sitemap: https://pet-underwriter-ai.web.app/sitemap.xml
