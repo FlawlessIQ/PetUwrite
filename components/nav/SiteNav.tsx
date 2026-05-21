@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 import { navItems } from "@/data/site";
 
 export function SiteNav() {
@@ -28,13 +29,7 @@ export function SiteNav() {
         className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8"
         aria-label="Primary navigation"
       >
-        <Link
-          href="/"
-          className="font-display text-xl font-bold tracking-[-0.02em] text-clv-charcoal"
-          aria-label="Clovara home"
-        >
-          Clovara
-        </Link>
+        <BrandLogo />
         <div className="hidden items-center gap-8 md:flex">
           {navItems.map((item) => (
             <Link

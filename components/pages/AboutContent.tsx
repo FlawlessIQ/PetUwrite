@@ -20,36 +20,42 @@ export function AboutContent() {
         </div>
       </section>
 
-      <LazySection minHeight={520}>
+      <LazySection minHeight={460}>
         <section className="bg-clv-paper px-5 py-20 md:px-8 md:py-28">
-          <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-[0.8fr_1.2fr]">
-            <div className="flex justify-center md:justify-start">
-              {/* TODO: Replace with real founder photo */}
-              <div className="flex h-[200px] w-[200px] items-center justify-center rounded-full bg-clv-green font-display text-5xl font-bold text-white">
-                CL
-              </div>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-clv-green">
-                Founder
-              </p>
-              <h2 className="mt-3 font-display text-[28px] font-bold tracking-[-0.02em] text-clv-charcoal md:text-[40px]">
-                Built by Conor Lawless.
-              </h2>
-              {/* TODO: Conor to fill in bio */}
-              <div className="mt-5 space-y-4 text-base leading-[1.75] text-clv-gray">
-                <p>
-                  Conor started Clovara after seeing how confusing pet insurance
-                  feels when families need help quickly. The goal is simple:
-                  make coverage easier to understand before the stressful moment
-                  arrives.
-                </p>
-                <p>
-                  This placeholder bio will be replaced with Conor&apos;s real
-                  background, story, and why he believes pet parents deserve a
-                  calmer way to protect their dogs and cats.
-                </p>
-              </div>
+          <div className="mx-auto max-w-6xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-clv-green">
+              What we care about
+            </p>
+            <h2 className="mt-3 max-w-3xl font-display text-[28px] font-bold tracking-[-0.02em] text-clv-charcoal md:text-[40px]">
+              Insurance that feels clear before the stressful moment arrives.
+            </h2>
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {[
+                {
+                  title: "Plain-English coverage",
+                  body: "No maze of terms. Every plan should make it obvious what is included, what is optional, and what is not covered."
+                },
+                {
+                  title: "Fast digital claims",
+                  body: "Upload the vet invoice, see the status, and know what happens next without chasing a phone line."
+                },
+                {
+                  title: "Built around pets",
+                  body: "Dogs and cats are not line items. The experience should feel warm, practical, and centered on the animal in front of you."
+                }
+              ].map((item) => (
+                <article
+                  key={item.title}
+                  className="rounded-xl border border-clv-gray-border bg-white p-6"
+                >
+                  <h3 className="text-base font-semibold text-clv-charcoal">
+                    {item.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-[1.75] text-clv-gray">
+                    {item.body}
+                  </p>
+                </article>
+              ))}
             </div>
           </div>
         </section>

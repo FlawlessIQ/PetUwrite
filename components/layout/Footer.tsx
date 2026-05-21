@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 import { navItems } from "@/data/site";
 
 export function Footer() {
@@ -6,12 +7,7 @@ export function Footer() {
     <footer className="bg-[#111111] text-[#8a8a8a]">
       <div className="mx-auto max-w-7xl px-5 py-10 md:px-8">
         <div className="grid gap-8 md:grid-cols-[1fr_auto_1fr] md:items-center">
-          <Link
-            href="/"
-            className="font-display text-xl font-bold tracking-[-0.02em] text-clv-white"
-          >
-            Clovara
-          </Link>
+          <BrandLogo dark />
           <nav className="flex flex-wrap gap-x-7 gap-y-3" aria-label="Footer">
             {navItems.map((item) => (
               <Link

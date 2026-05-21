@@ -169,44 +169,44 @@ export const testimonials: Testimonial[] = [
 
 export const faqs: FaqItem[] = [
   {
-    question: "What does Clovara actually cover?",
+    question: "What does Clovara cover?",
     answer:
-      "Accidents, illnesses, surgery, emergency care, hospitalisation, and specialist visits. Optional wellness add-on covers checkups, vaccines, and flea prevention."
+      "Clovara plan options are built around accident and illness coverage, including emergency care and specialist visits. Higher tiers can include prescription medications, cancer treatment, wellness care, and priority claims review."
   },
   {
-    question: "Are there breed restrictions?",
+    question: "Do you cover both dogs and cats?",
     answer:
-      "No. We cover all breeds of dogs and cats including those excluded by legacy insurers."
-  },
-  {
-    question: "How fast are claims paid?",
-    answer:
-      "Our average is 2 business days from when we receive your invoice. Complex claims may take up to 5 days."
-  },
-  {
-    question: "Is there a waiting period?",
-    answer:
-      "14-day waiting period for illness. Accidents are covered from day 1."
-  },
-  {
-    question: "What counts as a pre-existing condition?",
-    answer:
-      "Any condition your pet showed signs of before your policy start date. We assess this fairly and explain every decision."
+      "Yes. The quote flow currently supports dogs and cats, with breed-specific questions so the plan can reflect the pet you actually have."
   },
   {
     question: "Can I use any vet?",
     answer:
-      "Yes. Clovara works with any licensed veterinarian in the US - no network restrictions."
+      "The product is designed to work with licensed veterinarians in the US, without a narrow in-network vet list. Final availability and terms may vary by state."
   },
   {
-    question: "What deductible options are available?",
+    question: "What deductible and reimbursement options are shown?",
     answer:
-      "$100, $250, or $500 annual deductible. Higher deductible = lower monthly premium."
+      "The current quote flow shows $500, $250, and $100 annual deductible options across Essential, Comprehensive, and Premium plans, with reimbursement levels from 70% to 90%."
+  },
+  {
+    question: "How do claims work?",
+    answer:
+      "Claims are designed to be filed digitally by uploading a vet invoice. Straightforward claims are positioned for fast review, while more complex claims may take longer if more information is needed."
+  },
+  {
+    question: "Is there a waiting period?",
+    answer:
+      "The current product copy shows accidents starting on day 1 and a 14-day waiting period for illness. Final policy documents should always be reviewed before purchase."
+  },
+  {
+    question: "What counts as a pre-existing condition?",
+    answer:
+      "A pre-existing condition is generally a health issue your pet showed signs of before the policy start date. Any decision should be explained clearly in plain English."
   },
   {
     question: "Can I cancel any time?",
     answer:
-      "Yes. Cancel with 30 days notice, no cancellation fee. We'll refund any unused premium."
+      "The customer experience should make cancellation simple. Specific notice periods, refunds, and state rules should be confirmed in the final policy terms before launch."
   }
 ];
 
