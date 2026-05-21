@@ -3,7 +3,7 @@ import { navItems } from "@/data/site";
 
 export function Footer() {
   return (
-    <footer className="bg-[#111111] text-[#666]">
+    <footer className="bg-[#111111] text-[#8a8a8a]">
       <div className="mx-auto max-w-7xl px-5 py-10 md:px-8">
         <div className="grid gap-8 md:grid-cols-[1fr_auto_1fr] md:items-center">
           <Link
@@ -17,7 +17,7 @@ export function Footer() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-[13px] hover:text-[#999]"
+                className="text-[13px] hover:text-[#b8b8b8]"
               >
                 {item.label}
               </Link>
@@ -34,11 +34,11 @@ export function Footer() {
         <div className="grid gap-4 text-[13px] md:grid-cols-2">
           <p>
             © 2026 FlawlessIQ Inc. ·{" "}
-            <Link href="/privacy" className="hover:text-[#999]">
+            <Link href="/privacy" className="hover:text-[#b8b8b8]">
               Privacy Policy
             </Link>{" "}
             ·{" "}
-            <Link href="/terms" className="hover:text-[#999]">
+            <Link href="/terms" className="hover:text-[#b8b8b8]">
               Terms of Service
             </Link>
           </p>

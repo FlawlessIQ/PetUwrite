@@ -31,7 +31,7 @@ export function HowItWorksHome() {
                 <h3 className="text-[15px] font-semibold text-white">
                   {step.title}
                 </h3>
-                <p className="mt-3 text-[13px] leading-[1.6] text-clv-green-muted">
+                <p className="mt-3 text-[13px] leading-[1.6] text-[#CFE8DA]">
                   {step.body}
                 </p>
               </article>

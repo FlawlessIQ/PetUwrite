@@ -347,13 +347,13 @@ function StepOne({
           label="Dog"
           selected={selected === "dog"}
           onClick={() => onSelect("dog")}
-          illustration={<DogIllustration size={100} />}
+          illustration={<DogIllustration decorative size={100} />}
         />
         <PetCard
           label="Cat"
           selected={selected === "cat"}
           onClick={() => onSelect("cat")}
-          illustration={<CatIllustration size={100} />}
+          illustration={<CatIllustration decorative size={100} />}
         />
       </div>
       <AnimatePresence>

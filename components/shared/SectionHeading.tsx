@@ -18,7 +18,7 @@ export function SectionHeading({
       {eyebrow ? (
         <p
           className={`mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] ${
-            dark ? "text-clv-green-mid" : "text-clv-green"
+            dark ? "text-[#B7E4C7]" : "text-clv-green"
           }`}
         >
           {eyebrow}
@@ -34,7 +34,7 @@ export function SectionHeading({
       {body ? (
         <p
           className={`mt-4 text-base leading-[1.75] ${
-            dark ? "text-clv-green-muted" : "text-clv-gray"
+            dark ? "text-white/85" : "text-clv-gray"
           }`}
         >
           {body}

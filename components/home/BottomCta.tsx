@@ -15,7 +15,7 @@ export function BottomCta() {
         <h2 className="font-display text-[28px] font-bold leading-tight tracking-[-0.02em] text-white md:text-[40px]">
           Get a quote in 90 seconds.
         </h2>
-        <p className="mt-4 text-base leading-[1.75] text-clv-green-muted">
+        <p className="mt-4 text-base leading-[1.75] text-white/85">
           No commitment. No credit card. Just a real price for your pet.
         </p>
         <div className="mx-auto mt-8 max-w-[340px]">
@@ -37,7 +37,7 @@ export function BottomCta() {
         </Link>
         <Link
           href="/coverage"
-          className="mt-5 block text-sm text-clv-green-muted underline-offset-4 hover:underline"
+          className="mt-5 block text-sm text-white/85 underline-offset-4 hover:text-white hover:underline"
         >
           See a sample policy
         </Link>

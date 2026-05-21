@@ -63,34 +63,34 @@ export function SiteNav() {
           {open ? <X size={22} aria-hidden /> : <Menu size={22} aria-hidden />}
         </button>
       </nav>
-      <div
-        id="mobile-menu"
-        className={`fixed inset-0 top-[81px] z-40 bg-clv-white px-5 pb-8 pt-8 transition-transform duration-300 md:hidden ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <div className="flex h-full flex-col">
-          <div className="grid gap-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="border-b border-clv-gray-border pb-5 text-2xl font-medium text-clv-charcoal"
-                onClick={() => setOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
+      {open ? (
+        <div
+          id="mobile-menu"
+          className="fixed inset-0 top-[81px] z-40 bg-clv-white px-5 pb-8 pt-8 md:hidden"
+        >
+          <div className="flex h-full flex-col">
+            <div className="grid gap-6">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="border-b border-clv-gray-border pb-5 text-2xl font-medium text-clv-charcoal"
+                  onClick={() => setOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+            <Link
+              href="/quote"
+              className="mt-auto rounded-[24px] bg-clv-green px-5 py-4 text-center text-sm font-semibold text-white"
+              onClick={() => setOpen(false)}
+            >
+              Get a free quote
+            </Link>
           </div>
-          <Link
-            href="/quote"
-            className="mt-auto rounded-[24px] bg-clv-green px-5 py-4 text-center text-sm font-semibold text-white"
-            onClick={() => setOpen(false)}
-          >
-            Get a free quote
-          </Link>
         </div>
-      </div>
+      ) : null}
     </header>
   );
 }

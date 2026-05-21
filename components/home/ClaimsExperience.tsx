@@ -63,12 +63,9 @@ export function ClaimsExperience() {
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-clv-gray">
                 Your claims
               </p>
-              <button
-                type="button"
-                className="rounded bg-clv-green px-3 py-2 text-xs font-semibold text-white"
-              >
+              <span className="rounded bg-clv-green px-3 py-2 text-xs font-semibold text-white">
                 File new claim
-              </button>
+              </span>
             </div>
             <div>
               {claims.map((claim, index) => (
@@ -80,7 +77,10 @@ export function ClaimsExperience() {
                       : ""
                   }`}
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-clv-sage-light text-lg">
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-clv-sage-light text-lg"
+                    aria-hidden="true"
+                  >
                     {claim.icon}
                   </div>
                   <div className="min-w-0 flex-1">

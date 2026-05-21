@@ -18,8 +18,8 @@ export function TestimonialsSection() {
             <MotionReveal key={item.name} delay={index * 0.08}>
               <article className="h-full rounded-xl border border-clv-gray-border bg-white p-6 transition-all duration-200 hover:border-clv-green hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
                 {/* TODO: Replace with real content */}
-                <p className="text-sm text-clv-green" aria-label="Five stars">
-                  ★★★★★
+                <p className="text-sm text-clv-green" aria-label="Five out of five stars">
+                  <span aria-hidden="true">★★★★★</span>
                 </p>
                 <blockquote className="mt-5 font-display text-[15px] italic leading-[1.6] text-clv-charcoal">
                   &ldquo;{item.quote}&rdquo;

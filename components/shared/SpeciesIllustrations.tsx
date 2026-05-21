@@ -1,13 +1,19 @@
 interface IllustrationProps {
   size?: number;
   className?: string;
+  decorative?: boolean;
 }
 
-export function DogIllustration({ size = 340, className = "" }: IllustrationProps) {
+export function DogIllustration({
+  size = 340,
+  className = "",
+  decorative = false
+}: IllustrationProps) {
   return (
     <svg
-      role="img"
-      aria-label="Friendly golden retriever illustration"
+      role={decorative ? undefined : "img"}
+      aria-label={decorative ? undefined : "Friendly golden retriever illustration"}
+      aria-hidden={decorative ? "true" : undefined}
       width={size}
       height={size}
       viewBox="0 0 340 340"
@@ -34,11 +40,16 @@ export function DogIllustration({ size = 340, className = "" }: IllustrationProp
   );
 }
 
-export function CatIllustration({ size = 340, className = "" }: IllustrationProps) {
+export function CatIllustration({
+  size = 340,
+  className = "",
+  decorative = false
+}: IllustrationProps) {
   return (
     <svg
-      role="img"
-      aria-label="Friendly cat illustration"
+      role={decorative ? undefined : "img"}
+      aria-label={decorative ? undefined : "Friendly cat illustration"}
+      aria-hidden={decorative ? "true" : undefined}
       width={size}
       height={size}
       viewBox="0 0 340 340"
