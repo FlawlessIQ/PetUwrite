@@ -31,7 +31,10 @@ export function Hero() {
 
   return (
     <section className="bg-clv-white">
-      <div className="mx-auto grid min-h-[calc(100vh-190px)] max-w-7xl items-start gap-8 px-5 pb-8 pt-6 md:grid-cols-[55fr_45fr] md:px-8">
+      <div
+        className="mx-auto grid max-w-7xl gap-8 px-5 md:grid-cols-[55fr_45fr] md:px-8"
+        style={{ paddingTop: "48px", paddingBottom: "48px", alignItems: "center" }}
+      >
         <motion.div
           variants={stagger}
           initial="initial"
@@ -73,7 +76,7 @@ export function Hero() {
               onClick={() => {
                 track("quote_started", { species, source: "hero" });
               }}
-              className="flex w-full items-center justify-center rounded-md bg-clv-charcoal px-7 py-[13px] text-sm font-semibold tracking-[0.02em] text-clv-white transition-colors hover:bg-[#333]"
+              className="inline-flex min-w-[200px] w-fit items-center justify-center rounded-md bg-clv-charcoal px-8 py-[13px] text-sm font-semibold tracking-[0.02em] text-clv-white transition-colors hover:bg-[#333]"
             >
               See my price →
             </Link>
@@ -91,7 +94,7 @@ export function Hero() {
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="flex justify-center pt-2 md:justify-end"
         >
-          <div className="relative w-full max-w-[540px]">
+          <div className="relative h-auto w-full max-w-[540px] max-h-[480px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={species}
@@ -104,14 +107,21 @@ export function Hero() {
                 <Image
                   src={
                     species === "dog"
-                      ? "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&q=80"
-                      : "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&q=80"
+                      ? "https://images.unsplash.com/photo-1552053831-71594a27632d?w=700&q=85"
+                      : "https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?w=700&q=85"
                   }
                   alt={species === "dog" ? "Happy dog" : "Happy cat"}
                   width={540}
-                  height={500}
+                  height={460}
                   priority
-                  className="h-auto w-full object-cover"
+                  style={{
+                    objectFit: "cover",
+                    objectPosition:
+                      species === "dog" ? "center top" : "center center",
+                    borderRadius: "20px",
+                    width: "100%",
+                    height: "auto"
+                  }}
                 />
                 <div className="absolute bottom-5 left-5 flex items-center gap-3 rounded-xl bg-white px-4 py-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
                   <span
