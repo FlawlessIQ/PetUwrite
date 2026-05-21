@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { QuoteFlow } from "@/components/quote/QuoteFlow";
 
 export const metadata: Metadata = {
   title: "Get a free quote",
@@ -21,11 +22,7 @@ export const metadata: Metadata = {
 export default function QuotePage() {
   return (
     <main id="main-content" className="bg-clv-paper">
-      <section className="mx-auto max-w-5xl px-5 py-24">
-        <h1 className="font-display text-[40px] font-bold leading-none tracking-[-0.03em] text-clv-charcoal md:text-[64px]">
-          Get a free quote
-        </h1>
-      </section>
+      <QuoteFlow />
     </main>
   );
 }
