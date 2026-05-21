@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/hero/Hero";
+import { ClaimsExperience } from "@/components/home/ClaimsExperience";
+import { CoverageBenefits } from "@/components/home/CoverageBenefits";
+import { HowItWorksHome } from "@/components/home/HowItWorksHome";
 import { TrustBar } from "@/components/home/TrustBar";
 
 export const metadata: Metadata = {
@@ -52,6 +55,9 @@ export default function HomePage() {
       />
       <Hero />
       <TrustBar />
+      <CoverageBenefits />
+      <HowItWorksHome />
+      <ClaimsExperience />
     </main>
   );
 }
