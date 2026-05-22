@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/clovara_theme.dart';
+import '../admin_theme.dart';
 import 'admin_status_chip.dart';
 
 class AdminBulkActionsBar extends StatelessWidget {
@@ -29,11 +29,11 @@ class AdminBulkActionsBar extends StatelessWidget {
     final hasSelection = selectedCount > 0;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClovaraColors.white,
-        border: Border.all(color: ClovaraColors.border.withOpacity(0.9)),
-        borderRadius: BorderRadius.circular(12),
+        color: AdminColors.surfaceRaised,
+        border: Border.all(color: AdminColors.border),
+        borderRadius: BorderRadius.circular(AdminRadii.lg),
       ),
       child: Wrap(
         spacing: 10,
@@ -42,12 +42,12 @@ class AdminBulkActionsBar extends StatelessWidget {
         children: [
           AdminStatusChip(
             label: '$resultsCount results',
-            color: ClovaraColors.slate,
+            color: AdminColors.muted,
             icon: Icons.list_alt,
           ),
           AdminStatusChip(
             label: 'Selected: $selectedCount',
-            color: hasSelection ? ClovaraColors.forest : ClovaraColors.slate,
+            color: hasSelection ? AdminColors.success : AdminColors.muted,
             icon: Icons.select_all,
           ),
           TextButton.icon(

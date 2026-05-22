@@ -1,4 +1,4 @@
-import type { FaqItem, NavItem, Plan, Testimonial } from "@/types";
+import type { FaqItem, NavItem, Plan, Rider, Testimonial } from "@/types";
 
 export const navItems: NavItem[] = [
   { label: "Coverage", href: "/coverage" },
@@ -63,7 +63,11 @@ export const expandedHowItWorksSteps = [
       "Accidents are covered from day 1. Illness has a short waiting period, and we explain that up front instead of hiding it later."
     ],
     mockupTitle: "Policy active",
-    mockupRows: ["Documents sent", "Accidents day 1", "Illness after waiting period"]
+    mockupRows: [
+      "Documents sent",
+      "Accidents day 1",
+      "Illness after waiting period"
+    ]
   },
   {
     number: "04",
@@ -73,7 +77,7 @@ export const expandedHowItWorksSteps = [
       "Most claims are paid in 2 business days. If a claim needs more detail, we tell you exactly what is missing and why."
     ],
     mockupTitle: "Claim tracker",
-    mockupRows: ["Invoice uploaded", "In review", "Paid"]
+    mockupRows: ["Invoice uploaded", "Checking", "Paid"]
   }
 ];
 
@@ -121,7 +125,7 @@ export const coverageRows = [
     premium: "Included"
   },
   {
-    feature: "Priority claims review",
+    feature: "Priority claims processing",
     essential: "Standard",
     comprehensive: "Standard",
     premium: "Included"
@@ -171,7 +175,7 @@ export const faqs: FaqItem[] = [
   {
     question: "What does Clovara cover?",
     answer:
-      "Clovara plan options are built around accident and illness coverage, including emergency care and specialist visits. Higher tiers can include prescription medications, cancer treatment, wellness care, and priority claims review."
+      "Clovara plan options are built around accident and illness coverage, including emergency care and specialist visits. Higher tiers can include prescription medications, cancer treatment, wellness care, and priority claims processing."
   },
   {
     question: "Do you cover both dogs and cats?",
@@ -191,7 +195,7 @@ export const faqs: FaqItem[] = [
   {
     question: "How do claims work?",
     answer:
-      "Claims are designed to be filed digitally by uploading a vet invoice. Straightforward claims are positioned for fast review, while more complex claims may take longer if more information is needed."
+      "Claims are designed to be filed digitally by uploading a vet invoice. Straightforward claims can move quickly, while more complex claims may ask for extra records before the automated decision can finish."
   },
   {
     question: "Is there a waiting period?",
@@ -247,6 +251,89 @@ export const plans: Plan[] = [
 ];
 
 export const dogBreeds = [
+  "Mixed - Small (0-25 lbs)",
+  "Mixed - Medium (25-55 lbs)",
+  "Mixed - Large (55-90 lbs)",
+  "Mixed - Giant (90+ lbs)",
+  "Mixed Breed",
+  "Unknown / Not sure",
+  "Labrador Retriever",
+  "Golden Retriever",
+  "German Shepherd",
+  "French Bulldog",
+  "Bulldog",
+  "Poodle",
+  "Beagle",
+  "Rottweiler",
+  "Dachshund",
+  "German Shorthaired Pointer",
+  "Pembroke Welsh Corgi",
+  "Australian Shepherd",
+  "Yorkshire Terrier",
+  "Boxer",
+  "Siberian Husky",
+  "Cavalier King Charles Spaniel",
+  "Great Dane",
+  "Doberman Pinscher",
+  "Miniature Schnauzer",
+  "Shih Tzu",
+  "Boston Terrier",
+  "Bernese Mountain Dog",
+  "Pomeranian",
+  "Havanese",
+  "Shetland Sheepdog",
+  "Brittany",
+  "English Springer Spaniel",
+  "Cocker Spaniel",
+  "Border Collie",
+  "Basset Hound",
+  "Maltese",
+  "Weimaraner",
+  "Chihuahua",
+  "Bichon Frise",
+  "Akita",
+  "Bull Terrier",
+  "Staffordshire Bull Terrier",
+  "Pit Bull",
+  "American Staffordshire Terrier",
+  "Cane Corso",
+  "Shiba Inu",
+  "Vizsla",
+  "Collie",
+  "Newfoundland",
+  "Saint Bernard",
+  "Mastiff",
+  "Irish Wolfhound",
+  "Whippet",
+  "Greyhound",
+  "Pug",
+  "Borzoi",
+  "Samoyed",
+  "Alaskan Malamute",
+  "Jack Russell Terrier",
+  "West Highland White Terrier",
+  "Scottish Terrier",
+  "Airedale Terrier",
+  "Australian Cattle Dog",
+  "Catahoula Leopard Dog",
+  "Chinese Crested",
+  "Belgian Malinois",
+  "Great Pyrenees",
+  "Papillon",
+  "Pekingese",
+  "Lhasa Apso",
+  "Basenji",
+  "Shar Pei",
+  "Bolognese",
+  "Italian Greyhound",
+  "Coton de Tulear",
+  "Toy Poodle",
+  "Miniature Poodle",
+  "Standard Poodle",
+  "Cockapoo",
+  "Goldendoodle",
+  "Labradoodle",
+  "Cavapoo",
   "Labrador",
   "Golden Retriever",
   "French Bulldog",
@@ -270,14 +357,63 @@ export const dogBreeds = [
 ];
 
 export const catBreeds = [
+  "Mixed Breed",
+  "Unknown / Not sure",
   "Domestic Shorthair",
+  "Domestic Longhair",
   "Maine Coon",
-  "Siamese",
   "Ragdoll",
-  "Persian",
-  "Bengal",
   "British Shorthair",
+  "Persian",
+  "Siamese",
+  "Bengal",
   "Sphynx",
+  "Abyssinian",
+  "Russian Blue",
   "Scottish Fold",
-  "Russian Blue"
+  "American Shorthair",
+  "Birman",
+  "Norwegian Forest Cat",
+  "Devon Rex",
+  "Cornish Rex",
+  "Oriental Shorthair",
+  "Himalayan",
+  "Manx",
+  "Turkish Angora",
+  "Turkish Van",
+  "Savannah",
+  "Tonkinese",
+  "Bombay",
+  "Ragamuffin",
+  "Balinese",
+  "Chartreux",
+  "Exotic Shorthair",
+  "American Curl"
+];
+
+export const quoteRiders: Rider[] = [
+  {
+    id: "wellness",
+    title: "Wellness care",
+    price: 18,
+    body: "Routine exams, vaccines, flea prevention, and annual checkups."
+  },
+  {
+    id: "examFees",
+    title: "Vet exam fees",
+    price: 7,
+    body: "Reimburses eligible exam fees tied to covered accidents or illness."
+  },
+  {
+    id: "dentalIllness",
+    title: "Dental illness",
+    price: 9,
+    body: "Coverage for eligible non-routine dental illness and treatment."
+  },
+  {
+    id: "rehab",
+    title: "Rehab and recovery",
+    price: 11,
+    body: "Physical therapy, acupuncture, and recovery support when covered."
+  }
 ];

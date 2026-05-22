@@ -2,7 +2,7 @@
  * Cloud Function: reconcileClaimsState
  *
  * Scheduled function that runs every 15 minutes to:
- * 1. Clear expired review locks (>10 minutes old)
+ * 1. Clear expired exception-control locks (>10 minutes old)
  * 2. Detect and correct orphaned payouts (settling status >30 minutes)
  * 3. Fix claims stuck in inconsistent states
  * 4. Log reconciliation actions for audit trail
@@ -44,7 +44,7 @@ exports.reconcileClaimsState = functions.pubsub
       };
 
       try {
-      // Task 1: Clear expired review locks (>10 minutes old)
+      // Task 1: Clear expired exception-control locks (>10 minutes old)
         results.expiredLocksCleared = await clearExpiredReviewLocks();
 
         // Task 2: Fix orphaned payouts (settling status >30 minutes)
@@ -67,7 +67,7 @@ exports.reconcileClaimsState = functions.pubsub
     });
 
 /**
- * Clear expired review locks (>10 minutes old)
+ * Clear expired exception-control locks (>10 minutes old)
  */
 async function clearExpiredReviewLocks() {
   const tenMinutesAgo = admin.firestore.Timestamp.fromDate(
@@ -91,7 +91,7 @@ async function clearExpiredReviewLocks() {
 
   if (clearedCount > 0) {
     await batch.commit();
-    console.log(`🔓 Cleared ${clearedCount} expired review locks`);
+    console.log(`🔓 Cleared ${clearedCount} expired exception locks`);
   }
 
   return clearedCount;
@@ -229,7 +229,7 @@ async function logReconciliationResults(results) {
 }
 
 /**
- * Manual trigger function for testing
+ * Admin-triggered reconciliation function for testing
  * Call with: firebase functions:shell
  * > manualReconciliation()
  */
@@ -238,11 +238,11 @@ exports.manualReconciliation = functions.https.onCall(async (data, context) => {
   if (!context.auth || !context.auth.token.admin) {
     throw new functions.https.HttpsError(
         "permission-denied",
-        "Only admins can trigger manual reconciliation",
+        "Only admins can trigger reconciliation",
     );
   }
 
-  console.log("🔧 Manual reconciliation triggered by:", context.auth.uid);
+  console.log("🔧 Reconciliation triggered by:", context.auth.uid);
 
   const results = {
     timestamp: new Date().toISOString(),

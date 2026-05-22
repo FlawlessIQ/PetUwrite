@@ -11,8 +11,8 @@
 
 const functions = require("firebase-functions/v2");
 const admin = require("firebase-admin");
-const {FieldValue} = require("firebase-admin/firestore");
-const {Storage} = require("@google-cloud/storage");
+const { FieldValue } = require("firebase-admin/firestore");
+const { Storage } = require("@google-cloud/storage");
 const https = require("https");
 
 // Initialize Firestore and Storage
@@ -32,175 +32,183 @@ const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || "";
  * @param {string} batchId - The ID of the batch to export
  * @returns {Promise<Object>} Export result with GCS path and statistics
  */
-exports.exportAITrainingBatch = functions.https.onCall(async (data, context) => {
-  try {
-    // Verify admin authentication
-    if (!context.auth || !context.auth.token.admin) {
-      throw new functions.https.HttpsError(
+exports.exportAITrainingBatch = functions.https.onCall(
+  async (data, context) => {
+    try {
+      // Verify admin authentication
+      if (!context.auth || !context.auth.token.admin) {
+        throw new functions.https.HttpsError(
           "permission-denied",
-          "Only administrators can trigger batch exports",
-      );
-    }
+          "Only administrators can trigger batch exports"
+        );
+      }
 
-    const {batchId} = data;
-    if (!batchId) {
-      throw new functions.https.HttpsError(
+      const { batchId } = data;
+      if (!batchId) {
+        throw new functions.https.HttpsError(
           "invalid-argument",
-          "Batch ID is required",
-      );
-    }
+          "Batch ID is required"
+        );
+      }
 
-    console.log(`Starting export for batch: ${batchId}`);
+      console.log(`Starting export for batch: ${batchId}`);
 
-    // Get batch metadata
-    const batchRef = db.collection(BATCHES_COLLECTION).doc(batchId);
-    const batchDoc = await batchRef.get();
+      // Get batch metadata
+      const batchRef = db.collection(BATCHES_COLLECTION).doc(batchId);
+      const batchDoc = await batchRef.get();
 
-    if (!batchDoc.exists) {
-      throw new functions.https.HttpsError(
+      if (!batchDoc.exists) {
+        throw new functions.https.HttpsError(
           "not-found",
-          `Batch ${batchId} not found`,
-      );
-    }
+          `Batch ${batchId} not found`
+        );
+      }
 
-    const batchData = batchDoc.data();
+      const batchData = batchDoc.data();
 
-    // Verify batch is completed
-    if (batchData.status !== "completed") {
-      throw new functions.https.HttpsError(
+      // Verify batch is completed
+      if (batchData.status !== "completed") {
+        throw new functions.https.HttpsError(
           "failed-precondition",
-          `Batch must be completed before export. Current status: ${batchData.status}`,
-      );
-    }
+          `Batch must be completed before export. Current status: ${batchData.status}`
+        );
+      }
 
-    // Check if already exported
-    if (batchData.exportPath) {
-      console.log(`Batch ${batchId} already exported to ${batchData.exportPath}`);
-      return {
-        success: true,
-        alreadyExported: true,
-        exportPath: batchData.exportPath,
-        message: "Batch already exported",
-      };
-    }
+      // Check if already exported
+      if (batchData.exportPath) {
+        console.log(
+          `Batch ${batchId} already exported to ${batchData.exportPath}`
+        );
+        return {
+          success: true,
+          alreadyExported: true,
+          exportPath: batchData.exportPath,
+          message: "Batch already exported"
+        };
+      }
 
-    // Fetch all training records from the batch
-    const recordsSnapshot = await db
+      // Fetch all training records from the batch
+      const recordsSnapshot = await db
         .collection(TRAINING_DATA_COLLECTION)
         .doc(batchId)
         .collection("records")
         .orderBy("timestamp", "asc")
         .get();
 
-    if (recordsSnapshot.empty) {
-      throw new functions.https.HttpsError(
+      if (recordsSnapshot.empty) {
+        throw new functions.https.HttpsError(
           "failed-precondition",
-          `No training records found in batch ${batchId}`,
-      );
-    }
+          `No training records found in batch ${batchId}`
+        );
+      }
 
-    console.log(`Found ${recordsSnapshot.size} records in batch ${batchId}`);
+      console.log(`Found ${recordsSnapshot.size} records in batch ${batchId}`);
 
-    // Convert to JSONL format for fine-tuning
-    const trainingData = [];
-    const statistics = {
-      totalRecords: 0,
-      labelDistribution: {},
-      avgConfidence: 0,
-    };
+      // Convert to JSONL format for fine-tuning
+      const trainingData = [];
+      const statistics = {
+        totalRecords: 0,
+        labelDistribution: {},
+        avgConfidence: 0
+      };
 
-    let totalConfidence = 0;
+      let totalConfidence = 0;
 
-    for (const doc of recordsSnapshot.docs) {
-      const record = doc.data();
+      for (const doc of recordsSnapshot.docs) {
+        const record = doc.data();
 
-      // Format for fine-tuning (OpenAI format)
-      const formattedRecord = formatForFineTuning(record);
-      trainingData.push(JSON.stringify(formattedRecord));
+        // Format for fine-tuning (OpenAI format)
+        const formattedRecord = formatForFineTuning(record);
+        trainingData.push(JSON.stringify(formattedRecord));
 
-      // Collect statistics
-      statistics.totalRecords++;
-      const label = record.label || "unknown";
-      statistics.labelDistribution[label] = (statistics.labelDistribution[label] || 0) + 1;
-      totalConfidence += record.aiConfidenceScore || 0;
-    }
+        // Collect statistics
+        statistics.totalRecords++;
+        const label = record.label || "unknown";
+        statistics.labelDistribution[label] =
+          (statistics.labelDistribution[label] || 0) + 1;
+        totalConfidence += record.aiConfidenceScore || 0;
+      }
 
-    statistics.avgConfidence = totalConfidence / statistics.totalRecords;
+      statistics.avgConfidence = totalConfidence / statistics.totalRecords;
 
-    // Create JSONL content (one JSON object per line)
-    const jsonlContent = trainingData.join("\n");
+      // Create JSONL content (one JSON object per line)
+      const jsonlContent = trainingData.join("\n");
 
-    // Generate GCS path
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const gcsPath = `training-batches/batch-${batchId}-${timestamp}.jsonl`;
+      // Generate GCS path
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const gcsPath = `training-batches/batch-${batchId}-${timestamp}.jsonl`;
 
-    // Upload to Google Cloud Storage
-    const bucket = storage.bucket(BUCKET_NAME);
-    const file = bucket.file(gcsPath);
+      // Upload to Google Cloud Storage
+      const bucket = storage.bucket(BUCKET_NAME);
+      const file = bucket.file(gcsPath);
 
-    await file.save(jsonlContent, {
-      contentType: "application/jsonl",
-      metadata: {
+      await file.save(jsonlContent, {
+        contentType: "application/jsonl",
+        metadata: {
+          batchId,
+          recordCount: statistics.totalRecords,
+          exportedAt: new Date().toISOString(),
+          exportedBy: context.auth.uid
+        }
+      });
+
+      console.log(`Uploaded batch to GCS: gs://${BUCKET_NAME}/${gcsPath}`);
+
+      // Update batch with export info
+      await batchRef.update({
+        status: "exported",
+        exportPath: `gs://${BUCKET_NAME}/${gcsPath}`,
+        exportedAt: FieldValue.serverTimestamp(),
+        exportedBy: context.auth.uid
+      });
+
+      // Log to exports collection
+      const exportId = `export_${Date.now()}`;
+      await db
+        .collection(EXPORTS_COLLECTION)
+        .doc(exportId)
+        .set({
+          exportId,
+          batchId,
+          format: "jsonl",
+          gcsPath: `gs://${BUCKET_NAME}/${gcsPath}`,
+          recordCount: statistics.totalRecords,
+          labelDistribution: statistics.labelDistribution,
+          avgConfidence: statistics.avgConfidence,
+          exportedAt: FieldValue.serverTimestamp(),
+          exportedBy: context.auth.uid
+        });
+
+      // Send Slack notification
+      await sendSlackNotification({
         batchId,
         recordCount: statistics.totalRecords,
-        exportedAt: new Date().toISOString(),
-        exportedBy: context.auth.uid,
-      },
-    });
+        gcsPath: `gs://${BUCKET_NAME}/${gcsPath}`,
+        labelDistribution: statistics.labelDistribution,
+        avgConfidence: statistics.avgConfidence
+      });
 
-    console.log(`Uploaded batch to GCS: gs://${BUCKET_NAME}/${gcsPath}`);
+      console.log(`Successfully exported batch ${batchId}`);
 
-    // Update batch with export info
-    await batchRef.update({
-      status: "exported",
-      exportPath: `gs://${BUCKET_NAME}/${gcsPath}`,
-      exportedAt: FieldValue.serverTimestamp(),
-      exportedBy: context.auth.uid,
-    });
+      return {
+        success: true,
+        exportPath: `gs://${BUCKET_NAME}/${gcsPath}`,
+        statistics
+      };
+    } catch (error) {
+      console.error("Error exporting training batch:", error);
 
-    // Log to exports collection
-    const exportId = `export_${Date.now()}`;
-    await db.collection(EXPORTS_COLLECTION).doc(exportId).set({
-      exportId,
-      batchId,
-      format: "jsonl",
-      gcsPath: `gs://${BUCKET_NAME}/${gcsPath}`,
-      recordCount: statistics.totalRecords,
-      labelDistribution: statistics.labelDistribution,
-      avgConfidence: statistics.avgConfidence,
-      exportedAt: FieldValue.serverTimestamp(),
-      exportedBy: context.auth.uid,
-    });
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
 
-    // Send Slack notification
-    await sendSlackNotification({
-      batchId,
-      recordCount: statistics.totalRecords,
-      gcsPath: `gs://${BUCKET_NAME}/${gcsPath}`,
-      labelDistribution: statistics.labelDistribution,
-      avgConfidence: statistics.avgConfidence,
-    });
-
-    console.log(`Successfully exported batch ${batchId}`);
-
-    return {
-      success: true,
-      exportPath: `gs://${BUCKET_NAME}/${gcsPath}`,
-      statistics,
-    };
-  } catch (error) {
-    console.error("Error exporting training batch:", error);
-
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-
-    throw new functions.https.HttpsError(
+      throw new functions.https.HttpsError(
         "internal",
-        `Failed to export batch: ${error.message}`,
-    );
+        `Failed to export batch: ${error.message}`
+      );
+    }
   }
-});
+);
 
 /**
  * Format training record for fine-tuning
@@ -238,16 +246,17 @@ Claim Details:
 Should this claim be approved or denied?
   `.trim();
 
-  // The correct decision (what the human decided after AI analysis)
-  const assistantResponse = record.humanDecision === "approve" ?
-    `APPROVED - ${record.humanReason || "Claim meets coverage criteria"}` :
-    `DENIED - ${record.humanReason || "Claim does not meet coverage criteria"}`;
+  // The correction target from audited exception-control outcomes.
+  const assistantResponse =
+    record.humanDecision === "approve"
+      ? `APPROVED - ${record.humanReason || "Claim meets coverage criteria"}`
+      : `DENIED - ${record.humanReason || "Claim does not meet coverage criteria"}`;
 
   return {
     messages: [
-      {role: "system", content: systemPrompt},
-      {role: "user", content: userPrompt},
-      {role: "assistant", content: assistantResponse},
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+      { role: "assistant", content: assistantResponse }
     ],
     // Include metadata for analysis (not used in training)
     metadata: {
@@ -255,8 +264,8 @@ Should this claim be approved or denied?
       label: record.label,
       labelCategory: record.labelCategory,
       aiWasCorrect: record.aiWasCorrect,
-      aiConfidenceScore: record.aiConfidenceScore,
-    },
+      aiConfidenceScore: record.aiConfidenceScore
+    }
   };
 }
 
@@ -296,8 +305,8 @@ async function sendSlackNotification(exportInfo) {
 
   try {
     const labelDistributionText = Object.entries(exportInfo.labelDistribution)
-        .map(([label, count]) => `• ${label}: ${count}`)
-        .join("\n");
+      .map(([label, count]) => `• ${label}: ${count}`)
+      .join("\n");
 
     const message = {
       text: "🤖 AI Training Batch Exported",
@@ -306,47 +315,47 @@ async function sendSlackNotification(exportInfo) {
           type: "header",
           text: {
             type: "plain_text",
-            text: "🤖 AI Training Batch Exported",
-          },
+            text: "🤖 AI Training Batch Exported"
+          }
         },
         {
           type: "section",
           fields: [
             {
               type: "mrkdwn",
-              text: `*Batch ID:*\n${exportInfo.batchId}`,
+              text: `*Batch ID:*\n${exportInfo.batchId}`
             },
             {
               type: "mrkdwn",
-              text: `*Record Count:*\n${exportInfo.recordCount}`,
+              text: `*Record Count:*\n${exportInfo.recordCount}`
             },
             {
               type: "mrkdwn",
-              text: `*Average Confidence:*\n${(exportInfo.avgConfidence * 100).toFixed(1)}%`,
+              text: `*Average Confidence:*\n${(exportInfo.avgConfidence * 100).toFixed(1)}%`
             },
             {
               type: "mrkdwn",
-              text: `*GCS Path:*\n\`${exportInfo.gcsPath}\``,
-            },
-          ],
+              text: `*GCS Path:*\n\`${exportInfo.gcsPath}\``
+            }
+          ]
         },
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*Label Distribution:*\n${labelDistributionText}`,
-          },
+            text: `*Label Distribution:*\n${labelDistributionText}`
+          }
         },
         {
           type: "context",
           elements: [
             {
               type: "mrkdwn",
-              text: `Exported at ${new Date().toLocaleString()}`,
-            },
-          ],
-        },
-      ],
+              text: `Exported at ${new Date().toLocaleString()}`
+            }
+          ]
+        }
+      ]
     };
 
     await sendSlackMessage(message);
@@ -373,9 +382,9 @@ function sendSlackMessage(message) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(postData),
+        "Content-Length": Buffer.byteLength(postData)
       },
-      timeout: 10000,
+      timeout: 10000
     };
 
     const req = https.request(options, (res) => {
@@ -387,9 +396,11 @@ function sendSlackMessage(message) {
 
       res.on("end", () => {
         if (res.statusCode === 200) {
-          resolve({success: true});
+          resolve({ success: true });
         } else {
-          reject(new Error(`Slack API returned ${res.statusCode}: ${responseData}`));
+          reject(
+            new Error(`Slack API returned ${res.statusCode}: ${responseData}`)
+          );
         }
       });
     });
@@ -414,36 +425,39 @@ function sendSlackMessage(message) {
  * Automatically exports a batch when its status changes to 'completed'
  */
 exports.onBatchCompleted = functions.firestore.onDocumentUpdated(
-    `${BATCHES_COLLECTION}/{batchId}`,
-    async (event) => {
-      const before = event.data.before.data();
-      const after = event.data.after.data();
-      const batchId = event.params.batchId;
+  `${BATCHES_COLLECTION}/{batchId}`,
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const batchId = event.params.batchId;
 
-      // Check if status changed to 'completed' and not already exported
-      if (
-        before.status !== "completed" &&
+    // Check if status changed to 'completed' and not already exported
+    if (
+      before.status !== "completed" &&
       after.status === "completed" &&
       !after.exportPath
-      ) {
-        console.log(`Batch ${batchId} completed, triggering auto-export`);
+    ) {
+      console.log(`Batch ${batchId} completed, triggering auto-export`);
 
-        try {
+      try {
         // Trigger export (simulate admin context for internal call)
-          const exportResult = await exportBatchInternal(batchId, "system");
-          console.log(`Auto-export completed for batch ${batchId}:`, exportResult);
-        } catch (error) {
-          console.error(`Auto-export failed for batch ${batchId}:`, error);
+        const exportResult = await exportBatchInternal(batchId, "system");
+        console.log(
+          `Auto-export completed for batch ${batchId}:`,
+          exportResult
+        );
+      } catch (error) {
+        console.error(`Auto-export failed for batch ${batchId}:`, error);
 
-          // Update batch with error status
-          await db.collection(BATCHES_COLLECTION).doc(batchId).update({
-            status: "export_failed",
-            exportError: error.message,
-            exportErrorAt: FieldValue.serverTimestamp(),
-          });
-        }
+        // Update batch with error status
+        await db.collection(BATCHES_COLLECTION).doc(batchId).update({
+          status: "export_failed",
+          exportError: error.message,
+          exportErrorAt: FieldValue.serverTimestamp()
+        });
       }
-    },
+    }
+  }
 );
 
 /**
@@ -468,16 +482,16 @@ async function exportBatchInternal(batchId, triggeredBy = "system") {
   // Check if already exported
   if (batchData.exportPath) {
     console.log(`Batch ${batchId} already exported`);
-    return {alreadyExported: true, exportPath: batchData.exportPath};
+    return { alreadyExported: true, exportPath: batchData.exportPath };
   }
 
   // Fetch training records
   const recordsSnapshot = await db
-      .collection(TRAINING_DATA_COLLECTION)
-      .doc(batchId)
-      .collection("records")
-      .orderBy("timestamp", "asc")
-      .get();
+    .collection(TRAINING_DATA_COLLECTION)
+    .doc(batchId)
+    .collection("records")
+    .orderBy("timestamp", "asc")
+    .get();
 
   if (recordsSnapshot.empty) {
     throw new Error(`No records found in batch ${batchId}`);
@@ -488,7 +502,7 @@ async function exportBatchInternal(batchId, triggeredBy = "system") {
   const statistics = {
     totalRecords: 0,
     labelDistribution: {},
-    avgConfidence: 0,
+    avgConfidence: 0
   };
 
   let totalConfidence = 0;
@@ -500,7 +514,8 @@ async function exportBatchInternal(batchId, triggeredBy = "system") {
 
     statistics.totalRecords++;
     const label = record.label || "unknown";
-    statistics.labelDistribution[label] = (statistics.labelDistribution[label] || 0) + 1;
+    statistics.labelDistribution[label] =
+      (statistics.labelDistribution[label] || 0) + 1;
     totalConfidence += record.aiConfidenceScore || 0;
   }
 
@@ -520,8 +535,8 @@ async function exportBatchInternal(batchId, triggeredBy = "system") {
       batchId,
       recordCount: statistics.totalRecords,
       exportedAt: new Date().toISOString(),
-      exportedBy: triggeredBy,
-    },
+      exportedBy: triggeredBy
+    }
   });
 
   // Update batch
@@ -529,22 +544,25 @@ async function exportBatchInternal(batchId, triggeredBy = "system") {
     status: "exported",
     exportPath: `gs://${BUCKET_NAME}/${gcsPath}`,
     exportedAt: FieldValue.serverTimestamp(),
-    exportedBy: triggeredBy,
+    exportedBy: triggeredBy
   });
 
   // Log export
   const exportId = `export_${Date.now()}`;
-  await db.collection(EXPORTS_COLLECTION).doc(exportId).set({
-    exportId,
-    batchId,
-    format: "jsonl",
-    gcsPath: `gs://${BUCKET_NAME}/${gcsPath}`,
-    recordCount: statistics.totalRecords,
-    labelDistribution: statistics.labelDistribution,
-    avgConfidence: statistics.avgConfidence,
-    exportedAt: FieldValue.serverTimestamp(),
-    exportedBy: triggeredBy,
-  });
+  await db
+    .collection(EXPORTS_COLLECTION)
+    .doc(exportId)
+    .set({
+      exportId,
+      batchId,
+      format: "jsonl",
+      gcsPath: `gs://${BUCKET_NAME}/${gcsPath}`,
+      recordCount: statistics.totalRecords,
+      labelDistribution: statistics.labelDistribution,
+      avgConfidence: statistics.avgConfidence,
+      exportedAt: FieldValue.serverTimestamp(),
+      exportedBy: triggeredBy
+    });
 
   // Send Slack notification
   await sendSlackNotification({
@@ -552,12 +570,12 @@ async function exportBatchInternal(batchId, triggeredBy = "system") {
     recordCount: statistics.totalRecords,
     gcsPath: `gs://${BUCKET_NAME}/${gcsPath}`,
     labelDistribution: statistics.labelDistribution,
-    avgConfidence: statistics.avgConfidence,
+    avgConfidence: statistics.avgConfidence
   });
 
   return {
     success: true,
     exportPath: `gs://${BUCKET_NAME}/${gcsPath}`,
-    statistics,
+    statistics
   };
 }

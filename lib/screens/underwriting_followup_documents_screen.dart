@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../models/underwriting_case.dart';
 import '../services/draft_service.dart';
@@ -149,9 +150,9 @@ class _UnderwritingFollowUpDocumentsScreenState
   Future<void> _clearSaved() async {
     await UserSessionService().clearPendingUnderwriting();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Saved underwriting cleared.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Saved follow-up cleared.')));
     await _load();
   }
 
@@ -159,14 +160,20 @@ class _UnderwritingFollowUpDocumentsScreenState
   Widget build(BuildContext context) {
     final caseId = _caseId;
     final petName =
-      _case?.petSnapshot?.name ?? _pending?['petName']?.toString() ?? 'your pet';
+        _case?.petSnapshot?.name ??
+        _pending?['petName']?.toString() ??
+        'your pet';
 
     return Scaffold(
-      backgroundColor: ClovaraColors.mist,
+      backgroundColor: const Color(0xFFF2EFE8),
       appBar: AppBar(
-        backgroundColor: ClovaraColors.white,
+        backgroundColor: const Color(0xFFFAFAF7),
         elevation: 0,
-        title: const Text('Documents Needed'),
+        foregroundColor: const Color(0xFF1A1A1A),
+        title: Text(
+          'More information needed',
+          style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
         actions: [
           IconButton(
             tooltip: 'Save resume code',
@@ -175,55 +182,70 @@ class _UnderwritingFollowUpDocumentsScreenState
                 context,
                 title: 'Save & resume later',
                 body:
-                    'If you leave this page, use this code to return and upload documents from any device.',
+                    'If you leave this page, use this code to return and finish the requested uploads from any device.',
                 copyLabel: 'Copy code',
                 doneLabel: 'Done',
               );
             },
             icon: const Icon(Icons.bookmark_add_outlined),
           ),
-          TextButton(
-            onPressed: _clearSaved,
-            child: const Text('Clear'),
-          ),
+          TextButton(onPressed: _clearSaved, child: const Text('Clear')),
         ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
+                      color: const Color(0xFFFAFAF7),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE8E3DA)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Next step: upload a bit more info',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          'AUTOMATED CHECKPOINT',
+                          style: GoogleFonts.dmSans(
+                            color: const Color(0xFF2D6A4F),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'One more detail is needed for $petName.',
+                          style: GoogleFonts.playfairDisplay(
+                            color: const Color(0xFF1A1A1A),
+                            fontSize: 30,
+                            fontWeight: FontWeight.w700,
+                            height: 1.05,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'We paused underwriting for $petName until we can confirm a few details. Upload the requested documents to continue.',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          'Clovara paused this application automatically because a required detail could not be verified. Upload the requested documents and the decisioning engine will continue.',
+                          style: GoogleFonts.dmSans(
+                            color: const Color(0xFF666666),
+                            fontSize: 15,
+                            height: 1.6,
+                          ),
                         ),
                         if (caseId != null) ...[
                           const SizedBox(height: 12),
                           Text(
                             'Case ID: $caseId',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: Colors.grey.shade600),
+                            style: GoogleFonts.dmSans(
+                              color: const Color(0xFF888888),
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                         const SizedBox(height: 12),
@@ -235,10 +257,10 @@ class _UnderwritingFollowUpDocumentsScreenState
                             final pretty = DraftService().prettyCode(key);
                             return Text(
                               'Resume code: $pretty',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: Colors.grey.shade600),
+                              style: GoogleFonts.dmSans(
+                                color: const Color(0xFF888888),
+                                fontSize: 12,
+                              ),
                             );
                           },
                         ),
@@ -246,9 +268,10 @@ class _UnderwritingFollowUpDocumentsScreenState
                           const SizedBox(height: 12),
                           Text(
                             _error!,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: ClovaraColors.kWarmCoral,
-                                ),
+                            style: GoogleFonts.dmSans(
+                              fontSize: 12,
+                              color: ClovaraColors.kWarmCoral,
+                            ),
                           ),
                         ],
                       ],
@@ -263,29 +286,39 @@ class _UnderwritingFollowUpDocumentsScreenState
                         itemBuilder: (context, index) {
                           final e = _requiredEvidence[index];
                           final title = (e['title'] ?? '').toString().trim();
-                          final details = (e['details'] ?? '').toString().trim();
+                          final details = (e['details'] ?? '')
+                              .toString()
+                              .trim();
                           return Container(
-                            padding: const EdgeInsets.all(14),
+                            padding: const EdgeInsets.all(18),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade200),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFE8E3DA),
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   title.isEmpty ? 'Requested document' : title,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
-                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                  style: GoogleFonts.dmSans(
+                                    color: const Color(0xFF1A1A1A),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                                 if (details.isNotEmpty) ...[
                                   const SizedBox(height: 6),
-                                  Text(details,
-                                      style:
-                                          Theme.of(context).textTheme.bodySmall),
+                                  Text(
+                                    details,
+                                    style: GoogleFonts.dmSans(
+                                      color: const Color(0xFF666666),
+                                      fontSize: 13,
+                                      height: 1.5,
+                                    ),
+                                  ),
                                 ],
                               ],
                             ),
@@ -300,15 +333,16 @@ class _UnderwritingFollowUpDocumentsScreenState
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE8E3DA)),
                         ),
                         child: Text(
-                          'Open your case to upload your vet record and continue underwriting.',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(color: Colors.grey.shade700),
+                          'Open your case to upload the requested record and continue the automated decision.',
+                          style: GoogleFonts.dmSans(
+                            color: const Color(0xFF666666),
+                            fontSize: 15,
+                            height: 1.55,
+                          ),
                         ),
                       ),
                     ),
@@ -318,14 +352,17 @@ class _UnderwritingFollowUpDocumentsScreenState
                     child: ElevatedButton(
                       onPressed: _case == null ? null : _continueToUploads,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: ClovaraColors.clover,
+                        backgroundColor: const Color(0xFF2D6A4F),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('Upload documents & continue'),
+                      child: Text(
+                        'Upload documents & continue',
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
                 ],

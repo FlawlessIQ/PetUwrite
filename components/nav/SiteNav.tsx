@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { navItems } from "@/data/site";
+import { track } from "@/hooks/useAnalytics";
 
 export function SiteNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -41,12 +42,26 @@ export function SiteNav() {
             </Link>
           ))}
         </div>
-        <Link
-          href="/quote"
-          className="hidden rounded-[24px] bg-clv-green px-5 py-[9px] text-[13px] font-semibold text-white transition-colors hover:bg-clv-green-dark md:inline-flex"
-        >
-          Get a free quote
-        </Link>
+        <div className="hidden items-center gap-4 md:flex">
+          <Link
+            href="/app/sign-in"
+            className="rounded-[24px] border border-clv-gray-border px-5 py-[9px] text-[13px] font-semibold text-clv-charcoal transition-colors hover:border-clv-green hover:text-clv-green"
+            onClick={() =>
+              track("sign_in_started", {
+                source: "site_nav",
+                destination: "post_auth_app"
+              })
+            }
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/quote"
+            className="rounded-[24px] bg-clv-green px-5 py-[9px] text-[13px] font-semibold text-white transition-colors hover:bg-clv-green-dark"
+          >
+            Get a free quote
+          </Link>
+        </div>
         <button
           type="button"
           className="flex h-11 w-11 items-center justify-center rounded-md border border-clv-gray-border text-clv-charcoal md:hidden"
@@ -77,8 +92,21 @@ export function SiteNav() {
               ))}
             </div>
             <Link
+              href="/app/sign-in"
+              className="mt-8 rounded-[24px] border border-clv-gray-border px-5 py-4 text-center text-sm font-semibold text-clv-charcoal"
+              onClick={() => {
+                track("sign_in_started", {
+                  source: "mobile_nav",
+                  destination: "post_auth_app"
+                });
+                setOpen(false);
+              }}
+            >
+              Sign in
+            </Link>
+            <Link
               href="/quote"
-              className="mt-auto rounded-[24px] bg-clv-green px-5 py-4 text-center text-sm font-semibold text-white"
+              className="mt-4 rounded-[24px] bg-clv-green px-5 py-4 text-center text-sm font-semibold text-white"
               onClick={() => setOpen(false)}
             >
               Get a free quote

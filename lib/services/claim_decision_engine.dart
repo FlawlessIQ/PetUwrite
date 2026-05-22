@@ -11,21 +11,20 @@ class ClaimDecisionEngine {
   final ClaimDocumentAIService _documentService;
 
   // Decision thresholds
-  static const double autoApproveThreshold = 75.0; // Temporarily lowered for testing (was 85.0)
+  static const double autoApproveThreshold =
+      75.0; // Temporarily lowered for testing (was 85.0)
   static const double autoApproveAmountLimit = 300.0;
-  static const double humanReviewThreshold = 60.0;
+  static const double humanReviewThreshold =
+      60.0; // Legacy name: now means automation evidence-check threshold.
   static const int maxRetries = 3;
 
   ClaimDecisionEngine({
     FirebaseFirestore? firestore,
     GPTService? gptService,
     ClaimDocumentAIService? documentService,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _gptService = gptService ??
-            GPTService(
-              model: 'gemini-pro-latest',
-            ),
-        _documentService = documentService ?? ClaimDocumentAIService();
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _gptService = gptService ?? GPTService(model: 'gemini-pro-latest'),
+       _documentService = documentService ?? ClaimDocumentAIService();
 
   /// Process claim and make automated decision
   /// Returns updated claim with AI decision + explanation
@@ -89,7 +88,7 @@ class ClaimDecisionEngine {
       print('❌ Error processing claim decision: $e');
       print('Stack trace: $stackTrace');
 
-      // Fallback to safe default (human review)
+      // Fallback to safe default: keep the claim in automated evidence-check.
       return _createFallbackDecision(claim, e.toString());
     }
   }
@@ -103,7 +102,9 @@ class ClaimDecisionEngine {
     // Get document analyses if not provided
     if (documentAnalyses == null || documentAnalyses.isEmpty) {
       try {
-        documentAnalyses = await _documentService.getClaimDocuments(claim.claimId);
+        documentAnalyses = await _documentService.getClaimDocuments(
+          claim.claimId,
+        );
       } catch (e) {
         print('Warning: Could not retrieve document analyses: $e');
         documentAnalyses = [];
@@ -125,10 +126,12 @@ class ClaimDecisionEngine {
     // Otherwise, give credit for having attachments uploaded (0.8 = 80% confidence)
     final avgDocumentConfidence = documentAnalyses.isNotEmpty
         ? documentAnalyses
-                .map((d) => d.confidenceScore)
-                .reduce((a, b) => a + b) /
-            documentAnalyses.length
-        : (claim.attachments.isNotEmpty ? 0.8 : 0.0); // 80% confidence for uploaded docs
+                  .map((d) => d.confidenceScore)
+                  .reduce((a, b) => a + b) /
+              documentAnalyses.length
+        : (claim.attachments.isNotEmpty
+              ? 0.8
+              : 0.0); // 80% confidence for uploaded docs
 
     // Check for fraud flags
     final hasFraudFlags = documentAnalyses.any((d) => d.hasFraudFlags);
@@ -150,17 +153,21 @@ class ClaimDecisionEngine {
         'status': claim.status.value,
         'attachmentCount': claim.attachments.length, // Add attachment count
       },
-      'documents': documentAnalyses.map((d) => {
-        'providerName': d.providerName,
-        'serviceDate': d.serviceDate?.toIso8601String(),
-        'totalCharge': d.totalCharge,
-        'diagnosisCodes': d.diagnosisCodes,
-        'procedureCodes': d.procedureCodes,
-        'isLegitimate': d.isLegitimate,
-        'treatment': d.treatment,
-        'confidenceScore': d.confidenceScore,
-        'fraudFlags': d.fraudFlags,
-      }).toList(),
+      'documents': documentAnalyses
+          .map(
+            (d) => {
+              'providerName': d.providerName,
+              'serviceDate': d.serviceDate?.toIso8601String(),
+              'totalCharge': d.totalCharge,
+              'diagnosisCodes': d.diagnosisCodes,
+              'procedureCodes': d.procedureCodes,
+              'isLegitimate': d.isLegitimate,
+              'treatment': d.treatment,
+              'confidenceScore': d.confidenceScore,
+              'fraudFlags': d.fraudFlags,
+            },
+          )
+          .toList(),
       'documentSummary': {
         'totalDocuments': documentAnalyses.length,
         'avgConfidence': avgDocumentConfidence,
@@ -287,7 +294,11 @@ Description: ${claim['description']}
 ═══════════════════════════════════════════════════════════════
 SUPPORTING DOCUMENTS (${docs.length} AI-analyzed, ${claim['attachmentCount'] ?? 0} uploaded)
 ═══════════════════════════════════════════════════════════════
-${claim['attachmentCount'] > 0 && docs.isEmpty ? 'Documents uploaded but not yet AI-analyzed. Give moderate confidence (70-80%) for having documentation.' : docs.isEmpty ? 'No documents provided' : docs.map((d) => '''
+${claim['attachmentCount'] > 0 && docs.isEmpty
+        ? 'Documents uploaded but not yet AI-analyzed. Give moderate confidence (70-80%) for having documentation.'
+        : docs.isEmpty
+        ? 'No documents provided'
+        : docs.map((d) => '''
 Provider: ${d['providerName']}
 Service Date: ${d['serviceDate']}
 Total Charge: \$${d['totalCharge']}
@@ -322,7 +333,7 @@ ANALYSIS QUESTIONS
 2. Is the claimed amount reasonable for the treatment provided?
 3. Are there any red flags or concerns?
 4. What is your confidence in this assessment (0-100)?
-5. Should this claim be approved, denied, or escalated to human review?
+5. Should this claim be approved, denied, or routed to additional automated evidence collection?
 
 ═══════════════════════════════════════════════════════════════
 RESPONSE FORMAT (JSON ONLY)
@@ -336,7 +347,7 @@ Return ONLY valid JSON in this exact format:
   "explanation": "2-3 sentence plain-language explanation of your reasoning",
   "redFlags": ["flag1", "flag2"] or [],
   "suggestedPayoutAmount": dollar_amount,
-  "requiresHumanReview": true | false
+  "requiresAdditionalEvidence": true | false
 }
 
 CRITICAL: Return ONLY the JSON, no other text.
@@ -364,13 +375,22 @@ JSON:''';
       final json = jsonMatch.group(0)!;
 
       // Parse fields manually (safer than dart:convert for untrusted input)
-      result['legitimacy'] = _extractJsonString(json, 'legitimacy') ?? 'suspicious';
-      result['costReasonableness'] = _extractJsonString(json, 'costReasonableness') ?? 'reasonable';
-      result['confidenceScore'] = _extractJsonNumber(json, 'confidenceScore') ?? 50.0;
-      result['recommendation'] = _extractJsonString(json, 'recommendation') ?? 'escalate';
-      result['explanation'] = _extractJsonString(json, 'explanation') ?? 'Analysis completed';
-      result['suggestedPayoutAmount'] = _extractJsonNumber(json, 'suggestedPayoutAmount') ?? 0.0;
-      result['requiresHumanReview'] = _extractJsonBool(json, 'requiresHumanReview') ?? true;
+      result['legitimacy'] =
+          _extractJsonString(json, 'legitimacy') ?? 'suspicious';
+      result['costReasonableness'] =
+          _extractJsonString(json, 'costReasonableness') ?? 'reasonable';
+      result['confidenceScore'] =
+          _extractJsonNumber(json, 'confidenceScore') ?? 50.0;
+      result['recommendation'] =
+          _extractJsonString(json, 'recommendation') ?? 'escalate';
+      result['explanation'] =
+          _extractJsonString(json, 'explanation') ?? 'Analysis completed';
+      result['suggestedPayoutAmount'] =
+          _extractJsonNumber(json, 'suggestedPayoutAmount') ?? 0.0;
+      result['requiresHumanReview'] =
+          _extractJsonBool(json, 'requiresAdditionalEvidence') ??
+          _extractJsonBool(json, 'requiresHumanReview') ??
+          false;
       result['redFlags'] = _extractJsonArray(json, 'redFlags') ?? [];
 
       return AIAnalysisResult(
@@ -457,17 +477,19 @@ JSON:''';
       aiDecision = AIDecision.approve;
       finalStatus = ClaimStatus.settling;
       autoProcessed = true;
-      explanation += '\n\n✅ Auto-approved: High confidence (${confidenceScore.toStringAsFixed(1)}%) '
+      explanation +=
+          '\n\n✅ Auto-approved: High confidence (${confidenceScore.toStringAsFixed(1)}%) '
           'and amount under \$${autoApproveAmountLimit.toStringAsFixed(0)} threshold.';
     }
-    // Rule 2: Medium confidence = human review
+    // Rule 2: Medium confidence = automated evidence check
     else if (confidenceScore >= humanReviewThreshold &&
         confidenceScore < autoApproveThreshold) {
       aiDecision = AIDecision.escalate;
       finalStatus = ClaimStatus.processing;
       requiresHumanReview = true;
-      explanation += '\n\n⚠️ Escalated for human review: Confidence score '
-          '${confidenceScore.toStringAsFixed(1)}% requires manual verification.';
+      explanation +=
+          '\n\n⚠️ Additional evidence check: Confidence score '
+          '${confidenceScore.toStringAsFixed(1)}% requires a document or rule check before payout.';
     }
     // Rule 3: Low confidence = auto-deny
     else if (confidenceScore < humanReviewThreshold) {
@@ -482,23 +504,26 @@ JSON:''';
       aiDecision = AIDecision.deny;
       finalStatus = ClaimStatus.denied;
       autoProcessed = true;
-      denyReason = 'Potential fraud detected: ${[...docSummary['fraudFlags'] as List, ...aiResult.redFlags].join(", ")}';
+      denyReason =
+          'Potential fraud detected: ${[...docSummary['fraudFlags'] as List, ...aiResult.redFlags].join(", ")}';
       explanation += '\n\n❌ Auto-denied: $denyReason';
     }
-    // Rule 5: High amount = human review (even if high confidence)
+    // Rule 5: High amount = automated evidence check (even if high confidence)
     else if (claimAmount >= autoApproveAmountLimit) {
       aiDecision = AIDecision.escalate;
       finalStatus = ClaimStatus.processing;
       requiresHumanReview = true;
-      explanation += '\n\n⚠️ Escalated for human review: Claim amount '
-          '\$${claimAmount.toStringAsFixed(2)} exceeds auto-approval threshold.';
+      explanation +=
+          '\n\n⚠️ Additional evidence check: Claim amount '
+          '\$${claimAmount.toStringAsFixed(2)} exceeds the instant-payout threshold.';
     }
     // Default: escalate
     else {
       aiDecision = AIDecision.escalate;
       finalStatus = ClaimStatus.processing;
       requiresHumanReview = true;
-      explanation += '\n\n⚠️ Escalated for human review: Manual verification recommended.';
+      explanation +=
+          '\n\n⚠️ Additional evidence check: More information is needed before the automated decision can complete.';
     }
 
     return ClaimDecisionData(
@@ -516,13 +541,20 @@ JSON:''';
   }
 
   /// Generate human-readable deny reason
-  String _generateDenyReason(AIAnalysisResult aiResult, double confidenceScore) {
+  String _generateDenyReason(
+    AIAnalysisResult aiResult,
+    double confidenceScore,
+  ) {
     final reasons = <String>[];
 
     if (confidenceScore < 30) {
-      reasons.add('Insufficient confidence in claim legitimacy (${confidenceScore.toStringAsFixed(1)}%)');
+      reasons.add(
+        'Insufficient confidence in claim legitimacy (${confidenceScore.toStringAsFixed(1)}%)',
+      );
     } else if (confidenceScore < humanReviewThreshold) {
-      reasons.add('Low confidence score (${confidenceScore.toStringAsFixed(1)}%)');
+      reasons.add(
+        'Low confidence score (${confidenceScore.toStringAsFixed(1)}%)',
+      );
     }
 
     if (aiResult.legitimacy == 'fraudulent') {
@@ -572,16 +604,13 @@ JSON:''';
     );
 
     // Update in Firestore - only update the fields that changed
-    await _firestore
-        .collection('claims')
-        .doc(claim.claimId)
-        .update({
+    await _firestore.collection('claims').doc(claim.claimId).update({
       'aiConfidenceScore': updatedClaim.aiConfidenceScore,
       'aiDecision': updatedClaim.aiDecision?.value,
       'aiReasoningExplanation': updatedClaim.aiReasoningExplanation,
       'status': updatedClaim.status.value,
       'updatedAt': FieldValue.serverTimestamp(),
-      if (updatedClaim.settledAt != null) 
+      if (updatedClaim.settledAt != null)
         'settledAt': Timestamp.fromDate(updatedClaim.settledAt!),
     });
 
@@ -615,7 +644,7 @@ JSON:''';
       },
       'processingMetadata': {
         'engineVersion': '1.0.0',
-          'modelUsed': 'gemini-pro-latest',
+        'modelUsed': 'gemini-pro-latest',
         'processingTime': DateTime.now().toIso8601String(),
       },
     };
@@ -638,14 +667,15 @@ JSON:''';
     final claimAmount = claim['claimAmount'] as double;
     final docSummary = inputData['documentSummary'];
 
-    // Conservative fallback - escalate to human
+    // Conservative fallback - keep in automated evidence-check.
     return AIAnalysisResult(
       legitimacy: 'suspicious',
       costReasonableness: 'reasonable',
       confidenceScore: 50.0,
       recommendation: 'escalate',
-      explanation: 'AI analysis unavailable (${error ?? "offline"}). '
-          'Claim requires manual review. '
+      explanation:
+          'AI analysis unavailable (${error ?? "offline"}). '
+          'Claim requires an automated evidence check. '
           'Document confidence: ${(docSummary['avgConfidence'] * 100).toStringAsFixed(1)}%.',
       redFlags: ['ai_analysis_failed'],
       suggestedPayoutAmount: claimAmount,
@@ -659,7 +689,8 @@ JSON:''';
       claim: claim,
       aiConfidenceScore: 50.0,
       aiDecision: AIDecision.escalate,
-      explanation: 'Decision engine error: $error. Claim escalated for manual review.',
+      explanation:
+          'Decision engine error: $error. Claim moved to automated evidence-check.',
       finalStatus: ClaimStatus.processing,
       autoProcessed: false,
       requiresHumanReview: true,
@@ -721,10 +752,16 @@ JSON:''';
       Query query = _firestore.collection('claims');
 
       if (startDate != null) {
-        query = query.where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+        query = query.where(
+          'createdAt',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
+        );
       }
       if (endDate != null) {
-        query = query.where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+        query = query.where(
+          'createdAt',
+          isLessThanOrEqualTo: Timestamp.fromDate(endDate),
+        );
       }
 
       final snapshot = await query.get();
@@ -733,7 +770,7 @@ JSON:''';
       int totalClaims = claims.length;
       int autoApproved = 0;
       int autoDenied = 0;
-      int humanReview = 0;
+      int automationCheck = 0;
       double totalAutoApprovedAmount = 0.0;
       double avgConfidence = 0.0;
       int confidenceCount = 0;
@@ -749,13 +786,15 @@ JSON:''';
           confidenceCount++;
         }
 
-        if (status == 'settled' && confidence != null && confidence >= autoApproveThreshold / 100) {
+        if (status == 'settled' &&
+            confidence != null &&
+            confidence >= autoApproveThreshold / 100) {
           autoApproved++;
           totalAutoApprovedAmount += (data['claimAmount'] as num).toDouble();
         } else if (status == 'denied') {
           autoDenied++;
         } else if (aiDecision == 'escalate' || status == 'processing') {
-          humanReview++;
+          automationCheck++;
         }
       }
 
@@ -763,13 +802,27 @@ JSON:''';
         'totalClaims': totalClaims,
         'autoApproved': autoApproved,
         'autoDenied': autoDenied,
-        'humanReview': humanReview,
-        'autoApprovalRate': totalClaims > 0 ? (autoApproved / totalClaims) * 100 : 0.0,
-        'autoDenialRate': totalClaims > 0 ? (autoDenied / totalClaims) * 100 : 0.0,
-        'humanReviewRate': totalClaims > 0 ? (humanReview / totalClaims) * 100 : 0.0,
+        'automationCheck': automationCheck,
+        'humanReview': automationCheck, // Legacy analytics key.
+        'autoApprovalRate': totalClaims > 0
+            ? (autoApproved / totalClaims) * 100
+            : 0.0,
+        'autoDenialRate': totalClaims > 0
+            ? (autoDenied / totalClaims) * 100
+            : 0.0,
+        'automationCheckRate': totalClaims > 0
+            ? (automationCheck / totalClaims) * 100
+            : 0.0,
+        'humanReviewRate': totalClaims > 0
+            ? (automationCheck / totalClaims) * 100
+            : 0.0,
         'totalAutoApprovedAmount': totalAutoApprovedAmount,
-        'avgAutoApprovedAmount': autoApproved > 0 ? totalAutoApprovedAmount / autoApproved : 0.0,
-        'avgConfidenceScore': confidenceCount > 0 ? avgConfidence / confidenceCount : 0.0,
+        'avgAutoApprovedAmount': autoApproved > 0
+            ? totalAutoApprovedAmount / autoApproved
+            : 0.0,
+        'avgConfidenceScore': confidenceCount > 0
+            ? avgConfidence / confidenceCount
+            : 0.0,
       };
     } catch (e) {
       print('Error getting decision stats: $e');
@@ -853,12 +906,10 @@ class ClaimDecisionResult {
   });
 
   /// Check if claim was auto-approved
-  bool get wasAutoApproved =>
-      autoProcessed && aiDecision == AIDecision.approve;
+  bool get wasAutoApproved => autoProcessed && aiDecision == AIDecision.approve;
 
   /// Check if claim was auto-denied
-  bool get wasAutoDenied =>
-      autoProcessed && aiDecision == AIDecision.deny;
+  bool get wasAutoDenied => autoProcessed && aiDecision == AIDecision.deny;
 
   /// Get decision summary
   String get decisionSummary {
@@ -867,7 +918,7 @@ class ClaimDecisionResult {
     } else if (wasAutoDenied) {
       return '❌ Auto-Denied: ${denyReason ?? "See explanation"}';
     } else if (requiresHumanReview) {
-      return '⚠️ Requires Human Review (${aiConfidenceScore.toStringAsFixed(1)}% confidence)';
+      return '⚠️ Needs Automation Check (${aiConfidenceScore.toStringAsFixed(1)}% confidence)';
     } else {
       return '🤖 AI Decision: ${aiDecision.displayName}';
     }

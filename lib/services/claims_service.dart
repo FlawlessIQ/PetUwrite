@@ -139,10 +139,10 @@ class ClaimsService {
   }
 
   // ============================================================================
-  // ADVISORY LOCK SYSTEM FOR ADMIN REVIEW (10-minute timeout)
+  // ADVISORY LOCK SYSTEM FOR ADMIN EXCEPTION CONTROLS (10-minute timeout)
   // ============================================================================
 
-  /// Acquire review lock for admin user
+  /// Acquire an exception-control lock for admin user.
   /// Returns true if lock acquired, false if already locked by another admin
   Future<bool> acquireReviewLock({
     required String claimId,
@@ -194,11 +194,11 @@ class ClaimsService {
 
       return result;
     } catch (e) {
-      throw Exception('Failed to acquire review lock: $e');
+      throw Exception('Failed to acquire exception lock: $e');
     }
   }
 
-  /// Release review lock
+  /// Release exception-control lock
   Future<void> releaseReviewLock({
     required String claimId,
     required String adminUserId,
@@ -225,11 +225,11 @@ class ClaimsService {
         }
       });
     } catch (e) {
-      throw Exception('Failed to release review lock: $e');
+      throw Exception('Failed to release exception lock: $e');
     }
   }
 
-  /// Check if claim is currently locked for review
+  /// Check if claim is currently locked for exception control
   Future<bool> isReviewLocked({required String claimId}) async {
     try {
       final snapshot = await _firestore.collection('claims').doc(claimId).get();
@@ -252,11 +252,11 @@ class ClaimsService {
 
       return now.isBefore(lockExpiry);
     } catch (e) {
-      throw Exception('Failed to check review lock: $e');
+      throw Exception('Failed to check exception lock: $e');
     }
   }
 
-  /// Clear expired review locks (called by reconciliation function)
+  /// Clear expired exception-control locks (called by reconciliation function)
   Future<int> clearExpiredLocks() async {
     try {
       final now = DateTime.now();

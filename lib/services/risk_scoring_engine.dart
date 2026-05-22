@@ -482,7 +482,7 @@ class RiskScoringEngine {
           effectiveAt: UnderwritingExclusionEffectiveAt.bind,
           reviewable: true,
           explanation:
-              'Orthopedic conditions are excluded based on an unusual size/weight profile until reviewed.',
+              'Orthopedic conditions are excluded based on an unusual size/weight profile until verified.',
         );
       case AnomalyFlagType.ageMismatch:
         return UnderwritingExclusion(
@@ -492,7 +492,7 @@ class RiskScoringEngine {
           effectiveAt: UnderwritingExclusionEffectiveAt.postBind,
           reviewable: true,
           explanation:
-              'Age-related conditions are excluded based on an unusual age profile until reviewed.',
+              'Age-related conditions are excluded based on an unusual age profile until verified.',
         );
       case AnomalyFlagType.breedConflict:
         return UnderwritingExclusion(

@@ -8,21 +8,18 @@ import '../../theme/clovara_theme.dart';
 import 'claims_review_tab.dart';
 
 /// Claims Analytics Tab for Admin Dashboard
-/// 
+///
 /// Features:
 /// - Total claims by month (line chart)
 /// - Average claim amount (bar chart)
-/// - Auto-approve vs manual decision pie chart
+/// - Automated vs override decision pie chart
 /// - AI confidence distribution (histogram)
 /// - Filters: breed, age range, region, vet provider
 /// - Data fetched from Firestore with Cloud Functions aggregation
 class ClaimsAnalyticsTab extends StatefulWidget {
   final VoidCallback? onOpenInbox;
 
-  const ClaimsAnalyticsTab({
-    super.key,
-    this.onOpenInbox,
-  });
+  const ClaimsAnalyticsTab({super.key, this.onOpenInbox});
 
   @override
   State<ClaimsAnalyticsTab> createState() => _ClaimsAnalyticsTabState();
@@ -30,7 +27,7 @@ class ClaimsAnalyticsTab extends StatefulWidget {
 
 class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
-  
+
   // Filters
   String? _selectedBreed;
   String? _selectedAgeRange;
@@ -38,12 +35,12 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
   String? _selectedVetProvider;
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 90));
   DateTime _endDate = DateTime.now();
-  
+
   // Filter options
   List<String> _breeds = [];
   List<String> _regions = [];
   List<String> _vetProviders = [];
-  
+
   // Analytics data
   Map<String, dynamic>? _analyticsData;
   bool _isLoading = true;
@@ -58,7 +55,9 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
   /// Load filter options from Firestore
   Future<void> _loadFilterOptions() async {
     try {
-      final callable = _functions.httpsCallable('getClaimsAnalyticsFilterOptionsAdmin');
+      final callable = _functions.httpsCallable(
+        'getClaimsAnalyticsFilterOptionsAdmin',
+      );
       final resp = await callable.call({
         'startDate': _startDate.toIso8601String(),
         'endDate': _endDate.toIso8601String(),
@@ -176,14 +175,14 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
       children: [
         // Filters section
         _buildFilters(),
-        
+
         // Analytics content
         Expanded(
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _analyticsData == null
-                  ? _buildEmptyState()
-                  : _buildAnalyticsContent(),
+              ? _buildEmptyState()
+              : _buildAnalyticsContent(),
         ),
       ],
     );
@@ -195,14 +194,15 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
       icon: Icons.filter_list,
       actions: [
         TextButton.icon(
-          onPressed: widget.onOpenInbox ??
+          onPressed:
+              widget.onOpenInbox ??
               () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ClaimsReviewTab()),
                 );
               },
           icon: const Icon(Icons.open_in_new, size: 18),
-          label: const Text('Open inbox'),
+          label: const Text('Open automation'),
         ),
         TextButton.icon(
           onPressed: _clearFilters,
@@ -225,7 +225,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
             children: [
               // Date range
               _buildDateRangeChip(),
-              
+
               // Breed filter
               _buildDropdownFilter(
                 label: 'Breed',
@@ -233,7 +233,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                 items: _breeds,
                 onChanged: (value) => setState(() => _selectedBreed = value),
               ),
-              
+
               // Age range filter
               _buildDropdownFilter(
                 label: 'Age Range',
@@ -241,7 +241,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                 items: ['0-2 years', '3-5 years', '6-8 years', '9+ years'],
                 onChanged: (value) => setState(() => _selectedAgeRange = value),
               ),
-              
+
               // Region filter
               _buildDropdownFilter(
                 label: 'Region',
@@ -249,13 +249,14 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                 items: _regions,
                 onChanged: (value) => setState(() => _selectedRegion = value),
               ),
-              
+
               // Vet provider filter
               _buildDropdownFilter(
                 label: 'Vet Provider',
                 value: _selectedVetProvider,
                 items: _vetProviders,
-                onChanged: (value) => setState(() => _selectedVetProvider = value),
+                onChanged: (value) =>
+                    setState(() => _selectedVetProvider = value),
               ),
             ],
           ),
@@ -268,9 +269,11 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
-        final dateFormat = isMobile ? DateFormat('M/d/yy') : DateFormat('MMM d, yyyy');
+        final dateFormat = isMobile
+            ? DateFormat('M/d/yy')
+            : DateFormat('MMM d, yyyy');
         final theme = Theme.of(context);
-        
+
         return ActionChip(
           avatar: const Icon(Icons.calendar_today, size: 16),
           label: Text(
@@ -289,7 +292,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
               lastDate: DateTime.now(),
               initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
             );
-            
+
             if (picked != null) {
               setState(() {
                 _startDate = picked.start;
@@ -316,7 +319,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
         final theme = Theme.of(context);
-        
+
         return SizedBox(
           width: isMobile ? 200 : 240,
           child: DropdownButtonFormField<String?>(
@@ -330,7 +333,10 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
             decoration: InputDecoration(
               labelText: label,
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
               labelStyle: theme.textTheme.labelSmall?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: theme.colorScheme.onSurface.withOpacity(0.70),
@@ -338,15 +344,10 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
             ),
             icon: const Icon(Icons.expand_more, size: 18),
             items: [
-              DropdownMenuItem<String?>(
-                value: null,
-                child: Text('All $label'),
-              ),
+              DropdownMenuItem<String?>(value: null, child: Text('All $label')),
               ...items.map(
-                (item) => DropdownMenuItem<String?>(
-                  value: item,
-                  child: Text(item),
-                ),
+                (item) =>
+                    DropdownMenuItem<String?>(value: item, child: Text(item)),
               ),
             ],
             onChanged: (newValue) {
@@ -395,7 +396,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
 
   Widget _buildAnalyticsContent() {
     final data = _analyticsData!;
-    
+
     return SingleChildScrollView(
       padding: EdgeInsets.zero,
       child: Column(
@@ -403,19 +404,19 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
         children: [
           // Summary cards
           _buildSummaryCards(data),
-          
+
           const SizedBox(height: 24),
-          
+
           // Claims by month (line chart)
           _buildClaimsByMonthChart(data),
-          
+
           const SizedBox(height: 24),
-          
+
           // Row with two charts (stacked on mobile)
           LayoutBuilder(
             builder: (context, constraints) {
               final isMobile = constraints.maxWidth < 768;
-              
+
               if (isMobile) {
                 // Stack vertically on mobile
                 return Column(
@@ -438,9 +439,9 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
               }
             },
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Average amount by month (bar chart)
           _buildAverageAmountChart(data),
         ],
@@ -488,12 +489,16 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
         builder: (context, constraints) {
           final width = constraints.maxWidth;
           final perRow = width >= 1100 ? 4 : (width >= 760 ? 2 : 1);
-          final cardWidth = perRow == 1 ? width : (width - ((perRow - 1) * 12)) / perRow;
+          final cardWidth = perRow == 1
+              ? width
+              : (width - ((perRow - 1) * 12)) / perRow;
 
           return Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: cards.map((c) => SizedBox(width: cardWidth, child: c)).toList(),
+            children: cards
+                .map((c) => SizedBox(width: cardWidth, child: c))
+                .toList(),
           );
         },
       ),
@@ -502,7 +507,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
 
   Widget _buildClaimsByMonthChart(Map<String, dynamic> data) {
     final claimsByMonth = data['claimsByMonth'] as Map<String, int>;
-    
+
     if (claimsByMonth.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -520,10 +525,8 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
               show: true,
               drawVerticalLine: false,
               horizontalInterval: 1,
-              getDrawingHorizontalLine: (value) => FlLine(
-                color: Colors.grey[300]!,
-                strokeWidth: 1,
-              ),
+              getDrawingHorizontalLine: (value) =>
+                  FlLine(color: Colors.grey[300]!, strokeWidth: 1),
             ),
             titlesData: FlTitlesData(
               leftTitles: AxisTitles(
@@ -544,7 +547,8 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                   reservedSize: 30,
                   getTitlesWidget: (value, meta) {
                     final index = value.toInt();
-                    if (index < 0 || index >= entries.length) return const SizedBox();
+                    if (index < 0 || index >= entries.length)
+                      return const SizedBox();
                     return Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
@@ -555,8 +559,12 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                   },
                 ),
               ),
-              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
             ),
             borderData: FlBorderData(show: false),
             lineBarsData: [
@@ -585,7 +593,7 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
     final manualApproved = data['manualApproved'] as int;
     final denied = data['denied'] as int;
     final pending = data['pending'] as int;
-    
+
     final total = autoApproved + manualApproved + denied + pending;
     if (total == 0) return const SizedBox.shrink();
 
@@ -652,8 +660,10 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
           ),
           const SizedBox(height: 14),
           _buildLegend([
-            if (autoApproved > 0) ('Auto-Approved', ClovaraColors.kSuccessMint, autoApproved),
-            if (manualApproved > 0) ('Manual Approved', ClovaraColors.sunset, manualApproved),
+            if (autoApproved > 0)
+              ('Auto-Approved', ClovaraColors.kSuccessMint, autoApproved),
+            if (manualApproved > 0)
+              ('Override Approved', ClovaraColors.sunset, manualApproved),
             if (denied > 0) ('Denied', ClovaraColors.kError, denied),
             if (pending > 0) ('Pending', ClovaraColors.kWarmCoral, pending),
           ]),
@@ -676,10 +686,8 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
               show: true,
               drawVerticalLine: false,
               horizontalInterval: 5,
-              getDrawingHorizontalLine: (value) => FlLine(
-                color: Colors.grey[300]!,
-                strokeWidth: 1,
-              ),
+              getDrawingHorizontalLine: (value) =>
+                  FlLine(color: Colors.grey[300]!, strokeWidth: 1),
             ),
             titlesData: FlTitlesData(
               leftTitles: AxisTitles(
@@ -701,7 +709,8 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                   getTitlesWidget: (value, meta) {
                     final labels = confidenceBuckets.keys.toList();
                     final index = value.toInt();
-                    if (index < 0 || index >= labels.length) return const SizedBox();
+                    if (index < 0 || index >= labels.length)
+                      return const SizedBox();
                     return Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
@@ -712,11 +721,17 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                   },
                 ),
               ),
-              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
             ),
             borderData: FlBorderData(show: false),
-            barGroups: confidenceBuckets.entries.toList().asMap().entries.map((e) {
+            barGroups: confidenceBuckets.entries.toList().asMap().entries.map((
+              e,
+            ) {
               return BarChartGroupData(
                 x: e.key,
                 barRods: [
@@ -724,7 +739,9 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                     toY: e.value.value.toDouble(),
                     color: _getConfidenceColor(e.value.key),
                     width: 30,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(4),
+                    ),
                   ),
                 ],
               );
@@ -738,11 +755,11 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
   Widget _buildAverageAmountChart(Map<String, dynamic> data) {
     final amountsByMonth = data['amountsByMonth'] as Map<String, double>;
     final claimsByMonth = data['claimsByMonth'] as Map<String, int>;
-    
+
     if (amountsByMonth.isEmpty) return const SizedBox.shrink();
 
     final entries = amountsByMonth.entries.map((e) {
-      final avgAmount = claimsByMonth[e.key]! > 0 
+      final avgAmount = claimsByMonth[e.key]! > 0
           ? e.value / claimsByMonth[e.key]!
           : 0.0;
       return MapEntry(e.key, avgAmount);
@@ -759,10 +776,8 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
               show: true,
               drawVerticalLine: false,
               horizontalInterval: 100,
-              getDrawingHorizontalLine: (value) => FlLine(
-                color: Colors.grey[300]!,
-                strokeWidth: 1,
-              ),
+              getDrawingHorizontalLine: (value) =>
+                  FlLine(color: Colors.grey[300]!, strokeWidth: 1),
             ),
             titlesData: FlTitlesData(
               leftTitles: AxisTitles(
@@ -783,7 +798,8 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                   reservedSize: 30,
                   getTitlesWidget: (value, meta) {
                     final index = value.toInt();
-                    if (index < 0 || index >= entries.length) return const SizedBox();
+                    if (index < 0 || index >= entries.length)
+                      return const SizedBox();
                     return Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
@@ -794,8 +810,12 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                   },
                 ),
               ),
-              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
             ),
             borderData: FlBorderData(show: false),
             barGroups: entries.asMap().entries.map((e) {
@@ -806,7 +826,9 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
                     toY: e.value.value,
                     color: ClovaraColors.kSuccessMint,
                     width: 40,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(4),
+                    ),
                   ),
                 ],
               );
@@ -828,16 +850,10 @@ class _ClaimsAnalyticsTabState extends State<ClaimsAnalyticsTab> {
             Container(
               width: 12,
               height: 12,
-              decoration: BoxDecoration(
-                color: item.$2,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: item.$2, shape: BoxShape.circle),
             ),
             const SizedBox(width: 6),
-            Text(
-              '${item.$1}: ${item.$3}',
-              style: ClovaraTypography.bodySmall,
-            ),
+            Text('${item.$1}: ${item.$3}', style: ClovaraTypography.bodySmall),
           ],
         );
       }).toList(),

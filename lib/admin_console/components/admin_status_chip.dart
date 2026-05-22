@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../admin_theme.dart';
+
 class AdminStatusChip extends StatelessWidget {
   final String label;
   final Color? color;
@@ -17,10 +19,10 @@ class AdminStatusChip extends StatelessWidget {
     final effectiveColor = color ?? Theme.of(context).colorScheme.primary;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
-        color: effectiveColor.withOpacity(0.10),
-        border: Border.all(color: effectiveColor.withOpacity(0.35)),
+        color: effectiveColor.withOpacity(0.08),
+        border: Border.all(color: effectiveColor.withOpacity(0.24)),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -33,9 +35,12 @@ class AdminStatusChip extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: effectiveColor,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: effectiveColor == AdminColors.faint
+                  ? AdminColors.muted
+                  : effectiveColor,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.1,
+            ),
           ),
         ],
       ),

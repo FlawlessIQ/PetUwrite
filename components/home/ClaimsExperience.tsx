@@ -23,7 +23,7 @@ const claims = [
     title: "X-ray + lab work",
     date: "Today",
     amount: "$490",
-    status: "In review",
+    status: "Checking",
     paid: false
   }
 ];

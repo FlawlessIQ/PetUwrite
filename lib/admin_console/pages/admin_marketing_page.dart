@@ -4,12 +4,7 @@ import 'package:flutter/material.dart';
 import '../components/admin_section_card.dart';
 import '../../theme/clovara_theme.dart';
 
-enum _MarketingTab {
-  overview,
-  channels,
-  discountCodes,
-  spend,
-}
+enum _MarketingTab { overview, channels, discountCodes, spend }
 
 class AdminMarketingPage extends StatefulWidget {
   const AdminMarketingPage({super.key});
@@ -36,7 +31,9 @@ class _AdminMarketingPageState extends State<AdminMarketingPage> {
             Expanded(
               child: Text(
                 'Marketing',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
             OutlinedButton.icon(
@@ -56,10 +53,7 @@ class _AdminMarketingPageState extends State<AdminMarketingPage> {
           ],
         ),
         const SizedBox(height: 12),
-        _TabBar(
-          value: _tab,
-          onChanged: (v) => setState(() => _tab = v),
-        ),
+        _TabBar(value: _tab, onChanged: (v) => setState(() => _tab = v)),
         const SizedBox(height: 12),
         Expanded(child: _buildTab()),
       ],
@@ -91,10 +85,7 @@ class _TabBar extends StatelessWidget {
   final _MarketingTab value;
   final ValueChanged<_MarketingTab> onChanged;
 
-  const _TabBar({
-    required this.value,
-    required this.onChanged,
-  });
+  const _TabBar({required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +101,10 @@ class _TabBar extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: fg),
             const SizedBox(width: 8),
-            Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.w800)),
+            Text(
+              label,
+              style: TextStyle(color: fg, fontWeight: FontWeight.w800),
+            ),
           ],
         ),
         onSelected: (_) => onChanged(tab),
@@ -118,7 +112,9 @@ class _TabBar extends StatelessWidget {
         selectedColor: bg,
         showCheckmark: false,
         side: BorderSide(
-          color: selected ? Colors.transparent : ClovaraColors.forest.withOpacity(0.20),
+          color: selected
+              ? Colors.transparent
+              : ClovaraColors.forest.withOpacity(0.20),
         ),
         labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
@@ -131,7 +127,11 @@ class _TabBar extends StatelessWidget {
       children: [
         chip(_MarketingTab.overview, 'Overview', Icons.dashboard_outlined),
         chip(_MarketingTab.channels, 'Intake Channels', Icons.hub_outlined),
-        chip(_MarketingTab.discountCodes, 'Discount Codes', Icons.local_offer_outlined),
+        chip(
+          _MarketingTab.discountCodes,
+          'Discount Codes',
+          Icons.local_offer_outlined,
+        ),
         chip(_MarketingTab.spend, 'Ad Spend', Icons.payments_outlined),
       ],
     );
@@ -178,10 +178,65 @@ class _MarketingKpiGrid extends StatelessWidget {
 
   const _MarketingKpiGrid({required this.range});
 
+  num? _numValue(Map<String, dynamic> data, List<String> keys) {
+    for (final key in keys) {
+      final value = data[key];
+      if (value is num) return value;
+    }
+    return null;
+  }
+
+  num? _nestedNumValue(
+    Map<String, dynamic> data,
+    String parentKey,
+    List<String> keys,
+  ) {
+    final parent = data[parentKey];
+    if (parent is! Map) return null;
+    return _numValue(parent.cast<String, dynamic>(), keys);
+  }
+
+  double _purchasePremium(Map<String, dynamic> data) {
+    return (_numValue(data, [
+              'premium',
+              'monthlyPremium',
+              'premiumAmount',
+              'monthlyPrice',
+              'planAmount',
+            ]) ??
+            _nestedNumValue(data, 'plan', [
+              'monthlyPremium',
+              'monthlyPrice',
+              'premium',
+            ]) ??
+            _nestedNumValue(data, 'quote', [
+              'monthlyPremium',
+              'monthlyPrice',
+              'premium',
+            ]) ??
+            0)
+        .toDouble();
+  }
+
+  double _discountAmount(Map<String, dynamic> data) {
+    return (_numValue(data, ['discountAmount', 'discount']) ??
+            _nestedNumValue(data, 'payment', ['discountAmount', 'discount']) ??
+            0)
+        .toDouble();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final start = Timestamp.fromDate(DateTime(range.start.year, range.start.month, range.start.day));
-    final end = Timestamp.fromDate(DateTime(range.end.year, range.end.month, range.end.day).add(const Duration(days: 1)));
+    final start = Timestamp.fromDate(
+      DateTime(range.start.year, range.start.month, range.start.day),
+    );
+    final end = Timestamp.fromDate(
+      DateTime(
+        range.end.year,
+        range.end.month,
+        range.end.day,
+      ).add(const Duration(days: 1)),
+    );
 
     final query = FirebaseFirestore.instance
         .collection('marketing_events')
@@ -230,13 +285,13 @@ class _MarketingKpiGrid extends StatelessWidget {
               break;
             case 'purchase_completed':
               purchases++;
-              premium += (data['premium'] is num) ? (data['premium'] as num).toDouble() : 0.0;
-              discounts += (data['discountAmount'] is num)
-                  ? (data['discountAmount'] as num).toDouble()
-                  : 0.0;
+              premium += _purchasePremium(data);
+              discounts += _discountAmount(data);
               break;
             case 'spend_recorded':
-              spend += (data['spend'] is num) ? (data['spend'] as num).toDouble() : 0.0;
+              spend += (data['spend'] is num)
+                  ? (data['spend'] as num).toDouble()
+                  : 0.0;
               break;
           }
         }
@@ -254,10 +309,19 @@ class _MarketingKpiGrid extends StatelessWidget {
             _kpi('UW Submitted', underwritingSubmitted.toString()),
             _kpi('Checkout Started', checkoutStarted.toString()),
             _kpi('Purchases', purchases.toString()),
-            _kpi('Premium', premium == 0 ? '—' : '\$${premium.toStringAsFixed(2)}'),
-            _kpi('Discounts', discounts == 0 ? '—' : '\$${discounts.toStringAsFixed(2)}'),
+            _kpi(
+              'Premium',
+              premium == 0 ? '—' : '\$${premium.toStringAsFixed(2)}',
+            ),
+            _kpi(
+              'Discounts',
+              discounts == 0 ? '—' : '\$${discounts.toStringAsFixed(2)}',
+            ),
             _kpi('Spend', spend == 0 ? '—' : '\$${spend.toStringAsFixed(2)}'),
-            _kpi('Visit→Purchase', '${(visitToPurchase * 100).toStringAsFixed(1)}%'),
+            _kpi(
+              'Visit→Purchase',
+              '${(visitToPurchase * 100).toStringAsFixed(1)}%',
+            ),
             _kpi('CAC', cac == 0 ? '—' : '\$${cac.toStringAsFixed(2)}'),
             _kpi('ROAS', roas == 0 ? '—' : roas.toStringAsFixed(2)),
           ],
@@ -328,26 +392,54 @@ class _IntakeChannelsTab extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                ),
                 const SizedBox(height: 8),
-                TextField(controller: utmSourceCtrl, decoration: const InputDecoration(labelText: 'UTM Source (optional)')),
+                TextField(
+                  controller: utmSourceCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'UTM Source (optional)',
+                  ),
+                ),
                 const SizedBox(height: 8),
-                TextField(controller: utmMediumCtrl, decoration: const InputDecoration(labelText: 'UTM Medium (optional)')),
+                TextField(
+                  controller: utmMediumCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'UTM Medium (optional)',
+                  ),
+                ),
                 const SizedBox(height: 8),
-                TextField(controller: utmCampaignCtrl, decoration: const InputDecoration(labelText: 'UTM Campaign (optional)')),
+                TextField(
+                  controller: utmCampaignCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'UTM Campaign (optional)',
+                  ),
+                ),
                 const SizedBox(height: 8),
-                TextField(controller: referrerHostCtrl, decoration: const InputDecoration(labelText: 'Referrer Host (optional)')),
+                TextField(
+                  controller: referrerHostCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Referrer Host (optional)',
+                  ),
+                ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () async {
                 final name = nameCtrl.text.trim();
                 if (name.isEmpty) return;
 
-                final doc = FirebaseFirestore.instance.collection('intake_channels').doc();
+                final doc = FirebaseFirestore.instance
+                    .collection('intake_channels')
+                    .doc();
                 await doc.set({
                   'name': name,
                   'status': 'active',
@@ -386,7 +478,10 @@ class _ChannelsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('intake_channels').orderBy('createdAt', descending: true).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('intake_channels')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Padding(
@@ -401,7 +496,9 @@ class _ChannelsTable extends StatelessWidget {
 
         final docs = snapshot.data?.docs ?? const [];
         if (docs.isEmpty) {
-          return const Text('No channels yet. Create your first intake channel.');
+          return const Text(
+            'No channels yet. Create your first intake channel.',
+          );
         }
 
         return DataTable(
@@ -478,7 +575,7 @@ class _SpendTab extends StatelessWidget {
           title: 'Ad Spend',
           icon: Icons.payments_outlined,
           child: const Text(
-            'Next: manual spend entry + CSV import. Spend events roll into KPI overview once recorded.',
+            'Next: spend entry + CSV import. Spend events roll into KPI overview once recorded.',
           ),
         ),
       ],

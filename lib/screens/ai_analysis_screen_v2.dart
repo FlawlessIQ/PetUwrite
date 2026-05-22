@@ -194,7 +194,7 @@ class _AIAnalysisScreenState extends State<AIAnalysisScreen>
               Text(declineReason, style: const TextStyle(fontSize: 14)),
               const SizedBox(height: 16),
               Text(
-                'If you think something is off or you\'d like to discuss alternatives, our underwriting team can help.',
+                'If any detail looks wrong, contact support and we can help you correct the information before starting a new quote.',
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
             ],

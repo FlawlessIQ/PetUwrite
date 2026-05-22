@@ -5,10 +5,7 @@ enum UnderwritingExclusionType {
   breedLinked,
 }
 
-enum UnderwritingExclusionEffectiveAt {
-  bind,
-  postBind,
-}
+enum UnderwritingExclusionEffectiveAt { bind, postBind }
 
 /// Structured underwriting exclusion.
 ///
@@ -26,7 +23,7 @@ class UnderwritingExclusion {
   /// When the exclusion becomes effective.
   final UnderwritingExclusionEffectiveAt effectiveAt;
 
-  /// Whether a human underwriter can review/remove this exclusion.
+  /// Whether an audited exception control can remove this exclusion.
   final bool reviewable;
 
   /// Plain-language explanation suitable for customer-facing surfaces.
@@ -41,25 +38,25 @@ class UnderwritingExclusion {
     required this.explanation,
   });
 
-    /// Converts this underwriting exclusion into the existing PolicyExclusion
-    /// JSON shape used by checkout/payment flows.
-    ///
-    /// This does not lose auditability because the full underwriting exclusion
-    /// is still stored in quote output via [toJson].
-    Map<String, dynamic> toPolicyExclusionJson({DateTime? effectiveDate}) {
-      final now = effectiveDate ?? DateTime.now();
-      final name = scope.trim().isEmpty ? 'Coverage exclusion' : scope.trim();
-      final notes = '${explanation.trim()} (trigger=$triggerReason)';
+  /// Converts this underwriting exclusion into the existing PolicyExclusion
+  /// JSON shape used by checkout/payment flows.
+  ///
+  /// This does not lose auditability because the full underwriting exclusion
+  /// is still stored in quote output via [toJson].
+  Map<String, dynamic> toPolicyExclusionJson({DateTime? effectiveDate}) {
+    final now = effectiveDate ?? DateTime.now();
+    final name = scope.trim().isEmpty ? 'Coverage exclusion' : scope.trim();
+    final notes = '${explanation.trim()} (trigger=$triggerReason)';
 
-      return {
-        'conditionName': _titleCase(name),
-        'scope': type == UnderwritingExclusionType.preExisting
-            ? 'condition'
-            : 'body_system',
-        'effectiveDate': now.toIso8601String(),
-        'notes': notes,
-      };
-    }
+    return {
+      'conditionName': _titleCase(name),
+      'scope': type == UnderwritingExclusionType.preExisting
+          ? 'condition'
+          : 'body_system',
+      'effectiveDate': now.toIso8601String(),
+      'notes': notes,
+    };
+  }
 
   String _titleCase(String value) {
     final trimmed = value.trim();

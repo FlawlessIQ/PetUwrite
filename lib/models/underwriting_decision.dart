@@ -1,11 +1,6 @@
 import 'policy_exclusion.dart';
 
-enum UnderwritingOutcome {
-  approve,
-  approveWithExclusions,
-  refer,
-  decline,
-}
+enum UnderwritingOutcome { approve, approveWithExclusions, refer, decline }
 
 String underwritingOutcomeToString(UnderwritingOutcome outcome) {
   switch (outcome) {
@@ -57,7 +52,8 @@ class UnderwritingPricingAdjustments {
   factory UnderwritingPricingAdjustments.fromJson(Map<String, dynamic> json) {
     return UnderwritingPricingAdjustments(
       premiumMultiplier: (json['premiumMultiplier'] as num?)?.toDouble() ?? 1.0,
-      deductibleAdjustment: (json['deductibleAdjustment'] as num?)?.toDouble() ?? 0.0,
+      deductibleAdjustment:
+          (json['deductibleAdjustment'] as num?)?.toDouble() ?? 0.0,
       waitingPeriodDays: (json['waitingPeriodDays'] as num?)?.toInt() ?? 0,
     );
   }
@@ -77,7 +73,7 @@ class UnderwritingDecision {
   final List<PolicyExclusion> exclusions;
   final UnderwritingPricingAdjustments pricingAdjustments;
   final DateTime decidedAt;
-  final String decidedBy; // "system" | "manual"
+  final String decidedBy; // "system" | "admin_override"
   final int version;
 
   const UnderwritingDecision({
@@ -104,17 +100,26 @@ class UnderwritingDecision {
 
   factory UnderwritingDecision.fromJson(Map<String, dynamic> json) {
     return UnderwritingDecision(
-      outcome: underwritingOutcomeFromString((json['outcome'] ?? 'refer').toString()),
-      reasonCodes: (json['reasonCodes'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      exclusions: (json['exclusions'] as List?)
+      outcome: underwritingOutcomeFromString(
+        (json['outcome'] ?? 'refer').toString(),
+      ),
+      reasonCodes:
+          (json['reasonCodes'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
+      exclusions:
+          (json['exclusions'] as List?)
               ?.whereType<Map<String, dynamic>>()
               .map(PolicyExclusion.fromJson)
               .toList() ??
           const [],
       pricingAdjustments: json['pricingAdjustments'] is Map<String, dynamic>
-          ? UnderwritingPricingAdjustments.fromJson(json['pricingAdjustments'] as Map<String, dynamic>)
+          ? UnderwritingPricingAdjustments.fromJson(
+              json['pricingAdjustments'] as Map<String, dynamic>,
+            )
           : UnderwritingPricingAdjustments.defaultAdjustments(),
-      decidedAt: DateTime.tryParse((json['decidedAt'] ?? '').toString()) ?? DateTime.now(),
+      decidedAt:
+          DateTime.tryParse((json['decidedAt'] ?? '').toString()) ??
+          DateTime.now(),
       decidedBy: (json['decidedBy'] ?? 'system').toString(),
       version: (json['version'] as num?)?.toInt() ?? 1,
     );

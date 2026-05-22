@@ -117,9 +117,7 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
         _vetUploadStatus = 'Uploading and parsing vet record…';
       });
 
-      final parser = VetHistoryParser(
-        aiService: GPTService(),
-      );
+      final parser = VetHistoryParser(aiService: GPTService());
       final parsed = await parser.parseUploadedPdfBytesForCase(
         pdfBytes: Uint8List.fromList(bytes),
         caseId: widget.caseId,
@@ -140,7 +138,7 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
       if (!mounted) return;
       setState(() {
         _vetUploadStatus = parseLooksEmpty
-            ? 'Vet record uploaded. We’ll review it shortly.'
+            ? 'Vet record uploaded. Automated extraction did not find enough detail, so the rule engine will use your guided answers next.'
             : 'Vet record uploaded and parsed.';
         _isUploadingVetRecord = false;
       });
@@ -148,7 +146,7 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
       if (!mounted) return;
       setState(() {
         _vetUploadStatus =
-            'Vet record uploaded, but auto-fill failed. We’ll review it shortly. (${e.toString()})';
+            'Vet record uploaded, but auto-fill failed. Continue with the guided questions so the automated decision can complete. (${e.toString()})';
         _isUploadingVetRecord = false;
       });
     } catch (e) {
@@ -178,11 +176,12 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
           underwritingCaseId: widget.caseId,
           petName: widget.pet.name,
           riskScore: widget.riskScore,
-          reason: 'Initial Intake', 
+          reason: 'Initial Intake',
         );
       },
       title: 'Save & resume later',
-      body: 'We’ll save your progress. Use this code to resume from the home page on any device.',
+      body:
+          'We’ll save your progress. Use this code to resume from the home page on any device.',
       copyLabel: 'Copy code',
       doneLabel: 'Done',
     );
@@ -220,18 +219,18 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border(
-              bottom: BorderSide(color: Colors.grey.shade100),
-            ),
+            border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
           ),
-          padding: const EdgeInsets.only(top: 8, left: 16, right: 16, bottom: 8),
+          padding: const EdgeInsets.only(
+            top: 8,
+            left: 16,
+            right: 16,
+            bottom: 8,
+          ),
           child: SafeArea(
             child: Row(
               children: [
-                const ClovaraLogo(
-                  size: ClovaraLogoSize.large,
-                  showText: true,
-                ),
+                const ClovaraLogo(size: ClovaraLogoSize.large, showText: true),
                 const Spacer(),
                 TextButton.icon(
                   onPressed: _showSaveResumeCode,
@@ -265,7 +264,7 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Medical History Required',
+                        'Medical details needed',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w900,
@@ -275,7 +274,7 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'To finalize coverage for ${widget.pet.name}, we need to review their past medical records. This ensures we provide accurate coverage and pricing.',
+                        'To finalize coverage for ${widget.pet.name}, the decisioning engine needs past medical records or guided medical answers. This keeps the decision consistent, explainable, and fully automated.',
                         style: TextStyle(
                           fontSize: 16,
                           height: 1.5,
@@ -284,7 +283,7 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
-                      
+
                       // Case Info Card
                       Container(
                         padding: const EdgeInsets.all(20),
@@ -298,10 +297,14 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.inventory_2_outlined, size: 20, color: ClovaraColors.forest),
+                                Icon(
+                                  Icons.inventory_2_outlined,
+                                  size: 20,
+                                  color: ClovaraColors.forest,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Underwriting Case #${widget.caseId.substring(0, 8)}',
+                                  'Decision case #${widget.caseId.substring(0, 8)}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     color: ClovaraColors.forest,
@@ -310,9 +313,10 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                                 ),
                               ],
                             ),
-                            if (_history != null && _history!.conditions.isNotEmpty) ...[
+                            if (_history != null &&
+                                _history!.conditions.isNotEmpty) ...[
                               const SizedBox(height: 12),
-                               Text(
+                              Text(
                                 '${_history!.conditions.length} condition(s) already on file.',
                                 style: TextStyle(
                                   fontSize: 13,
@@ -326,18 +330,18 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                       ),
 
                       const SizedBox(height: 32),
-                      
+
                       Text(
-                        'Upload Veterinary Records',
+                        'Upload vet records',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: Colors.black87,
                         ),
                       ),
-                       const SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
-                        'Please upload a PDF of the full medical history from your vet.',
+                        'Upload a PDF from your vet, or continue with guided questions if you do not have the file available.',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade600,
@@ -346,7 +350,9 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                       const SizedBox(height: 16),
 
                       InkWell(
-                        onTap: _isUploadingVetRecord ? null : _uploadVetRecordPdf,
+                        onTap: _isUploadingVetRecord
+                            ? null
+                            : _uploadVetRecordPdf,
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           width: double.infinity,
@@ -355,9 +361,12 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _isUploadingVetRecord ? Colors.grey.shade300 : ClovaraColors.clover,
+                              color: _isUploadingVetRecord
+                                  ? Colors.grey.shade300
+                                  : ClovaraColors.clover,
                               width: 2,
-                              style: BorderStyle.none, // dashed border effect requires custom painter usually, keeping simple for now
+                              style: BorderStyle
+                                  .none, // dashed border effect requires custom painter usually, keeping simple for now
                             ),
                             boxShadow: [
                               BoxShadow(
@@ -365,7 +374,7 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
-                            ]
+                            ],
                           ),
                           // Custom Dashed Border Look or nice upload area
                           child: Column(
@@ -373,19 +382,32 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                             children: [
                               if (_isUploadingVetRecord)
                                 const SizedBox(
-                                  height: 32, 
-                                  width: 32, 
-                                  child: CircularProgressIndicator(strokeWidth: 3, valueColor: AlwaysStoppedAnimation(ClovaraColors.clover))
+                                  height: 32,
+                                  width: 32,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    valueColor: AlwaysStoppedAnimation(
+                                      ClovaraColors.clover,
+                                    ),
+                                  ),
                                 )
                               else
-                                Icon(Icons.cloud_upload_outlined, size: 48, color: ClovaraColors.clover),
+                                Icon(
+                                  Icons.cloud_upload_outlined,
+                                  size: 48,
+                                  color: ClovaraColors.clover,
+                                ),
                               const SizedBox(height: 16),
                               Text(
-                                _isUploadingVetRecord ? 'Processing...' : 'Tap to select PDF',
+                                _isUploadingVetRecord
+                                    ? 'Processing...'
+                                    : 'Tap to select PDF',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: _isUploadingVetRecord ? Colors.grey : ClovaraColors.forest,
+                                  color: _isUploadingVetRecord
+                                      ? Colors.grey
+                                      : ClovaraColors.forest,
                                 ),
                               ),
                             ],
@@ -399,10 +421,14 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: _vetUploadStatus!.contains('failed') ? Colors.red.shade50 : Colors.green.shade50,
+                            color: _vetUploadStatus!.contains('failed')
+                                ? Colors.red.shade50
+                                : Colors.green.shade50,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: _vetUploadStatus!.contains('failed') ? Colors.red.shade200 : Colors.green.shade200,
+                              color: _vetUploadStatus!.contains('failed')
+                                  ? Colors.red.shade200
+                                  : Colors.green.shade200,
                             ),
                           ),
                           child: Text(
@@ -410,15 +436,17 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: _vetUploadStatus!.contains('failed') ? Colors.red.shade800 : Colors.green.shade800,
+                              color: _vetUploadStatus!.contains('failed')
+                                  ? Colors.red.shade800
+                                  : Colors.green.shade800,
                             ),
                           ),
                         ),
                       ],
-                      
+
                       if (_error != null) ...[
                         const SizedBox(height: 16),
-                         Container(
+                        Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: Colors.red.shade50,
@@ -426,13 +454,16 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                           ),
                           child: Text(
                             _error!,
-                            style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.red.shade900,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
 
                       const SizedBox(height: 48),
-                      
+
                       SizedBox(
                         width: double.infinity,
                         height: 56,
@@ -447,7 +478,7 @@ class _UnderwritingIntakeScreenState extends State<UnderwritingIntakeScreen> {
                             ),
                           ),
                           child: const Text(
-                            'Continue to Medical History',
+                            'Continue automated check',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,

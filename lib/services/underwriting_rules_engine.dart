@@ -373,7 +373,7 @@ class UnderwritingRulesEngine {
         reason:
             'Risk score of ${riskScore.overallScore.toStringAsFixed(1)} '
             'exceeds maximum allowed score of $maxRiskScore. '
-            'This pet requires manual underwriting review.',
+            'The automated eligibility rules cannot offer coverage for this pet.',
         ruleViolated: 'maxRiskScore',
         violatedValue: riskScore.overallScore,
       );
@@ -398,7 +398,7 @@ class UnderwritingRulesEngine {
           reason:
               'The breed "${pet.breed}" is not eligible for coverage '
               'under our current underwriting guidelines. '
-              'Please contact our underwriting team for alternative options.',
+              'If the breed is incorrect, start a new quote with the corrected information.',
           ruleViolated: 'excludedBreeds',
           violatedValue: pet.breed,
         );

@@ -302,6 +302,10 @@ exports.handlePaymentIntentSucceeded = onRequest(async (req, res) => {
       const failedPayment = event.data.object;
       await handlePaymentFailure(failedPayment);
       break;
+    case 'checkout.session.completed':
+      const checkoutSession = event.data.object;
+      await handleCheckoutSessionCompleted(checkoutSession);
+      break;
     default:
         logger.info("Unhandled Stripe event", {type: event.type});
   }
@@ -354,4 +358,151 @@ async function handlePaymentFailure(paymentIntent) {
   } catch (error) {
     logger.error("Error handling payment failure", {paymentIntentId: id, error: error?.message ?? String(error)});
   }
+}
+
+async function handleCheckoutSessionCompleted(session) {
+  const policyId = session.metadata?.policyId;
+  const caseId = session.metadata?.caseId || session.client_reference_id;
+
+  if (!policyId || !caseId) {
+    logger.warn("Checkout session missing policy binding metadata", {
+      checkoutSessionId: session.id,
+      policyId,
+      caseId,
+    });
+    return;
+  }
+
+  if (session.payment_status && session.payment_status !== "paid") {
+    await admin.firestore().collection("policy_bindings").doc(policyId).set({
+      status: "checkout_completed_payment_pending",
+      checkoutSessionId: session.id,
+      checkoutPaymentStatus: session.payment_status,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, {merge: true});
+    logger.info("Checkout completed but payment is not paid yet", {
+      checkoutSessionId: session.id,
+      policyId,
+      paymentStatus: session.payment_status,
+    });
+    return;
+  }
+
+  const bindingRef = admin.firestore().collection("policy_bindings").doc(policyId);
+  const caseRef = admin.firestore().collection("underwriting_cases").doc(caseId);
+  const [bindingSnap, caseSnap] = await Promise.all([bindingRef.get(), caseRef.get()]);
+
+  if (!bindingSnap.exists || !caseSnap.exists) {
+    logger.error("Policy binding activation missing records", {
+      checkoutSessionId: session.id,
+      policyId,
+      caseId,
+      bindingExists: bindingSnap.exists,
+      caseExists: caseSnap.exists,
+    });
+    return;
+  }
+
+  const binding = bindingSnap.data() || {};
+  const underwriting = binding.underwritingSnapshot || {};
+  const approved =
+    (underwriting.status === "approved" ||
+      underwriting.status === "approved_with_exclusions") &&
+    underwriting.pricingEnabled === true &&
+    underwriting.integrityPassed === true;
+
+  if (!approved) {
+    await bindingRef.set({
+      status: "activation_blocked",
+      activationBlockedReason: "UNDERWRITING_NOT_APPROVED",
+      updatedAt: FieldValue.serverTimestamp(),
+    }, {merge: true});
+    logger.error("Checkout paid but underwriting gates are not approved", {
+      checkoutSessionId: session.id,
+      policyId,
+      caseId,
+      underwritingStatus: underwriting.status,
+    });
+    return;
+  }
+
+  const caseData = caseSnap.data() || {};
+  const quote = caseData.quote || {};
+  const contact = caseData.contact || {};
+  const now = new Date();
+  const expirationDate = new Date(
+    now.getFullYear() + 1,
+    now.getMonth(),
+    now.getDate(),
+  );
+  const policyNumber = `CLV-${now.getFullYear()}-${policyId.slice(0, 8).toUpperCase()}`;
+
+  const policy = {
+    policyId,
+    policyNumber,
+    status: "active",
+    source: "no_touch_checkout",
+    noHumanTouch: true,
+    underwritingCaseId: caseId,
+    ownerId: contact.emailHash || null,
+    owner: {
+      firstName: contact.firstName || "",
+      lastName: contact.lastName || "",
+      email: contact.email || "",
+      zipCode: contact.zipCode || quote.zipCode || "",
+    },
+    pet: {
+      name: quote.petName || "",
+      species: quote.petType || "",
+      breed: quote.breed || "",
+      ageYears: quote.ageYears || "",
+      ageMonths: quote.ageMonths || "",
+      weightLbs: quote.weightLbs || "",
+      sex: quote.sex || "",
+      altered: quote.altered || "",
+    },
+    plan: {
+      ...(binding.selectedPlan || {}),
+      ...(binding.selectedOptions || {}),
+      monthlyPremium: binding.monthlyPremium ?? (
+        session.amount_total ? Number(session.amount_total) / 100 : null
+      ),
+    },
+    payment: {
+      provider: "stripe",
+      checkoutSessionId: session.id,
+      subscriptionId: typeof session.subscription === "string" ? session.subscription : null,
+      customerId: typeof session.customer === "string" ? session.customer : null,
+      paymentStatus: session.payment_status || "paid",
+    },
+    exclusions: Array.isArray(underwriting.exclusions) ? underwriting.exclusions : [],
+    underwritingSnapshot: underwriting,
+    effectiveDate: now.toISOString(),
+    expirationDate: expirationDate.toISOString(),
+    createdAt: now.toISOString(),
+    activatedAt: FieldValue.serverTimestamp(),
+    lastUpdated: FieldValue.serverTimestamp(),
+  };
+
+  await admin.firestore().collection("policies").doc(policyId).set(policy, {merge: true});
+  await bindingRef.set({
+    status: "active",
+    activatedAt: FieldValue.serverTimestamp(),
+    checkoutSessionId: session.id,
+    subscriptionId: typeof session.subscription === "string" ? session.subscription : null,
+    updatedAt: FieldValue.serverTimestamp(),
+  }, {merge: true});
+  await caseRef.set({
+    status: "policy_active",
+    policyId,
+    policyNumber,
+    activatedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  }, {merge: true});
+
+  logger.info("No-touch policy activated from Checkout", {
+    checkoutSessionId: session.id,
+    policyId,
+    caseId,
+  });
 }

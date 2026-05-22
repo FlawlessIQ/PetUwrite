@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/claim.dart';
+import '../ui/tokens.dart';
 
 /// Interactive claim timeline visualization
 ///
-/// Shows the claim journey: Filed → Documents → Review → Decision
+/// Shows the claim journey: Filed → Documents → Automated checks → Decision
 class ClaimTimelineWidget extends StatelessWidget {
   final Claim claim;
   final bool showTimestamps;
@@ -19,9 +21,12 @@ class ClaimTimelineWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final steps = _buildTimelineSteps();
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.br20,
+        border: Border.all(color: AppColors.border),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -29,11 +34,16 @@ class ClaimTimelineWidget extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.timeline, color: Theme.of(context).primaryColor),
+                const Icon(Icons.timeline, color: AppColors.green),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Claim Journey',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.playfairDisplay(
+                    color: AppColors.text,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                  ),
                 ),
               ],
             ),
@@ -66,11 +76,11 @@ class ClaimTimelineWidget extends StatelessWidget {
       ),
     );
 
-    // Step 2: Documents Review
+    // Step 2: Document check
     final hasDocuments = claim.attachments.isNotEmpty;
     steps.add(
       TimelineStep(
-        title: 'Documents Review',
+        title: 'Document Check',
         description: hasDocuments
             ? '${claim.attachments.length} document(s) uploaded'
             : 'Awaiting documents',
@@ -81,15 +91,15 @@ class ClaimTimelineWidget extends StatelessWidget {
       ),
     );
 
-    // Step 3: Initial Review
+    // Step 3: Automated coverage and evidence check
     final hasInitialReview =
         claim.aiDecision != null && (claim.aiConfidenceScore ?? 0) > 0;
     steps.add(
       TimelineStep(
-        title: 'Review in Progress',
+        title: 'Automated Check',
         description: hasInitialReview
             ? 'Initial checks complete'
-            : 'Reviewing your claim...',
+            : 'Checking your claim...',
         icon: Icons.fact_check_outlined,
         status: _getAIAnalysisStatus(),
         timestamp: hasInitialReview ? claim.updatedAt : null,
@@ -254,7 +264,7 @@ class ClaimTimelineWidget extends StatelessWidget {
     return Icon(
       step.icon,
       color: step.status == TimelineStepStatus.pending
-          ? Colors.grey[400]
+          ? AppColors.textSubtle
           : Colors.white,
       size: 24,
     );
@@ -267,7 +277,7 @@ class ClaimTimelineWidget extends StatelessWidget {
       case TimelineStepStatus.inProgress:
         return Colors.white;
       case TimelineStepStatus.pending:
-        return Colors.grey[200]!;
+        return AppColors.surface2;
     }
   }
 
@@ -278,7 +288,7 @@ class ClaimTimelineWidget extends StatelessWidget {
       case TimelineStepStatus.inProgress:
         return baseColor;
       case TimelineStepStatus.pending:
-        return Colors.grey[400]!;
+        return AppColors.borderStrong;
     }
   }
 
@@ -291,12 +301,12 @@ class ClaimTimelineWidget extends StatelessWidget {
       width: 3,
       height: 40,
       decoration: BoxDecoration(
-        color: isActive ? Colors.grey[400] : Colors.grey[300],
+        color: isActive ? AppColors.borderStrong : AppColors.border,
         gradient: status == TimelineStepStatus.inProgress
             ? LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.grey[400]!, Colors.grey[300]!],
+                colors: [AppColors.borderStrong, AppColors.border],
               )
             : null,
       ),
@@ -312,12 +322,12 @@ class ClaimTimelineWidget extends StatelessWidget {
             Expanded(
               child: Text(
                 step.title,
-                style: TextStyle(
+                style: GoogleFonts.dmSans(
                   fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w800,
                   color: step.status == TimelineStepStatus.pending
-                      ? Colors.grey[600]
-                      : Colors.black87,
+                      ? AppColors.textSubtle
+                      : AppColors.text,
                 ),
               ),
             ),
@@ -330,7 +340,11 @@ class ClaimTimelineWidget extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           step.description,
-          style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+          style: GoogleFonts.dmSans(
+            fontSize: 14,
+            color: AppColors.textSubtle,
+            height: 1.35,
+          ),
         ),
         if (step.confidence != null &&
             step.status == TimelineStepStatus.completed) ...[
@@ -350,15 +364,16 @@ class ClaimTimelineWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: AppColors.surface2,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
       ),
       child: Text(
         format.format(timestamp),
-        style: TextStyle(
+        style: GoogleFonts.dmSans(
           fontSize: 11,
-          color: Colors.grey[600],
-          fontWeight: FontWeight.w500,
+          color: AppColors.textSubtle,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -377,11 +392,11 @@ class ClaimTimelineWidget extends StatelessWidget {
         Icon(Icons.fact_check, size: 16, color: color),
         const SizedBox(width: 4),
         Text(
-          'Review confidence: $percentage%',
-          style: TextStyle(
+          'Automation confidence: $percentage%',
+          style: GoogleFonts.dmSans(
             fontSize: 12,
             color: color,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
@@ -393,8 +408,8 @@ class ClaimTimelineWidget extends StatelessWidget {
       borderRadius: BorderRadius.circular(4),
       child: LinearProgressIndicator(
         minHeight: 6,
-        backgroundColor: Colors.grey[200],
-        valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+        backgroundColor: AppColors.surface2,
+        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.green),
       ),
     );
   }

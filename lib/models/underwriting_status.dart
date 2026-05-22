@@ -3,17 +3,11 @@
 // Fail closed:
 // - INCOMPLETE: missing required medical facts
 // - NEED_MORE_INFO: self-serve path (missing/uncertain evidence)
-// - DECLINED: deterministic decline (no human review)
+// - DECLINED: deterministic decline (fully automated)
 // - DENIED: deterministic disqualification (hard deny)
 // - APPROVED: safe to price
 
-enum UnderwritingStatus {
-  approved,
-  incomplete,
-  needMoreInfo,
-  declined,
-  denied,
-}
+enum UnderwritingStatus { approved, incomplete, needMoreInfo, declined, denied }
 
 String underwritingStatusToString(UnderwritingStatus status) {
   return switch (status) {

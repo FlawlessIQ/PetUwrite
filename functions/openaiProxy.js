@@ -3,15 +3,18 @@
  * Securely handles OpenAI API calls server-side to protect API keys
  */
 
-const {onCall, HttpsError} = require("firebase-functions/v2/https");
-const {onRequest} = require("firebase-functions/v2/https");
-const {onDocumentCreated, onDocumentUpdated} = require("firebase-functions/v2/firestore");
-const {onSchedule} = require("firebase-functions/v2/scheduler");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onRequest } = require("firebase-functions/v2/https");
+const {
+  onDocumentCreated,
+  onDocumentUpdated
+} = require("firebase-functions/v2/firestore");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const axios = require("axios");
 const crypto = require("crypto");
-const {defineSecret} = require("firebase-functions/params");
+const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
-const {FieldValue, Timestamp} = require("firebase-admin/firestore");
+const { FieldValue, Timestamp } = require("firebase-admin/firestore");
 const pdfParse = require("pdf-parse");
 const vision = require("@google-cloud/vision");
 
@@ -44,7 +47,8 @@ const openaiApiKey = isEmulator() ? null : defineSecret("OPENAI_API_KEY");
 // Define the Gemini API key as a secret (production only)
 const geminiApiKey = isEmulator() ? null : defineSecret("GEMINI_API_KEY");
 
-const OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions";
+const OPENAI_CHAT_COMPLETIONS_URL =
+  "https://api.openai.com/v1/chat/completions";
 // If the requested model isn't available for the current API key/account,
 // fall back to the strongest generally-available model first.
 const FALLBACK_MODEL = "gpt-4o";
@@ -61,6 +65,24 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
+
+async function isAdminCaller(request) {
+  if (!request.auth) return false;
+  if (request.auth.token?.admin === true) return true;
+
+  try {
+    const uid = request.auth.uid;
+    const doc = await db.collection("users").doc(uid).get();
+    const role = doc.exists ? doc.data()?.userRole : null;
+    return role === 2 || role === 3 || role === "2" || role === "3";
+  } catch (e) {
+    console.warn("isAdminCaller check failed", {
+      uid: request.auth?.uid,
+      error: e?.message
+    });
+    return false;
+  }
+}
 
 let visionClient;
 function getVisionClient() {
@@ -95,10 +117,13 @@ function computeAutomationInputHash(claim) {
     claimAmount: Number(claim?.claimAmount || 0),
     incidentDate: toIsoDateMaybe(claim?.incidentDate),
     description: String(claim?.description || ""),
-    attachments: normalizeStringArray(claim?.attachments),
+    attachments: normalizeStringArray(claim?.attachments)
   };
 
-  return crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(payload))
+    .digest("hex");
 }
 
 function requiredDocumentsForClaimType(claimType) {
@@ -109,14 +134,14 @@ function requiredDocumentsForClaimType(claimType) {
       "Itemized invoice/receipt",
       "Vet record or ER visit notes",
       "Diagnosis and treatment details",
-      "Any relevant photos (if applicable)",
+      "Any relevant photos (if applicable)"
     ];
   }
 
   if (ct === "wellness") {
     return [
       "Itemized invoice/receipt",
-      "Wellness service details (vaccines, exam, labs)",
+      "Wellness service details (vaccines, exam, labs)"
     ];
   }
 
@@ -125,7 +150,7 @@ function requiredDocumentsForClaimType(claimType) {
     "Itemized invoice/receipt",
     "Vet record for diagnosis",
     "Treatment plan and/or discharge notes",
-    "Any lab results (if applicable)",
+    "Any lab results (if applicable)"
   ];
 }
 
@@ -133,7 +158,12 @@ function coerceDecisionString(value) {
   const d = String(value || "").toLowerCase();
   if (d === "approve") return "approve";
   if (d === "deny") return "deny";
-  if (d === "needs_more_info" || d === "needs-more-info" || d === "needs_info" || d === "needs-info") {
+  if (
+    d === "needs_more_info" ||
+    d === "needs-more-info" ||
+    d === "needs_info" ||
+    d === "needs-info"
+  ) {
     return "needs_more_info";
   }
   if (d === "review") return "needs_more_info";
@@ -149,10 +179,12 @@ async function extractTextFromAttachmentUrl(url) {
     timeout: 30000,
     maxContentLength: 20 * 1024 * 1024,
     maxBodyLength: 20 * 1024 * 1024,
-    validateStatus: (s) => s >= 200 && s < 300,
+    validateStatus: (s) => s >= 200 && s < 300
   });
 
-  const contentType = String(response.headers?.["content-type"] || "").toLowerCase();
+  const contentType = String(
+    response.headers?.["content-type"] || ""
+  ).toLowerCase();
   const buffer = Buffer.from(response.data);
   const lowerUrl = url.toLowerCase();
 
@@ -170,14 +202,17 @@ async function extractTextFromAttachmentUrl(url) {
     try {
       const client = getVisionClient();
       const [result] = await client.textDetection({
-        image: {content: buffer},
+        image: { content: buffer }
       });
       const fullText = result?.fullTextAnnotation?.text;
       if (fullText) return String(fullText);
       const first = result?.textAnnotations?.[0]?.description;
       return first ? String(first) : "";
     } catch (e) {
-      console.warn("Vision OCR failed; continuing without OCR text", e?.message || e);
+      console.warn(
+        "Vision OCR failed; continuing without OCR text",
+        e?.message || e
+      );
       return "";
     }
   }
@@ -193,7 +228,10 @@ async function downloadFromStoragePath(storagePath) {
     const [buffer] = await file.download();
     return Buffer.from(buffer);
   } catch (e) {
-    console.warn("Storage download failed; falling back to URL download", e?.message || e);
+    console.warn(
+      "Storage download failed; falling back to URL download",
+      e?.message || e
+    );
     return null;
   }
 }
@@ -228,14 +266,17 @@ async function extractTextFromAttachmentRecord(record) {
     try {
       const client = getVisionClient();
       const [result] = await client.textDetection({
-        image: {content: buffer},
+        image: { content: buffer }
       });
       const fullText = result?.fullTextAnnotation?.text;
       if (fullText) return String(fullText);
       const first = result?.textAnnotations?.[0]?.description;
       return first ? String(first) : "";
     } catch (e) {
-      console.warn("Vision OCR failed; continuing without OCR text", e?.message || e);
+      console.warn(
+        "Vision OCR failed; continuing without OCR text",
+        e?.message || e
+      );
       return "";
     }
   }
@@ -255,22 +296,22 @@ async function claimAttachmentExtractionLock(ref) {
   const now = Date.now();
   return await db.runTransaction(async (tx) => {
     const current = await tx.get(ref);
-    if (!current.exists) return {claimed: false};
+    if (!current.exists) return { claimed: false };
     const cur = current.data() || {};
 
     const status = String(cur.extractionStatus || "queued").toLowerCase();
-    if (status === "done") return {claimed: false};
-    if (status === "processing") return {claimed: false};
+    if (status === "done") return { claimed: false };
+    if (status === "processing") return { claimed: false };
 
     const attemptCount = Number(cur.extractionAttemptCount || 0);
     if (attemptCount >= MAX_ATTACHMENT_EXTRACTION_ATTEMPTS) {
-      return {claimed: false};
+      return { claimed: false };
     }
 
     const nextAttemptAt = cur.nextAttemptAt;
     if (status === "error" && nextAttemptAt?.toDate) {
       const nextMs = nextAttemptAt.toDate().getTime();
-      if (nextMs > now) return {claimed: false};
+      if (nextMs > now) return { claimed: false };
     }
 
     const nextAttemptCount = attemptCount + 1;
@@ -280,10 +321,10 @@ async function claimAttachmentExtractionLock(ref) {
       extractionLastAttemptAt: FieldValue.serverTimestamp(),
       extractionAttemptCount: nextAttemptCount,
       extractionError: FieldValue.delete(),
-      nextAttemptAt: FieldValue.delete(),
+      nextAttemptAt: FieldValue.delete()
     });
 
-    return {claimed: true, attemptCount: nextAttemptCount};
+    return { claimed: true, attemptCount: nextAttemptCount };
   });
 }
 
@@ -304,7 +345,10 @@ async function extractCombinedDocumentText(attachmentUrls, options = {}) {
         chunks.push(text.trim());
       }
     } catch (e) {
-      console.warn("Attachment text extraction failed; continuing", e?.message || e);
+      console.warn(
+        "Attachment text extraction failed; continuing",
+        e?.message || e
+      );
     }
   }
 
@@ -317,7 +361,7 @@ async function processClaimDecisionCore({
   claimId,
   requestedByUid,
   isAdmin,
-  system = false,
+  system = false
 }) {
   const claimRef = db.collection("claims").doc(claimId);
   const claimSnap = await claimRef.get();
@@ -332,13 +376,25 @@ async function processClaimDecisionCore({
       throw new HttpsError("unauthenticated", "Authentication required");
     }
     if (!isAdmin && claim.ownerId !== requestedByUid) {
-      throw new HttpsError("permission-denied", "Not authorized for this claim");
+      throw new HttpsError(
+        "permission-denied",
+        "Not authorized for this claim"
+      );
     }
   }
 
   const status = String(claim.status || "").toLowerCase();
-  if (["draft", "cancelled", "canceled", "settled", "settling", "denied"].includes(status)) {
-    return {success: true, claimId, skipped: true, status};
+  if (
+    [
+      "draft",
+      "cancelled",
+      "canceled",
+      "settled",
+      "settling",
+      "denied"
+    ].includes(status)
+  ) {
+    return { success: true, claimId, skipped: true, status };
   }
 
   const policyId = claim.policyId;
@@ -359,10 +415,14 @@ async function processClaimDecisionCore({
   const claimType = String(claim.claimType || "illness").toLowerCase();
   const waitingPeriodsDays = plan.waitingPeriodsDays || {};
   const waitingDays = Number(waitingPeriodsDays[claimType] ?? 0) || 0;
-  const effectiveDate = policy.effectiveDate ? new Date(policy.effectiveDate) : null;
+  const effectiveDate = policy.effectiveDate
+    ? new Date(policy.effectiveDate)
+    : null;
   const incidentDate = claim.incidentDate?.toDate
     ? claim.incidentDate.toDate()
-    : (claim.incidentDate ? new Date(claim.incidentDate) : null);
+    : claim.incidentDate
+      ? new Date(claim.incidentDate)
+      : null;
 
   let waitingPeriodSatisfied = true;
   if (effectiveDate && incidentDate) {
@@ -387,13 +447,15 @@ async function processClaimDecisionCore({
     const lastProcessed = existingAutomation.lastProcessedAt;
     const lastProcessedMs = lastProcessed?.toMillis
       ? lastProcessed.toMillis()
-      : (lastProcessed?._seconds ? lastProcessed._seconds * 1000 : 0);
+      : lastProcessed?._seconds
+        ? lastProcessed._seconds * 1000
+        : 0;
     const ageMs = Date.now() - lastProcessedMs;
     // If processed within the last 60 seconds, skip (race-condition window).
     if (ageMs < 60_000) {
       console.log(
         `processClaimDecisionCore: skipping duplicate for ${claimId} ` +
-        `(inputHash=${inputHash.slice(0, 8)}… age=${ageMs}ms)`
+          `(inputHash=${inputHash.slice(0, 8)}… age=${ageMs}ms)`
       );
       return {
         success: true,
@@ -405,14 +467,16 @@ async function processClaimDecisionCore({
           confidence: claim.aiConfidenceScore ?? 0,
           reasoning: claim.aiReasoningExplanation?.explanation || "",
           denialReason: claim.aiReasoningExplanation?.denialReason || null,
-          requiredDocuments: claim.aiReasoningExplanation?.requiredDocuments || [],
-          questionsForCustomer: claim.aiReasoningExplanation?.questionsForCustomer || [],
+          requiredDocuments:
+            claim.aiReasoningExplanation?.requiredDocuments || [],
+          questionsForCustomer:
+            claim.aiReasoningExplanation?.questionsForCustomer || [],
           discrepancies: claim.aiReasoningExplanation?.discrepancies || [],
-          flagsForReview: claim.aiReasoningExplanation?.flagsForReview || [],
+          flagsForReview: claim.aiReasoningExplanation?.flagsForReview || []
         },
         status: status,
         modelUsed: existingAutomation.modelUsed || null,
-        provider: existingAutomation.provider || null,
+        provider: existingAutomation.provider || null
       };
     }
   }
@@ -454,11 +518,20 @@ async function processClaimDecisionCore({
 
       const fileName = storagePath.split("/").pop() || "document";
       const ext = fileName.toLowerCase().split(".").pop();
-      const contentType = ext === "pdf"
-        ? "application/pdf"
-        : (ext === "png" ? "image/png" : (ext === "jpg" || ext === "jpeg" ? "image/jpeg" : null));
+      const contentType =
+        ext === "pdf"
+          ? "application/pdf"
+          : ext === "png"
+            ? "image/png"
+            : ext === "jpg" || ext === "jpeg"
+              ? "image/jpeg"
+              : null;
 
-      const attachmentId = crypto.createHash("sha256").update(storagePath).digest("hex").slice(0, 32);
+      const attachmentId = crypto
+        .createHash("sha256")
+        .update(storagePath)
+        .digest("hex")
+        .slice(0, 32);
       const ref = claimRef.collection("attachments").doc(attachmentId);
 
       try {
@@ -469,7 +542,7 @@ async function processClaimDecisionCore({
           contentType,
           uploadedAt: FieldValue.serverTimestamp(),
           uploadedBy: claim.ownerId || null,
-          extractionStatus: "queued",
+          extractionStatus: "queued"
         });
         created++;
       } catch (e) {
@@ -489,7 +562,7 @@ async function processClaimDecisionCore({
       .orderBy("uploadedAt", "desc")
       .limit(10)
       .get();
-    attachmentDocs = snap.docs.map((d) => ({id: d.id, ...d.data()}));
+    attachmentDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch (e) {
     // It's OK if the subcollection isn't accessible yet.
     attachmentDocs = [];
@@ -506,7 +579,7 @@ async function processClaimDecisionCore({
           .orderBy("uploadedAt", "desc")
           .limit(10)
           .get();
-        attachmentDocs = snap.docs.map((d) => ({id: d.id, ...d.data()}));
+        attachmentDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       }
     } catch (e) {
       // Best-effort only.
@@ -514,10 +587,12 @@ async function processClaimDecisionCore({
   }
 
   const hasStructuredAttachments = attachmentDocs.length > 0;
-  const hasPendingExtraction = hasStructuredAttachments && attachmentDocs.some((a) => {
-    const s = String(a.extractionStatus || "").toLowerCase();
-    return s === "queued" || s === "processing";
-  });
+  const hasPendingExtraction =
+    hasStructuredAttachments &&
+    attachmentDocs.some((a) => {
+      const s = String(a.extractionStatus || "").toLowerCase();
+      return s === "queued" || s === "processing";
+    });
 
   if (attachments.length > 0 && hasPendingExtraction) {
     // Keep the claim in processing until extraction finishes, then the attachment update trigger will rerun.
@@ -529,15 +604,15 @@ async function processClaimDecisionCore({
         lastProcessedAt: FieldValue.serverTimestamp(),
         lastDecision: "pending_extraction",
         version: 1,
-        runCount: FieldValue.increment(1),
-      },
+        runCount: FieldValue.increment(1)
+      }
     });
 
     return {
       success: true,
       claimId,
       pendingExtraction: true,
-      status: "processing",
+      status: "processing"
     };
   }
 
@@ -558,7 +633,7 @@ async function processClaimDecisionCore({
       processedAt: new Date().toISOString(),
       waitingPeriodSatisfied,
       waitingDays,
-      inputHash,
+      inputHash
     };
 
     await claimRef.update({
@@ -572,8 +647,8 @@ async function processClaimDecisionCore({
         lastProcessedAt: FieldValue.serverTimestamp(),
         lastDecision: "needs_more_info",
         version: 1,
-        runCount: FieldValue.increment(1),
-      },
+        runCount: FieldValue.increment(1)
+      }
     });
 
     return {
@@ -587,20 +662,21 @@ async function processClaimDecisionCore({
         requiredDocuments,
         questionsForCustomer: [],
         discrepancies: [],
-        flagsForReview: requiredDocuments,
+        flagsForReview: requiredDocuments
       },
       status: "awaiting_info",
       modelUsed: system ? "system" : "rules",
       provider: system ? "system" : "rules",
       usage: null,
       waitingPeriodSatisfied,
-      waitingDays,
+      waitingDays
     };
   }
 
-  const coverageLimit = plan.isUnlimitedAnnualCoverage === true
-    ? "Unlimited"
-    : (plan.maxAnnualCoverage ?? null);
+  const coverageLimit =
+    plan.isUnlimitedAnnualCoverage === true
+      ? "Unlimited"
+      : (plan.maxAnnualCoverage ?? null);
 
   let documentText = "";
   if (hasStructuredAttachments) {
@@ -613,18 +689,19 @@ async function processClaimDecisionCore({
       .filter((t) => t.length > 0)
       .join("\n\n---\n\n");
 
-    documentText = combined.length > 12000 ? combined.slice(0, 12000) : combined;
+    documentText =
+      combined.length > 12000 ? combined.slice(0, 12000) : combined;
   }
 
   if (!documentText) {
     // Backwards-compatible: fall back to best-effort extraction from URLs.
     documentText = await extractCombinedDocumentText(attachments, {
       maxDocs: 2,
-      maxChars: 12000,
+      maxChars: 12000
     });
   }
 
-  const decisionPrompt = `Review this pet insurance claim and return a decision.\n\nIMPORTANT:\n- If information is missing or inconsistent, do NOT choose \'deny\'. Choose \'needs_more_info\' and specify what to request.\n- Prefer continuing an automated loop (request documents/corrections) instead of routing for manual review.\n\nClaim Details:\n- Type: ${claimType}\n- Amount: $${Number(claim.claimAmount || 0).toFixed(2)}\n- Incident Date: ${incidentDate ? incidentDate.toISOString() : (claim.incidentDate || "")}\n- Description: ${claim.description || ""}\n- Attachments: ${attachments.length}\n\nPolicy Details:\n- Plan: ${plan.name || plan.type || ""}\n- Deductible: $${Number(plan.annualDeductible || 0).toFixed(2)}\n- Reimbursement: ${plan.reimbursementPercent ?? (100 - (plan.coPayPercentage ?? 20))}%\n- Coverage Limit: ${coverageLimit}\n- Waiting Period Satisfied: ${waitingPeriodSatisfied}\n\nDocument Text (best-effort OCR/extraction; may be incomplete):\n${documentText || "(no text extracted)"}\n\nReturn ONLY JSON:\n{\n  "decision": "approve" | "deny" | "needs_more_info",\n  "confidence": <number 0-1>,\n  "reasoning": "brief, customer-safe explanation",\n  "denialReason": "reason if denied, or null",\n  "requiredDocuments": ["specific documents needed"],\n  "questionsForCustomer": ["short questions to clarify"],\n  "discrepancies": ["any mismatches detected"],\n  "flagsForReview": ["actionable next steps"]\n}`;
+  const decisionPrompt = `Check this pet insurance claim and return a decision.\n\nIMPORTANT:\n- If information is missing or inconsistent, do NOT choose \'deny\'. Choose \'needs_more_info\' and specify what to request.\n- Prefer continuing an automated loop by requesting documents/corrections instead of creating an operational exception.\n\nClaim Details:\n- Type: ${claimType}\n- Amount: $${Number(claim.claimAmount || 0).toFixed(2)}\n- Incident Date: ${incidentDate ? incidentDate.toISOString() : claim.incidentDate || ""}\n- Description: ${claim.description || ""}\n- Attachments: ${attachments.length}\n\nPolicy Details:\n- Plan: ${plan.name || plan.type || ""}\n- Deductible: $${Number(plan.annualDeductible || 0).toFixed(2)}\n- Reimbursement: ${plan.reimbursementPercent ?? 100 - (plan.coPayPercentage ?? 20)}%\n- Coverage Limit: ${coverageLimit}\n- Waiting Period Satisfied: ${waitingPeriodSatisfied}\n\nDocument Text (best-effort OCR/extraction; may be incomplete):\n${documentText || "(no text extracted)"}\n\nReturn ONLY JSON:\n{\n  "decision": "approve" | "deny" | "needs_more_info",\n  "confidence": <number 0-1>,\n  "reasoning": "brief, customer-safe explanation",\n  "denialReason": "reason if denied, or null",\n  "requiredDocuments": ["specific documents needed"],\n  "questionsForCustomer": ["short questions to clarify"],\n  "discrepancies": ["any mismatches detected"],\n  "flagsForReview": ["actionable next steps"]\n}`;
 
   // Emulator-safe path: avoid external calls and secrets.
   if (isEmulator()) {
@@ -636,23 +713,28 @@ async function processClaimDecisionCore({
       requiredDocuments: [],
       questionsForCustomer: [],
       discrepancies: [],
-      flagsForReview: [],
+      flagsForReview: []
     };
 
     const normalizedDecision = coerceDecisionString(emuDecision.decision);
-    const confidence = Math.max(0, Math.min(1, Number(emuDecision.confidence) || 0));
+    const confidence = Math.max(
+      0,
+      Math.min(1, Number(emuDecision.confidence) || 0)
+    );
 
-    const aiDecision = normalizedDecision === "approve"
-      ? "approve"
-      : normalizedDecision === "deny"
-        ? "deny"
-        : "needs_info";
+    const aiDecision =
+      normalizedDecision === "approve"
+        ? "approve"
+        : normalizedDecision === "deny"
+          ? "deny"
+          : "needs_info";
 
-    const newStatus = normalizedDecision === "deny"
-      ? "denied"
-      : normalizedDecision === "needs_more_info"
-        ? "awaiting_info"
-        : "processing";
+    const newStatus =
+      normalizedDecision === "deny"
+        ? "denied"
+        : normalizedDecision === "needs_more_info"
+          ? "awaiting_info"
+          : "processing";
 
     const aiReasoningExplanation = {
       explanation: emuDecision.reasoning,
@@ -667,7 +749,7 @@ async function processClaimDecisionCore({
       processedAt: new Date().toISOString(),
       waitingPeriodSatisfied,
       waitingDays,
-      inputHash,
+      inputHash
     };
 
     await claimRef.update({
@@ -676,14 +758,16 @@ async function processClaimDecisionCore({
       aiConfidenceScore: confidence,
       aiReasoningExplanation,
       updatedAt: FieldValue.serverTimestamp(),
-      ...(newStatus === "denied" ? {deniedAt: FieldValue.serverTimestamp()} : {}),
+      ...(newStatus === "denied"
+        ? { deniedAt: FieldValue.serverTimestamp() }
+        : {}),
       automation: {
         inputHash,
         lastProcessedAt: FieldValue.serverTimestamp(),
         lastDecision: normalizedDecision,
         version: 1,
-        runCount: FieldValue.increment(1),
-      },
+        runCount: FieldValue.increment(1)
+      }
     });
 
     return {
@@ -697,13 +781,13 @@ async function processClaimDecisionCore({
         requiredDocuments: [],
         questionsForCustomer: [],
         discrepancies: [],
-        flagsForReview: [],
+        flagsForReview: []
       },
       status: newStatus,
       modelUsed: "emulator",
       provider: "emulator",
       usage: null,
-      emulated: true,
+      emulated: true
     };
   }
 
@@ -711,9 +795,9 @@ async function processClaimDecisionCore({
     {
       role: "system",
       content:
-        "You are a pet insurance claims adjudication system. Be consistent and follow policy terms. Prefer requesting missing info (needs_more_info) over denying when documentation is insufficient.",
+        "You are a pet insurance claims adjudication system. Be consistent and follow policy terms. Prefer requesting missing info (needs_more_info) over denying when documentation is insufficient."
     },
-    {role: "user", content: decisionPrompt},
+    { role: "user", content: decisionPrompt }
   ];
 
   let decision;
@@ -730,12 +814,14 @@ async function processClaimDecisionCore({
         messages,
         temperature: 0.2,
         maxOutputTokens: 800,
-        response_format: {type: "json_object"},
-        timeoutMs: 50000,
+        response_format: { type: "json_object" },
+        timeoutMs: 50000
       });
       const text = extractGeminiText(geminiResponse);
       if (!text) {
-        throw Object.assign(new Error("GEMINI_EMPTY_RESPONSE"), {geminiResponse});
+        throw Object.assign(new Error("GEMINI_EMPTY_RESPONSE"), {
+          geminiResponse
+        });
       }
       decision = JSON.parse(text);
       modelUsed = GEMINI_DEFAULT_MODEL;
@@ -743,29 +829,44 @@ async function processClaimDecisionCore({
       usage = geminiResponse?.usageMetadata ?? null;
     } catch (error) {
       if (isGeminiQuotaError(error) && !isEmulatorOrNoOpenAISecret()) {
-        console.warn("processClaimDecisionCore: Gemini quota exceeded; falling back to OpenAI");
-      } else if (isGeminiModelNotFoundError(error) && !isEmulatorOrNoOpenAISecret()) {
-        console.warn("processClaimDecisionCore: Gemini model not found; falling back to OpenAI");
-      } else if ((isGeminiEmptyResponseError(error) || isJsonParseError(error)) && !isEmulatorOrNoOpenAISecret()) {
-        console.warn("processClaimDecisionCore: Gemini returned invalid/empty JSON; falling back to OpenAI");
+        console.warn(
+          "processClaimDecisionCore: Gemini quota exceeded; falling back to OpenAI"
+        );
+      } else if (
+        isGeminiModelNotFoundError(error) &&
+        !isEmulatorOrNoOpenAISecret()
+      ) {
+        console.warn(
+          "processClaimDecisionCore: Gemini model not found; falling back to OpenAI"
+        );
+      } else if (
+        (isGeminiEmptyResponseError(error) || isJsonParseError(error)) &&
+        !isEmulatorOrNoOpenAISecret()
+      ) {
+        console.warn(
+          "processClaimDecisionCore: Gemini returned invalid/empty JSON; falling back to OpenAI"
+        );
       } else if (isGeminiQuotaError(error)) {
         throw new HttpsError(
           "resource-exhausted",
           "Gemini quota exceeded",
-          error.response?.data || error.message,
+          error.response?.data || error.message
         );
       } else if (isGeminiEmptyResponseError(error)) {
         throw new HttpsError(
           "failed-precondition",
           "Gemini returned an empty response",
-          error?.geminiResponse || error?.message,
+          error?.geminiResponse || error?.message
         );
       } else {
-        console.error("Claim Decision (Gemini) Error:", error.response?.data || error.message);
+        console.error(
+          "Claim Decision (Gemini) Error:",
+          error.response?.data || error.message
+        );
         throw new HttpsError(
           "internal",
           "Failed to make claim decision",
-          error.response?.data || error.message,
+          error.response?.data || error.message
         );
       }
     }
@@ -776,7 +877,7 @@ async function processClaimDecisionCore({
     if (isEmulatorOrNoOpenAISecret()) {
       throw new HttpsError(
         "failed-precondition",
-        "No AI provider configured (missing GEMINI_API_KEY and OPENAI_API_KEY)",
+        "No AI provider configured (missing GEMINI_API_KEY and OPENAI_API_KEY)"
       );
     }
 
@@ -790,15 +891,18 @@ async function processClaimDecisionCore({
         messages,
         temperature: 0.2,
         max_tokens: 800,
-        response_format: {type: "json_object"},
-        timeoutMs: 50000,
+        response_format: { type: "json_object" },
+        timeoutMs: 50000
       });
     } catch (error) {
-      console.error("Claim Decision (OpenAI) Error:", error.response?.data || error.message);
+      console.error(
+        "Claim Decision (OpenAI) Error:",
+        error.response?.data || error.message
+      );
       throw new HttpsError(
         "internal",
         "Failed to make claim decision",
-        error.response?.data || error.message,
+        error.response?.data || error.message
       );
     }
 
@@ -806,32 +910,44 @@ async function processClaimDecisionCore({
     try {
       decision = JSON.parse(responseData.choices[0].message.content);
     } catch (e) {
-      throw new HttpsError("internal", `Invalid JSON from model: ${e?.message || e}`);
+      throw new HttpsError(
+        "internal",
+        `Invalid JSON from model: ${e?.message || e}`
+      );
     }
   }
 
   const normalizedDecision = coerceDecisionString(decision.decision);
   const confidence = Math.max(0, Math.min(1, Number(decision.confidence) || 0));
   const requiredDocuments = normalizeStringArray(decision.requiredDocuments);
-  const questionsForCustomer = normalizeStringArray(decision.questionsForCustomer);
+  const questionsForCustomer = normalizeStringArray(
+    decision.questionsForCustomer
+  );
   const discrepancies = normalizeStringArray(decision.discrepancies);
   const flagsForReview = normalizeStringArray(decision.flagsForReview);
-  const actionableNextSteps = [...requiredDocuments, ...questionsForCustomer, ...discrepancies, ...flagsForReview]
+  const actionableNextSteps = [
+    ...requiredDocuments,
+    ...questionsForCustomer,
+    ...discrepancies,
+    ...flagsForReview
+  ]
     .filter((v, i, arr) => arr.indexOf(v) === i)
     .slice(0, 10);
 
-  const aiDecision = normalizedDecision === "approve"
-    ? "approve"
-    : normalizedDecision === "deny"
-      ? "deny"
-      : "needs_info";
+  const aiDecision =
+    normalizedDecision === "approve"
+      ? "approve"
+      : normalizedDecision === "deny"
+        ? "deny"
+        : "needs_info";
 
   // IMPORTANT: do not mark as 'settling' here until payout initiation is implemented.
-  const newStatus = normalizedDecision === "deny"
-    ? "denied"
-    : normalizedDecision === "needs_more_info"
-      ? "awaiting_info"
-      : "processing";
+  const newStatus =
+    normalizedDecision === "deny"
+      ? "denied"
+      : normalizedDecision === "needs_more_info"
+        ? "awaiting_info"
+        : "processing";
 
   const aiReasoningExplanation = {
     explanation: decision.reasoning || "",
@@ -846,7 +962,7 @@ async function processClaimDecisionCore({
     processedAt: new Date().toISOString(),
     waitingPeriodSatisfied,
     waitingDays,
-    inputHash,
+    inputHash
   };
 
   await claimRef.update({
@@ -855,7 +971,9 @@ async function processClaimDecisionCore({
     aiConfidenceScore: confidence,
     aiReasoningExplanation,
     updatedAt: FieldValue.serverTimestamp(),
-    ...(newStatus === "denied" ? {deniedAt: FieldValue.serverTimestamp()} : {}),
+    ...(newStatus === "denied"
+      ? { deniedAt: FieldValue.serverTimestamp() }
+      : {}),
     automation: {
       inputHash,
       lastProcessedAt: FieldValue.serverTimestamp(),
@@ -863,8 +981,8 @@ async function processClaimDecisionCore({
       version: 1,
       runCount: FieldValue.increment(1),
       provider,
-      modelUsed,
-    },
+      modelUsed
+    }
   });
 
   await claimRef.collection("ai_audit_trail").add({
@@ -881,13 +999,13 @@ async function processClaimDecisionCore({
       flagsForReview: actionableNextSteps,
       requiredDocuments,
       questionsForCustomer,
-      discrepancies,
+      discrepancies
     },
     metadata: {
       modelUsed,
       provider,
-      inputHash,
-    },
+      inputHash
+    }
   });
 
   return {
@@ -901,14 +1019,14 @@ async function processClaimDecisionCore({
       requiredDocuments,
       questionsForCustomer,
       discrepancies,
-      flagsForReview: actionableNextSteps,
+      flagsForReview: actionableNextSteps
     },
     status: newStatus,
     modelUsed,
     provider,
     usage: usage ?? null,
     waitingPeriodSatisfied,
-    waitingDays,
+    waitingDays
   };
 }
 
@@ -921,7 +1039,7 @@ exports.onClaimAttachmentCreated = onDocumentCreated(
   callOptionsWithOpenAISecret({
     maxInstances: 10,
     timeoutSeconds: 540,
-    memory: "1GiB",
+    memory: "1GiB"
   }),
   "claims/{claimId}/attachments/{attachmentId}",
   async (event) => {
@@ -930,7 +1048,11 @@ exports.onClaimAttachmentCreated = onDocumentCreated(
 
     const claimId = event.params.claimId;
     const attachmentId = event.params.attachmentId;
-    const ref = db.collection("claims").doc(claimId).collection("attachments").doc(attachmentId);
+    const ref = db
+      .collection("claims")
+      .doc(claimId)
+      .collection("attachments")
+      .doc(attachmentId);
 
     // Claim attachments created from older clients might not have fields.
     const data = snap.data() || {};
@@ -941,7 +1063,10 @@ exports.onClaimAttachmentCreated = onDocumentCreated(
     try {
       const text = await extractTextFromAttachmentRecord(data);
       const trimmed = String(text || "").trim();
-      const textHash = crypto.createHash("sha256").update(trimmed).digest("hex");
+      const textHash = crypto
+        .createHash("sha256")
+        .update(trimmed)
+        .digest("hex");
 
       await ref.update({
         extractedText: trimmed,
@@ -949,20 +1074,22 @@ exports.onClaimAttachmentCreated = onDocumentCreated(
         extractionStatus: "done",
         extractedAt: FieldValue.serverTimestamp(),
         nextAttemptAt: FieldValue.delete(),
-        extractionError: FieldValue.delete(),
+        extractionError: FieldValue.delete()
       });
     } catch (e) {
       const attemptCount = Number(lock.attemptCount || 1);
       const backoffSeconds = getExtractionBackoffSeconds(attemptCount);
-      const nextAttemptAt = Timestamp.fromMillis(Date.now() + backoffSeconds * 1000);
+      const nextAttemptAt = Timestamp.fromMillis(
+        Date.now() + backoffSeconds * 1000
+      );
       await ref.update({
         extractionStatus: "error",
         extractionError: String(e?.message || e),
         extractedAt: FieldValue.serverTimestamp(),
-        nextAttemptAt,
+        nextAttemptAt
       });
     }
-  },
+  }
 );
 
 /**
@@ -972,7 +1099,7 @@ exports.onClaimAttachmentUpdated = onDocumentUpdated(
   callOptionsWithOpenAISecret({
     maxInstances: 10,
     timeoutSeconds: 540,
-    memory: "1GiB",
+    memory: "1GiB"
   }),
   "claims/{claimId}/attachments/{attachmentId}",
   async (event) => {
@@ -982,7 +1109,8 @@ exports.onClaimAttachmentUpdated = onDocumentUpdated(
 
     const beforeStatus = String(before.extractionStatus || "").toLowerCase();
     const afterStatus = String(after.extractionStatus || "").toLowerCase();
-    const transitionedToDone = beforeStatus !== "done" && afterStatus === "done";
+    const transitionedToDone =
+      beforeStatus !== "done" && afterStatus === "done";
 
     if (!transitionedToDone) return;
 
@@ -991,15 +1119,15 @@ exports.onClaimAttachmentUpdated = onDocumentUpdated(
         claimId,
         requestedByUid: null,
         isAdmin: true,
-        system: true,
+        system: true
       });
     } catch (e) {
       console.error("onClaimAttachmentUpdated decision rerun failed", {
         claimId,
-        error: e?.message || e,
+        error: e?.message || e
       });
     }
-  },
+  }
 );
 
 /**
@@ -1013,14 +1141,16 @@ exports.retryClaimAttachmentExtractions = onSchedule(
     timeZone: "UTC",
     memory: "1GiB",
     timeoutSeconds: 540,
-    maxInstances: 1,
+    maxInstances: 1
   },
   async () => {
     const now = Timestamp.now();
 
     // Reclaim any attachments that have been stuck in `processing` too long.
     // This can happen if an instance is terminated mid-extraction.
-    const staleProcessingCutoff = Timestamp.fromMillis(Date.now() - 15 * 60 * 1000);
+    const staleProcessingCutoff = Timestamp.fromMillis(
+      Date.now() - 15 * 60 * 1000
+    );
     const staleProcessing = await db
       .collectionGroup("attachments")
       .where("extractionStatus", "==", "processing")
@@ -1036,13 +1166,17 @@ exports.retryClaimAttachmentExtractions = onSchedule(
           const claimId = doc.ref.parent?.parent?.id;
           if (!claimId) return;
 
-          const ref = db.collection("claims").doc(claimId).collection("attachments").doc(attachmentId);
+          const ref = db
+            .collection("claims")
+            .doc(claimId)
+            .collection("attachments")
+            .doc(attachmentId);
           await ref.update({
             extractionStatus: "error",
             extractionError: "stale_processing_reclaimed",
-            nextAttemptAt: now,
+            nextAttemptAt: now
           });
-        }),
+        })
       );
     }
 
@@ -1062,7 +1196,11 @@ exports.retryClaimAttachmentExtractions = onSchedule(
       const claimId = doc.ref.parent?.parent?.id;
       if (!claimId) return;
 
-      const ref = db.collection("claims").doc(claimId).collection("attachments").doc(attachmentId);
+      const ref = db
+        .collection("claims")
+        .doc(claimId)
+        .collection("attachments")
+        .doc(attachmentId);
       const data = doc.data() || {};
 
       const lock = await claimAttachmentExtractionLock(ref);
@@ -1071,7 +1209,10 @@ exports.retryClaimAttachmentExtractions = onSchedule(
       try {
         const text = await extractTextFromAttachmentRecord(data);
         const trimmed = String(text || "").trim();
-        const textHash = crypto.createHash("sha256").update(trimmed).digest("hex");
+        const textHash = crypto
+          .createHash("sha256")
+          .update(trimmed)
+          .digest("hex");
 
         await ref.update({
           extractedText: trimmed,
@@ -1079,23 +1220,25 @@ exports.retryClaimAttachmentExtractions = onSchedule(
           extractionStatus: "done",
           extractedAt: FieldValue.serverTimestamp(),
           nextAttemptAt: FieldValue.delete(),
-          extractionError: FieldValue.delete(),
+          extractionError: FieldValue.delete()
         });
       } catch (e) {
         const attemptCount = Number(lock.attemptCount || 1);
         const backoffSeconds = getExtractionBackoffSeconds(attemptCount);
-        const nextAttemptAt = Timestamp.fromMillis(Date.now() + backoffSeconds * 1000);
+        const nextAttemptAt = Timestamp.fromMillis(
+          Date.now() + backoffSeconds * 1000
+        );
         await ref.update({
           extractionStatus: "error",
           extractionError: String(e?.message || e),
           extractedAt: FieldValue.serverTimestamp(),
-          nextAttemptAt,
+          nextAttemptAt
         });
       }
     });
 
     await Promise.allSettled(tasks);
-  },
+  }
 );
 
 exports._processClaimDecisionCore = processClaimDecisionCore;
@@ -1106,7 +1249,7 @@ function getBaseCallOptions() {
     // Large structured outputs (e.g. parsing long vet PDFs) can legitimately
     // take longer than 60s end-to-end.
     timeoutSeconds: 120,
-    memory: "512MiB",
+    memory: "512MiB"
   };
 }
 
@@ -1115,14 +1258,14 @@ function callOptionsWithOpenAISecret(overrides = {}) {
   if (isEmulator() || (!openaiApiKey && !geminiApiKey)) {
     return {
       ...baseCallOptions,
-      ...overrides,
+      ...overrides
     };
   }
 
   return {
     ...baseCallOptions,
     ...overrides,
-    secrets: [openaiApiKey, geminiApiKey].filter(Boolean),
+    secrets: [openaiApiKey, geminiApiKey].filter(Boolean)
   };
 }
 
@@ -1134,8 +1277,12 @@ function isModelNotFoundError(error) {
 
   if (status === 404) return true;
   if (code === "model_not_found") return true;
-  if (status === 400 && message.includes("model") && message.includes("not")) return true;
-  if (message.includes("model") && (message.includes("not found") || message.includes("does not exist"))) {
+  if (status === 400 && message.includes("model") && message.includes("not"))
+    return true;
+  if (
+    message.includes("model") &&
+    (message.includes("not found") || message.includes("does not exist"))
+  ) {
     return true;
   }
   return false;
@@ -1144,11 +1291,21 @@ function isModelNotFoundError(error) {
 function isGeminiModelNotFoundError(error) {
   const status = error?.response?.status;
   const data = error?.response?.data;
-  const detailsMessage = String(data?.error?.message || data?.message || "").toLowerCase();
+  const detailsMessage = String(
+    data?.error?.message || data?.message || ""
+  ).toLowerCase();
 
   if (status === 404) return true;
-  if (detailsMessage.includes("not found") && detailsMessage.includes("models/")) return true;
-  if (detailsMessage.includes("is not supported") && detailsMessage.includes("generatecontent")) return true;
+  if (
+    detailsMessage.includes("not found") &&
+    detailsMessage.includes("models/")
+  )
+    return true;
+  if (
+    detailsMessage.includes("is not supported") &&
+    detailsMessage.includes("generatecontent")
+  )
+    return true;
   return false;
 }
 
@@ -1156,11 +1313,17 @@ function isGeminiQuotaError(error) {
   const status = error?.response?.status;
   const data = error?.response?.data;
   const apiStatus = data?.error?.status;
-  const message = String(data?.error?.message || data?.message || "").toLowerCase();
+  const message = String(
+    data?.error?.message || data?.message || ""
+  ).toLowerCase();
 
   if (status === 429) return true;
   if (apiStatus === "RESOURCE_EXHAUSTED") return true;
-  if (message.includes("quota") && (message.includes("exceeded") || message.includes("limit"))) return true;
+  if (
+    message.includes("quota") &&
+    (message.includes("exceeded") || message.includes("limit"))
+  )
+    return true;
   return false;
 }
 
@@ -1182,24 +1345,24 @@ async function createChatCompletion({
   temperature,
   max_tokens,
   response_format,
-  timeoutMs,
+  timeoutMs
 }) {
   const response = await axios.post(
-      OPENAI_CHAT_COMPLETIONS_URL,
-      {
-        model,
-        messages,
-        temperature,
-        max_tokens,
-        ...(response_format ? {response_format} : {}),
+    OPENAI_CHAT_COMPLETIONS_URL,
+    {
+      model,
+      messages,
+      temperature,
+      max_tokens,
+      ...(response_format ? { response_format } : {})
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
       },
-      {
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        timeout: timeoutMs ?? 50000,
-      },
+      timeout: timeoutMs ?? 50000
+    }
   );
 
   return response.data;
@@ -1216,14 +1379,14 @@ function coerceMessagesToGeminiParts(messages, response_format) {
     // Keep things simple: Gemini REST API accepts a single role per content.
     // We inline system guidance into the user prompt.
     if (role === "system") {
-      parts.push({text: `System: ${content}`});
+      parts.push({ text: `System: ${content}` });
     } else {
-      parts.push({text: content});
+      parts.push({ text: content });
     }
   }
 
   if (response_format?.type === "json_object") {
-    parts.push({text: "Return ONLY valid JSON. Do not include markdown."});
+    parts.push({ text: "Return ONLY valid JSON. Do not include markdown." });
   }
 
   return parts;
@@ -1234,8 +1397,7 @@ function extractGeminiText(geminiResponse) {
     geminiResponse?.candidates?.[0]?.content?.parts
       ?.map((p) => p?.text)
       .filter(Boolean)
-      .join("") ||
-    ""
+      .join("") || ""
   );
 }
 
@@ -1247,7 +1409,8 @@ function normalizeGeminiModel(requestedModel) {
   if (raw.startsWith("gpt-")) return GEMINI_DEFAULT_MODEL;
 
   // Backwards compatibility: older clients may request legacy Gemini names.
-  if (raw == "gemini-1.5-pro" || raw == "gemini-1.5-flash") return "gemini-pro-latest";
+  if (raw == "gemini-1.5-pro" || raw == "gemini-1.5-flash")
+    return "gemini-pro-latest";
   if (raw == "gemini-pro") return "gemini-pro-latest";
 
   // Backwards compatibility: older clients may request preview model names.
@@ -1264,7 +1427,7 @@ async function createGeminiCompletion({
   temperature,
   maxOutputTokens,
   response_format,
-  timeoutMs,
+  timeoutMs
 }) {
   // Google Generative Language REST API (Gemini)
   const modelPath = String(model || "").startsWith("models/")
@@ -1279,20 +1442,21 @@ async function createGeminiCompletion({
       contents: [
         {
           role: "user",
-          parts,
-        },
+          parts
+        }
       ],
       generationConfig: {
         temperature: typeof temperature === "number" ? temperature : 0.7,
-        maxOutputTokens: typeof maxOutputTokens === "number" ? maxOutputTokens : 800,
-      },
+        maxOutputTokens:
+          typeof maxOutputTokens === "number" ? maxOutputTokens : 800
+      }
     },
     {
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      timeout: timeoutMs ?? 50000,
-    },
+      timeout: timeoutMs ?? 50000
+    }
   );
 
   return response.data;
@@ -1303,195 +1467,195 @@ async function createGeminiCompletion({
  * Used for the quote flow conversation with Clover
  */
 exports.chatCompletion = onCall(
-  callOptionsWithOpenAISecret({invoker: "public"}),
-    async (request) => {
-      // Validate request
-      if (!request.data || !request.data.messages) {
+  callOptionsWithOpenAISecret({ invoker: "public" }),
+  async (request) => {
+    // Validate request
+    if (!request.data || !request.data.messages) {
+      throw new HttpsError("invalid-argument", "Messages array is required");
+    }
+
+    // Require an authenticated Firebase principal (anonymous auth is fine).
+    // Gen2 functions must allow public Cloud Run invocation, so we enforce
+    // access control here to reduce abuse.
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
+
+    const {
+      messages,
+      // Keep the parameter name for client compatibility, but default to Gemini.
+      model = GEMINI_DEFAULT_MODEL,
+      temperature = 0.7,
+      response_format
+    } = request.data;
+
+    // Non-negotiable: Gemini failures must NOT fall back to alternate LLMs.
+    // Also: clients must not be able to force OpenAI usage via model name.
+
+    // Allow callers to request larger outputs (e.g., structured JSON from long PDFs)
+    // while enforcing a hard upper bound for cost/safety control.
+    const requestedMaxTokens =
+      request.data.max_tokens ?? request.data.maxTokens ?? 800;
+    const maxTokens = Math.min(
+      4096,
+      Math.max(1, Number(requestedMaxTokens) || 800)
+    );
+
+    try {
+      if (isEmulator()) {
+        return {
+          success: true,
+          message:
+            response_format?.type === "json_object"
+              ? "{}"
+              : "(emulator) Clover is running locally.",
+          usage: null,
+          modelUsed: "emulator",
+          provider: "emulator",
+          requestedModel: model,
+          emulated: true
+        };
+      }
+
+      const requestedModel = String(model || "").trim();
+      if (requestedModel.startsWith("gpt-")) {
         throw new HttpsError(
-            "invalid-argument",
-            "Messages array is required",
+          "failed-precondition",
+          "OpenAI models are disabled for this endpoint. Use a Gemini model.",
+          { requestedModel }
         );
       }
 
-      // Require an authenticated Firebase principal (anonymous auth is fine).
-      // Gen2 functions must allow public Cloud Run invocation, so we enforce
-      // access control here to reduce abuse.
-      if (!request.auth) {
-        throw new HttpsError(
-          "unauthenticated",
-          "Authentication required",
-        );
-      }
-
-      const {
-        messages,
-        // Keep the parameter name for client compatibility, but default to Gemini.
-        model = GEMINI_DEFAULT_MODEL,
-        temperature = 0.7,
-        response_format,
-      } = request.data;
-
-      // Non-negotiable: Gemini failures must NOT fall back to alternate LLMs.
-      // Also: clients must not be able to force OpenAI usage via model name.
-
-      // Allow callers to request larger outputs (e.g., structured JSON from long PDFs)
-      // while enforcing a hard upper bound for cost/safety control.
-      const requestedMaxTokens =
-        request.data.max_tokens ?? request.data.maxTokens ?? 800;
-      const maxTokens = Math.min(
-          4096,
-          Math.max(1, Number(requestedMaxTokens) || 800),
-      );
-
-      try {
-        if (isEmulator()) {
-          return {
-            success: true,
-            message:
-              response_format?.type === "json_object"
-                ? "{}"
-                : "(emulator) Clover is running locally.",
-            usage: null,
-            modelUsed: "emulator",
-            provider: "emulator",
-            requestedModel: model,
-            emulated: true,
-          };
-        }
-
-        const requestedModel = String(model || "").trim();
-        if (requestedModel.startsWith("gpt-")) {
+      // Gemini is the only provider.
+      {
+        if (isEmulatorOrNoGeminiSecret()) {
           throw new HttpsError(
             "failed-precondition",
-            "OpenAI models are disabled for this endpoint. Use a Gemini model.",
-            {requestedModel},
+            "Gemini is not configured (missing GEMINI_API_KEY)"
           );
         }
 
-        // Gemini is the only provider.
-        {
-          if (isEmulatorOrNoGeminiSecret()) {
-            throw new HttpsError(
-              "failed-precondition",
-              "Gemini is not configured (missing GEMINI_API_KEY)",
-            );
-          }
+        const geminiModel = normalizeGeminiModel(model);
+        // Gemini 3 "thinking" models can spend a chunk of tokens on thoughts and
+        // return empty content if maxOutputTokens is too low. Use a small floor.
+        const geminiMaxTokens = Math.max(128, maxTokens);
+        try {
+          // One quick retry for occasional empty responses.
+          let geminiResponse = await createGeminiCompletion({
+            apiKey: geminiApiKey.value(),
+            model: geminiModel,
+            messages,
+            temperature,
+            maxOutputTokens: geminiMaxTokens,
+            response_format,
+            timeoutMs: 50000
+          });
+          let text = extractGeminiText(geminiResponse);
 
-          const geminiModel = normalizeGeminiModel(model);
-          // Gemini 3 "thinking" models can spend a chunk of tokens on thoughts and
-          // return empty content if maxOutputTokens is too low. Use a small floor.
-          const geminiMaxTokens = Math.max(128, maxTokens);
-          try {
-            // One quick retry for occasional empty responses.
-            let geminiResponse = await createGeminiCompletion({
+          if (!text) {
+            geminiResponse = await createGeminiCompletion({
               apiKey: geminiApiKey.value(),
               model: geminiModel,
               messages,
-              temperature,
-              maxOutputTokens: geminiMaxTokens,
+              temperature:
+                typeof temperature === "number"
+                  ? Math.min(0.3, temperature)
+                  : 0.2,
+              maxOutputTokens: Math.max(256, geminiMaxTokens + 256),
               response_format,
-              timeoutMs: 50000,
+              timeoutMs: 50000
             });
-            let text = extractGeminiText(geminiResponse);
+            text = extractGeminiText(geminiResponse);
+          }
 
-            if (!text) {
-              geminiResponse = await createGeminiCompletion({
-                apiKey: geminiApiKey.value(),
-                model: geminiModel,
-                messages,
-                temperature: typeof temperature === "number" ? Math.min(0.3, temperature) : 0.2,
-                maxOutputTokens: Math.max(256, geminiMaxTokens + 256),
-                response_format,
-                timeoutMs: 50000,
-              });
-              text = extractGeminiText(geminiResponse);
-            }
+          if (!text) {
+            throw Object.assign(new Error("GEMINI_EMPTY_RESPONSE"), {
+              geminiResponse
+            });
+          }
 
-            if (!text) {
-              throw Object.assign(new Error("GEMINI_EMPTY_RESPONSE"), {geminiResponse});
-            }
+          return {
+            success: true,
+            message: text,
+            usage: geminiResponse?.usageMetadata ?? null,
+            modelUsed: geminiModel,
+            provider: "gemini",
+            requestedModel: model
+          };
+        } catch (geminiErr) {
+          console.error(
+            "Gemini failed (no fallback allowed):",
+            geminiErr?.response?.data || geminiErr?.message || geminiErr
+          );
 
-            return {
-              success: true,
-              message: text,
-              usage: geminiResponse?.usageMetadata ?? null,
-              modelUsed: geminiModel,
-              provider: "gemini",
-              requestedModel: model,
-            };
-          } catch (geminiErr) {
-            console.error(
-              "Gemini failed (no fallback allowed):",
-              geminiErr?.response?.data || geminiErr?.message || geminiErr,
+          if (isGeminiQuotaError(geminiErr)) {
+            throw new HttpsError(
+              "resource-exhausted",
+              "Gemini quota exceeded",
+              geminiErr?.response?.data || geminiErr?.message
             );
-
-            if (isGeminiQuotaError(geminiErr)) {
-              throw new HttpsError(
-                "resource-exhausted",
-                "Gemini quota exceeded",
-                geminiErr?.response?.data || geminiErr?.message,
-              );
-            } else if (isGeminiEmptyResponseError(geminiErr)) {
-              throw new HttpsError(
-                "failed-precondition",
-                "Gemini returned an empty response",
-                geminiErr?.geminiResponse || geminiErr?.message,
-              );
-            } else if (isGeminiModelNotFoundError(geminiErr)) {
-              throw new HttpsError(
-                "failed-precondition",
-                "Requested Gemini model not available",
-                geminiErr?.response?.data || geminiErr?.message,
-              );
-            } else {
-              throw geminiErr;
-            }
+          } else if (isGeminiEmptyResponseError(geminiErr)) {
+            throw new HttpsError(
+              "failed-precondition",
+              "Gemini returned an empty response",
+              geminiErr?.geminiResponse || geminiErr?.message
+            );
+          } else if (isGeminiModelNotFoundError(geminiErr)) {
+            throw new HttpsError(
+              "failed-precondition",
+              "Requested Gemini model not available",
+              geminiErr?.response?.data || geminiErr?.message
+            );
+          } else {
+            throw geminiErr;
           }
         }
-      } catch (error) {
-        console.error("chatCompletion Error:", error.response?.data || error.message || error);
-        throw new HttpsError(
-          "internal",
-          "Failed to get AI response",
-          error.response?.data || error.message || String(error),
-        );
       }
-    },
+    } catch (error) {
+      console.error(
+        "chatCompletion Error:",
+        error.response?.data || error.message || error
+      );
+      throw new HttpsError(
+        "internal",
+        "Failed to get AI response",
+        error.response?.data || error.message || String(error)
+      );
+    }
+  }
 );
 
 /**
  * Risk Analysis for Pet Insurance Quotes
  * Analyzes pet profile and returns risk assessment
  */
-exports.analyzeRisk = onCall(
-    callOptionsWithOpenAISecret(),
-    async (request) => {
-      const {petData, ownerData} = request.data;
+exports.analyzeRisk = onCall(callOptionsWithOpenAISecret(), async (request) => {
+  const { petData, ownerData } = request.data;
 
-      if (!petData) {
-        throw new HttpsError("invalid-argument", "Pet data is required");
-      }
+  if (!petData) {
+    throw new HttpsError("invalid-argument", "Pet data is required");
+  }
 
-      if (!request.auth) {
-        throw new HttpsError("unauthenticated", "Authentication required");
-      }
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication required");
+  }
 
-      if (isEmulator()) {
-        return {
-          success: true,
-          analysis: {
-            riskScore: 42,
-            riskFactors: ["emulator_mode"],
-            recommendation: "review",
-            reasoning: "Emulator mode: returning a deterministic stub response.",
-          },
-          usage: null,
-          modelUsed: "emulator",
-          emulated: true,
-        };
-      }
+  if (isEmulator()) {
+    return {
+      success: true,
+      analysis: {
+        riskScore: 42,
+        riskFactors: ["emulator_mode"],
+        recommendation: "needs_more_info",
+        reasoning: "Emulator mode: returning a deterministic stub response."
+      },
+      usage: null,
+      modelUsed: "emulator",
+      emulated: true
+    };
+  }
 
-      const prompt = `Analyze the following pet insurance quote for risk factors:
+  const prompt = `Analyze the following pet insurance quote for risk factors:
 
 Pet Details:
 - Name: ${petData.name}
@@ -1509,150 +1673,163 @@ Provide a risk score (0-100) and brief analysis of key risk factors. Return ONLY
 {
   "riskScore": <number 0-100>,
   "riskFactors": ["factor1", "factor2"],
-  "recommendation": "approve" or "review" or "decline",
+  "recommendation": "approve" or "needs_more_info" or "decline",
   "reasoning": "brief explanation"
 }`;
 
+  try {
+    const messages = [
+      {
+        role: "system",
+        content:
+          "You are a pet insurance underwriting AI. Analyze risk factors and provide structured JSON responses only."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ];
+
+    // Prefer Gemini when configured.
+    if (!isEmulatorOrNoGeminiSecret()) {
       try {
-        const messages = [
-          {
-            role: "system",
-            content: "You are a pet insurance underwriting AI. Analyze risk factors and provide structured JSON responses only.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ];
-
-        // Prefer Gemini when configured.
-        if (!isEmulatorOrNoGeminiSecret()) {
-          try {
-            const geminiResponse = await createGeminiCompletion({
-              apiKey: geminiApiKey.value(),
-              model: GEMINI_DEFAULT_MODEL,
-              messages,
-              temperature: 0.3,
-              maxOutputTokens: 500,
-              response_format: {type: "json_object"},
-              timeoutMs: 50000,
-            });
-            const text = extractGeminiText(geminiResponse);
-            if (!text) {
-              throw Object.assign(new Error("GEMINI_EMPTY_RESPONSE"), {
-                geminiResponse,
-              });
-            }
-            const analysis = JSON.parse(text);
-
-            return {
-              success: true,
-              analysis,
-              usage: geminiResponse?.usageMetadata ?? null,
-              modelUsed: GEMINI_DEFAULT_MODEL,
-              provider: "gemini",
-            };
-          } catch (geminiErr) {
-            if (isGeminiQuotaError(geminiErr)) {
-              if (isEmulatorOrNoOpenAISecret()) {
-                throw new HttpsError(
-                  "resource-exhausted",
-                  "Gemini quota exceeded",
-                  geminiErr?.response?.data || geminiErr?.message,
-                );
-              }
-              console.warn("analyzeRisk: Gemini quota exceeded; falling back to OpenAI");
-            } else if (isGeminiModelNotFoundError(geminiErr)) {
-              if (isEmulatorOrNoOpenAISecret()) {
-                throw new HttpsError(
-                  "failed-precondition",
-                  "Gemini model not available",
-                  geminiErr?.response?.data || geminiErr?.message,
-                );
-              }
-              console.warn("analyzeRisk: Gemini model not found; falling back to OpenAI");
-            } else if ((isGeminiEmptyResponseError(geminiErr) || isJsonParseError(geminiErr)) && !isEmulatorOrNoOpenAISecret()) {
-              console.warn("analyzeRisk: Gemini returned invalid/empty JSON; falling back to OpenAI");
-            } else {
-              throw geminiErr;
-            }
-          }
-        }
-
-        // Fall back to OpenAI if configured.
-        if (isEmulatorOrNoOpenAISecret()) {
-          throw new HttpsError(
-            "failed-precondition",
-            "No AI provider configured (missing GEMINI_API_KEY and OPENAI_API_KEY)",
-          );
-        }
-
-        const responseData = await createChatCompletion({
-          apiKey: openaiApiKey.value(),
-          model: FALLBACK_MODEL,
+        const geminiResponse = await createGeminiCompletion({
+          apiKey: geminiApiKey.value(),
+          model: GEMINI_DEFAULT_MODEL,
           messages,
           temperature: 0.3,
-          max_tokens: 500,
-          response_format: {type: "json_object"},
-          timeoutMs: 50000,
+          maxOutputTokens: 500,
+          response_format: { type: "json_object" },
+          timeoutMs: 50000
         });
-
-        const analysis = JSON.parse(responseData.choices[0].message.content);
+        const text = extractGeminiText(geminiResponse);
+        if (!text) {
+          throw Object.assign(new Error("GEMINI_EMPTY_RESPONSE"), {
+            geminiResponse
+          });
+        }
+        const analysis = JSON.parse(text);
 
         return {
           success: true,
           analysis,
-          usage: responseData.usage,
-          modelUsed: FALLBACK_MODEL,
-          provider: "openai",
+          usage: geminiResponse?.usageMetadata ?? null,
+          modelUsed: GEMINI_DEFAULT_MODEL,
+          provider: "gemini"
         };
-      } catch (error) {
-        console.error("Risk Analysis Error:", error.response?.data || error.message);
-        throw new HttpsError(
-            "internal",
-            "Failed to analyze risk",
-            error.response?.data || error.message,
-        );
+      } catch (geminiErr) {
+        if (isGeminiQuotaError(geminiErr)) {
+          if (isEmulatorOrNoOpenAISecret()) {
+            throw new HttpsError(
+              "resource-exhausted",
+              "Gemini quota exceeded",
+              geminiErr?.response?.data || geminiErr?.message
+            );
+          }
+          console.warn(
+            "analyzeRisk: Gemini quota exceeded; falling back to OpenAI"
+          );
+        } else if (isGeminiModelNotFoundError(geminiErr)) {
+          if (isEmulatorOrNoOpenAISecret()) {
+            throw new HttpsError(
+              "failed-precondition",
+              "Gemini model not available",
+              geminiErr?.response?.data || geminiErr?.message
+            );
+          }
+          console.warn(
+            "analyzeRisk: Gemini model not found; falling back to OpenAI"
+          );
+        } else if (
+          (isGeminiEmptyResponseError(geminiErr) ||
+            isJsonParseError(geminiErr)) &&
+          !isEmulatorOrNoOpenAISecret()
+        ) {
+          console.warn(
+            "analyzeRisk: Gemini returned invalid/empty JSON; falling back to OpenAI"
+          );
+        } else {
+          throw geminiErr;
+        }
       }
-    },
-);
+    }
+
+    // Fall back to OpenAI if configured.
+    if (isEmulatorOrNoOpenAISecret()) {
+      throw new HttpsError(
+        "failed-precondition",
+        "No AI provider configured (missing GEMINI_API_KEY and OPENAI_API_KEY)"
+      );
+    }
+
+    const responseData = await createChatCompletion({
+      apiKey: openaiApiKey.value(),
+      model: FALLBACK_MODEL,
+      messages,
+      temperature: 0.3,
+      max_tokens: 500,
+      response_format: { type: "json_object" },
+      timeoutMs: 50000
+    });
+
+    const analysis = JSON.parse(responseData.choices[0].message.content);
+
+    return {
+      success: true,
+      analysis,
+      usage: responseData.usage,
+      modelUsed: FALLBACK_MODEL,
+      provider: "openai"
+    };
+  } catch (error) {
+    console.error(
+      "Risk Analysis Error:",
+      error.response?.data || error.message
+    );
+    throw new HttpsError(
+      "internal",
+      "Failed to analyze risk",
+      error.response?.data || error.message
+    );
+  }
+});
 
 /**
  * Claim Document Analysis
  * Analyzes veterinary documents for claim processing
  */
 exports.analyzeClaimDocument = onCall(
-    callOptionsWithOpenAISecret({
-      maxInstances: 5,
-      timeoutSeconds: 120,
-      memory: "512MiB",
-    }),
-    async (request) => {
-      const {documentText, claimType} = request.data;
+  callOptionsWithOpenAISecret({
+    maxInstances: 5,
+    timeoutSeconds: 120,
+    memory: "512MiB"
+  }),
+  async (request) => {
+    const { documentText, claimType } = request.data;
 
-      if (!documentText) {
-        throw new HttpsError("invalid-argument", "Document text is required");
-      }
+    if (!documentText) {
+      throw new HttpsError("invalid-argument", "Document text is required");
+    }
 
-      if (!request.auth) {
-        throw new HttpsError("unauthenticated", "Authentication required");
-      }
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
 
-      if (isEmulator()) {
-        return {
-          success: true,
-          analysis: {
-            claimType: claimType || "general",
-            extractedAmount: null,
-            notes: "Emulator mode: document analysis stub.",
-          },
-          usage: null,
-          modelUsed: "emulator",
-          emulated: true,
-        };
-      }
+    if (isEmulator()) {
+      return {
+        success: true,
+        analysis: {
+          claimType: claimType || "general",
+          extractedAmount: null,
+          notes: "Emulator mode: document analysis stub."
+        },
+        usage: null,
+        modelUsed: "emulator",
+        emulated: true
+      };
+    }
 
-      const prompt = `Analyze this veterinary document for a pet insurance claim:
+    const prompt = `Analyze this veterinary document for a pet insurance claim:
 
 Claim Type: ${claimType || "General"}
 
@@ -1672,106 +1849,120 @@ Extract and return ONLY a JSON object with:
   "isValid": <boolean>
 }`;
 
-      try {
-        const messages = [
-          {
-            role: "system",
-            content: "You are a veterinary document analysis AI. Extract structured information from vet records for insurance claims.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ];
+    try {
+      const messages = [
+        {
+          role: "system",
+          content:
+            "You are a veterinary document analysis AI. Extract structured information from vet records for insurance claims."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ];
 
-        if (!isEmulatorOrNoGeminiSecret()) {
-          try {
-            const geminiResponse = await createGeminiCompletion({
-              apiKey: geminiApiKey.value(),
-              model: GEMINI_DEFAULT_MODEL,
-              messages,
-              temperature: 0.1,
-              maxOutputTokens: 1000,
-              response_format: {type: "json_object"},
-              timeoutMs: 50000,
+      if (!isEmulatorOrNoGeminiSecret()) {
+        try {
+          const geminiResponse = await createGeminiCompletion({
+            apiKey: geminiApiKey.value(),
+            model: GEMINI_DEFAULT_MODEL,
+            messages,
+            temperature: 0.1,
+            maxOutputTokens: 1000,
+            response_format: { type: "json_object" },
+            timeoutMs: 50000
+          });
+          const text = extractGeminiText(geminiResponse);
+          if (!text) {
+            throw Object.assign(new Error("GEMINI_EMPTY_RESPONSE"), {
+              geminiResponse
             });
-            const text = extractGeminiText(geminiResponse);
-            if (!text) {
-              throw Object.assign(new Error("GEMINI_EMPTY_RESPONSE"), {
-                geminiResponse,
-              });
-            }
-            const analysis = JSON.parse(text);
+          }
+          const analysis = JSON.parse(text);
 
-            return {
-              success: true,
-              analysis,
-              usage: geminiResponse?.usageMetadata ?? null,
-              modelUsed: GEMINI_DEFAULT_MODEL,
-              provider: "gemini",
-            };
-          } catch (geminiErr) {
-            if (isGeminiQuotaError(geminiErr)) {
-              if (isEmulatorOrNoOpenAISecret()) {
-                throw new HttpsError(
-                  "resource-exhausted",
-                  "Gemini quota exceeded",
-                  geminiErr?.response?.data || geminiErr?.message,
-                );
-              }
-              console.warn("analyzeClaimDocument: Gemini quota exceeded; falling back to OpenAI");
-            } else if (isGeminiModelNotFoundError(geminiErr)) {
-              if (isEmulatorOrNoOpenAISecret()) {
-                throw new HttpsError(
-                  "failed-precondition",
-                  "Gemini model not available",
-                  geminiErr?.response?.data || geminiErr?.message,
-                );
-              }
-              console.warn("analyzeClaimDocument: Gemini model not found; falling back to OpenAI");
-            } else if ((isGeminiEmptyResponseError(geminiErr) || isJsonParseError(geminiErr)) && !isEmulatorOrNoOpenAISecret()) {
-              console.warn("analyzeClaimDocument: Gemini returned invalid/empty JSON; falling back to OpenAI");
-            } else {
-              throw geminiErr;
+          return {
+            success: true,
+            analysis,
+            usage: geminiResponse?.usageMetadata ?? null,
+            modelUsed: GEMINI_DEFAULT_MODEL,
+            provider: "gemini"
+          };
+        } catch (geminiErr) {
+          if (isGeminiQuotaError(geminiErr)) {
+            if (isEmulatorOrNoOpenAISecret()) {
+              throw new HttpsError(
+                "resource-exhausted",
+                "Gemini quota exceeded",
+                geminiErr?.response?.data || geminiErr?.message
+              );
             }
+            console.warn(
+              "analyzeClaimDocument: Gemini quota exceeded; falling back to OpenAI"
+            );
+          } else if (isGeminiModelNotFoundError(geminiErr)) {
+            if (isEmulatorOrNoOpenAISecret()) {
+              throw new HttpsError(
+                "failed-precondition",
+                "Gemini model not available",
+                geminiErr?.response?.data || geminiErr?.message
+              );
+            }
+            console.warn(
+              "analyzeClaimDocument: Gemini model not found; falling back to OpenAI"
+            );
+          } else if (
+            (isGeminiEmptyResponseError(geminiErr) ||
+              isJsonParseError(geminiErr)) &&
+            !isEmulatorOrNoOpenAISecret()
+          ) {
+            console.warn(
+              "analyzeClaimDocument: Gemini returned invalid/empty JSON; falling back to OpenAI"
+            );
+          } else {
+            throw geminiErr;
           }
         }
+      }
 
-        if (isEmulatorOrNoOpenAISecret()) {
-          throw new HttpsError(
-            "failed-precondition",
-            "No AI provider configured (missing GEMINI_API_KEY and OPENAI_API_KEY)",
-          );
-        }
-
-        const responseData = await createChatCompletion({
-          apiKey: openaiApiKey.value(),
-          model: FALLBACK_MODEL,
-          messages,
-          temperature: 0.1,
-          max_tokens: 1000,
-          response_format: {type: "json_object"},
-          timeoutMs: 50000,
-        });
-
-        const analysis = JSON.parse(responseData.choices[0].message.content);
-
-        return {
-          success: true,
-          analysis,
-          usage: responseData.usage,
-          modelUsed: FALLBACK_MODEL,
-          provider: "openai",
-        };
-      } catch (error) {
-        console.error("Document Analysis Error:", error.response?.data || error.message);
+      if (isEmulatorOrNoOpenAISecret()) {
         throw new HttpsError(
-            "internal",
-            "Failed to analyze document",
-            error.response?.data || error.message,
+          "failed-precondition",
+          "No AI provider configured (missing GEMINI_API_KEY and OPENAI_API_KEY)"
         );
       }
-    },
+
+      const responseData = await createChatCompletion({
+        apiKey: openaiApiKey.value(),
+        model: FALLBACK_MODEL,
+        messages,
+        temperature: 0.1,
+        max_tokens: 1000,
+        response_format: { type: "json_object" },
+        timeoutMs: 50000
+      });
+
+      const analysis = JSON.parse(responseData.choices[0].message.content);
+
+      return {
+        success: true,
+        analysis,
+        usage: responseData.usage,
+        modelUsed: FALLBACK_MODEL,
+        provider: "openai"
+      };
+    } catch (error) {
+      console.error(
+        "Document Analysis Error:",
+        error.response?.data || error.message
+      );
+      throw new HttpsError(
+        "internal",
+        "Failed to analyze document",
+        error.response?.data || error.message
+      );
+    }
+  }
 );
 
 /**
@@ -1779,40 +1970,43 @@ Extract and return ONLY a JSON object with:
  * Makes automated claim approval decisions
  */
 exports.makeClaimDecision = onCall(
-    callOptionsWithOpenAISecret({
-      maxInstances: 5,
-      timeoutSeconds: 60,
-      memory: "256MiB",
-    }),
-    async (request) => {
-      const {claimData, policyData, documentAnalysis} = request.data;
+  callOptionsWithOpenAISecret({
+    maxInstances: 5,
+    timeoutSeconds: 60,
+    memory: "256MiB"
+  }),
+  async (request) => {
+    const { claimData, policyData, documentAnalysis } = request.data;
 
-      if (!claimData || !policyData) {
-        throw new HttpsError("invalid-argument", "Claim and policy data required");
-      }
+    if (!claimData || !policyData) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Claim and policy data required"
+      );
+    }
 
-      if (!request.auth) {
-        throw new HttpsError("unauthenticated", "Authentication required");
-      }
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
 
-      if (isEmulator()) {
-        return {
-          success: true,
-          decision: {
-            decision: "review",
-            approvedAmount: 0,
-            confidence: 0.5,
-            reasoning: "Emulator mode: returning deterministic decision stub.",
-            denialReason: null,
-            flagsForReview: ["emulator_mode"],
-          },
-          usage: null,
-          modelUsed: "emulator",
-          emulated: true,
-        };
-      }
+    if (isEmulator()) {
+      return {
+        success: true,
+        decision: {
+          decision: "needs_more_info",
+          approvedAmount: 0,
+          confidence: 0.5,
+          reasoning: "Emulator mode: returning deterministic decision stub.",
+          denialReason: null,
+          flagsForReview: ["emulator_mode"]
+        },
+        usage: null,
+        modelUsed: "emulator",
+        emulated: true
+      };
+    }
 
-      const prompt = `Review this pet insurance claim and make a decision:
+    const prompt = `Check this pet insurance claim and make a decision:
 
 Claim Details:
 - Type: ${claimData.claimType}
@@ -1831,114 +2025,128 @@ ${JSON.stringify(documentAnalysis, null, 2)}
 
 Based on standard pet insurance underwriting guidelines, provide a decision. Return ONLY JSON:
 {
-  "decision": "approve" or "deny" or "review",
+  "decision": "approve" or "deny" or "needs_more_info",
   "approvedAmount": <number or 0>,
   "confidence": <number 0-1>,
   "reasoning": "brief explanation",
   "denialReason": "reason if denied, or null",
-  "flagsForReview": ["any items needing human review"]
+  "flagsForReview": ["any items needing automated evidence checks"]
 }`;
 
-      try {
-        const messages = [
-          {
-            role: "system",
-            content: "You are a pet insurance claims adjudication AI. Make fair, consistent claim decisions based on policy terms.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ];
+    try {
+      const messages = [
+        {
+          role: "system",
+          content:
+            "You are a pet insurance claims adjudication AI. Make fair, consistent claim decisions based on policy terms."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ];
 
-        if (!isEmulatorOrNoGeminiSecret()) {
-          try {
-            const geminiResponse = await createGeminiCompletion({
-              apiKey: geminiApiKey.value(),
-              model: GEMINI_DEFAULT_MODEL,
-              messages,
-              temperature: 0.2,
-              maxOutputTokens: 500,
-              response_format: {type: "json_object"},
-              timeoutMs: 50000,
+      if (!isEmulatorOrNoGeminiSecret()) {
+        try {
+          const geminiResponse = await createGeminiCompletion({
+            apiKey: geminiApiKey.value(),
+            model: GEMINI_DEFAULT_MODEL,
+            messages,
+            temperature: 0.2,
+            maxOutputTokens: 500,
+            response_format: { type: "json_object" },
+            timeoutMs: 50000
+          });
+          const text = extractGeminiText(geminiResponse);
+          if (!text) {
+            throw Object.assign(new Error("GEMINI_EMPTY_RESPONSE"), {
+              geminiResponse
             });
-            const text = extractGeminiText(geminiResponse);
-            if (!text) {
-              throw Object.assign(new Error("GEMINI_EMPTY_RESPONSE"), {
-                geminiResponse,
-              });
-            }
-            const decision = JSON.parse(text);
+          }
+          const decision = JSON.parse(text);
 
-            return {
-              success: true,
-              decision,
-              usage: geminiResponse?.usageMetadata ?? null,
-              modelUsed: GEMINI_DEFAULT_MODEL,
-              provider: "gemini",
-            };
-          } catch (geminiErr) {
-            if (isGeminiQuotaError(geminiErr)) {
-              if (isEmulatorOrNoOpenAISecret()) {
-                throw new HttpsError(
-                  "resource-exhausted",
-                  "Gemini quota exceeded",
-                  geminiErr?.response?.data || geminiErr?.message,
-                );
-              }
-              console.warn("makeClaimDecision: Gemini quota exceeded; falling back to OpenAI");
-            } else if (isGeminiModelNotFoundError(geminiErr)) {
-              if (isEmulatorOrNoOpenAISecret()) {
-                throw new HttpsError(
-                  "failed-precondition",
-                  "Gemini model not available",
-                  geminiErr?.response?.data || geminiErr?.message,
-                );
-              }
-              console.warn("makeClaimDecision: Gemini model not found; falling back to OpenAI");
-            } else if ((isGeminiEmptyResponseError(geminiErr) || isJsonParseError(geminiErr)) && !isEmulatorOrNoOpenAISecret()) {
-              console.warn("makeClaimDecision: Gemini returned invalid/empty JSON; falling back to OpenAI");
-            } else {
-              throw geminiErr;
+          return {
+            success: true,
+            decision,
+            usage: geminiResponse?.usageMetadata ?? null,
+            modelUsed: GEMINI_DEFAULT_MODEL,
+            provider: "gemini"
+          };
+        } catch (geminiErr) {
+          if (isGeminiQuotaError(geminiErr)) {
+            if (isEmulatorOrNoOpenAISecret()) {
+              throw new HttpsError(
+                "resource-exhausted",
+                "Gemini quota exceeded",
+                geminiErr?.response?.data || geminiErr?.message
+              );
             }
+            console.warn(
+              "makeClaimDecision: Gemini quota exceeded; falling back to OpenAI"
+            );
+          } else if (isGeminiModelNotFoundError(geminiErr)) {
+            if (isEmulatorOrNoOpenAISecret()) {
+              throw new HttpsError(
+                "failed-precondition",
+                "Gemini model not available",
+                geminiErr?.response?.data || geminiErr?.message
+              );
+            }
+            console.warn(
+              "makeClaimDecision: Gemini model not found; falling back to OpenAI"
+            );
+          } else if (
+            (isGeminiEmptyResponseError(geminiErr) ||
+              isJsonParseError(geminiErr)) &&
+            !isEmulatorOrNoOpenAISecret()
+          ) {
+            console.warn(
+              "makeClaimDecision: Gemini returned invalid/empty JSON; falling back to OpenAI"
+            );
+          } else {
+            throw geminiErr;
           }
         }
+      }
 
-        if (isEmulatorOrNoOpenAISecret()) {
-          throw new HttpsError(
-            "failed-precondition",
-            "No AI provider configured (missing GEMINI_API_KEY and OPENAI_API_KEY)",
-          );
-        }
-
-        const responseData = await createChatCompletion({
-          apiKey: openaiApiKey.value(),
-          model: FALLBACK_MODEL,
-          messages,
-          temperature: 0.2,
-          max_tokens: 500,
-          response_format: {type: "json_object"},
-          timeoutMs: 50000,
-        });
-
-        const decision = JSON.parse(responseData.choices[0].message.content);
-
-        return {
-          success: true,
-          decision,
-          usage: responseData.usage,
-          modelUsed: FALLBACK_MODEL,
-          provider: "openai",
-        };
-      } catch (error) {
-        console.error("Claim Decision Error:", error.response?.data || error.message);
+      if (isEmulatorOrNoOpenAISecret()) {
         throw new HttpsError(
-            "internal",
-            "Failed to make claim decision",
-            error.response?.data || error.message,
+          "failed-precondition",
+          "No AI provider configured (missing GEMINI_API_KEY and OPENAI_API_KEY)"
         );
       }
-    },
+
+      const responseData = await createChatCompletion({
+        apiKey: openaiApiKey.value(),
+        model: FALLBACK_MODEL,
+        messages,
+        temperature: 0.2,
+        max_tokens: 500,
+        response_format: { type: "json_object" },
+        timeoutMs: 50000
+      });
+
+      const decision = JSON.parse(responseData.choices[0].message.content);
+
+      return {
+        success: true,
+        decision,
+        usage: responseData.usage,
+        modelUsed: FALLBACK_MODEL,
+        provider: "openai"
+      };
+    } catch (error) {
+      console.error(
+        "Claim Decision Error:",
+        error.response?.data || error.message
+      );
+      throw new HttpsError(
+        "internal",
+        "Failed to make claim decision",
+        error.response?.data || error.message
+      );
+    }
+  }
 );
 
 /**
@@ -1946,33 +2154,33 @@ Based on standard pet insurance underwriting guidelines, provide a decision. Ret
  *
  * Server-side claim decisioning to keep OpenAI keys off the client.
  * - Reads /claims/{claimId} and /policies/{policyId}
- * - Calls OpenAI to generate an approve/deny/review decision
+ * - Calls OpenAI to generate an approve/deny/needs_more_info decision
  * - Writes aiDecision/aiConfidenceScore/aiReasoningExplanation back to the claim
  * - Keeps status in 'processing' on approval until payout is actually initiated
  */
 exports.processClaimDecision = onCall(
-    callOptionsWithOpenAISecret(),
-    async (request) => {
-      const claimId = request.data?.claimId;
+  callOptionsWithOpenAISecret(),
+  async (request) => {
+    const claimId = request.data?.claimId;
 
-      if (!request.auth) {
-        throw new HttpsError("unauthenticated", "Authentication required");
-      }
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
 
-      if (!claimId || typeof claimId !== "string") {
-        throw new HttpsError("invalid-argument", "claimId is required");
-      }
+    if (!claimId || typeof claimId !== "string") {
+      throw new HttpsError("invalid-argument", "claimId is required");
+    }
 
-      const uid = request.auth.uid;
-      const adminFlag = request.auth.token?.admin === true;
+    const uid = request.auth.uid;
+    const adminFlag = request.auth.token?.admin === true;
 
-      return await processClaimDecisionCore({
-        claimId,
-        requestedByUid: uid,
-        isAdmin: adminFlag,
-        system: false,
-      });
-    },
+    return await processClaimDecisionCore({
+      claimId,
+      requestedByUid: uid,
+      isAdmin: adminFlag,
+      system: false
+    });
+  }
 );
 
 /**
@@ -1984,15 +2192,14 @@ exports.processClaimDecision = onCall(
 exports.getClaimAttachmentExtractionHealth = onCall(
   callOptionsWithOpenAISecret({
     timeoutSeconds: 60,
-    memory: "256MiB",
+    memory: "256MiB"
   }),
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Authentication required");
     }
 
-    const adminFlag = request.auth.token?.admin === true;
-    if (!adminFlag) {
+    if (!(await isAdminCaller(request))) {
       throw new HttpsError("permission-denied", "Admin privileges required");
     }
 
@@ -2012,17 +2219,18 @@ exports.getClaimAttachmentExtractionHealth = onCall(
       }
     }
 
-    const [queued, processing, done, error, staleProcessing] = await Promise.all([
-      countSafe(group.where("extractionStatus", "==", "queued")),
-      countSafe(group.where("extractionStatus", "==", "processing")),
-      countSafe(group.where("extractionStatus", "==", "done")),
-      countSafe(group.where("extractionStatus", "==", "error")),
-      countSafe(
-        group
-          .where("extractionStatus", "==", "processing")
-          .where("extractionStartedAt", "<=", staleCutoff),
-      ),
-    ]);
+    const [queued, processing, done, error, staleProcessing] =
+      await Promise.all([
+        countSafe(group.where("extractionStatus", "==", "queued")),
+        countSafe(group.where("extractionStatus", "==", "processing")),
+        countSafe(group.where("extractionStatus", "==", "done")),
+        countSafe(group.where("extractionStatus", "==", "error")),
+        countSafe(
+          group
+            .where("extractionStatus", "==", "processing")
+            .where("extractionStartedAt", "<=", staleCutoff)
+        )
+      ]);
 
     let recentErrors = [];
     try {
@@ -2043,7 +2251,7 @@ exports.getClaimAttachmentExtractionHealth = onCall(
           extractionError: data.extractionError || null,
           extractionAttemptCount: data.extractionAttemptCount || 0,
           extractedAt: data.extractedAt?.toDate?.().toISOString?.() || null,
-          nextAttemptAt: data.nextAttemptAt?.toDate?.().toISOString?.() || null,
+          nextAttemptAt: data.nextAttemptAt?.toDate?.().toISOString?.() || null
         };
       });
     } catch (e) {
@@ -2059,11 +2267,11 @@ exports.getClaimAttachmentExtractionHealth = onCall(
         processing,
         done,
         error,
-        staleProcessing,
+        staleProcessing
       },
-      recentErrors,
+      recentErrors
     };
-  },
+  }
 );
 
 /**
@@ -2071,13 +2279,13 @@ exports.getClaimAttachmentExtractionHealth = onCall(
  *
  * Goal:
  * - Reprocess automatically when documents are uploaded after submission.
- * - Keep the flow automated by moving claims to awaiting_info instead of manual review.
+ * - Keep the flow automated by moving claims to awaiting_info instead of an operational exception.
  */
 exports.onClaimUpdatedAutoDecision = onDocumentUpdated(
   callOptionsWithOpenAISecret({
     maxInstances: 5,
     timeoutSeconds: 540,
-    memory: "1GiB",
+    memory: "1GiB"
   }),
   "claims/{claimId}",
   async (event) => {
@@ -2090,7 +2298,16 @@ exports.onClaimUpdatedAutoDecision = onDocumentUpdated(
     const claimId = event.params.claimId;
 
     const afterStatus = String(after.status || "").toLowerCase();
-    if (["draft", "cancelled", "canceled", "settled", "settling", "denied"].includes(afterStatus)) {
+    if (
+      [
+        "draft",
+        "cancelled",
+        "canceled",
+        "settled",
+        "settling",
+        "denied"
+      ].includes(afterStatus)
+    ) {
       return;
     }
 
@@ -2099,17 +2316,25 @@ exports.onClaimUpdatedAutoDecision = onDocumentUpdated(
     const attachmentsAdded = afterAttachments.length > beforeAttachments.length;
 
     const statusJustSubmitted =
-      String(before.status || "").toLowerCase() !== "submitted" && afterStatus === "submitted";
+      String(before.status || "").toLowerCase() !== "submitted" &&
+      afterStatus === "submitted";
 
-    const claimAmountChanged = Number(before.claimAmount || 0) !== Number(after.claimAmount || 0);
-    const claimTypeChanged = String(before.claimType || "") !== String(after.claimType || "");
-    const descriptionChanged = String(before.description || "") !== String(after.description || "");
+    const claimAmountChanged =
+      Number(before.claimAmount || 0) !== Number(after.claimAmount || 0);
+    const claimTypeChanged =
+      String(before.claimType || "") !== String(after.claimType || "");
+    const descriptionChanged =
+      String(before.description || "") !== String(after.description || "");
     const incidentBefore = toIsoDateMaybe(before.incidentDate);
     const incidentAfter = toIsoDateMaybe(after.incidentDate);
     const incidentDateChanged = incidentBefore !== incidentAfter;
 
     const userInputsChanged =
-      attachmentsAdded || claimAmountChanged || claimTypeChanged || descriptionChanged || incidentDateChanged;
+      attachmentsAdded ||
+      claimAmountChanged ||
+      claimTypeChanged ||
+      descriptionChanged ||
+      incidentDateChanged;
 
     if (!statusJustSubmitted && !userInputsChanged) {
       return;
@@ -2127,13 +2352,13 @@ exports.onClaimUpdatedAutoDecision = onDocumentUpdated(
         claimId,
         requestedByUid: null,
         isAdmin: true,
-        system: true,
+        system: true
       });
     } catch (e) {
       console.error("onClaimUpdatedAutoDecision failed", {
         claimId,
-        error: e?.message || e,
+        error: e?.message || e
       });
     }
-  },
+  }
 );

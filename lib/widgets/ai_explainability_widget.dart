@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import '../models/claim.dart';
 
 /// AI Explainability Widget
-/// 
+///
 /// Shows the AI's decision-making process in a visual, easy-to-understand way
 /// with SHAP-style explanations showing which factors influenced the decision
 class AIExplainabilityWidget extends StatelessWidget {
   final Claim claim;
   final bool expandedByDefault;
-  
+
   const AIExplainabilityWidget({
     super.key,
     required this.claim,
@@ -20,7 +20,7 @@ class AIExplainabilityWidget extends StatelessWidget {
     if (claim.aiDecision == null) {
       return const SizedBox.shrink();
     }
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -43,21 +43,13 @@ class AIExplainabilityWidget extends StatelessWidget {
           ),
           title: const Text(
             'AI Decision Explanation',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           subtitle: Text(
             'See why the AI ${claim.aiDecision!.value == 'approve' ? 'approved' : 'denied'} this claim',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
-          children: [
-            _buildExplanationContent(context),
-          ],
+          children: [_buildExplanationContent(context)],
         ),
       ),
     );
@@ -83,7 +75,7 @@ class AIExplainabilityWidget extends StatelessWidget {
   Widget _buildDecisionSummary(BuildContext context) {
     final isApproved = claim.aiDecision!.value == 'approve';
     final confidence = claim.aiConfidenceScore ?? 0.0;
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -116,7 +108,9 @@ class AIExplainabilityWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isApproved ? 'Recommended for Approval' : 'Recommended for Denial',
+                  isApproved
+                      ? 'Recommended for Approval'
+                      : 'Recommended for Denial',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -142,16 +136,13 @@ class AIExplainabilityWidget extends StatelessWidget {
 
   Widget _buildConfidenceSection(BuildContext context) {
     final confidence = claim.aiConfidenceScore ?? 0.0;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Confidence Level',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         ClipRRect(
@@ -193,51 +184,45 @@ class AIExplainabilityWidget extends StatelessWidget {
 
   Widget _buildFactorAnalysis(BuildContext context) {
     final reasoning = claim.aiReasoningExplanation;
-    
+
     if (reasoning == null || reasoning.isEmpty) {
       return _buildGenericFactors(context);
     }
-    
+
     // Extract factor scores from reasoning
     final factors = _extractFactorScores(reasoning);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Contributing Factors',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
         Text(
           'These factors influenced the AI decision (sorted by impact)',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
         ),
         const SizedBox(height: 16),
         ...factors.entries.map((entry) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: _buildFactorBar(
-              context,
-              entry.key,
-              entry.value,
-            ),
+            child: _buildFactorBar(context, entry.key, entry.value),
           );
         }),
       ],
     );
   }
 
-  Widget _buildFactorBar(BuildContext context, String factorName, double impact) {
+  Widget _buildFactorBar(
+    BuildContext context,
+    String factorName,
+    double impact,
+  ) {
     final isPositive = impact > 0;
     final absImpact = impact.abs();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -291,7 +276,7 @@ class AIExplainabilityWidget extends StatelessWidget {
 
   Widget _buildKeyInsights(BuildContext context) {
     final insights = _generateKeyInsights();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -301,10 +286,7 @@ class AIExplainabilityWidget extends StatelessWidget {
             const SizedBox(width: 8),
             const Text(
               'Key Insights',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -349,7 +331,7 @@ class AIExplainabilityWidget extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'This explanation shows how our AI analyzed your claim. ${claim.humanOverride != null ? 'Our team reviewed and confirmed this decision.' : 'All decisions are reviewed by our team for accuracy.'}',
+              'This explanation shows how Clovara analyzed your claim. ${claim.humanOverride != null ? 'A decision override is recorded in the audit trail for transparency.' : 'The decision was generated by the automated rules and evidence checks on file.'}',
               style: TextStyle(
                 fontSize: 13,
                 color: Colors.blue[900],
@@ -370,16 +352,13 @@ class AIExplainabilityWidget extends StatelessWidget {
       'Medical Necessity': 0.90,
       'Documentation Quality': 0.75,
     };
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Contributing Factors',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         ...factors.entries.map((entry) {
@@ -395,7 +374,7 @@ class AIExplainabilityWidget extends StatelessWidget {
   Map<String, double> _extractFactorScores(Map<String, dynamic> reasoning) {
     // Extract and normalize factor scores from AI reasoning
     final factors = <String, double>{};
-    
+
     // Look for common factor keys
     final factorKeys = [
       'policyEligibility',
@@ -405,7 +384,7 @@ class AIExplainabilityWidget extends StatelessWidget {
       'preExistingConditions',
       'coverageLimits',
     ];
-    
+
     for (final key in factorKeys) {
       if (reasoning.containsKey(key)) {
         final value = reasoning[key];
@@ -416,22 +395,19 @@ class AIExplainabilityWidget extends StatelessWidget {
         }
       }
     }
-    
+
     // Sort by absolute impact
     final sorted = Map.fromEntries(
       factors.entries.toList()
         ..sort((a, b) => b.value.abs().compareTo(a.value.abs())),
     );
-    
+
     return sorted;
   }
 
   String _formatFactorName(String key) {
     return key
-        .replaceAllMapped(
-          RegExp(r'([A-Z])'),
-          (match) => ' ${match.group(0)}',
-        )
+        .replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(0)}')
         .trim()
         .split(' ')
         .map((word) => word[0].toUpperCase() + word.substring(1))
@@ -442,33 +418,35 @@ class AIExplainabilityWidget extends StatelessWidget {
     final insights = <String>[];
     final isApproved = claim.aiDecision!.value == 'approve';
     final confidence = claim.aiConfidenceScore ?? 0.0;
-    
+
     if (isApproved) {
       insights.add('This claim meets all policy coverage requirements');
-      
+
       if (confidence >= 0.9) {
         insights.add('High confidence - clear-cut approval case');
       } else if (confidence >= 0.7) {
         insights.add('All major factors support approval');
       }
-      
+
       if (claim.claimAmount < 1000) {
         insights.add('Claim amount is within standard range');
       }
-      
+
       insights.add('Documentation appears complete and valid');
     } else {
       if (confidence >= 0.8) {
-        insights.add('Multiple factors indicate this claim should not be covered');
+        insights.add(
+          'Multiple factors indicate this claim should not be covered',
+        );
       }
-      
+
       insights.add('Review the specific reasons below to understand why');
-      
+
       if (claim.humanOverride != null) {
-        insights.add('A specialist reviewed this decision for accuracy');
+        insights.add('An exception override is recorded in the audit trail');
       }
     }
-    
+
     return insights;
   }
 

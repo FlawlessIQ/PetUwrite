@@ -26,6 +26,14 @@ export const metadata: Metadata = {
   },
   description:
     "Clovara helps pet parents cover accidents, illness, surgery, and vet bills with fast quotes and clear claims.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg?v=4", type: "image/svg+xml", sizes: "any" },
+      { url: "/favicon.png?v=4", type: "image/png", sizes: "32x32" }
+    ],
+    shortcut: [{ url: "/favicon.svg?v=4", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-touch-icon.png?v=4", type: "image/png", sizes: "180x180" }]
+  },
   keywords: [
     "pet insurance",
     "dog insurance",

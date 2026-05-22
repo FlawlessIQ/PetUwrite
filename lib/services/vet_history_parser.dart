@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -147,7 +146,9 @@ class VetHistoryParser {
     double referralConfidenceThreshold = 60,
   }) async {
     try {
-      final documentHash = crypto.sha256.convert(await pdfFile.readAsBytes()).toString();
+      final documentHash = crypto.sha256
+          .convert(await pdfFile.readAsBytes())
+          .toString();
       final storageRef = await _uploadToCaseStorage(
         pdfFile,
         caseId,
@@ -305,10 +306,7 @@ class VetHistoryParser {
 
       String extractedText;
       try {
-        extractedText = await _extractTextFromPdf(
-          downloadUrl,
-          gsPath: gsPath,
-        );
+        extractedText = await _extractTextFromPdf(downloadUrl, gsPath: gsPath);
       } catch (e) {
         final vetRecordDocId = await _saveCaseVetRecordFailure(
           caseId: caseId,
@@ -642,7 +640,8 @@ class VetHistoryParser {
           pdfUrl: null,
           imageUrl: downloadUrl,
           extractedTextUrl: null,
-          error: 'Image text extraction failed: ${e.toString()}${_aiDebugTag()}',
+          error:
+              'Image text extraction failed: ${e.toString()}${_aiDebugTag()}',
           sourceType: 'image',
           sourceFilename: filename,
           documentHash: documentHash,
@@ -1194,7 +1193,9 @@ class VetHistoryParser {
         // If extraction is intermittently empty (cold starts / transient errors),
         // retry once or twice before giving up.
         if (text.trim().isEmpty) {
-          throw VetHistoryParseException('PDF text extraction returned empty text');
+          throw VetHistoryParseException(
+            'PDF text extraction returned empty text',
+          );
         }
 
         return text;
@@ -1244,7 +1245,9 @@ class VetHistoryParser {
         }
 
         if (text.trim().isEmpty) {
-          throw VetHistoryParseException('Image text extraction returned empty text');
+          throw VetHistoryParseException(
+            'Image text extraction returned empty text',
+          );
         }
 
         return text;
@@ -1619,18 +1622,30 @@ Return only valid JSON, no additional text.
   }
 
   static final _monthNames = <String, int>{
-    'jan': 1, 'january': 1,
-    'feb': 2, 'february': 2,
-    'mar': 3, 'march': 3,
-    'apr': 4, 'april': 4,
+    'jan': 1,
+    'january': 1,
+    'feb': 2,
+    'february': 2,
+    'mar': 3,
+    'march': 3,
+    'apr': 4,
+    'april': 4,
     'may': 5,
-    'jun': 6, 'june': 6,
-    'jul': 7, 'july': 7,
-    'aug': 8, 'august': 8,
-    'sep': 9, 'sept': 9, 'september': 9,
-    'oct': 10, 'october': 10,
-    'nov': 11, 'november': 11,
-    'dec': 12, 'december': 12,
+    'jun': 6,
+    'june': 6,
+    'jul': 7,
+    'july': 7,
+    'aug': 8,
+    'august': 8,
+    'sep': 9,
+    'sept': 9,
+    'september': 9,
+    'oct': 10,
+    'october': 10,
+    'nov': 11,
+    'november': 11,
+    'dec': 12,
+    'december': 12,
   };
 
   DateTime? _tryParseDate(dynamic v) {
@@ -1646,9 +1661,7 @@ Return only valid JSON, no additional text.
     final lower = s.toLowerCase();
 
     // 2) "Month YYYY" or "Month DD, YYYY" or "DD Month YYYY".
-    final mdyMatch = RegExp(
-      r'(\w+)\s+(\d{1,2}),?\s+(\d{4})',
-    ).firstMatch(lower);
+    final mdyMatch = RegExp(r'(\w+)\s+(\d{1,2}),?\s+(\d{4})').firstMatch(lower);
     if (mdyMatch != null) {
       final month = _monthNames[mdyMatch.group(1)];
       final day = int.tryParse(mdyMatch.group(2) ?? '');
@@ -1659,9 +1672,7 @@ Return only valid JSON, no additional text.
     }
 
     // 3) "DD Month YYYY"
-    final dmyMatch = RegExp(
-      r'(\d{1,2})\s+(\w+)\s+(\d{4})',
-    ).firstMatch(lower);
+    final dmyMatch = RegExp(r'(\d{1,2})\s+(\w+)\s+(\d{4})').firstMatch(lower);
     if (dmyMatch != null) {
       final day = int.tryParse(dmyMatch.group(1) ?? '');
       final month = _monthNames[dmyMatch.group(2)];
@@ -1672,9 +1683,7 @@ Return only valid JSON, no additional text.
     }
 
     // 4) "Month YYYY" (no day).
-    final myMatch = RegExp(
-      r'(\w+)\s+(\d{4})',
-    ).firstMatch(lower);
+    final myMatch = RegExp(r'(\w+)\s+(\d{4})').firstMatch(lower);
     if (myMatch != null) {
       final month = _monthNames[myMatch.group(1)];
       final year = int.tryParse(myMatch.group(2) ?? '');
@@ -1772,8 +1781,10 @@ Return only valid JSON, no additional text.
     out['diagnoses'] = _sanitizeList(raw['diagnoses'], (m) {
       final condition = (m['condition'] as String?)?.trim();
       if (condition == null || condition.isEmpty) {
-        debugPrint('[VetRecordParse] Dropped diagnosis: empty condition field '
-            '(raw: ${m.keys.toList()})');
+        debugPrint(
+          '[VetRecordParse] Dropped diagnosis: empty condition field '
+          '(raw: ${m.keys.toList()})',
+        );
         return null;
       }
 
@@ -1787,19 +1798,21 @@ Return only valid JSON, no additional text.
       const validStatuses = {'active', 'resolved', 'chronic'};
       final effectiveStatus =
           (status != null && validStatuses.contains(status.toLowerCase()))
-              ? status.toLowerCase()
-              : 'active';
+          ? status.toLowerCase()
+          : 'active';
       const validSeverities = {'mild', 'moderate', 'severe'};
       final effectiveSeverity =
           (severity != null && validSeverities.contains(severity.toLowerCase()))
-              ? severity.toLowerCase()
-              : 'unknown';
+          ? severity.toLowerCase()
+          : 'unknown';
 
       if (date == null || status == null || severity == null) {
-        debugPrint('[VetRecordParse] Diagnosis "$condition" recovered with '
-            'defaults: date=${date == null ? "defaulted (raw=$rawDate)" : "ok"}, '
-            'status=${status ?? "defaulted→$effectiveStatus"}, '
-            'severity=${severity ?? "defaulted→$effectiveSeverity"}');
+        debugPrint(
+          '[VetRecordParse] Diagnosis "$condition" recovered with '
+          'defaults: date=${date == null ? "defaulted (raw=$rawDate)" : "ok"}, '
+          'status=${status ?? "defaulted→$effectiveStatus"}, '
+          'severity=${severity ?? "defaulted→$effectiveSeverity"}',
+        );
       }
 
       return {
@@ -1827,13 +1840,15 @@ Return only valid JSON, no additional text.
       };
     });
 
-    debugPrint('[VetRecordParse] _sanitizeVetJson summary: '
-        '${(out['diagnoses'] as List).length} diagnoses, '
-        '${(out['treatments'] as List).length} treatments, '
-        '${(out['medications'] as List).length} medications, '
-        '${(out['vaccinations'] as List).length} vaccinations, '
-        '${(out['surgeries'] as List).length} surgeries, '
-        '${(out['allergies'] as List).length} allergies');
+    debugPrint(
+      '[VetRecordParse] _sanitizeVetJson summary: '
+      '${(out['diagnoses'] as List).length} diagnoses, '
+      '${(out['treatments'] as List).length} treatments, '
+      '${(out['medications'] as List).length} medications, '
+      '${(out['vaccinations'] as List).length} vaccinations, '
+      '${(out['surgeries'] as List).length} surgeries, '
+      '${(out['allergies'] as List).length} allergies',
+    );
 
     return out;
   }

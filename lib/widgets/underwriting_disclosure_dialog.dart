@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/underwriting_decision.dart';
 import '../theme/clovara_theme.dart';
 
@@ -44,12 +45,20 @@ class _UnderwritingDisclosureDialogState
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
-          Icon(Icons.cancel_outlined, color: ClovaraColors.kWarmCoral, size: 28),
+          Icon(
+            Icons.cancel_outlined,
+            color: ClovaraColors.kWarmCoral,
+            size: 28,
+          ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Coverage Decision',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              'Coverage not available',
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                height: 1.1,
+              ),
             ),
           ),
         ],
@@ -60,8 +69,8 @@ class _UnderwritingDisclosureDialogState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'We\'re unable to offer coverage for ${widget.petName} at this time based on our underwriting guidelines.',
-              style: const TextStyle(fontSize: 15, height: 1.5),
+              'Clovara could not offer coverage for ${widget.petName} based on the automated eligibility rules and the information provided.',
+              style: GoogleFonts.dmSans(fontSize: 15, height: 1.5),
             ),
             const SizedBox(height: 16),
             _buildReasonCodesSection(),
@@ -69,19 +78,23 @@ class _UnderwritingDisclosureDialogState
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: const Color(0xFFEEF7F2),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(color: const Color(0xFFE8E3DA)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  const Icon(
+                    Icons.info_outline,
+                    color: Color(0xFF2D6A4F),
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'You may contact our underwriting team for additional information or to discuss alternative coverage options.',
-                      style: TextStyle(fontSize: 13, height: 1.4),
+                      'This decision is generated from the same eligibility rules used for every application. You can start a new quote if details change, or contact support if any information shown is incorrect.',
+                      style: GoogleFonts.dmSans(fontSize: 13, height: 1.4),
                     ),
                   ),
                 ],
@@ -104,12 +117,20 @@ class _UnderwritingDisclosureDialogState
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
-          Icon(Icons.check_circle_outline, color: ClovaraColors.clover, size: 28),
+          Icon(
+            Icons.check_circle_outline,
+            color: ClovaraColors.clover,
+            size: 28,
+          ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Coverage Approved with Exclusions',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              'Approved with coverage exclusions',
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                height: 1.1,
+              ),
             ),
           ),
         ],
@@ -120,58 +141,66 @@ class _UnderwritingDisclosureDialogState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Good news! We can offer coverage for ${widget.petName}, but certain conditions will be excluded based on pre-existing medical history.',
-              style: const TextStyle(fontSize: 15, height: 1.5),
+              'Clovara can offer coverage for ${widget.petName} with specific exclusions based on the medical history provided.',
+              style: GoogleFonts.dmSans(fontSize: 15, height: 1.5),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Excluded Conditions:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            Text(
+              'Excluded conditions',
+              style: GoogleFonts.dmSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 8),
-            ...widget.decision.exclusions.map((exclusion) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.shade200),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.warning_amber_rounded,
-                            color: Colors.orange.shade700, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+            ...widget.decision.exclusions.map(
+              (exclusion) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.orange.shade700,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              exclusion.conditionName,
+                              style: GoogleFonts.dmSans(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (exclusion.notes?.isNotEmpty == true) ...[
+                              const SizedBox(height: 4),
                               Text(
-                                exclusion.conditionName,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                                exclusion.notes!,
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade700,
                                 ),
                               ),
-                              if (exclusion.notes?.isNotEmpty == true) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  exclusion.notes!,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                              ],
                             ],
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                )),
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
             _buildReasonCodesSection(),
             const SizedBox(height: 16),
@@ -185,12 +214,16 @@ class _UnderwritingDisclosureDialogState
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.blue.shade700,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Claims related to the excluded condition${widget.decision.exclusions.length > 1 ? 's' : ''} will not be covered. All other eligible veterinary care will be covered according to your plan terms.',
-                      style: const TextStyle(fontSize: 13, height: 1.4),
+                      style: GoogleFonts.dmSans(fontSize: 13, height: 1.4),
                     ),
                   ),
                 ],
@@ -207,9 +240,12 @@ class _UnderwritingDisclosureDialogState
               controlAffinity: ListTileControlAffinity.leading,
               contentPadding: EdgeInsets.zero,
               dense: true,
-              title: const Text(
-                'I understand and acknowledge these exclusions',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              title: Text(
+                'I understand these exclusions before choosing a plan',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -221,9 +257,7 @@ class _UnderwritingDisclosureDialogState
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: _acknowledged
-              ? () => Navigator.pop(context, true)
-              : null,
+          onPressed: _acknowledged ? () => Navigator.pop(context, true) : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: ClovaraColors.clover,
             foregroundColor: Colors.white,
@@ -242,10 +276,14 @@ class _UnderwritingDisclosureDialogState
         children: [
           Icon(Icons.check_circle, color: ClovaraColors.clover, size: 28),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Coverage Approved',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              'Approved automatically',
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                height: 1.1,
+              ),
             ),
           ),
         ],
@@ -255,8 +293,8 @@ class _UnderwritingDisclosureDialogState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${widget.petName} has been approved for standard coverage with no exclusions!',
-            style: const TextStyle(fontSize: 15, height: 1.5),
+            '${widget.petName} passed automated eligibility with no condition-specific exclusions.',
+            style: GoogleFonts.dmSans(fontSize: 15, height: 1.5),
           ),
           const SizedBox(height: 16),
           _buildReasonCodesSection(),
@@ -282,8 +320,8 @@ class _UnderwritingDisclosureDialogState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Decision Reference:',
-          style: TextStyle(
+          'Decision signals',
+          style: GoogleFonts.dmSans(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: Colors.grey.shade600,
@@ -296,7 +334,10 @@ class _UnderwritingDisclosureDialogState
           children: widget.decision.reasonCodes
               .map(
                 (code) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(4),

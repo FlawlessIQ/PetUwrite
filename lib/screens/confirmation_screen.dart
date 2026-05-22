@@ -90,7 +90,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
         final decision = await uwService.getCurrentDecision(caseId);
         if (decision == null) {
           throw Exception(
-            'Underwriting decision missing. Please return to underwriting to complete review, then try again.',
+            'Underwriting decision missing. Please return to the medical details step so the automated decision can complete, then try again.',
           );
         }
 
@@ -110,7 +110,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
       if ((hasDeclaredConditions || provider.exclusions.isNotEmpty) &&
           underwritingSnapshot == null) {
         throw Exception(
-          'Underwriting decision missing. Please return to underwriting to complete review, then try again.',
+          'Underwriting decision missing. Please return to the medical details step so the automated decision can complete, then try again.',
         );
       }
 
@@ -705,10 +705,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
         throw Exception('Invalid PDF URL');
       }
 
-      final opened = await launchUrl(
-        pdfUri,
-        mode: LaunchMode.platformDefault,
-      );
+      final opened = await launchUrl(pdfUri, mode: LaunchMode.platformDefault);
       if (!opened) {
         throw Exception('Unable to open generated PDF');
       }

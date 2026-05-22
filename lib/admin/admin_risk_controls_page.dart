@@ -15,16 +15,16 @@ class AdminRiskControlsPage extends StatefulWidget {
 class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  
+
   // Loading and auth state
   bool _isLoading = true;
   bool _hasChanges = false;
   bool _isAuthorized = false;
   DateTime? _lastUpdated;
-  
+
   // Risk Appetite
   double _maxRiskScore = 80.0;
-  
+
   // Breed Exclusions
   final List<String> _availableBreeds = [
     'Pit Bull',
@@ -39,7 +39,7 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
     'Great Dane',
   ];
   List<String> _excludedBreeds = [];
-  
+
   // Medical Conditions
   final Map<String, bool> _excludedConditions = {
     'Allergies': false,
@@ -51,18 +51,26 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
     'Liver Disease': false,
     'Epilepsy': false,
   };
-  
+
   // Pricing Multipliers
-  final TextEditingController _basePremiumController = TextEditingController(text: '35.00');
-  final TextEditingController _riskMultiplierController = TextEditingController(text: '1.5');
-  final TextEditingController _breedAddonController = TextEditingController(text: '0.15');
-  final TextEditingController _regionalModifierController = TextEditingController(text: '1.0');
-  
+  final TextEditingController _basePremiumController = TextEditingController(
+    text: '35.00',
+  );
+  final TextEditingController _riskMultiplierController = TextEditingController(
+    text: '1.5',
+  );
+  final TextEditingController _breedAddonController = TextEditingController(
+    text: '0.15',
+  );
+  final TextEditingController _regionalModifierController =
+      TextEditingController(text: '1.0');
+
   // AI Prompt
   final TextEditingController _aiPromptController = TextEditingController(
-    text: 'Analyze pet insurance risk focusing on age, breed health history, and regional factors.',
+    text:
+        'Analyze pet insurance risk focusing on age, breed health history, and regional factors.',
   );
-  
+
   // UI Flags
   bool _showExplainability = true;
   bool _allowManualOverride = false;
@@ -135,41 +143,47 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
 
       if (doc.exists) {
         final data = doc.data()!;
-        
+
         setState(() {
           // Risk Appetite
           _maxRiskScore = (data['risk_max_score'] as num?)?.toDouble() ?? 80.0;
-          
+
           // Breed Exclusions
           _excludedBreeds = List<String>.from(data['excluded_breeds'] ?? []);
-          
+
           // Medical Conditions
-          final conditions = data['excluded_conditions'] as Map<String, dynamic>? ?? {};
+          final conditions =
+              data['excluded_conditions'] as Map<String, dynamic>? ?? {};
           conditions.forEach((key, value) {
             if (_excludedConditions.containsKey(key)) {
               _excludedConditions[key] = value as bool;
             }
           });
-          
+
           // Pricing
           final pricing = data['pricing_config'] as Map<String, dynamic>? ?? {};
-          _basePremiumController.text = (pricing['base_premium'] ?? 35.0).toString();
-          _riskMultiplierController.text = (pricing['risk_multiplier'] ?? 1.5).toString();
-          _breedAddonController.text = (pricing['breed_addon'] ?? 0.15).toString();
-          _regionalModifierController.text = (pricing['regional_modifier'] ?? 1.0).toString();
-          
+          _basePremiumController.text = (pricing['base_premium'] ?? 35.0)
+              .toString();
+          _riskMultiplierController.text = (pricing['risk_multiplier'] ?? 1.5)
+              .toString();
+          _breedAddonController.text = (pricing['breed_addon'] ?? 0.15)
+              .toString();
+          _regionalModifierController.text =
+              (pricing['regional_modifier'] ?? 1.0).toString();
+
           // AI Prompt
-          _aiPromptController.text = data['ai_prompt_override'] as String? ?? 
+          _aiPromptController.text =
+              data['ai_prompt_override'] as String? ??
               'Analyze pet insurance risk focusing on age, breed health history, and regional factors.';
-          
+
           // UI Flags
           final uiFlags = data['ui_flags'] as Map<String, dynamic>? ?? {};
           _showExplainability = uiFlags['show_explainability'] ?? true;
           _allowManualOverride = uiFlags['allow_manual_override'] ?? false;
-          
+
           // Last Updated
           _lastUpdated = (data['last_updated'] as Timestamp?)?.toDate();
-          
+
           _isLoading = false;
           _hasChanges = false;
         });
@@ -202,9 +216,11 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
         'excluded_conditions': _excludedConditions,
         'pricing_config': {
           'base_premium': double.tryParse(_basePremiumController.text) ?? 35.0,
-          'risk_multiplier': double.tryParse(_riskMultiplierController.text) ?? 1.5,
+          'risk_multiplier':
+              double.tryParse(_riskMultiplierController.text) ?? 1.5,
           'breed_addon': double.tryParse(_breedAddonController.text) ?? 0.15,
-          'regional_modifier': double.tryParse(_regionalModifierController.text) ?? 1.0,
+          'regional_modifier':
+              double.tryParse(_regionalModifierController.text) ?? 1.0,
         },
         'ai_prompt_override': _aiPromptController.text,
         'ui_flags': {
@@ -292,11 +308,7 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.block,
-                  size: 64,
-                  color: ClovaraColors.kWarmCoral,
-                ),
+                Icon(Icons.block, size: 64, color: ClovaraColors.kWarmCoral),
                 const SizedBox(height: 16),
                 Text(
                   'Access Denied',
@@ -344,7 +356,11 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.warning_amber, size: 16, color: Colors.white),
+                  const Icon(
+                    Icons.warning_amber,
+                    size: 16,
+                    color: Colors.white,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Unsaved',
@@ -425,9 +441,7 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
       children: [
         Text(
           'Maximum Acceptable Risk Score',
-          style: ClovaraTypography.h3.copyWith(
-            color: ClovaraColors.forest,
-          ),
+          style: ClovaraTypography.h3.copyWith(color: ClovaraColors.forest),
         ),
         const SizedBox(height: 8),
         Text(
@@ -604,7 +618,8 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
         _buildNumberField(
           label: 'Risk Multiplier',
           controller: _riskMultiplierController,
-          helper: 'Multiplier applied per risk score (e.g., 1.5 = 50% increase at max risk)',
+          helper:
+              'Multiplier applied per risk score (e.g., 1.5 = 50% increase at max risk)',
         ),
         const SizedBox(height: 16),
         _buildNumberField(
@@ -637,9 +652,7 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
         TextField(
           controller: _aiPromptController,
           maxLines: 5,
-          style: ClovaraTypography.body.copyWith(
-            color: ClovaraColors.forest,
-          ),
+          style: ClovaraTypography.body.copyWith(color: ClovaraColors.forest),
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white.withOpacity(0.5),
@@ -670,18 +683,12 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
           decoration: BoxDecoration(
             color: ClovaraColors.clover.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: ClovaraColors.clover.withOpacity(0.3),
-            ),
+            border: Border.all(color: ClovaraColors.clover.withOpacity(0.3)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.info_outline,
-                color: ClovaraColors.clover,
-                size: 20,
-              ),
+              Icon(Icons.info_outline, color: ClovaraColors.clover, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -744,13 +751,13 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
           ),
           child: SwitchListTile(
             title: Text(
-              'Allow Manual Override by Underwriter',
+              'Allow Exception Override',
               style: ClovaraTypography.body.copyWith(
                 color: ClovaraColors.forest,
               ),
             ),
             subtitle: Text(
-              'Permit admin users to manually adjust quotes',
+              'Permit audited admin recovery when automation cannot complete',
               style: ClovaraTypography.bodySmall.copyWith(
                 color: ClovaraColors.forest.withOpacity(0.6),
               ),
@@ -822,23 +829,17 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
       children: [
         Text(
           label,
-          style: ClovaraTypography.h3.copyWith(
-            color: ClovaraColors.forest,
-          ),
+          style: ClovaraTypography.h3.copyWith(color: ClovaraColors.forest),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: ClovaraTypography.body.copyWith(
-            color: ClovaraColors.forest,
-          ),
+          style: ClovaraTypography.body.copyWith(color: ClovaraColors.forest),
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white.withOpacity(0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
@@ -876,7 +877,20 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
   }
 
   String _formatDateTime(DateTime dateTime) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final month = months[dateTime.month - 1];
     final day = dateTime.day;
     final year = dateTime.year;

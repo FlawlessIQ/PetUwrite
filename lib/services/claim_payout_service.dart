@@ -35,7 +35,7 @@ class ClaimPayoutService {
     GPTService? aiService,
   }) : _stripeSecretKey = stripeSecretKey ?? '',
        _sendGridApiKey = sendGridApiKey ?? '',
-      _aiService = aiService ?? GPTService();
+       _aiService = aiService ?? GPTService();
 
   /// Process approved claim - trigger payout and notifications
   ///
@@ -722,9 +722,9 @@ Write the denial message now (just the message body, no subject line):
   /// Fallback generic denial message
   String _getGenericDenialMessage(Claim claim) {
     return '''
-We understand how much you care about your pet's health, and we carefully reviewed your claim for ${_formatCurrency(claim.claimAmount, claim.currency)}.
+We understand how much you care about your pet's health, and Clovara completed the claim check for ${_formatCurrency(claim.claimAmount, claim.currency)}.
 
-Unfortunately, after reviewing the documentation and policy terms, we are unable to approve this claim at this time. This decision is based on the specific circumstances of this treatment and how they align with your policy coverage.
+Unfortunately, after checking the documentation and policy terms, we are unable to approve this claim at this time. This decision is based on the specific circumstances of this treatment and how they align with your policy coverage.
 
 We know this isn't the news you were hoping for. If you have questions about this decision or would like to discuss your coverage options, our team is here to help. You can reach us at claims@clovara.com or call 1-800-CLOVARA.
 
@@ -778,7 +778,7 @@ The Clovara Claims Team
         type: 'claim_denied',
         title: 'Claim Decision Update',
         message:
-            'We\'ve reviewed your claim for $petName. Please check your email for details.',
+            'Clovara completed the claim check for $petName. Please check your email for details.',
         data: {'claimId': claim.claimId, 'denialMessage': denialMessage},
       );
 
@@ -1122,7 +1122,7 @@ The Clovara Claims Team
     
     <p>Hi $recipientName,</p>
     
-    <p>We've completed our review of your claim for <strong>$petName</strong>.</p>
+    <p>We've completed the claim check for <strong>$petName</strong>.</p>
     
     <div class="message-box">
 $denialMessage

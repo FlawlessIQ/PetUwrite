@@ -521,7 +521,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
       _isAITyping = true;
     });
 
-    _addAIMessage("Perfect! Let me review everything you've shared... 🤔");
+    _addAIMessage("Perfect! Let me check everything you've shared... 🤔");
 
     await Future.delayed(const Duration(seconds: 2));
 
@@ -596,10 +596,13 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
       _draftClaimId = claimId;
       await _saveDraft();
 
-      await FirebaseFirestore.instance.collection('claims').doc(claimId).update({
-        'status': ClaimStatus.submitted.value,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await FirebaseFirestore.instance
+          .collection('claims')
+          .doc(claimId)
+          .update({
+            'status': ClaimStatus.submitted.value,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       // Create final claim
       final claim = Claim(
@@ -620,7 +623,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
       _addAIMessage(
         "✅ Your claim has been successfully submitted!\n\n"
         "Claim ID: ${claim.claimId}\n\n"
-        "Thanks — our system is reviewing it now. We'll keep you posted here and by email.",
+        "Thanks — our system is checking it now. We'll keep you posted here and by email.",
       );
 
       // Trigger decision processing immediately
@@ -629,7 +632,7 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
       } catch (e) {
         print('Decision processing failed, will be processed later: $e');
         _addAIMessage(
-          "Your claim is submitted and will be reviewed within 24-48 hours. "
+          "Your claim is submitted and will continue through the automated checks within 24-48 hours. "
           "You'll receive updates via email and in your policy dashboard.",
         );
       }
@@ -649,10 +652,10 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
     }
   }
 
-  /// Trigger decision processing for instant review
+  /// Trigger decision processing for instant automated checks.
   Future<void> _triggerAIDecision(Claim claim) async {
     try {
-      _addAIMessage("Reviewing your claim... This will just take a moment! ⏱️");
+      _addAIMessage("Checking your claim... This will just take a moment! ⏱️");
 
       final callable = FirebaseFunctions.instance.httpsCallable(
         'processClaimDecision',
@@ -683,8 +686,8 @@ class _ClaimIntakeScreenState extends State<ClaimIntakeScreen>
       } else {
         // Routed to additional review
         _addAIMessage(
-          "Your claim has been submitted for review by our team.\n\n"
-          "We'll carefully review all the details and get back to you within 24-48 hours. "
+          "Your claim needs an additional automated evidence check.\n\n"
+          "Clovara is checking the policy rules, invoice details, and supporting records. "
           "You'll receive updates via email and in your policy dashboard.\n\n"
           "Is there anything else I can help you with today? 🐾",
         );

@@ -48,7 +48,7 @@ class PrivacyPage extends StatelessWidget {
                   _LegalSummaryItem(
                     title: 'Why we collect data',
                     body:
-                        'To quote, underwrite, bind, service, and review claims.',
+                        'To quote, underwrite, bind, service, and process claims.',
                   ),
                   _LegalSummaryItem(
                     title: 'What we collect',
@@ -82,7 +82,7 @@ class PrivacyPage extends StatelessWidget {
                 _LegalCard(
                   title: 'How we use information',
                   body:
-                      'We use data to generate quotes, determine eligibility, fulfill policy operations, support claims review, improve product quality, communicate with you, and satisfy legal obligations.',
+                      'We use data to generate quotes, determine eligibility, fulfill policy operations, support claims processing, improve product quality, communicate with you, and satisfy legal obligations.',
                 ),
                 _LegalCard(
                   title: 'How long we keep it',

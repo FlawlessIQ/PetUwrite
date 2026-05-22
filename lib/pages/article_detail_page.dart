@@ -239,7 +239,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                               icon: Icons.receipt_long_outlined,
                               title: 'Ask for itemized invoices',
                               body:
-                                  'The cleaner the invoice, the less back-and-forth during review.',
+                                  'The cleaner the invoice, the less back-and-forth during the claim check.',
                             ),
                             ChecklistItem(
                               icon: Icons.folder_open_outlined,
@@ -271,9 +271,9 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                   'Typically no—most pet insurance works with any licensed vet. You pay the vet directly, then submit a claim.',
                             ),
                             AccordionItem(
-                              question: 'Why can a claim take time to review?',
+                              question: 'Why can a claim check take time?',
                               answer:
-                                  'Review may require itemized invoices, medical notes, and prior history to determine eligibility and pre-existing status.',
+                                  'Some checks require itemized invoices, medical notes, and prior history to determine eligibility and pre-existing status.',
                             ),
                             AccordionItem(
                               question: 'Is routine wellness covered?',
@@ -517,9 +517,9 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
       _Article(
         slug: 'claim-timelines',
         category: 'Claims',
-        title: 'Claim timelines: why review can take time (and what helps)',
+        title: 'Claim timelines: why checks can take time (and what helps)',
         excerpt:
-            'What reviewers look for and how to submit clean documentation.',
+            'What the system checks for and how to submit clean documentation.',
         readTime: '5 min read',
         heroImageAsset: 'assets/images/how it works.png',
       ),

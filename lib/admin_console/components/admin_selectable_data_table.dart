@@ -41,48 +41,51 @@ class AdminSelectableDataTable<T> extends StatelessWidget {
       builder: (context, constraints) {
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: DataTable(
-              showCheckboxColumn: showCheckboxColumn,
-              sortColumnIndex: sortColumnIndex,
-              sortAscending: sortAscending,
-              onSelectAll: showCheckboxColumn
-                  ? (value) {
-                      final next = Set<String>.from(selectedIds);
-                      final checked = value ?? false;
-                      if (checked) {
-                        next.addAll(visibleIds);
-                      } else {
-                        for (final id in visibleIds) {
-                          next.remove(id);
-                        }
-                      }
-                      onSelectedIdsChanged(next);
-                    }
-                  : null,
-              columns: columns,
-              rows: items.map((item) {
-                final id = getId(item);
-                final selected = selectedIds.contains(id);
-
-                return DataRow(
-                  selected: selected,
-                  onSelectChanged: showCheckboxColumn
-                      ? (value) {
-                          final next = Set<String>.from(selectedIds);
-                          final checked = value ?? false;
-                          if (checked) {
-                            next.add(id);
-                          } else {
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: DataTable(
+                showCheckboxColumn: showCheckboxColumn,
+                sortColumnIndex: sortColumnIndex,
+                sortAscending: sortAscending,
+                onSelectAll: showCheckboxColumn
+                    ? (value) {
+                        final next = Set<String>.from(selectedIds);
+                        final checked = value ?? false;
+                        if (checked) {
+                          next.addAll(visibleIds);
+                        } else {
+                          for (final id in visibleIds) {
                             next.remove(id);
                           }
-                          onSelectedIdsChanged(next);
                         }
-                      : null,
-                  cells: buildCells(context, item),
-                );
-              }).toList(),
+                        onSelectedIdsChanged(next);
+                      }
+                    : null,
+                columns: columns,
+                rows: items.map((item) {
+                  final id = getId(item);
+                  final selected = selectedIds.contains(id);
+
+                  return DataRow(
+                    selected: selected,
+                    onSelectChanged: showCheckboxColumn
+                        ? (value) {
+                            final next = Set<String>.from(selectedIds);
+                            final checked = value ?? false;
+                            if (checked) {
+                              next.add(id);
+                            } else {
+                              next.remove(id);
+                            }
+                            onSelectedIdsChanged(next);
+                          }
+                        : null,
+                    cells: buildCells(context, item),
+                  );
+                }).toList(),
+              ),
             ),
           ),
         );

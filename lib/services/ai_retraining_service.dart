@@ -3,18 +3,18 @@ import 'package:cloud_functions/cloud_functions.dart';
 import '../models/claim.dart';
 
 /// AI Retraining Service
-/// 
+///
 /// Collects data from settled claims to create training datasets for AI model improvement.
-/// 
+///
 /// Responsibilities:
-/// 1. Collect AI decisions and human overrides from settled claims
+/// 1. Collect AI decisions and audited exception overrides from settled claims
 /// 2. Automatically label data (correct/misclassified)
 /// 3. Store in batches of 500 records
 /// 4. Export batches to Google Cloud Storage
 /// 5. Generate JSONL datasets for fine-tuning
-/// 
+///
 /// Flow:
-/// Settled Claim → Extract AI Decision + Human Override → Label Data → 
+/// Settled Claim → Extract AI Decision + Exception Override → Label Data →
 /// Add to Current Batch → When 500 records → Export to GCS → Notify Admin
 class AIRetrainingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -30,7 +30,7 @@ class AIRetrainingService {
     try {
       // Get claim data
       final claimDoc = await _firestore.collection('claims').doc(claimId).get();
-      
+
       if (!claimDoc.exists) {
         throw Exception('Claim not found: $claimId');
       }
@@ -38,7 +38,7 @@ class AIRetrainingService {
       final claimData = claimDoc.data()!;
       final claim = Claim.fromMap(claimData, claimId);
 
-      // Only process settled claims with both AI decision and human override
+      // Only process settled claims with both AI decision and exception override.
       if (claim.status != ClaimStatus.settled) {
         return; // Not ready for training data collection
       }
@@ -55,7 +55,6 @@ class AIRetrainingService {
 
       // Add to current batch
       await _addToCurrentBatch(labeledRecord);
-
     } catch (e) {
       throw Exception('Failed to collect training data from claim: $e');
     }
@@ -64,7 +63,10 @@ class AIRetrainingService {
   /// Extract features from claim for training
   Future<Map<String, dynamic>> _extractTrainingFeatures(Claim claim) async {
     // Get additional context
-    final policyDoc = await _firestore.collection('policies').doc(claim.policyId).get();
+    final policyDoc = await _firestore
+        .collection('policies')
+        .doc(claim.policyId)
+        .get();
     final petDoc = await _firestore.collection('pets').doc(claim.petId).get();
 
     final policyData = policyDoc.data() ?? {};
@@ -73,50 +75,49 @@ class AIRetrainingService {
     return {
       'claimId': claim.claimId,
       'timestamp': FieldValue.serverTimestamp(),
-      
+
       // Claim details
       'claimType': claim.claimType,
       'claimAmount': claim.claimAmount,
       'currency': claim.currency,
       'incidentDate': claim.incidentDate,
       'description': claim.description,
-      
+
       // Pet details
       'petBreed': petData['breed'],
       'petAge': petData['age'],
       'petSpecies': petData['species'],
       'petPreExistingConditions': petData['preExistingConditions'] ?? [],
-      
+
       // Policy details
       'policyTier': policyData['plan']?['tier'],
       'annualLimit': policyData['plan']?['annualLimit'],
       'deductible': policyData['plan']?['deductible'],
       'reimbursementRate': policyData['plan']?['reimbursementPercentage'],
-      
+
       // AI Decision
       'aiDecision': claim.aiDecision!.value,
       'aiConfidenceScore': claim.aiConfidenceScore ?? 0.0,
       'aiReasoning': '', // TODO: Add aiReasoning field to Claim model
       'aiCategoryScores': {}, // TODO: Add aiCategoryScores field to Claim model
-      
-      // Human Override
+      // Exception Override. Keep legacy field names for stored training data.
       'humanDecision': claim.humanOverride!['decision'],
       'humanReason': claim.humanOverride!['reason'],
       'overriddenBy': claim.humanOverride!['overriddenBy'],
       'overriddenAt': claim.humanOverride!['overriddenAt'],
-      
+
       // Outcome
       'finalStatus': claim.status.value,
       'settledAmount': claim.claimAmount, // Could be different if adjusted
       'settledAt': claim.settledAt,
-      
+
       // Document analysis (if available)
       'documentsAnalyzed': claim.attachments.length,
       'attachmentUrls': claim.attachments, // Store URLs for reference
     };
   }
 
-  /// Label training data based on AI vs Human decision
+  /// Label training data based on AI vs exception-control decision
   Map<String, dynamic> _labelTrainingData(Map<String, dynamic> record) {
     final aiDecision = record['aiDecision'] as String;
     final humanDecision = record['humanDecision'] as String;
@@ -153,7 +154,7 @@ class AIRetrainingService {
       }
     }
 
-    // Calculate label confidence based on human override reasoning
+    // Calculate label confidence based on exception override reasoning.
     final humanReason = record['humanReason'] as String?;
     if (humanReason != null && humanReason.contains('borderline')) {
       labelConfidence = 0.7; // Lower confidence for borderline cases
@@ -169,7 +170,8 @@ class AIRetrainingService {
       'labelCategory': labelCategory,
       'labelConfidence': labelConfidence,
       'aiWasCorrect': aiDecision == humanDecision,
-      'confidenceGap': aiConfidence, // How confident AI was (useful for learning)
+      'confidenceGap':
+          aiConfidence, // How confident AI was (useful for learning)
       'labeledAt': FieldValue.serverTimestamp(),
     };
   }
@@ -190,13 +192,10 @@ class AIRetrainingService {
           .add(record);
 
       // Update batch metadata
-      await _firestore
-          .collection(batchMetadataCollection)
-          .doc(batchId)
-          .update({
-            'recordCount': recordCount + 1,
-            'lastUpdated': FieldValue.serverTimestamp(),
-          });
+      await _firestore.collection(batchMetadataCollection).doc(batchId).update({
+        'recordCount': recordCount + 1,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
 
       // Check if batch is complete
       if (recordCount + 1 >= batchSize) {
@@ -218,10 +217,7 @@ class AIRetrainingService {
 
     if (activeBatchQuery.docs.isNotEmpty) {
       final doc = activeBatchQuery.docs.first;
-      return {
-        'id': doc.id,
-        'recordCount': doc.data()['recordCount'] ?? 0,
-      };
+      return {'id': doc.id, 'recordCount': doc.data()['recordCount'] ?? 0};
     }
 
     // Create new batch
@@ -235,10 +231,7 @@ class AIRetrainingService {
       'targetSize': batchSize,
     });
 
-    return {
-      'id': batchId,
-      'recordCount': 0,
-    };
+    return {'id': batchId, 'recordCount': 0};
   }
 
   /// Complete a batch and trigger export
@@ -251,10 +244,9 @@ class AIRetrainingService {
       });
 
       // Trigger export Cloud Function
-      await _functions
-          .httpsCallable('exportAITrainingBatch')
-          .call({'batchId': batchId});
-
+      await _functions.httpsCallable('exportAITrainingBatch').call({
+        'batchId': batchId,
+      });
     } catch (e) {
       throw Exception('Failed to complete batch: $e');
     }
@@ -329,7 +321,7 @@ class AIRetrainingService {
       }
 
       final batchId = batchQuery.docs.first.id;
-      
+
       // Get records from this batch
       final recordsSnapshot = await _firestore
           .collection(trainingDataCollection)
@@ -338,7 +330,7 @@ class AIRetrainingService {
           .get();
 
       final distribution = <String, int>{};
-      
+
       for (final doc in recordsSnapshot.docs) {
         final label = doc.data()['label'] as String?;
         if (label != null) {
@@ -403,15 +395,15 @@ class AIRetrainingService {
       }
 
       final accuracy = correctPredictions / totalRecords;
-      
+
       final precision = (truePositives + falsePositives) > 0
           ? truePositives / (truePositives + falsePositives)
           : 0.0;
-      
+
       final recall = (truePositives + falseNegatives) > 0
           ? truePositives / (truePositives + falseNegatives)
           : 0.0;
-      
+
       final f1Score = (precision + recall) > 0
           ? 2 * (precision * recall) / (precision + recall)
           : 0.0;
@@ -423,12 +415,7 @@ class AIRetrainingService {
         'f1Score': f1Score,
       };
     } catch (e) {
-      return {
-        'accuracy': 0.0,
-        'precision': 0.0,
-        'recall': 0.0,
-        'f1Score': 0.0,
-      };
+      return {'accuracy': 0.0, 'precision': 0.0, 'recall': 0.0, 'f1Score': 0.0};
     }
   }
 
@@ -476,9 +463,9 @@ class AIRetrainingService {
   /// Manually trigger batch export (admin only)
   Future<void> triggerBatchExport(String batchId) async {
     try {
-      await _functions
-          .httpsCallable('exportAITrainingBatch')
-          .call({'batchId': batchId});
+      await _functions.httpsCallable('exportAITrainingBatch').call({
+        'batchId': batchId,
+      });
     } catch (e) {
       throw Exception('Failed to trigger batch export: $e');
     }

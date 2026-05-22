@@ -381,7 +381,15 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       return 'heart';
     }
 
-    if (hasAny(const ['cancer', 'tumor', 'tumour', 'lymphoma', 'carcinoma', 'sarcoma', 'mass'])) {
+    if (hasAny(const [
+      'cancer',
+      'tumor',
+      'tumour',
+      'lymphoma',
+      'carcinoma',
+      'sarcoma',
+      'mass',
+    ])) {
       return 'cancer';
     }
 
@@ -393,7 +401,14 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       return 'thyroid';
     }
 
-    if (hasAny(const ['kidney', 'renal', 'urinary', 'bladder', 'uti', 'cystitis'])) {
+    if (hasAny(const [
+      'kidney',
+      'renal',
+      'urinary',
+      'bladder',
+      'uti',
+      'cystitis',
+    ])) {
       return 'kidney_urinary';
     }
 
@@ -412,8 +427,12 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       return true;
     }
 
-    final existingCode = MedicalConditionFactMapper.conditionCodeFromName(existingName);
-    final incomingCode = MedicalConditionFactMapper.conditionCodeFromName(incomingName);
+    final existingCode = MedicalConditionFactMapper.conditionCodeFromName(
+      existingName,
+    );
+    final incomingCode = MedicalConditionFactMapper.conditionCodeFromName(
+      incomingName,
+    );
     return existingCode.isNotEmpty && existingCode == incomingCode;
   }
 
@@ -472,8 +491,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     final existingIsGeneric = _isGenericConditionLabel(existingName);
     final incomingIsGeneric = _isGenericConditionLabel(incomingName);
     final shouldReplaceName =
-      (existingIsGeneric && !incomingIsGeneric) ||
-      (!incomingIsGeneric && incomingName.length > (existingName.length + 6));
+        (existingIsGeneric && !incomingIsGeneric) ||
+        (!incomingIsGeneric && incomingName.length > (existingName.length + 6));
 
     DateTime diagnosisDate = existing.diagnosisDate;
     if (_isPlaceholderDiagnosisDate(existing.diagnosisDate) &&
@@ -581,10 +600,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                   tooltip: 'Back',
                 ),
                 const SizedBox(width: 4),
-                const ClovaraLogo(
-                  size: ClovaraLogoSize.small,
-                  showText: false,
-                ),
+                const ClovaraLogo(size: ClovaraLogoSize.small, showText: false),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -729,7 +745,8 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
               _buildEmptyState(
                 icon: Icons.medication_outlined,
                 title: 'No medications yet',
-                message: 'Add medications ${widget.pet.name} is currently taking',
+                message:
+                    'Add medications ${widget.pet.name} is currently taking',
               )
             else
               ..._medications.map((med) => _buildMedicationCard(med)),
@@ -935,34 +952,37 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
 
     final lower = message.toLowerCase();
     final isError = lower.contains('failed') || lower.contains('error');
-    final isSuccess = !isError &&
-        (lower.contains('applied') || lower.contains('uploaded') || lower.contains('parsed'));
+    final isSuccess =
+        !isError &&
+        (lower.contains('applied') ||
+            lower.contains('uploaded') ||
+            lower.contains('parsed'));
     final accent = isError
         ? ClovaraColors.error
         : _isUploadingVetRecord
-            ? ClovaraColors.clover
-            : isSuccess
-                ? ClovaraColors.success
-                : ClovaraColors.forest;
+        ? ClovaraColors.clover
+        : isSuccess
+        ? ClovaraColors.success
+        : ClovaraColors.forest;
     final background = isError
         ? ClovaraColors.error.withOpacity(0.08)
         : _isUploadingVetRecord
-            ? ClovaraColors.clover.withOpacity(0.06)
-            : isSuccess
-                ? ClovaraColors.success.withOpacity(0.08)
-                : ClovaraColors.mist;
+        ? ClovaraColors.clover.withOpacity(0.06)
+        : isSuccess
+        ? ClovaraColors.success.withOpacity(0.08)
+        : ClovaraColors.mist;
     final title = isError
         ? 'We hit a problem with this upload'
         : _isUploadingVetRecord
-            ? 'Parsing vet records...'
-            : isSuccess
-                ? 'Vet record update complete'
-                : 'Vet record status';
+        ? 'Parsing vet records...'
+        : isSuccess
+        ? 'Vet record update complete'
+        : 'Vet record status';
     final icon = isError
         ? Icons.error_outline_rounded
         : _isUploadingVetRecord
-            ? Icons.hourglass_top_rounded
-            : Icons.check_circle_outline_rounded;
+        ? Icons.hourglass_top_rounded
+        : Icons.check_circle_outline_rounded;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -1403,11 +1423,13 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
     var vetVisitsAdded = 0;
     var allergiesAdded = 0;
 
-    debugPrint('[MedicalHistoryApply] Autofill input: '
-        '${parsed.diagnoses.length} diagnoses, '
-        '${parsed.treatments.length} treatments, '
-        '${parsed.medications.length} medications, '
-        '${parsed.vaccinations.length} vaccinations');
+    debugPrint(
+      '[MedicalHistoryApply] Autofill input: '
+      '${parsed.diagnoses.length} diagnoses, '
+      '${parsed.treatments.length} treatments, '
+      '${parsed.medications.length} medications, '
+      '${parsed.vaccinations.length} vaccinations',
+    );
 
     for (final d in parsed.diagnoses) {
       final condition = (d.condition).trim();
@@ -1565,9 +1587,11 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       );
     }
 
-    debugPrint('[MedicalHistoryApply] Autofill result: '
-        '$conditionsAdded conditions, $medicationsAdded medications, '
-        '$vetVisitsAdded visits, $allergiesAdded allergies added');
+    debugPrint(
+      '[MedicalHistoryApply] Autofill result: '
+      '$conditionsAdded conditions, $medicationsAdded medications, '
+      '$vetVisitsAdded visits, $allergiesAdded allergies added',
+    );
 
     return _VetAutofillResult(
       conditionsAdded: conditionsAdded,
@@ -1722,7 +1746,10 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         label: Text(label),
         style: OutlinedButton.styleFrom(
           foregroundColor: ClovaraColors.clover,
-          side: BorderSide(color: ClovaraColors.clover.withOpacity(0.3), width: 1.5),
+          side: BorderSide(
+            color: ClovaraColors.clover.withOpacity(0.3),
+            width: 1.5,
+          ),
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -1987,9 +2014,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: ClovaraColors.warning.withOpacity(0.3),
-        ),
+        border: Border.all(color: ClovaraColors.warning.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -2395,11 +2420,13 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
               );
             },
       );
-      debugPrint('[UnderwritingBridge] Calling integrity engine: '
-          '${built.facts.length} facts, '
-          '${_aiVetExtraction.length} vet extractions, '
-          'aiFailure=${built.aiFailure}, '
-          'ruleOutCodes=$computedRuleOutCodes');
+      debugPrint(
+        '[UnderwritingBridge] Calling integrity engine: '
+        '${built.facts.length} facts, '
+        '${_aiVetExtraction.length} vet extractions, '
+        'aiFailure=${built.aiFailure}, '
+        'ruleOutCodes=$computedRuleOutCodes',
+      );
       var assessment = await integrityEngine.assess(
         pet: updatedPet,
         riskScore: riskScore,
@@ -2413,10 +2440,12 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
         aiVetExtractionForIntegrity: List<VetRecordData>.from(_aiVetExtraction),
         rawVetTextsForIntegrity: List<String>.from(_rawVetTexts),
       );
-      debugPrint('[UnderwritingBridge] Assessment result: '
-          'status=${assessment.underwritingStatus}, '
-          'reason=${assessment.reason}, '
-          'evidence=${assessment.requiredEvidence.map((e) => e.code).toList()}');
+      debugPrint(
+        '[UnderwritingBridge] Assessment result: '
+        'status=${assessment.underwritingStatus}, '
+        'reason=${assessment.reason}, '
+        'evidence=${assessment.requiredEvidence.map((e) => e.code).toList()}',
+      );
 
       // Deterministic escalation for repeated unresolved NEED_MORE_INFO.
       // We persist the counter in local route args to keep behavior stable
@@ -2837,7 +2866,7 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       _showBlockingValidationDialog(
         title: 'Add condition details',
         message:
-            'Please confirm at least one condition so we can review ${widget.pet.name}\'s history accurately.',
+            'Please confirm at least one condition so Clovara can check ${widget.pet.name}\'s history accurately.',
       );
       return false;
     }
@@ -3023,7 +3052,9 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
       builder: (context, setDialogState) {
         return AlertDialog(
           title: Text(
-            editing == null ? 'Add Medical Condition' : 'Edit Medical Condition',
+            editing == null
+                ? 'Add Medical Condition'
+                : 'Edit Medical Condition',
           ),
           content: SingleChildScrollView(
             child: Column(
@@ -3271,7 +3302,9 @@ class _MedicalUnderwritingScreenState extends State<MedicalUnderwritingScreen>
                 ListTile(
                   title: const Text('Visit Date'),
                   subtitle: Text(
-                    _visitDate != null ? _formatDate(_visitDate!) : 'Select date',
+                    _visitDate != null
+                        ? _formatDate(_visitDate!)
+                        : 'Select date',
                   ),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: () async {

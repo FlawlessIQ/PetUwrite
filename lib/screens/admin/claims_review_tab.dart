@@ -12,8 +12,8 @@ import '../../admin_console/components/admin_filters_row.dart';
 import '../../admin_console/components/admin_section_card.dart';
 import '../../theme/clovara_theme.dart';
 
-/// Claims Review tab for admin dashboard
-/// Shows claims requiring human review and allows manual decisions
+/// Claims automation tab for admin dashboard.
+/// Shows automation exceptions, evidence signals, and audited fallback controls.
 class ClaimsReviewTab extends StatefulWidget {
   const ClaimsReviewTab({super.key});
 
@@ -36,6 +36,33 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
 
   int _sortColumnIndex = 5; // Date
   bool _sortAscending = false;
+
+  static const _activeClaimStatusValues = [
+    'submitted',
+    'processing',
+    'awaiting_info',
+    'awaitingInfo',
+    'needs_info',
+    'awaiting_documents',
+  ];
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  static ClaimStatus _parseStatus(dynamic value) {
+    return ClaimStatus.fromString((value ?? 'processing').toString());
+  }
+
+  static bool _isActiveClaimStatus(dynamic value) {
+    final status = _parseStatus(value);
+    return status == ClaimStatus.submitted ||
+        status == ClaimStatus.processing ||
+        status == ClaimStatus.awaitingInfo;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,28 +99,29 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
         final totalClaims = claims.length;
         final autoApproved = claims.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
-          return data['status'] == 'settled' &&
+          return _parseStatus(data['status']) == ClaimStatus.settled &&
               data['aiConfidenceScore'] != null &&
               (data['aiConfidenceScore'] as num) >= 0.85;
         }).length;
-        final humanReviewed = claims.where((doc) {
+        final overrideRecorded = claims.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           return data['humanOverride'] != null;
         }).length;
         final pending = claims.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
-          return data['status'] == 'processing';
+          return _isActiveClaimStatus(data['status']);
         }).length;
 
         final processingTimes = claims
             .where((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              return data['settledAt'] != null && data['createdAt'] != null;
+              return _parseDate(data['settledAt']) != null &&
+                  _parseDate(data['createdAt']) != null;
             })
             .map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              final created = (data['createdAt'] as Timestamp).toDate();
-              final settled = (data['settledAt'] as Timestamp).toDate();
+              final created = _parseDate(data['createdAt'])!;
+              final settled = _parseDate(data['settledAt'])!;
               return settled.difference(created).inHours;
             })
             .toList();
@@ -103,7 +131,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
             : 0.0;
 
         return AdminSectionCard(
-          title: 'Claims KPIs (This Month)',
+          title: 'Claims Automation KPIs (This Month)',
           icon: Icons.query_stats_outlined,
           padding: const EdgeInsets.all(16),
           child: LayoutBuilder(
@@ -124,17 +152,17 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
                   color: ClovaraColors.kSuccessMint,
                 ),
                 AdminKpiCard(
-                  label: 'Human reviewed',
-                  value: '$humanReviewed',
+                  label: 'Exception override',
+                  value: '$overrideRecorded',
                   delta:
-                      '${totalClaims > 0 ? ((humanReviewed / totalClaims) * 100).toStringAsFixed(1) : 0}%',
-                  icon: Icons.person,
+                      '${totalClaims > 0 ? ((overrideRecorded / totalClaims) * 100).toStringAsFixed(1) : 0}%',
+                  icon: Icons.history_edu_outlined,
                   color: ClovaraColors.clover,
                 ),
                 AdminKpiCard(
-                  label: 'Pending review',
+                  label: 'Active checks',
                   value: '$pending',
-                  icon: Icons.pending_actions,
+                  icon: Icons.pending_actions_outlined,
                   color: ClovaraColors.kWarning,
                 ),
                 AdminKpiCard(
@@ -191,7 +219,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
                 color: theme.colorScheme.onSurface,
               ),
               decoration: InputDecoration(
-                labelText: 'Queue',
+                labelText: 'View',
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 14,
@@ -204,10 +232,10 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
               ),
               icon: const Icon(Icons.expand_more, size: 18),
               items: const [
-                DropdownMenuItem(value: 'all', child: Text('All Pending')),
+                DropdownMenuItem(value: 'all', child: Text('Active checks')),
                 DropdownMenuItem(
                   value: 'escalated',
-                  child: Text('AI Escalated'),
+                  child: Text('Escalated signals'),
                 ),
                 DropdownMenuItem(
                   value: 'high_value',
@@ -267,7 +295,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No claims requiring review',
+                  'No claim automation exceptions',
                   style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                 ),
               ],
@@ -294,8 +322,8 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
         _prewarmPetNames(sortedClaims.map((c) => c.petId));
 
         return AdminSectionCard(
-          title: 'Claims Inbox',
-          icon: Icons.fact_check_outlined,
+          title: 'Claims Automation',
+          icon: Icons.verified_outlined,
           expandChild: true,
           child: Column(
             children: [
@@ -321,8 +349,8 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
                               builder: (context) => AlertDialog(
                                 title: const Text('Bulk Actions'),
                                 content: const Text(
-                                  'Bulk actions are scaffolded for: approve/deny/request-info with a required note and audit logging.\n\n'
-                                  'For now, open a claim to review and decide.',
+                                  'Bulk actions are scaffolded for retry automation, request-info, and payout reconciliation with a required note and audit logging.\n\n'
+                                  'For now, open a claim to inspect the evidence and choose a recovery path.',
                                 ),
                                 actions: [
                                   TextButton(
@@ -453,7 +481,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
                             ),
                           ),
                           child: const Text(
-                            'Review',
+                            'Inspect',
                             style: TextStyle(fontSize: 12),
                           ),
                         ),
@@ -473,7 +501,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
   Stream<QuerySnapshot> _getClaimsQuery() {
     Query query = _firestore
         .collection('claims')
-        .where('status', whereIn: ['processing', 'submitted'])
+        .where('status', whereIn: _activeClaimStatusValues)
         .orderBy('createdAt', descending: true);
 
     if (_selectedFilter == 'escalated') {
@@ -484,13 +512,13 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
     } else if (_selectedFilter == 'high_value') {
       query = _firestore
           .collection('claims')
-          .where('status', isEqualTo: 'processing')
+          .where('status', whereIn: _activeClaimStatusValues)
           .where('claimAmount', isGreaterThan: 500)
           .orderBy('claimAmount', descending: true);
     } else if (_selectedFilter == 'low_confidence') {
       query = _firestore
           .collection('claims')
-          .where('status', isEqualTo: 'processing')
+          .where('status', whereIn: _activeClaimStatusValues)
           .where('aiConfidenceScore', isLessThan: 0.7)
           .orderBy('aiConfidenceScore')
           .orderBy('createdAt', descending: true);
@@ -720,7 +748,7 @@ class _ClaimsReviewTabState extends State<ClaimsReviewTab> {
   }
 }
 
-/// Claim detail dialog for review and decision
+/// Claim detail dialog for automation evidence and exception controls.
 class ClaimDetailDialog extends StatefulWidget {
   final Claim claim;
 
@@ -752,6 +780,41 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
   void dispose() {
     _reasonController.dispose();
     super.dispose();
+  }
+
+  num? _numValue(Map<String, dynamic>? data, List<String> keys) {
+    if (data == null) return null;
+    for (final key in keys) {
+      final value = data[key];
+      if (value is num) return value;
+    }
+    return null;
+  }
+
+  Map<String, dynamic>? _mapValue(Map<String, dynamic>? data, String key) {
+    final value = data?[key];
+    return value is Map ? value.cast<String, dynamic>() : null;
+  }
+
+  num? _policyRiskScore() {
+    final underwriting = _mapValue(_policyData, 'underwritingSnapshot');
+    final eligibility = _mapValue(_policyData, 'eligibility');
+    return _numValue(_policyData, ['riskScore', 'risk_score']) ??
+        _numValue(underwriting, ['riskScore', 'risk_score']) ??
+        _numValue(eligibility, ['riskScore', 'score']);
+  }
+
+  num? _policyMonthlyPremium() {
+    final plan = _mapValue(_policyData, 'plan');
+    final pricing = _mapValue(_policyData, 'pricingAtBind');
+    final pricingPlan = _mapValue(pricing, 'plan');
+    return _numValue(plan, ['monthlyPremium', 'monthlyPrice', 'premium']) ??
+        _numValue(pricingPlan, ['monthlyPremium', 'monthlyPrice', 'premium']) ??
+        _numValue(_policyData, [
+          'premiumAmount',
+          'monthlyPremium',
+          'monthlyPrice',
+        ]);
   }
 
   Future<void> _loadClaimData() async {
@@ -814,7 +877,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Claim Review',
+                          'Claim Automation Detail',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -944,12 +1007,12 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
             const SizedBox(height: 12),
           ],
           if (decision != null) ...[
-            _buildInfoRow('AI Decision', decision.displayName),
+            _buildInfoRow('Automation outcome', decision.displayName),
             const SizedBox(height: 12),
           ],
           if (explanation != null && explanation['explanation'] != null) ...[
             Text(
-              'AI Explanation:',
+              'Evidence explanation:',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: ClovaraColors.forest,
@@ -1051,6 +1114,9 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
   }
 
   Widget _buildPolicyContext() {
+    final riskScore = _policyRiskScore();
+    final monthlyPremium = _policyMonthlyPremium();
+
     return _buildSection(
       title: 'Policy & Risk Profile',
       icon: Icons.shield,
@@ -1061,11 +1127,13 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
           if (_policyData != null) ...[
             _buildInfoRow(
               'Risk Score',
-              (_policyData!['riskScore'] ?? 0.0).toStringAsFixed(1),
+              riskScore == null ? '—' : riskScore.toStringAsFixed(1),
             ),
             _buildInfoRow(
               'Premium',
-              '\$${(_policyData!['premiumAmount'] ?? 0.0).toStringAsFixed(2)}/month',
+              monthlyPremium == null
+                  ? '—'
+                  : '\$${monthlyPremium.toStringAsFixed(2)}/month',
             ),
             if (_policyData!['wasManuallyApproved'] == true)
               Container(
@@ -1084,7 +1152,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'This policy was manually approved (high risk)',
+                      'This policy has an override recorded in the audit trail',
                       style: TextStyle(
                         fontSize: 12,
                         color: ClovaraColors.kWarning,
@@ -1101,17 +1169,17 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
 
   Widget _buildDecisionSection() {
     return _buildSection(
-      title: 'Your Decision',
-      icon: Icons.gavel,
+      title: 'Exception Control',
+      icon: Icons.manage_history_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Decision radio buttons
+          // Audited fallback actions for cases automation cannot complete.
           Row(
             children: [
               Expanded(
                 child: RadioListTile<String>(
-                  title: Text('Approve'),
+                  title: Text('Approve payout'),
                   value: 'approve',
                   groupValue: _selectedDecision,
                   onChanged: (value) {
@@ -1122,7 +1190,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
               ),
               Expanded(
                 child: RadioListTile<String>(
-                  title: Text('Deny'),
+                  title: Text('Deny claim'),
                   value: 'deny',
                   groupValue: _selectedDecision,
                   onChanged: (value) {
@@ -1133,7 +1201,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
               ),
               Expanded(
                 child: RadioListTile<String>(
-                  title: Text('Request More Info'),
+                  title: Text('Request more info'),
                   value: 'more_info',
                   groupValue: _selectedDecision,
                   onChanged: (value) {
@@ -1151,8 +1219,9 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
             controller: _reasonController,
             maxLines: 4,
             decoration: InputDecoration(
-              labelText: 'Reason (required)',
-              hintText: 'Explain your decision...',
+              labelText: 'Audit note (required)',
+              hintText:
+                  'Explain the automation exception or evidence correction...',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -1293,7 +1362,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
     if (_reasonController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please provide a reason for your decision'),
+          content: Text('Please provide an audit note for this exception'),
         ),
       );
       return;
@@ -1306,6 +1375,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
       if (user == null) throw Exception('Not authenticated');
 
       final now = DateTime.now();
+      // Keep the legacy field name for compatibility with existing records.
       final humanOverride = {
         'overriddenBy': user.uid,
         'overriddenByEmail': user.email ?? 'unknown',
@@ -1345,14 +1415,14 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
 
         final currentData = currentClaim.data()!;
 
-        // Check if already has humanOverride (someone else reviewed)
+        // Check if an exception override was already recorded.
         if (currentData['humanOverride'] != null) {
           final existingOverride =
               currentData['humanOverride'] as Map<String, dynamic>;
           final existingEmail =
               existingOverride['overriddenByEmail'] as String?;
           throw Exception(
-            'Claim was already reviewed by $existingEmail. Please refresh to see the latest decision.',
+            'A claim override was already recorded by $existingEmail. Please refresh to see the latest decision.',
           );
         }
 
@@ -1401,7 +1471,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
         transaction.set(auditRef, {
           'claimId': widget.claim.claimId,
           'timestamp': FieldValue.serverTimestamp(),
-          'eventType': 'human_override',
+          'eventType': 'automation_exception_override',
           'humanOverride': humanOverride,
           'previousStatus': widget.claim.status.value,
           'newStatus': newStatus.value,
@@ -1417,7 +1487,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
           );
           await callable.call({'claimId': widget.claim.claimId});
         } catch (e) {
-          // Don't block the admin's decision; reconciliation/retries can recover.
+          // Don't block the exception control; reconciliation/retries can recover.
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -1439,7 +1509,7 @@ class _ClaimDetailDialogState extends State<ClaimDetailDialog> {
             content: Text(
               _selectedDecision == 'approve'
                   ? 'Claim approved — payout initiated'
-                  : 'Decision submitted successfully',
+                  : 'Exception control submitted successfully',
             ),
             backgroundColor: ClovaraColors.kSuccessMint,
           ),

@@ -12,6 +12,7 @@ import 'admin/policies_pipeline_tab.dart';
 import '../widgets/system_health_widget.dart';
 import '../theme/clovara_theme.dart';
 import '../ui/components/clovara_logo.dart';
+import '../utils/marketing_site_redirect.dart';
 
 /// Clovara Admin Dashboard - Review and manage high-risk quotes
 /// Only accessible to users with userRole == 2
@@ -22,7 +23,8 @@ class AdminDashboard extends StatefulWidget {
   State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
-class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProviderStateMixin {
+class _AdminDashboardState extends State<AdminDashboard>
+    with SingleTickerProviderStateMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   String _selectedFilter = 'all'; // all, pending, overridden
@@ -46,11 +48,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
     try {
       await FirebaseAuth.instance.signOut();
       if (mounted) {
-        // Navigate back to auth gate and clear navigation stack
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/auth-gate',
-          (route) => false,
-        );
+        if (!redirectToMarketingSite(path: '/')) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/auth-gate', (route) => false);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -183,10 +185,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                     ),
                     const Text(
                       'Administrator',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -277,26 +276,30 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
 
         final allQuotes = snapshot.data!.docs;
         final pendingCount = allQuotes
-            .where((doc) => !(doc.data() as Map<String, dynamic>)
-                .containsKey('humanOverride'))
+            .where(
+              (doc) => !(doc.data() as Map<String, dynamic>).containsKey(
+                'humanOverride',
+              ),
+            )
             .length;
         final overriddenCount = allQuotes
-            .where((doc) => (doc.data() as Map<String, dynamic>)
-                .containsKey('humanOverride'))
+            .where(
+              (doc) => (doc.data() as Map<String, dynamic>).containsKey(
+                'humanOverride',
+              ),
+            )
             .length;
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: Colors.grey[100],
-            border: Border(
-              bottom: BorderSide(color: Colors.grey[300]!),
-            ),
+            border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isMobile = constraints.maxWidth < 600;
-              
+
               if (isMobile) {
                 return Column(
                   children: [
@@ -355,7 +358,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
   }
 
   Widget _buildStatCard(
-      String label, String value, IconData icon, Color color) {
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Column(
       children: [
         Row(
@@ -374,13 +381,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
           ],
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }
@@ -450,16 +451,20 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
               final scoreB = dataB['riskScore']?['totalScore'] ?? 0;
               return scoreB.compareTo(scoreA);
             case 'date_asc':
-              final dateA = (dataA['createdAt'] as Timestamp?)?.toDate() ??
+              final dateA =
+                  (dataA['createdAt'] as Timestamp?)?.toDate() ??
                   DateTime(1970);
-              final dateB = (dataB['createdAt'] as Timestamp?)?.toDate() ??
+              final dateB =
+                  (dataB['createdAt'] as Timestamp?)?.toDate() ??
                   DateTime(1970);
               return dateA.compareTo(dateB);
             case 'date_desc':
             default:
-              final dateA = (dataA['createdAt'] as Timestamp?)?.toDate() ??
+              final dateA =
+                  (dataA['createdAt'] as Timestamp?)?.toDate() ??
                   DateTime(1970);
-              final dateB = (dataB['createdAt'] as Timestamp?)?.toDate() ??
+              final dateB =
+                  (dataB['createdAt'] as Timestamp?)?.toDate() ??
                   DateTime(1970);
               return dateB.compareTo(dateA);
           }
@@ -523,8 +528,10 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                 children: [
                   // Risk score badge
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: _getRiskColor(totalScore).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
@@ -554,7 +561,9 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                   if (hasOverride)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: ClovaraColors.clover.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
@@ -563,7 +572,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_circle, size: 16, color: ClovaraColors.clover),
+                          Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: ClovaraColors.clover,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Overridden',
@@ -578,7 +591,9 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                   else
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: ClovaraColors.sunset.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
@@ -587,7 +602,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.pending, size: 16, color: ClovaraColors.sunset),
+                          Icon(
+                            Icons.pending,
+                            size: 16,
+                            color: ClovaraColors.sunset,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Pending Review',
@@ -623,8 +642,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.pets,
-                                size: 16, color: Colors.grey[600]),
+                            Icon(Icons.pets, size: 16, color: Colors.grey[600]),
                             const SizedBox(width: 4),
                             Text(
                               'Pet',
@@ -661,8 +679,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.person,
-                                size: 16, color: Colors.grey[600]),
+                            Icon(
+                              Icons.person,
+                              size: 16,
+                              color: Colors.grey[600],
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               'Owner',
@@ -698,8 +719,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Icon(Icons.calendar_today,
-                            size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.calendar_today,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           createdAt != null
@@ -731,11 +755,17 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                 decoration: BoxDecoration(
                   color: ClovaraColors.clover.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: ClovaraColors.clover.withOpacity(0.3)),
+                  border: Border.all(
+                    color: ClovaraColors.clover.withOpacity(0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.psychology, size: 20, color: ClovaraColors.clover),
+                    Icon(
+                      Icons.psychology,
+                      size: 20,
+                      color: ClovaraColors.clover,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -768,18 +798,24 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                   decoration: BoxDecoration(
                     color: ClovaraColors.clover.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: ClovaraColors.clover.withOpacity(0.3)),
+                    border: Border.all(
+                      color: ClovaraColors.clover.withOpacity(0.3),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.person, size: 20, color: ClovaraColors.clover),
+                      Icon(
+                        Icons.history_edu,
+                        size: 20,
+                        color: ClovaraColors.clover,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Human Override',
+                              'Exception Override',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -847,7 +883,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_outline, size: 64, color: Colors.green[400]),
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 64,
+                  color: Colors.green[400],
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'No ineligible quotes',
@@ -872,14 +912,12 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey[300]!),
-                ),
+                border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
               ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final isMobile = constraints.maxWidth < 600;
-                  
+
                   if (isMobile) {
                     return Column(
                       children: [
@@ -895,8 +933,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                           ineligibleQuotes
                               .where((doc) {
                                 final data = doc.data() as Map<String, dynamic>;
-                                final eligibility = data['eligibility'] as Map<String, dynamic>?;
-                                return eligibility?['status'] == 'review_requested';
+                                final eligibility =
+                                    data['eligibility']
+                                        as Map<String, dynamic>?;
+                                return eligibility?['status'] ==
+                                    'review_requested';
                               })
                               .length
                               .toString(),
@@ -920,8 +961,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                           ineligibleQuotes
                               .where((doc) {
                                 final data = doc.data() as Map<String, dynamic>;
-                                final eligibility = data['eligibility'] as Map<String, dynamic>?;
-                                return eligibility?['status'] == 'review_requested';
+                                final eligibility =
+                                    data['eligibility']
+                                        as Map<String, dynamic>?;
+                                return eligibility?['status'] ==
+                                    'review_requested';
                               })
                               .length
                               .toString(),
@@ -954,11 +998,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
   /// Build System Health tab with reconciliation monitoring
   Widget _buildSystemHealthTab() {
     return SingleChildScrollView(
-      child: Column(
-        children: const [
-          SystemHealthWidget(),
-        ],
-      ),
+      child: Column(children: const [SystemHealthWidget()]),
     );
   }
 
@@ -992,7 +1032,10 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                 children: [
                   // Declined badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
@@ -1017,7 +1060,10 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                   // Review requested badge
                   if (isReviewRequested)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.orange.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
@@ -1107,11 +1153,15 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                         const SizedBox(height: 4),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: _getRiskColor(totalScore).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _getRiskColor(totalScore)),
+                            border: Border.all(
+                              color: _getRiskColor(totalScore),
+                            ),
                           ),
                           child: Text(
                             totalScore.toString(),
@@ -1141,7 +1191,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.error_outline, size: 18, color: Colors.red),
+                        const Icon(
+                          Icons.error_outline,
+                          size: 18,
+                          color: Colors.red,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'Rule Violated: $ruleViolated',
@@ -1170,8 +1224,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                   if (createdAt != null)
                     Row(
                       children: [
-                        Icon(Icons.calendar_today,
-                            size: 14, color: Colors.grey[600]),
+                        Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: Colors.grey[600],
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           DateFormat('MMM d, yyyy h:mm a').format(createdAt),
@@ -1191,17 +1248,25 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                       style: TextButton.styleFrom(
                         foregroundColor: ClovaraColors.clover,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                     )
                   else
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check, size: 16, color: Colors.orange[700]),
+                          Icon(
+                            Icons.check,
+                            size: 16,
+                            color: Colors.orange[700],
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Review Pending',
@@ -1229,8 +1294,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
       await _firestore.collection('quotes').doc(quoteId).update({
         'eligibility.status': 'review_requested',
         'eligibility.reviewRequestedAt': Timestamp.now(),
-        'eligibility.reviewRequestedBy':
-            FirebaseAuth.instance.currentUser?.uid,
+        'eligibility.reviewRequestedBy': FirebaseAuth.instance.currentUser?.uid,
       });
 
       if (mounted) {
@@ -1410,8 +1474,10 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
                     style: TextStyle(fontSize: 16),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: _getRiskColor(totalScore).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
@@ -1429,10 +1495,7 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
                 ],
               ),
               const SizedBox(height: 16),
-              _buildInfoRow(
-                'Risk Level',
-                _getRiskLevelText(totalScore),
-              ),
+              _buildInfoRow('Risk Level', _getRiskLevelText(totalScore)),
               _buildInfoRow(
                 'AI Confidence',
                 '${aiAnalysis?['confidence'] ?? 'N/A'}%',
@@ -1467,25 +1530,26 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
-                ...(aiAnalysis!['riskFactors'] as List<dynamic>)
-                    .map((factor) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('• ',
-                                  style: TextStyle(fontSize: 14)),
-                              Expanded(
-                                child: Text(
-                                  factor.toString(),
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.grey[700]),
-                                ),
-                              ),
-                            ],
+                ...(aiAnalysis!['riskFactors'] as List<dynamic>).map(
+                  (factor) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('• ', style: TextStyle(fontSize: 14)),
+                        Expanded(
+                          child: Text(
+                            factor.toString(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                            ),
                           ),
-                        ))
-                    ,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
               if (aiAnalysis?['recommendations'] != null) ...[
                 const SizedBox(height: 12),
@@ -1494,25 +1558,26 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
-                ...(aiAnalysis!['recommendations'] as List<dynamic>)
-                    .map((rec) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('• ',
-                                  style: TextStyle(fontSize: 14)),
-                              Expanded(
-                                child: Text(
-                                  rec.toString(),
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.grey[700]),
-                                ),
-                              ),
-                            ],
+                ...(aiAnalysis!['recommendations'] as List<dynamic>).map(
+                  (rec) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('• ', style: TextStyle(fontSize: 14)),
+                        Expanded(
+                          child: Text(
+                            rec.toString(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                            ),
                           ),
-                        ))
-                    ,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ],
           ),
@@ -1544,19 +1609,18 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                ...(petData!['medicalConditions'] as List<dynamic>)
-                    .map((condition) => Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              '• $condition',
-                              style: TextStyle(
-                                  fontSize: 14, color: Colors.grey[700]),
-                            ),
-                          ),
-                        ))
-                    ,
+                ...(petData!['medicalConditions'] as List<dynamic>).map(
+                  (condition) => Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '• $condition',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ],
           ),
@@ -1644,12 +1708,7 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
               ),
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
         ],
       ),
     );
@@ -1675,7 +1734,7 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
                 Icon(Icons.check_circle, color: Colors.green[700], size: 24),
                 const SizedBox(width: 8),
                 Text(
-                  'Human Override Applied',
+                  'Exception Override Applied',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1801,7 +1860,9 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.save),
-                label: Text(_isSubmitting ? 'Submitting...' : 'Submit Override'),
+                label: Text(
+                  _isSubmitting ? 'Submitting...' : 'Submit Override',
+                ),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: ClovaraColors.clover,
@@ -1865,15 +1926,15 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
           .collection('quotes')
           .doc(widget.quoteId)
           .update({
-        'humanOverride': {
-          'decision': _selectedDecision,
-          'justification': justification,
-          'underwriterId': user.uid,
-          'underwriterName': underwriterName.trim(),
-          'timestamp': now,
-        },
-        'status': _selectedDecision == 'Approve' ? 'approved' : 'denied',
-      });
+            'humanOverride': {
+              'decision': _selectedDecision,
+              'justification': justification,
+              'underwriterId': user.uid,
+              'underwriterName': underwriterName.trim(),
+              'timestamp': now,
+            },
+            'status': _selectedDecision == 'Approve' ? 'approved' : 'denied',
+          });
 
       // Log to audit_logs collection
       await FirebaseFirestore.instance.collection('audit_logs').add({
@@ -1892,7 +1953,8 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Override submitted successfully: $_selectedDecision'),
+              'Override submitted successfully: $_selectedDecision',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -1927,13 +1989,12 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Card(
             elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: const Padding(
               padding: EdgeInsets.all(16.0),
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: Center(child: CircularProgressIndicator()),
             ),
           );
         }
@@ -1941,8 +2002,9 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
         if (snapshot.hasError) {
           return Card(
             elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -1962,8 +2024,9 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Card(
             elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -1993,8 +2056,9 @@ class _QuoteDetailsViewState extends State<QuoteDetailsView> {
         } catch (e) {
           return Card(
             elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -2056,7 +2120,8 @@ class _IneligibleQuoteDetailsViewState
     extends State<IneligibleQuoteDetailsView> {
   bool _isUpdating = false;
   final TextEditingController _newRiskScoreController = TextEditingController();
-  final TextEditingController _justificationController = TextEditingController();
+  final TextEditingController _justificationController =
+      TextEditingController();
   String _selectedOverrideDecision = 'Approve';
 
   @override
@@ -2118,8 +2183,9 @@ class _IneligibleQuoteDetailsViewState
         Card(
           elevation: 2,
           color: Colors.red[50],
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -2173,7 +2239,11 @@ class _IneligibleQuoteDetailsViewState
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.pending, color: Colors.orange[900], size: 20),
+                        Icon(
+                          Icons.pending,
+                          color: Colors.orange[900],
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Review has been requested',
@@ -2195,8 +2265,9 @@ class _IneligibleQuoteDetailsViewState
         // Risk Score Card
         Card(
           elevation: 2,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -2204,8 +2275,11 @@ class _IneligibleQuoteDetailsViewState
               children: [
                 Row(
                   children: [
-                    Icon(Icons.assessment,
-                        color: _getRiskColor(totalScore), size: 24),
+                    Icon(
+                      Icons.assessment,
+                      color: _getRiskColor(totalScore),
+                      size: 24,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Risk Assessment',
@@ -2227,7 +2301,9 @@ class _IneligibleQuoteDetailsViewState
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: _getRiskColor(totalScore).withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
@@ -2254,8 +2330,9 @@ class _IneligibleQuoteDetailsViewState
         // Pet Information Card
         Card(
           elevation: 2,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -2290,15 +2367,15 @@ class _IneligibleQuoteDetailsViewState
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 4),
-                  ...(petData['medicalConditions'] as List<dynamic>)
-                      .map((condition) => Padding(
-                            padding: const EdgeInsets.only(bottom: 2),
-                            child: Text(
-                              '• $condition',
-                              style: TextStyle(
-                                  fontSize: 14, color: Colors.grey[700]),
-                            ),
-                          )),
+                  ...(petData['medicalConditions'] as List<dynamic>).map(
+                    (condition) => Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        '• $condition',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -2308,8 +2385,9 @@ class _IneligibleQuoteDetailsViewState
         // Owner Information Card
         Card(
           elevation: 2,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -2347,8 +2425,9 @@ class _IneligibleQuoteDetailsViewState
         // Quote Info Card
         Card(
           elevation: 2,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -2397,9 +2476,9 @@ class _IneligibleQuoteDetailsViewState
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.rate_review),
-              label: Text(_isUpdating
-                  ? 'Requesting More Info...'
-                  : 'Request More Info'),
+              label: Text(
+                _isUpdating ? 'Requesting More Info...' : 'Request More Info',
+              ),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: ClovaraColors.clover,
@@ -2456,12 +2535,7 @@ class _IneligibleQuoteDetailsViewState
               ),
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
         ],
       ),
     );
@@ -2470,11 +2544,13 @@ class _IneligibleQuoteDetailsViewState
   Widget _buildOverrideEligibilitySection(bool isReviewRequested) {
     // Check if already overridden
     final hasOverride = widget.quoteData.containsKey('humanOverride');
-    
+
     if (hasOverride) {
-      final overrideData = widget.quoteData['humanOverride'] as Map<String, dynamic>;
+      final overrideData =
+          widget.quoteData['humanOverride'] as Map<String, dynamic>;
       final decision = overrideData['decision'] ?? 'Unknown';
-      final justification = overrideData['reasoning'] ?? 'No justification provided';
+      final justification =
+          overrideData['reasoning'] ?? 'No justification provided';
       final underwriterName = overrideData['underwriterName'] ?? 'Unknown';
       final timestamp = (overrideData['timestamp'] as Timestamp?)?.toDate();
 
@@ -2546,7 +2622,11 @@ class _IneligibleQuoteDetailsViewState
           children: [
             Row(
               children: [
-                Icon(Icons.admin_panel_settings, color: Colors.amber[900], size: 24),
+                Icon(
+                  Icons.admin_panel_settings,
+                  color: Colors.amber[900],
+                  size: 24,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Admin Override',
@@ -2587,7 +2667,8 @@ class _IneligibleQuoteDetailsViewState
   }
 
   void _showOverrideDialog() {
-    final riskScoreData = widget.quoteData['riskScore'] as Map<String, dynamic>?;
+    final riskScoreData =
+        widget.quoteData['riskScore'] as Map<String, dynamic>?;
     final currentRiskScore = riskScoreData?['totalScore'] ?? 0;
 
     showDialog(
@@ -2634,7 +2715,11 @@ class _IneligibleQuoteDetailsViewState
                         value: 'Approve',
                         child: Row(
                           children: [
-                            Icon(Icons.check_circle_outline, size: 20, color: Colors.green),
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 20,
+                              color: Colors.green,
+                            ),
                             SizedBox(width: 8),
                             Text('Approve'),
                           ],
@@ -2644,7 +2729,11 @@ class _IneligibleQuoteDetailsViewState
                         value: 'Deny',
                         child: Row(
                           children: [
-                            Icon(Icons.cancel_outlined, size: 20, color: Colors.red),
+                            Icon(
+                              Icons.cancel_outlined,
+                              size: 20,
+                              color: Colors.red,
+                            ),
                             SizedBox(width: 8),
                             Text('Deny'),
                           ],
@@ -2654,7 +2743,11 @@ class _IneligibleQuoteDetailsViewState
                         value: 'Adjust Premium',
                         child: Row(
                           children: [
-                            Icon(Icons.attach_money, size: 20, color: Colors.orange),
+                            Icon(
+                              Icons.attach_money,
+                              size: 20,
+                              color: Colors.orange,
+                            ),
                             SizedBox(width: 8),
                             Text('Adjust Premium'),
                           ],
@@ -2686,7 +2779,8 @@ class _IneligibleQuoteDetailsViewState
                         horizontal: 12,
                         vertical: 8,
                       ),
-                      helperText: 'Enter a value between 0-100, or leave blank to keep current',
+                      helperText:
+                          'Enter a value between 0-100, or leave blank to keep current',
                       helperMaxLines: 2,
                     ),
                   ),
@@ -2701,12 +2795,14 @@ class _IneligibleQuoteDetailsViewState
                     controller: _justificationController,
                     maxLines: 5,
                     decoration: InputDecoration(
-                      hintText: 'e.g., "Condition resolved for >2 years, recent clean checkup"',
+                      hintText:
+                          'e.g., "Condition resolved for >2 years, recent clean checkup"',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                       contentPadding: const EdgeInsets.all(12),
-                      helperText: 'Explain why you are overriding the AI decision',
+                      helperText:
+                          'Explain why you are overriding the AI decision',
                       helperMaxLines: 2,
                     ),
                   ),
@@ -2797,7 +2893,8 @@ class _IneligibleQuoteDetailsViewState
           .get();
       final userData = userDoc.data();
       final adminName =
-          '${userData?['firstName'] ?? 'Unknown'} ${userData?['lastName'] ?? ''}'.trim();
+          '${userData?['firstName'] ?? 'Unknown'} ${userData?['lastName'] ?? ''}'
+              .trim();
 
       // Prepare update data
       final updateData = <String, dynamic>{
@@ -2819,7 +2916,7 @@ class _IneligibleQuoteDetailsViewState
       if (newRiskScore != null) {
         updateData['riskScore.totalScore'] = newRiskScore;
         updateData['riskScore.overridden'] = true;
-        updateData['riskScore.originalScore'] = 
+        updateData['riskScore.originalScore'] =
             widget.quoteData['riskScore']?['totalScore'] ?? 0;
         updateData['humanOverride.newRiskScore'] = newRiskScore;
       }
@@ -2853,7 +2950,9 @@ class _IneligibleQuoteDetailsViewState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Eligibility override submitted: $_selectedOverrideDecision'),
+            content: Text(
+              'Eligibility override submitted: $_selectedOverrideDecision',
+            ),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
           ),
@@ -2885,11 +2984,11 @@ class _IneligibleQuoteDetailsViewState
           .collection('quotes')
           .doc(widget.quoteId)
           .update({
-        'eligibility.status': 'review_requested',
-        'eligibility.reviewRequestedAt': Timestamp.now(),
-        'eligibility.reviewRequestedBy':
-            FirebaseAuth.instance.currentUser?.uid,
-      });
+            'eligibility.status': 'review_requested',
+            'eligibility.reviewRequestedAt': Timestamp.now(),
+            'eligibility.reviewRequestedBy':
+                FirebaseAuth.instance.currentUser?.uid,
+          });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

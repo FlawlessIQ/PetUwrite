@@ -41,13 +41,13 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
   String _subtitleFor(AdminNavItem item) {
     switch (item) {
       case AdminNavItem.overview:
-        return 'Executive + operational overview';
+        return 'Automation command center';
       case AdminNavItem.marketing:
         return 'Channels, promo codes, and performance';
       case AdminNavItem.underwritingInbox:
-        return 'Queue-based underwriting inbox';
+        return 'Decision ledger, rules fired, and evidence signals';
       case AdminNavItem.claimsInbox:
-        return 'Claims review & decisioning';
+        return 'Claims automation, payout status, and exceptions';
       case AdminNavItem.claimsAnalytics:
         return 'Trends, cohorts, and actionable insights';
       case AdminNavItem.benchmarking:
@@ -67,10 +67,14 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
     switch (_selected) {
       case AdminNavItem.overview:
         return AdminOverviewPage(
-          onOpenUnderwriting: () => setState(() => _selected = AdminNavItem.underwritingInbox),
-          onOpenClaims: () => setState(() => _selected = AdminNavItem.claimsInbox),
-          onOpenPolicies: () => setState(() => _selected = AdminNavItem.policies),
-          onOpenHealth: () => setState(() => _selected = AdminNavItem.systemHealth),
+          onOpenUnderwriting: () =>
+              setState(() => _selected = AdminNavItem.underwritingInbox),
+          onOpenClaims: () =>
+              setState(() => _selected = AdminNavItem.claimsInbox),
+          onOpenPolicies: () =>
+              setState(() => _selected = AdminNavItem.policies),
+          onOpenHealth: () =>
+              setState(() => _selected = AdminNavItem.systemHealth),
         );
 
       case AdminNavItem.marketing:
@@ -84,7 +88,8 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
 
       case AdminNavItem.claimsAnalytics:
         return ClaimsAnalyticsTab(
-          onOpenInbox: () => setState(() => _selected = AdminNavItem.claimsInbox),
+          onOpenInbox: () =>
+              setState(() => _selected = AdminNavItem.claimsInbox),
         );
 
       case AdminNavItem.benchmarking:
@@ -100,11 +105,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
         return const AdminProductCatalogPage();
 
       case AdminNavItem.systemHealth:
-        return ListView(
-          children: const [
-            SystemHealthWidget(),
-          ],
-        );
+        return ListView(children: const [SystemHealthWidget()]);
     }
   }
 }

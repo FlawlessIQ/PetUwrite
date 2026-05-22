@@ -1,6 +1,6 @@
 /**
  * Declined Quote Notifications
- * 
+ *
  * Sends notifications when a quote is declined by the eligibility system
  * Supports Slack webhook and SendGrid email notifications
  */
@@ -10,7 +10,7 @@ const axios = require("axios");
 
 /**
  * Send notification to Slack via webhook
- * 
+ *
  * @param {Object} quoteData - The quote document data
  * @param {string} quoteId - The quote document ID
  * @param {Object} eligibility - The eligibility object with decline details
@@ -20,7 +20,9 @@ async function sendSlackNotification(quoteData, quoteId, eligibility) {
   const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 
   if (!slackWebhookUrl) {
-    logger.warn("SLACK_WEBHOOK_URL not configured, skipping Slack notification");
+    logger.warn(
+      "SLACK_WEBHOOK_URL not configured, skipping Slack notification"
+    );
     return false;
   }
 
@@ -38,55 +40,55 @@ async function sendSlackNotification(quoteData, quoteId, eligibility) {
           text: {
             type: "plain_text",
             text: "🚫 Quote Declined - Eligibility Check Failed",
-            emoji: true,
-          },
+            emoji: true
+          }
         },
         {
           type: "section",
           fields: [
             {
               type: "mrkdwn",
-              text: `*Pet:*\n${pet.name || "Unknown"} (${pet.breed || "Unknown"}, ${pet.age || "N/A"} years)`,
+              text: `*Pet:*\n${pet.name || "Unknown"} (${pet.breed || "Unknown"}, ${pet.age || "N/A"} years)`
             },
             {
               type: "mrkdwn",
-              text: `*Owner:*\n${owner.firstName || ""} ${owner.lastName || ""}\n${owner.email || "No email"}`,
+              text: `*Owner:*\n${owner.firstName || ""} ${owner.lastName || ""}\n${owner.email || "No email"}`
             },
             {
               type: "mrkdwn",
-              text: `*Risk Score:*\n${riskScore.totalScore || "N/A"}/100 (${riskScore.riskLevel || "Unknown"})`,
+              text: `*Risk Score:*\n${riskScore.totalScore || "N/A"}/100 (${riskScore.riskLevel || "Unknown"})`
             },
             {
               type: "mrkdwn",
-              text: `*Quote ID:*\n\`${quoteId.substring(0, 12)}...\``,
-            },
-          ],
+              text: `*Quote ID:*\n\`${quoteId.substring(0, 12)}...\``
+            }
+          ]
         },
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*❌ Rule Violated:* \`${eligibility.ruleViolated || "Unknown"}\``,
-          },
+            text: `*❌ Rule Violated:* \`${eligibility.ruleViolated || "Unknown"}\``
+          }
         },
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*Decline Reason:*\n${eligibility.reason || "No reason provided"}`,
-          },
+            text: `*Decline Reason:*\n${eligibility.reason || "No reason provided"}`
+          }
         },
         {
           type: "context",
           elements: [
             {
               type: "mrkdwn",
-              text: `Declined at: ${new Date(eligibility.checkedAt || Date.now()).toLocaleString()}`,
-            },
-          ],
+              text: `Declined at: ${new Date(eligibility.checkedAt || Date.now()).toLocaleString()}`
+            }
+          ]
         },
         {
-          type: "divider",
+          type: "divider"
         },
         {
           type: "actions",
@@ -96,45 +98,45 @@ async function sendSlackNotification(quoteData, quoteId, eligibility) {
               text: {
                 type: "plain_text",
                 text: "View in Admin Dashboard",
-                emoji: true,
+                emoji: true
               },
               url: `https://app.clovara.com/admin/quotes/${quoteId}`,
-              style: "primary",
+              style: "primary"
             },
             {
               type: "button",
               text: {
                 type: "plain_text",
                 text: "Request Review",
-                emoji: true,
+                emoji: true
               },
               url: `https://app.clovara.com/admin/quotes/${quoteId}?action=review`,
-              style: "danger",
-            },
-          ],
-        },
-      ],
+              style: "danger"
+            }
+          ]
+        }
+      ]
     };
 
     // Send to Slack
     const response = await axios.post(slackWebhookUrl, message, {
-      headers: {"Content-Type": "application/json"},
+      headers: { "Content-Type": "application/json" }
     });
 
     if (response.status === 200) {
-      logger.info("Slack notification sent successfully", {quoteId});
+      logger.info("Slack notification sent successfully", { quoteId });
       return true;
     } else {
       logger.error("Slack notification failed", {
         status: response.status,
-        quoteId,
+        quoteId
       });
       return false;
     }
   } catch (error) {
     logger.error("Error sending Slack notification", {
       error: error.message,
-      quoteId,
+      quoteId
     });
     return false;
   }
@@ -142,7 +144,7 @@ async function sendSlackNotification(quoteData, quoteId, eligibility) {
 
 /**
  * Send notification email via SendGrid
- * 
+ *
  * @param {Object} quoteData - The quote document data
  * @param {string} quoteId - The quote document ID
  * @param {Object} eligibility - The eligibility object with decline details
@@ -150,7 +152,8 @@ async function sendSlackNotification(quoteData, quoteId, eligibility) {
  */
 async function sendEmailNotification(quoteData, quoteId, eligibility) {
   const sendGridApiKey = process.env.SENDGRID_API_KEY;
-  const notificationEmail = process.env.NOTIFICATION_EMAIL || "admin@clovara.com";
+  const notificationEmail =
+    process.env.NOTIFICATION_EMAIL || "admin@clovara.com";
 
   if (!sendGridApiKey) {
     logger.warn("SENDGRID_API_KEY not configured, skipping email notification");
@@ -169,43 +172,50 @@ async function sendEmailNotification(quoteData, quoteId, eligibility) {
           to: [
             {
               email: notificationEmail,
-              name: "Admin Team",
-            },
+              name: "Admin Team"
+            }
           ],
-          subject: `🚫 Quote Declined: ${pet.name || "Unknown Pet"} - ${eligibility.ruleViolated || "Unknown Rule"}`,
-        },
+          subject: `🚫 Quote Declined: ${pet.name || "Unknown Pet"} - ${eligibility.ruleViolated || "Unknown Rule"}`
+        }
       ],
       from: {
         email: "notifications@clovara.com",
-        name: "Clovara Alerts",
+        name: "Clovara Alerts"
       },
       content: [
         {
           type: "text/html",
-          value: generateEmailHtml(quoteData, quoteId, eligibility, pet, owner, riskScore),
-        },
-      ],
+          value: generateEmailHtml(
+            quoteData,
+            quoteId,
+            eligibility,
+            pet,
+            owner,
+            riskScore
+          )
+        }
+      ]
     };
 
     // Send via SendGrid
     const response = await axios.post(
-        "https://api.sendgrid.com/v3/mail/send",
-        emailData,
-        {
-          headers: {
-            "Authorization": `Bearer ${sendGridApiKey}`,
-            "Content-Type": "application/json",
-          },
-        },
+      "https://api.sendgrid.com/v3/mail/send",
+      emailData,
+      {
+        headers: {
+          Authorization: `Bearer ${sendGridApiKey}`,
+          "Content-Type": "application/json"
+        }
+      }
     );
 
     if (response.status === 202) {
-      logger.info("SendGrid email sent successfully", {quoteId});
+      logger.info("SendGrid email sent successfully", { quoteId });
       return true;
     } else {
       logger.error("SendGrid email failed", {
         status: response.status,
-        quoteId,
+        quoteId
       });
       return false;
     }
@@ -213,7 +223,7 @@ async function sendEmailNotification(quoteData, quoteId, eligibility) {
     logger.error("Error sending SendGrid email", {
       error: error.message,
       response: error.response?.data,
-      quoteId,
+      quoteId
     });
     return false;
   }
@@ -221,7 +231,7 @@ async function sendEmailNotification(quoteData, quoteId, eligibility) {
 
 /**
  * Generate HTML email content
- * 
+ *
  * @param {Object} quoteData - Full quote data
  * @param {string} quoteId - Quote ID
  * @param {Object} eligibility - Eligibility details
@@ -230,7 +240,14 @@ async function sendEmailNotification(quoteData, quoteId, eligibility) {
  * @param {Object} riskScore - Risk score data
  * @return {string} HTML email content
  */
-function generateEmailHtml(quoteData, quoteId, eligibility, pet, owner, riskScore) {
+function generateEmailHtml(
+  quoteData,
+  quoteId,
+  eligibility,
+  pet,
+  owner,
+  riskScore
+) {
   return `
 <!DOCTYPE html>
 <html>
@@ -328,7 +345,7 @@ function generateEmailHtml(quoteData, quoteId, eligibility, pet, owner, riskScor
   <div class="content">
     <div class="alert-box">
       <strong>⚠️ Action Required:</strong> A quote has been automatically declined by the eligibility system. 
-      Review the details below and consider requesting a manual review if appropriate.
+      Inspect the details below and confirm the automated disclosure is complete.
     </div>
 
     <div class="info-grid">
@@ -368,11 +385,15 @@ function generateEmailHtml(quoteData, quoteId, eligibility, pet, owner, riskScor
       <div style="font-weight: 600; margin-bottom: 10px;">
         ❌ Rule Violated: <code>${eligibility.ruleViolated || "Unknown"}</code>
       </div>
-      ${eligibility.violatedValue ? `
+      ${
+        eligibility.violatedValue
+          ? `
         <div style="margin-bottom: 10px;">
           <strong>Violating Value:</strong> ${eligibility.violatedValue}
         </div>
-      ` : ""}
+      `
+          : ""
+      }
       <div style="margin-top: 10px;">
         <strong>Decline Reason:</strong><br/>
         ${eligibility.reason || "No reason provided"}
@@ -387,7 +408,7 @@ function generateEmailHtml(quoteData, quoteId, eligibility, pet, owner, riskScor
         📊 View in Admin Dashboard
       </a>
       <a href="https://app.clovara.com/admin/quotes/${quoteId}?action=review" class="button button-danger">
-        📝 Request Manual Review
+        📝 Open Exception Control
       </a>
     </div>
   </div>
@@ -406,7 +427,7 @@ function generateEmailHtml(quoteData, quoteId, eligibility, pet, owner, riskScor
 /**
  * Main handler for declined quote notifications
  * Called by the Cloud Function trigger
- * 
+ *
  * @param {Object} quoteData - The quote document data
  * @param {string} quoteId - The quote document ID
  * @return {Promise<Object>} Results of notification attempts
@@ -415,35 +436,35 @@ async function handleDeclinedQuoteNotification(quoteData, quoteId) {
   const eligibility = quoteData.eligibility;
 
   if (!eligibility || eligibility.eligible !== false) {
-    logger.warn("Quote is not declined, skipping notification", {quoteId});
-    return {success: false, reason: "Quote not declined"};
+    logger.warn("Quote is not declined, skipping notification", { quoteId });
+    return { success: false, reason: "Quote not declined" };
   }
 
   if (eligibility.status !== "declined") {
     logger.info("Quote status is not 'declined', skipping notification", {
       quoteId,
-      status: eligibility.status,
+      status: eligibility.status
     });
-    return {success: false, reason: "Status not declined"};
+    return { success: false, reason: "Status not declined" };
   }
 
   logger.info("Processing declined quote notification", {
     quoteId,
     ruleViolated: eligibility.ruleViolated,
-    petName: quoteData.pet?.name,
+    petName: quoteData.pet?.name
   });
 
   // Send notifications in parallel
   const [slackResult, emailResult] = await Promise.all([
     sendSlackNotification(quoteData, quoteId, eligibility),
-    sendEmailNotification(quoteData, quoteId, eligibility),
+    sendEmailNotification(quoteData, quoteId, eligibility)
   ]);
 
   const result = {
     success: slackResult || emailResult,
     slack: slackResult,
     email: emailResult,
-    quoteId,
+    quoteId
   };
 
   logger.info("Declined quote notification processing complete", result);
@@ -454,5 +475,5 @@ async function handleDeclinedQuoteNotification(quoteData, quoteId) {
 module.exports = {
   handleDeclinedQuoteNotification,
   sendSlackNotification,
-  sendEmailNotification,
+  sendEmailNotification
 };

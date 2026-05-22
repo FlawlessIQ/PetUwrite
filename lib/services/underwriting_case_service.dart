@@ -211,7 +211,7 @@ class UnderwritingCaseService {
   /// Increments the persistent NEED_MORE_INFO attempt counter for a case.
   ///
   /// This is used as a deterministic loop-breaker so repeated unresolved
-  /// NEED_MORE_INFO cycles can be escalated to DECLINED without human review.
+  /// NEED_MORE_INFO cycles can be escalated to DECLINED automatically.
   ///
   /// Returns the updated attempt count.
   Future<int> incrementNeedMoreInfoAttempts({

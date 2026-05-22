@@ -35,7 +35,11 @@ exports.retryFailedOperation = claimsReconciliation.retryFailedOperation;
 
 // Keep these available for smoke-testing public unauth flows if needed
 const underwritingRulesPublic = require("./underwritingRulesPublic");
+const underwritingEvaluation = require("./underwritingEvaluation");
+const noTouchQuote = require("./noTouchQuote");
 exports.getUnderwritingRulesPublic = underwritingRulesPublic.getUnderwritingRulesPublic;
+exports.evaluateUnderwritingPublic = underwritingEvaluation.evaluateUnderwritingPublic;
+exports.submitNoTouchQuotePublic = noTouchQuote.submitNoTouchQuotePublic;
 
 const productCatalogPublic = require("./productCatalogPublic");
 exports.getProductCatalogPublic = productCatalogPublic.getProductCatalogPublic;

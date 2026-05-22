@@ -19,12 +19,20 @@ export function Footer() {
               </Link>
             ))}
           </nav>
-          <Link
-            href="/quote"
-            className="rounded-[24px] bg-clv-green px-5 py-[9px] text-center text-[13px] font-semibold text-white md:justify-self-end"
-          >
-            Get a free quote
-          </Link>
+          <div className="flex flex-wrap items-center gap-3 md:justify-self-end">
+            <Link
+              href="/app/sign-in"
+              className="rounded-[24px] border border-white/15 px-5 py-[9px] text-center text-[13px] font-semibold text-[#d8d8d8] hover:border-white/30 hover:text-white"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/quote"
+              className="rounded-[24px] bg-clv-green px-5 py-[9px] text-center text-[13px] font-semibold text-white"
+            >
+              Get a free quote
+            </Link>
+          </div>
         </div>
         <div className="my-8 h-px bg-white/10" />
         <div className="grid gap-4 text-[13px] md:grid-cols-2">

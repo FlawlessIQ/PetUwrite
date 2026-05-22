@@ -22,7 +22,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
 
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _policiesTableKey = GlobalKey();
-  
+
   String _statusFilter = 'all';
   String _dateFilter = '30'; // days
   String _sortBy = 'date_desc';
@@ -31,7 +31,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
 
   int? _sortColumnIndex = 5; // created
   bool _sortAscending = false; // newest first
-  
+
   /// Helper to parse date from either Timestamp or String format
   DateTime? _parseDate(dynamic value) {
     if (value == null) return null;
@@ -45,7 +45,69 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
     }
     return null;
   }
-  
+
+  Map<String, dynamic>? _map(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return value.cast<String, dynamic>();
+    return null;
+  }
+
+  String _text(
+    Map<String, dynamic>? data,
+    List<String> keys, [
+    String fallback = '',
+  ]) {
+    if (data == null) return fallback;
+    for (final key in keys) {
+      final value = data[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) return value;
+    }
+    return fallback;
+  }
+
+  double? _numValue(Map<String, dynamic>? data, List<String> keys) {
+    if (data == null) return null;
+    for (final key in keys) {
+      final value = data[key];
+      if (value is num) return value.toDouble();
+      if (value is String) {
+        final parsed = double.tryParse(
+          value.replaceAll(RegExp(r'[^0-9.]'), ''),
+        );
+        if (parsed != null) return parsed;
+      }
+    }
+    return null;
+  }
+
+  double _monthlyPremium(Map<String, dynamic> policy) {
+    final plan = _map(policy['plan']);
+    return _numValue(plan, ['monthlyPremium', 'monthlyPrice', 'premium']) ??
+        _numValue(policy, [
+          'monthlyPremium',
+          'premiumAmount',
+          'monthlyPrice',
+        ]) ??
+        0;
+  }
+
+  String _ownerName(Map<String, dynamic>? owner) {
+    final fullName = _text(owner, ['fullName', 'name']);
+    if (fullName.isNotEmpty) return fullName;
+    return '${_text(owner, ['firstName'])} ${_text(owner, ['lastName'])}'
+        .trim();
+  }
+
+  bool _isEligibleQuote(Map<String, dynamic> quote) {
+    final eligibility = _map(quote['eligibility']);
+    if (eligibility == null) return false;
+    if (eligibility['eligible'] == true) return true;
+    final status = _text(eligibility, ['status']).toLowerCase();
+    return status == 'eligible' ||
+        status == 'approved' ||
+        status == 'bind_ready';
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -57,19 +119,19 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
           // KPI Dashboard
           _buildKPIDashboard(),
           const SizedBox(height: 24),
-          
+
           // Status Breakdown
           _buildStatusBreakdown(),
           const SizedBox(height: 24),
-          
+
           // Conversion Funnel
           _buildConversionFunnel(),
           const SizedBox(height: 24),
-          
+
           // Filters
           _buildFilters(),
           const SizedBox(height: 16),
-          
+
           // Policies List
           _buildPoliciesList(),
         ],
@@ -94,7 +156,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
 
         final now = DateTime.now();
         final thirtyDaysAgo = now.subtract(const Duration(days: 30));
-        
+
         final newPolicies = policies.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final createdAt = _parseDate(data['createdAt']);
@@ -105,11 +167,10 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
         for (final doc in policies) {
           final data = doc.data() as Map<String, dynamic>;
           if (data['status'] == 'active') {
-            final plan = data['plan'] as Map<String, dynamic>?;
-            mrr += (plan?['monthlyPremium'] as num?)?.toDouble() ?? 0;
+            mrr += _monthlyPremium(data);
           }
         }
-        
+
         final arr = mrr * 12;
         final avgPolicyValue = activePolicies > 0 ? mrr / activePolicies : 0;
 
@@ -169,14 +230,18 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                 return Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: cards.map((c) => SizedBox(width: 320, child: c)).toList(),
+                  children: cards
+                      .map((c) => SizedBox(width: 320, child: c))
+                      .toList(),
                 );
               }
 
               return Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: cards.map((c) => SizedBox(width: 360, child: c)).toList(),
+                children: cards
+                    .map((c) => SizedBox(width: 360, child: c))
+                    .toList(),
               );
             },
           ),
@@ -196,7 +261,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
 
         final policies = snapshot.data!.docs;
         final statusCounts = <String, int>{};
-        
+
         for (final doc in policies) {
           final data = doc.data() as Map<String, dynamic>;
           final status = data['status'] as String? ?? 'unknown';
@@ -214,7 +279,9 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                 runSpacing: 10,
                 children: statusCounts.entries.map((entry) {
                   final color = _getStatusColor(entry.key);
-                  final percentage = policies.isNotEmpty ? (entry.value / policies.length * 100) : 0;
+                  final percentage = policies.isNotEmpty
+                      ? (entry.value / policies.length * 100)
+                      : 0;
                   return InkWell(
                     borderRadius: BorderRadius.circular(999),
                     onTap: () {
@@ -225,7 +292,8 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                       _scrollToPoliciesTable();
                     },
                     child: AdminStatusChip(
-                      label: '${_formatStatus(entry.key)} • ${entry.value} (${percentage.toStringAsFixed(0)}%)',
+                      label:
+                          '${_formatStatus(entry.key)} • ${entry.value} (${percentage.toStringAsFixed(0)}%)',
                       color: color,
                       icon: Icons.circle,
                     ),
@@ -254,13 +322,13 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
         final totalPolicies = metrics['totalPolicies'] ?? 0;
         final activePolicies = metrics['activePolicies'] ?? 0;
 
-        final eligibleRate = totalQuotes > 0 
+        final eligibleRate = totalQuotes > 0
             ? (eligibleQuotes / totalQuotes * 100).toDouble()
             : 0.0;
-        final conversionRate = eligibleQuotes > 0 
+        final conversionRate = eligibleQuotes > 0
             ? (totalPolicies / eligibleQuotes * 100).toDouble()
             : 0.0;
-        final retentionRate = totalPolicies > 0 
+        final retentionRate = totalPolicies > 0
             ? (activePolicies / totalPolicies * 100).toDouble()
             : 0.0;
 
@@ -340,10 +408,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                 if (previousCount != null)
                   Text(
                     '${percentage.toStringAsFixed(1)}% conversion',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
               ],
             ),
@@ -425,16 +490,22 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                 child: DropdownButtonFormField<String>(
                   value: _statusFilter,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Status',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     isDense: true,
-                    labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    labelStyle: Theme.of(context).textTheme.labelSmall
+                        ?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.70),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.70),
                         ),
                   ),
                   isExpanded: true,
@@ -454,16 +525,22 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                 child: DropdownButtonFormField<String>(
                   value: _dateFilter,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Date Range',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     isDense: true,
-                    labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    labelStyle: Theme.of(context).textTheme.labelSmall
+                        ?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.70),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.70),
                         ),
                   ),
                   isExpanded: true,
@@ -481,24 +558,42 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                 child: DropdownButtonFormField<String>(
                   value: _sortBy,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Sort By',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     isDense: true,
-                    labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    labelStyle: Theme.of(context).textTheme.labelSmall
+                        ?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.70),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.70),
                         ),
                   ),
                   isExpanded: true,
                   items: const [
-                    DropdownMenuItem(value: 'date_desc', child: Text('Newest First')),
-                    DropdownMenuItem(value: 'date_asc', child: Text('Oldest First')),
-                    DropdownMenuItem(value: 'premium_desc', child: Text('Highest Premium')),
-                    DropdownMenuItem(value: 'premium_asc', child: Text('Lowest Premium')),
+                    DropdownMenuItem(
+                      value: 'date_desc',
+                      child: Text('Newest First'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'date_asc',
+                      child: Text('Oldest First'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'premium_desc',
+                      child: Text('Highest Premium'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'premium_asc',
+                      child: Text('Lowest Premium'),
+                    ),
                   ],
                   onChanged: (value) {
                     if (value == null) return;
@@ -509,18 +604,24 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
               SizedBox(
                 width: 360,
                 child: TextField(
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontSize: 13),
                   decoration: InputDecoration(
                     labelText: 'Search',
                     hintText: 'Policy #, pet, owner, plan, policyId…',
                     isDense: true,
                     prefixIcon: Icon(Icons.search),
-                    labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    labelStyle: Theme.of(context).textTheme.labelSmall
+                        ?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.70),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.70),
                         ),
                   ),
-                  onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
+                  onChanged: (v) =>
+                      setState(() => _searchQuery = v.trim().toLowerCase()),
                 ),
               ),
             ],
@@ -593,7 +694,9 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
 
         // Keep selection consistent with current result set (without mutating during build)
         final visibleIds = policies.map((d) => d.id).toSet();
-        final effectiveSelectedIds = _selectedPolicyIds.where(visibleIds.contains).toSet();
+        final effectiveSelectedIds = _selectedPolicyIds
+            .where(visibleIds.contains)
+            .toSet();
         if (effectiveSelectedIds.length != _selectedPolicyIds.length) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
@@ -604,7 +707,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
             });
           });
         }
-        
+
         if (policies.isEmpty) {
           return Card(
             child: Padding(
@@ -612,7 +715,11 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.filter_list_off, size: 64, color: Colors.grey[400]),
+                    Icon(
+                      Icons.filter_list_off,
+                      size: 64,
+                      color: Colors.grey[400],
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'No policies match the selected filters',
@@ -626,7 +733,11 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
         }
 
         final anySelected = effectiveSelectedIds.isNotEmpty;
-        final selectedDocs = anySelected ? policies.where((d) => effectiveSelectedIds.contains(d.id)).toList() : const <QueryDocumentSnapshot>[];
+        final selectedDocs = anySelected
+            ? policies
+                  .where((d) => effectiveSelectedIds.contains(d.id))
+                  .toList()
+            : const <QueryDocumentSnapshot>[];
 
         return AdminSectionCard(
           title: 'Policies',
@@ -647,8 +758,13 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                 selectedCount: effectiveSelectedIds.length,
                 onSelectVisible: policies.isEmpty
                     ? null
-                    : () => setState(() => _selectedPolicyIds.addAll(policies.map((d) => d.id))),
-                onClearSelection: () => setState(() => _selectedPolicyIds.clear()),
+                    : () => setState(
+                        () => _selectedPolicyIds.addAll(
+                          policies.map((d) => d.id),
+                        ),
+                      ),
+                onClearSelection: () =>
+                    setState(() => _selectedPolicyIds.clear()),
                 actions: [
                   TextButton.icon(
                     onPressed: policies.isEmpty
@@ -659,7 +775,9 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Copied CSV for ${policies.length} visible policies'),
+                                  content: Text(
+                                    'Copied CSV for ${policies.length} visible policies',
+                                  ),
                                   duration: const Duration(seconds: 2),
                                 ),
                               );
@@ -676,7 +794,9 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Copied CSV for ${selectedDocs.length} selected policies'),
+                              content: Text(
+                                'Copied CSV for ${selectedDocs.length} selected policies',
+                              ),
                               duration: const Duration(seconds: 2),
                             ),
                           );
@@ -689,7 +809,9 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                     TextButton.icon(
                       onPressed: () async {
                         final ids = effectiveSelectedIds.toList()..sort();
-                        await Clipboard.setData(ClipboardData(text: ids.join('\n')));
+                        await Clipboard.setData(
+                          ClipboardData(text: ids.join('\n')),
+                        );
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -742,25 +864,30 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                     label: const Text('Premium'),
                     numeric: true,
                     onSort: (columnIndex, ascending) {
-                      setState(() => _applySort(ascending ? 'premium_asc' : 'premium_desc'));
+                      setState(
+                        () => _applySort(
+                          ascending ? 'premium_asc' : 'premium_desc',
+                        ),
+                      );
                     },
                   ),
                   DataColumn(
                     label: const Text('Created'),
                     onSort: (columnIndex, ascending) {
-                      setState(() => _applySort(ascending ? 'date_asc' : 'date_desc'));
+                      setState(
+                        () => _applySort(ascending ? 'date_asc' : 'date_desc'),
+                      );
                     },
                   ),
                 ],
                 buildCells: (context, doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final policyNumber = (data['policyNumber'] as String?) ?? '—';
-                  final pet = data['pet'] as Map<String, dynamic>?;
-                  final owner = data['owner'] as Map<String, dynamic>?;
-                  final plan = data['plan'] as Map<String, dynamic>?;
+                  final pet = _map(data['pet']);
+                  final owner = _map(data['owner']);
                   final status = (data['status'] as String?) ?? 'unknown';
                   final createdAt = _parseDate(data['createdAt']);
-                  final monthlyPremium = (plan?['monthlyPremium'] as num?)?.toDouble() ?? 0;
+                  final monthlyPremium = _monthlyPremium(data);
 
                   return [
                     DataCell(
@@ -771,22 +898,38 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
                       Row(
                         children: [
                           Icon(
-                            pet?['species'] == 'Dog' ? Icons.pets : Icons.cruelty_free,
+                            _text(pet, [
+                                      'species',
+                                      'type',
+                                      'petType',
+                                    ]).toLowerCase() ==
+                                    'dog'
+                                ? Icons.pets
+                                : Icons.cruelty_free,
                             size: 16,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.7),
                           ),
                           const SizedBox(width: 8),
-                          Text((pet?['name'] ?? 'Unknown').toString()),
+                          Text(_text(pet, ['name'], 'Unknown')),
                         ],
                       ),
                       onTap: () => _showPolicyDetails(doc.id, data),
                     ),
                     DataCell(
-                      Text('${owner?['firstName'] ?? ''} ${owner?['lastName'] ?? ''}'.trim()),
+                      Text(
+                        _ownerName(owner).isEmpty
+                            ? 'Unknown'
+                            : _ownerName(owner),
+                      ),
                       onTap: () => _showPolicyDetails(doc.id, data),
                     ),
                     DataCell(
-                      AdminStatusChip(label: _formatStatus(status), color: _getStatusColor(status)),
+                      AdminStatusChip(
+                        label: _formatStatus(status),
+                        color: _getStatusColor(status),
+                      ),
                       onTap: () => _showPolicyDetails(doc.id, data),
                     ),
                     DataCell(
@@ -864,24 +1007,24 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
 
     for (final doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
-      final pet = data['pet'] as Map<String, dynamic>?;
-      final owner = data['owner'] as Map<String, dynamic>?;
-      final plan = data['plan'] as Map<String, dynamic>?;
+      final pet = _map(data['pet']);
+      final owner = _map(data['owner']);
+      final plan = _map(data['plan']);
       final createdAt = _parseDate(data['createdAt']);
-      final monthlyPremium = (plan?['monthlyPremium'] as num?)?.toDouble() ?? 0;
+      final monthlyPremium = _monthlyPremium(data);
 
       rows.add([
         doc.id,
         (data['policyNumber'] ?? '').toString(),
         (data['status'] ?? '').toString(),
         createdAt == null ? '' : createdAt.toIso8601String(),
-        (pet?['name'] ?? '').toString(),
-        (pet?['species'] ?? '').toString(),
-        (pet?['breed'] ?? '').toString(),
-        (owner?['firstName'] ?? '').toString(),
-        (owner?['lastName'] ?? '').toString(),
-        (owner?['email'] ?? '').toString(),
-        (plan?['name'] ?? '').toString(),
+        _text(pet, ['name']),
+        _text(pet, ['species', 'type', 'petType']),
+        _text(pet, ['breed']),
+        _text(owner, ['firstName']),
+        _text(owner, ['lastName']),
+        _text(owner, ['email']),
+        _text(plan, ['name']),
         monthlyPremium.toStringAsFixed(2),
       ]);
     }
@@ -894,7 +1037,11 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
   }
 
   String _csvEscape(String value) {
-    final needsQuotes = value.contains(',') || value.contains('"') || value.contains('\n') || value.contains('\r');
+    final needsQuotes =
+        value.contains(',') ||
+        value.contains('"') ||
+        value.contains('\n') ||
+        value.contains('\r');
     if (!needsQuotes) return value;
     final escaped = value.replaceAll('"', '""');
     return '"$escaped"';
@@ -935,25 +1082,29 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
 
     // Note: Date filtering and sorting done client-side due to mixed data types
     // (some policies have createdAt as String, some as Timestamp)
-    
+
     return query.snapshots();
   }
-  
+
   /// Apply client-side filtering and sorting to handle mixed data types
-  List<QueryDocumentSnapshot> _filterAndSortPolicies(List<QueryDocumentSnapshot> docs) {
+  List<QueryDocumentSnapshot> _filterAndSortPolicies(
+    List<QueryDocumentSnapshot> docs,
+  ) {
     var filtered = docs;
 
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((doc) {
         final data = doc.data() as Map<String, dynamic>;
-        final policyNumber = (data['policyNumber'] ?? '').toString().toLowerCase();
-        final pet = data['pet'] as Map<String, dynamic>?;
-        final owner = data['owner'] as Map<String, dynamic>?;
-        final plan = data['plan'] as Map<String, dynamic>?;
+        final policyNumber = (data['policyNumber'] ?? '')
+            .toString()
+            .toLowerCase();
+        final pet = _map(data['pet']);
+        final owner = _map(data['owner']);
+        final plan = _map(data['plan']);
 
-        final petName = (pet?['name'] ?? '').toString().toLowerCase();
-        final ownerName = '${owner?['firstName'] ?? ''} ${owner?['lastName'] ?? ''}'.toLowerCase();
-        final planName = (plan?['name'] ?? '').toString().toLowerCase();
+        final petName = _text(pet, ['name']).toLowerCase();
+        final ownerName = _ownerName(owner).toLowerCase();
+        final planName = _text(plan, ['name']).toLowerCase();
         final status = (data['status'] ?? '').toString().toLowerCase();
         final id = doc.id.toLowerCase();
 
@@ -965,7 +1116,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
             id.contains(_searchQuery);
       }).toList();
     }
-    
+
     // Client-side date filtering
     if (_dateFilter != 'all') {
       final days = int.parse(_dateFilter);
@@ -976,7 +1127,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
         return createdAt != null && createdAt.isAfter(cutoffDate);
       }).toList();
     }
-    
+
     // Client-side sorting
     if (_sortBy.startsWith('date')) {
       filtered.sort((a, b) {
@@ -984,11 +1135,11 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
         final bData = b.data() as Map<String, dynamic>;
         final aDate = _parseDate(aData['createdAt']);
         final bDate = _parseDate(bData['createdAt']);
-        
+
         if (aDate == null && bDate == null) return 0;
         if (aDate == null) return 1;
         if (bDate == null) return -1;
-        
+
         final comparison = aDate.compareTo(bDate);
         return _sortBy == 'date_desc' ? -comparison : comparison;
       });
@@ -996,14 +1147,14 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
       filtered.sort((a, b) {
         final aData = a.data() as Map<String, dynamic>;
         final bData = b.data() as Map<String, dynamic>;
-        final aPremium = (aData['plan'] as Map<String, dynamic>?)?['monthlyPremium'] as num? ?? 0;
-        final bPremium = (bData['plan'] as Map<String, dynamic>?)?['monthlyPremium'] as num? ?? 0;
-        
+        final aPremium = _monthlyPremium(aData);
+        final bPremium = _monthlyPremium(bData);
+
         final comparison = aPremium.compareTo(bPremium);
         return _sortBy == 'premium_desc' ? -comparison : comparison;
       });
     }
-    
+
     return filtered;
   }
 
@@ -1012,7 +1163,7 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
       final quotesSnapshot = await _firestore.collection('quotes').get();
       final eligibleQuotes = quotesSnapshot.docs.where((doc) {
         final data = doc.data();
-        return data['eligibility']?['eligible'] == true;
+        return _isEligibleQuote(data);
       }).length;
 
       final policiesSnapshot = await _firestore.collection('policies').get();
@@ -1047,18 +1198,49 @@ class _PoliciesPipelineTabState extends State<PoliciesPipelineTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailRow('Status', _formatStatus(data['status'] ?? 'unknown')),
-              _buildDetailRow('Pet', data['pet']?['name'] ?? 'Unknown'),
-              _buildDetailRow('Species', data['pet']?['species'] ?? 'Unknown'),
-              _buildDetailRow('Breed', data['pet']?['breed'] ?? 'Unknown'),
-              _buildDetailRow('Owner', 
-                  '${data['owner']?['firstName']} ${data['owner']?['lastName']}'),
-              _buildDetailRow('Email', data['owner']?['email'] ?? 'N/A'),
-              _buildDetailRow('Plan', data['plan']?['name'] ?? 'Unknown'),
-              _buildDetailRow('Premium', 
-                  '\$${(data['plan']?['monthlyPremium'] ?? 0).toStringAsFixed(2)}/mo'),
+              _buildDetailRow(
+                'Status',
+                _formatStatus(data['status'] ?? 'unknown'),
+              ),
+              _buildDetailRow(
+                'Pet',
+                _text(_map(data['pet']), ['name'], 'Unknown'),
+              ),
+              _buildDetailRow(
+                'Species',
+                _text(_map(data['pet']), [
+                  'species',
+                  'type',
+                  'petType',
+                ], 'Unknown'),
+              ),
+              _buildDetailRow(
+                'Breed',
+                _text(_map(data['pet']), ['breed'], 'Unknown'),
+              ),
+              _buildDetailRow(
+                'Owner',
+                _ownerName(_map(data['owner'])).isEmpty
+                    ? 'Unknown'
+                    : _ownerName(_map(data['owner'])),
+              ),
+              _buildDetailRow(
+                'Email',
+                _text(_map(data['owner']), ['email'], 'N/A'),
+              ),
+              _buildDetailRow(
+                'Plan',
+                _text(_map(data['plan']), ['name'], 'Unknown'),
+              ),
+              _buildDetailRow(
+                'Premium',
+                '\$${_monthlyPremium(data).toStringAsFixed(2)}/mo',
+              ),
               const SizedBox(height: 12),
-              const Text('Policy ID:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Policy ID:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               SelectableText(
                 policyId,
                 style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),

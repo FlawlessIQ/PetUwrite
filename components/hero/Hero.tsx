@@ -21,6 +21,19 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 }
 };
 
+const heroImages = {
+  dog: {
+    src: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=700&q=85",
+    alt: "Happy golden retriever",
+    objectPosition: "center 20%"
+  },
+  cat: {
+    src: "https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?w=700&q=85",
+    alt: "Warm-toned orange tabby cat",
+    objectPosition: "center center"
+  }
+} satisfies Record<PetType, { src: string; alt: string; objectPosition: string }>;
+
 export function Hero() {
   const [species, setSpecies] = useState<PetType>("dog");
 
@@ -29,17 +42,16 @@ export function Hero() {
     track("species_selected", { species: value, location: "hero" });
   }
 
+  const activeImage = heroImages[species];
+
   return (
     <section className="bg-clv-white">
-      <div
-        className="mx-auto grid max-w-7xl gap-8 px-5 md:grid-cols-[55fr_45fr] md:px-8"
-        style={{ paddingTop: "48px", paddingBottom: "48px", alignItems: "center" }}
-      >
+      <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 pb-6 pt-10 md:grid-cols-[minmax(0,1fr)_minmax(420px,520px)] md:px-8 md:pb-8">
         <motion.div
           variants={stagger}
           initial="initial"
           animate="animate"
-          className="max-w-xl"
+          className="max-w-[560px]"
         >
           <motion.p
             variants={fadeUp}
@@ -49,7 +61,7 @@ export function Hero() {
           </motion.p>
           <motion.h1
             variants={fadeUp}
-            className="mt-3 font-display text-[40px] font-bold leading-[0.98] tracking-[-0.03em] text-clv-charcoal md:text-[60px]"
+            className="mt-3 max-w-[10ch] font-display text-[40px] font-bold leading-[0.94] tracking-[-0.03em] text-clv-charcoal md:text-[68px]"
           >
             Your vet bill
             <br />
@@ -59,7 +71,7 @@ export function Hero() {
           </motion.h1>
           <motion.p
             variants={fadeUp}
-            className="mt-5 max-w-[420px] text-[17px] leading-[1.75] text-clv-gray"
+            className="mt-5 max-w-[470px] text-[17px] leading-[1.75] text-clv-gray"
           >
             Clovara covers accidents, illness, and surgery — with no surprise
             exclusions and claims paid in 2 days.
@@ -70,19 +82,19 @@ export function Hero() {
               Get a quote for your {species}
             </p>
           </motion.div>
-          <motion.div variants={fadeUp} className="mt-5 max-w-[340px]">
+          <motion.div variants={fadeUp} className="mt-6 flex flex-wrap items-center gap-4">
             <Link
               href="/quote"
               onClick={() => {
                 track("quote_started", { species, source: "hero" });
               }}
-              className="inline-flex min-w-[200px] w-fit items-center justify-center rounded-md bg-clv-charcoal px-8 py-[13px] text-sm font-semibold tracking-[0.02em] text-clv-white transition-colors hover:bg-[#333]"
+              className="inline-flex min-w-[200px] items-center justify-center rounded-md bg-clv-charcoal px-8 py-[13px] text-sm font-semibold tracking-[0.02em] text-clv-white transition-colors hover:bg-[#333]"
             >
               See my price →
             </Link>
             <Link
               href="/coverage"
-              className="mt-4 inline-flex text-sm text-clv-gray underline-offset-4 hover:text-clv-green hover:underline"
+              className="inline-flex text-sm text-clv-gray underline-offset-4 hover:text-clv-green hover:underline"
             >
               See what&apos;s covered
             </Link>
@@ -92,9 +104,9 @@ export function Hero() {
           initial={{ opacity: 0, x: 32 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="flex justify-center pt-2 md:justify-end"
+          className="flex justify-center md:justify-end"
         >
-          <div className="relative h-auto w-full max-w-[540px] max-h-[480px]">
+          <div className="relative w-full max-w-[520px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={species}
@@ -102,28 +114,18 @@ export function Hero() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
-                className="relative overflow-hidden rounded-[20px] shadow-[0_8px_40px_rgba(0,0,0,0.10)]"
+                className="relative aspect-[11/10] overflow-hidden rounded-[26px] shadow-[0_18px_50px_rgba(17,24,20,0.14)] ring-1 ring-black/5"
               >
                 <Image
-                  src={
-                    species === "dog"
-                      ? "https://images.unsplash.com/photo-1552053831-71594a27632d?w=700&q=85"
-                      : "https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?w=700&q=85"
-                  }
-                  alt={species === "dog" ? "Happy dog" : "Happy cat"}
-                  width={540}
-                  height={460}
+                  src={activeImage.src}
+                  alt={activeImage.alt}
+                  fill
                   priority
-                  style={{
-                    objectFit: "cover",
-                    objectPosition:
-                      species === "dog" ? "center top" : "center center",
-                    borderRadius: "20px",
-                    width: "100%",
-                    height: "auto"
-                  }}
+                  sizes="(min-width: 768px) 520px, 100vw"
+                  className="object-cover"
+                  style={{ objectPosition: activeImage.objectPosition }}
                 />
-                <div className="absolute bottom-5 left-5 flex items-center gap-3 rounded-xl bg-white px-4 py-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
+                <div className="absolute bottom-4 left-4 flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-[0_10px_30px_rgba(17,24,20,0.16)]">
                   <span
                     aria-hidden="true"
                     className="flex h-6 w-6 items-center justify-center rounded-full bg-clv-green text-xs font-bold text-white"

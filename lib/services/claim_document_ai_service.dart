@@ -13,7 +13,7 @@ class ClaimDocumentAIService {
   final String? _googleVisionApiKey;
   final String? _awsAccessKey;
   final String? _awsSecretKey;
-  
+
   // OCR provider preference (can be configured per deployment)
   final OCRProvider _ocrProvider;
 
@@ -24,14 +24,12 @@ class ClaimDocumentAIService {
     String? awsAccessKey,
     String? awsSecretKey,
     OCRProvider ocrProvider = OCRProvider.googleVision,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _gptService = gptService ?? GPTService(
-          model: 'gemini-pro-latest',
-        ),
-        _googleVisionApiKey = googleVisionApiKey,
-        _awsAccessKey = awsAccessKey,
-        _awsSecretKey = awsSecretKey,
-        _ocrProvider = ocrProvider;
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _gptService = gptService ?? GPTService(model: 'gemini-pro-latest'),
+       _googleVisionApiKey = googleVisionApiKey,
+       _awsAccessKey = awsAccessKey,
+       _awsSecretKey = awsSecretKey,
+       _ocrProvider = ocrProvider;
 
   /// Analyze claim document (PDF, JPG, PNG)
   /// Returns comprehensive analysis with extracted data + AI validation
@@ -50,7 +48,7 @@ class ClaimDocumentAIService {
       // Step 1: Extract text via OCR
       print('🔍 Step 1: Running OCR...');
       final ocrResult = await _performOCR(filePath);
-      
+
       if (!ocrResult.success) {
         throw Exception('OCR failed: ${ocrResult.error}');
       }
@@ -61,7 +59,9 @@ class ClaimDocumentAIService {
       // Step 2: Parse key data points from extracted text
       print('📊 Step 2: Parsing key data points...');
       final parsedData = _parseVeterinaryInvoice(extractedText);
-      print('✅ Parsed data: Provider=${parsedData['provider']}, Total=\$${parsedData['total']}');
+      print(
+        '✅ Parsed data: Provider=${parsedData['provider']}, Total=\$${parsedData['total']}',
+      );
 
       // Step 3: Cross-validate amount with user input
       print('🔄 Step 3: Cross-validating amounts...');
@@ -69,7 +69,9 @@ class ClaimDocumentAIService {
         extractedAmount: parsedData['total'],
         userAmount: userEnteredAmount,
       );
-      print('✅ Validation: ${amountValidation['status']} (${amountValidation['message']})');
+      print(
+        '✅ Validation: ${amountValidation['status']} (${amountValidation['message']})',
+      );
 
       // Step 4: Run AI contextual analysis
       print('🤖 Step 4: Running AI analysis...');
@@ -112,13 +114,15 @@ class ClaimDocumentAIService {
       // Step 7: Store in Firestore
       print('💾 Step 7: Storing metadata in Firestore...');
       await _storeDocumentMetadata(analysis);
-      print('✅ Analysis complete! Confidence: ${(confidenceScore * 100).toStringAsFixed(1)}%');
+      print(
+        '✅ Analysis complete! Confidence: ${(confidenceScore * 100).toStringAsFixed(1)}%',
+      );
 
       return analysis;
     } catch (e, stackTrace) {
       print('❌ Document analysis failed: $e');
       print('Stack trace: $stackTrace');
-      
+
       // Return error analysis
       return ClaimDocumentAnalysis.error(
         documentId: documentId,
@@ -167,9 +171,9 @@ class ClaimDocumentAIService {
             {
               'image': {'content': base64Image},
               'features': [
-                {'type': 'DOCUMENT_TEXT_DETECTION', 'maxResults': 1}
+                {'type': 'DOCUMENT_TEXT_DETECTION', 'maxResults': 1},
               ],
-            }
+            },
           ],
         }),
       );
@@ -185,10 +189,7 @@ class ClaimDocumentAIService {
       final textAnnotations = result['responses'][0]['textAnnotations'];
 
       if (textAnnotations == null || textAnnotations.isEmpty) {
-        return OCRResult(
-          success: false,
-          error: 'No text detected in image',
-        );
+        return OCRResult(success: false, error: 'No text detected in image');
       }
 
       // First annotation contains all text
@@ -202,20 +203,14 @@ class ClaimDocumentAIService {
         provider: 'Google Cloud Vision',
       );
     } catch (e) {
-      return OCRResult(
-        success: false,
-        error: 'Google Vision OCR failed: $e',
-      );
+      return OCRResult(success: false, error: 'Google Vision OCR failed: $e');
     }
   }
 
   /// AWS Textract OCR
   Future<OCRResult> _awsTextractOCR(String filePath) async {
     if (_awsAccessKey == null || _awsSecretKey == null) {
-      return OCRResult(
-        success: false,
-        error: 'AWS credentials not configured',
-      );
+      return OCRResult(success: false, error: 'AWS credentials not configured');
     }
 
     try {
@@ -226,10 +221,7 @@ class ClaimDocumentAIService {
         error: 'AWS Textract integration pending - use Google Vision or Mock',
       );
     } catch (e) {
-      return OCRResult(
-        success: false,
-        error: 'AWS Textract OCR failed: $e',
-      );
+      return OCRResult(success: false, error: 'AWS Textract OCR failed: $e');
     }
   }
 
@@ -375,7 +367,9 @@ License #: CA-VET-98765
       // Try common formats
       final formats = [
         RegExp(r'([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})'), // October 8, 2025
-        RegExp(r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})'), // 10/8/2025 or 10-8-2025
+        RegExp(
+          r'(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})',
+        ), // 10/8/2025 or 10-8-2025
       ];
 
       for (final format in formats) {
@@ -407,18 +401,30 @@ License #: CA-VET-98765
   /// Convert month name to number
   int _monthNameToNumber(String monthName) {
     const months = {
-      'january': 1, 'jan': 1,
-      'february': 2, 'feb': 2,
-      'march': 3, 'mar': 3,
-      'april': 4, 'apr': 4,
+      'january': 1,
+      'jan': 1,
+      'february': 2,
+      'feb': 2,
+      'march': 3,
+      'mar': 3,
+      'april': 4,
+      'apr': 4,
       'may': 5,
-      'june': 6, 'jun': 6,
-      'july': 7, 'jul': 7,
-      'august': 8, 'aug': 8,
-      'september': 9, 'sep': 9, 'sept': 9,
-      'october': 10, 'oct': 10,
-      'november': 11, 'nov': 11,
-      'december': 12, 'dec': 12,
+      'june': 6,
+      'jun': 6,
+      'july': 7,
+      'jul': 7,
+      'august': 8,
+      'aug': 8,
+      'september': 9,
+      'sep': 9,
+      'sept': 9,
+      'october': 10,
+      'oct': 10,
+      'november': 11,
+      'nov': 11,
+      'december': 12,
+      'dec': 12,
     };
     return months[monthName.toLowerCase()] ?? 1;
   }
@@ -458,7 +464,7 @@ License #: CA-VET-98765
       'message': isMatch
           ? 'Amount matches (${_formatCurrency(extractedAmount)})'
           : 'Amount mismatch: Document shows ${_formatCurrency(extractedAmount)}, '
-              'user entered ${_formatCurrency(userAmount)} (${percentDiff.toStringAsFixed(1)}% difference)',
+                'user entered ${_formatCurrency(userAmount)} (${percentDiff.toStringAsFixed(1)}% difference)',
       'discrepancy': difference,
       'extractedAmount': extractedAmount,
       'userAmount': userAmount,
@@ -471,7 +477,8 @@ License #: CA-VET-98765
     required String extractedText,
     required Map<String, dynamic> parsedData,
   }) async {
-    final prompt = '''
+    final prompt =
+        '''
 You are a veterinary insurance claim validator. Analyze this document and provide a JSON response.
 
 EXTRACTED TEXT FROM DOCUMENT:
@@ -512,7 +519,7 @@ JSON:''';
           .trim();
 
       final result = jsonDecode(jsonStr) as Map<String, dynamic>;
-      
+
       return {
         'isLegitimate': result['isLegitimate'] ?? true,
         'treatment': result['treatment'] ?? 'Unknown treatment',
@@ -526,7 +533,7 @@ JSON:''';
       // Return safe defaults
       return {
         'isLegitimate': true,
-        'treatment': 'Unable to analyze - manual review required',
+        'treatment': 'Unable to analyze - automated evidence check required',
         'category': 'illness',
         'confidence': 0.5,
         'summary': 'AI analysis unavailable',
@@ -550,7 +557,8 @@ JSON:''';
       'amountMatch': 0.15,
     };
 
-    final score = (ocrConfidence * weights['ocr']!) +
+    final score =
+        (ocrConfidence * weights['ocr']!) +
         (parsingConfidence * weights['parsing']!) +
         (gptConfidence * weights['gpt']!) +
         ((amountMatch ? 1.0 : 0.0) * weights['amountMatch']!);
@@ -596,10 +604,11 @@ JSON:''';
     double? userEnteredAmount,
   }) async {
     final results = <ClaimDocumentAnalysis>[];
-    
+
     for (int i = 0; i < filePaths.length; i++) {
-      final documentId = '${claimId}_doc_${i + 1}_${DateTime.now().millisecondsSinceEpoch}';
-      
+      final documentId =
+          '${claimId}_doc_${i + 1}_${DateTime.now().millisecondsSinceEpoch}';
+
       try {
         final analysis = await analyzeDocument(
           filePath: filePaths[i],
@@ -610,14 +619,16 @@ JSON:''';
         results.add(analysis);
       } catch (e) {
         print('Error analyzing document ${i + 1}: $e');
-        results.add(ClaimDocumentAnalysis.error(
-          documentId: documentId,
-          claimId: claimId,
-          error: e.toString(),
-        ));
+        results.add(
+          ClaimDocumentAnalysis.error(
+            documentId: documentId,
+            claimId: claimId,
+            error: e.toString(),
+          ),
+        );
       }
     }
-    
+
     return results;
   }
 
@@ -767,7 +778,9 @@ class ClaimDocumentAnalysis {
       'claimId': claimId,
       'extractedText': extractedText,
       'providerName': providerName,
-      'serviceDate': serviceDate != null ? Timestamp.fromDate(serviceDate!) : null,
+      'serviceDate': serviceDate != null
+          ? Timestamp.fromDate(serviceDate!)
+          : null,
       'diagnosisCodes': diagnosisCodes,
       'procedureCodes': procedureCodes,
       'totalCharge': totalCharge,
@@ -786,7 +799,10 @@ class ClaimDocumentAnalysis {
   }
 
   /// Create from Firestore map
-  factory ClaimDocumentAnalysis.fromMap(Map<String, dynamic> map, String documentId) {
+  factory ClaimDocumentAnalysis.fromMap(
+    Map<String, dynamic> map,
+    String documentId,
+  ) {
     return ClaimDocumentAnalysis(
       documentId: documentId,
       claimId: map['claimId'] as String,
@@ -804,7 +820,9 @@ class ClaimDocumentAnalysis {
       claimCategory: map['claimCategory'] as String,
       confidenceScore: (map['confidenceScore'] as num).toDouble(),
       summary: map['summary'] as String,
-      amountValidation: Map<String, dynamic>.from(map['amountValidation'] ?? {}),
+      amountValidation: Map<String, dynamic>.from(
+        map['amountValidation'] ?? {},
+      ),
       fraudFlags: List<String>.from(map['fraudFlags'] ?? []),
       analyzedAt: (map['analyzedAt'] as Timestamp).toDate(),
       ocrProvider: map['ocrProvider'] as String,

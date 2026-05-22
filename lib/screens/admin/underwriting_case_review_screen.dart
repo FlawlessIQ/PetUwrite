@@ -12,16 +12,15 @@ import '../../theme/clovara_theme.dart';
 class UnderwritingCaseReviewScreen extends StatefulWidget {
   final String caseId;
 
-  const UnderwritingCaseReviewScreen({
-    super.key,
-    required this.caseId,
-  });
+  const UnderwritingCaseReviewScreen({super.key, required this.caseId});
 
   @override
-  State<UnderwritingCaseReviewScreen> createState() => _UnderwritingCaseReviewScreenState();
+  State<UnderwritingCaseReviewScreen> createState() =>
+      _UnderwritingCaseReviewScreenState();
 }
 
-class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScreen> {
+class _UnderwritingCaseReviewScreenState
+    extends State<UnderwritingCaseReviewScreen> {
   final _service = UnderwritingCaseService();
   final _firestore = FirebaseFirestore.instance;
 
@@ -55,7 +54,9 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
     if (_currentDecision != null) {
       _outcome = _currentDecision!.outcome;
       _reasonCodesController.text = _currentDecision!.reasonCodes.join(', ');
-      _exclusionsController.text = _currentDecision!.exclusions.map((e) => e.conditionName).join('\n');
+      _exclusionsController.text = _currentDecision!.exclusions
+          .map((e) => e.conditionName)
+          .join('\n');
     }
 
     return c;
@@ -73,17 +74,17 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
 
       final exclusions = _outcome == UnderwritingOutcome.approveWithExclusions
           ? _exclusionsController.text
-              .split('\n')
-              .map((e) => e.trim())
-              .where((e) => e.isNotEmpty)
-              .map(
-                (condition) => PolicyExclusion(
-                  conditionName: condition,
-                  scope: 'condition',
-                  effectiveDate: DateTime.now(),
-                ),
-              )
-              .toList()
+                .split('\n')
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty)
+                .map(
+                  (condition) => PolicyExclusion(
+                    conditionName: condition,
+                    scope: 'condition',
+                    effectiveDate: DateTime.now(),
+                  ),
+                )
+                .toList()
           : <PolicyExclusion>[];
 
       final nextVersion = (_currentDecision?.version ?? 0) + 1;
@@ -94,7 +95,7 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
         exclusions: exclusions,
         pricingAdjustments: UnderwritingPricingAdjustments.defaultAdjustments(),
         decidedAt: DateTime.now(),
-        decidedBy: 'manual',
+        decidedBy: 'admin_override',
         version: nextVersion,
       );
 
@@ -102,9 +103,9 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
       await _service.updateStatus(widget.caseId, _statusFromOutcome(_outcome));
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Decision saved.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Decision saved.')));
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
@@ -141,7 +142,7 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Underwriting Case'),
+            title: const Text('Decision Case'),
             actions: [
               if (_saving)
                 const Padding(
@@ -165,85 +166,90 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
           body: snapshot.connectionState == ConnectionState.waiting
               ? const Center(child: CircularProgressIndicator())
               : c == null
-                  ? const Center(child: Text('Case not found.'))
-                  : AbsorbPointer(
-                      absorbing: _saving,
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final wide = constraints.maxWidth >= 1100;
+              ? const Center(child: Text('Case not found.'))
+              : AbsorbPointer(
+                  absorbing: _saving,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth >= 1100;
 
-                          final left = ListView(
-                            padding: const EdgeInsets.all(16),
-                            children: [
-                              _buildCaseHeader(c),
-                              const SizedBox(height: 12),
-                              _buildDecisionSnapshot(c),
-                              const SizedBox(height: 12),
-                              _buildAuditTimeline(widget.caseId),
-                            ],
-                          );
+                      final left = ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          _buildCaseHeader(c),
+                          const SizedBox(height: 12),
+                          _buildDecisionSnapshot(c),
+                          const SizedBox(height: 12),
+                          _buildAuditTimeline(widget.caseId),
+                        ],
+                      );
 
-                          final right = ListView(
-                            padding: const EdgeInsets.all(16),
-                            children: [
-                              _buildDecisionEditor(),
-                              const SizedBox(height: 16),
-                              FilledButton.icon(
-                                onPressed: _saveDecision,
-                                icon: const Icon(Icons.save),
-                                label: const Text('Save manual decision'),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: ClovaraColors.clover,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                      final right = ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          _buildDecisionEditor(),
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            onPressed: _saveDecision,
+                            icon: const Icon(Icons.save),
+                            label: const Text('Save exception control'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: ClovaraColors.clover,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'All saves are written to the case doc and recorded in the event log.',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.7),
+                                ),
+                          ),
+                        ],
+                      );
+
+                      if (!wide) {
+                        return ListView(
+                          padding: const EdgeInsets.all(16),
+                          children: [
+                            _buildCaseHeader(c),
+                            const SizedBox(height: 12),
+                            _buildDecisionSnapshot(c),
+                            const SizedBox(height: 12),
+                            _buildDecisionEditor(),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: _saveDecision,
+                              icon: const Icon(Icons.save),
+                              label: const Text('Save exception control'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: ClovaraColors.clover,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'All saves are written to the case doc and recorded in the event log.',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                                    ),
-                              ),
-                            ],
-                          );
+                            ),
+                            const SizedBox(height: 12),
+                            _buildAuditTimeline(widget.caseId),
+                          ],
+                        );
+                      }
 
-                          if (!wide) {
-                            return ListView(
-                              padding: const EdgeInsets.all(16),
-                              children: [
-                                _buildCaseHeader(c),
-                                const SizedBox(height: 12),
-                                _buildDecisionSnapshot(c),
-                                const SizedBox(height: 12),
-                                _buildDecisionEditor(),
-                                const SizedBox(height: 16),
-                                FilledButton.icon(
-                                  onPressed: _saveDecision,
-                                  icon: const Icon(Icons.save),
-                                  label: const Text('Save manual decision'),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: ClovaraColors.clover,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                _buildAuditTimeline(widget.caseId),
-                              ],
-                            );
-                          }
-
-                          return Row(
-                            children: [
-                              Expanded(flex: 3, child: left),
-                              const VerticalDivider(width: 1),
-                              Expanded(flex: 2, child: right),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
+                      return Row(
+                        children: [
+                          Expanded(flex: 3, child: left),
+                          const VerticalDivider(width: 1),
+                          Expanded(flex: 2, child: right),
+                        ],
+                      );
+                    },
+                  ),
+                ),
         );
       },
     );
@@ -258,10 +264,7 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
       title: '$petName • $ownerName',
       icon: Icons.badge_outlined,
       actions: [
-        AdminStatusChip(
-          label: statusLabel,
-          color: _statusColor(c.status),
-        ),
+        AdminStatusChip(label: statusLabel, color: _statusColor(c.status)),
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,7 +283,9 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
             const SizedBox(height: 12),
             Text(
               'Triggers',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -304,9 +309,13 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
 
   Widget _buildDecisionSnapshot(UnderwritingCase c) {
     final decision = _currentDecision;
-    final outcome = decision == null ? '—' : underwritingOutcomeToString(decision.outcome);
+    final outcome = decision == null
+        ? '—'
+        : underwritingOutcomeToString(decision.outcome);
     final decidedAt = decision?.decidedAt;
-    final decidedBy = (decision?.decidedBy ?? '').isEmpty ? '—' : decision!.decidedBy;
+    final decidedBy = (decision?.decidedBy ?? '').isEmpty
+        ? '—'
+        : decision!.decidedBy;
     final exclusionsCount = decision?.exclusions.length ?? 0;
 
     return AdminSectionCard(
@@ -322,12 +331,14 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
             children: [
               AdminStatusChip(
                 label: 'Outcome: $outcome',
-                color: decision == null ? ClovaraColors.slate : ClovaraColors.forest,
+                color: decision == null
+                    ? ClovaraColors.slate
+                    : ClovaraColors.forest,
               ),
               AdminStatusChip(
-                label: 'Decided by: $decidedBy',
+                label: 'Decision source: $decidedBy',
                 color: ClovaraColors.slate,
-                icon: Icons.person_outline,
+                icon: Icons.bolt_outlined,
               ),
               AdminStatusChip(
                 label: 'Exclusions: $exclusionsCount',
@@ -399,10 +410,14 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
 
               String payloadSummary() {
                 if (payload is Map<String, dynamic>) {
-                  if (payload.containsKey('status')) return 'status=${payload['status']}';
-                  if (payload.containsKey('outcome')) return 'outcome=${payload['outcome']}';
-                  if (payload.containsKey('exclusionsCount')) return 'exclusions=${payload['exclusionsCount']}';
-                  if (payload.containsKey('conditionsCount')) return 'conditions=${payload['conditionsCount']}';
+                  if (payload.containsKey('status'))
+                    return 'status=${payload['status']}';
+                  if (payload.containsKey('outcome'))
+                    return 'outcome=${payload['outcome']}';
+                  if (payload.containsKey('exclusionsCount'))
+                    return 'exclusions=${payload['exclusionsCount']}';
+                  if (payload.containsKey('conditionsCount'))
+                    return 'conditions=${payload['conditionsCount']}';
                 }
                 return '';
               }
@@ -417,7 +432,10 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.circle, size: 10),
-                title: Text(type, style: const TextStyle(fontWeight: FontWeight.w700)),
+                title: Text(
+                  type,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 subtitle: sub.isEmpty ? null : Text(sub),
               );
             }).toList(),
@@ -434,9 +452,9 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
         Text(
           '$k: ',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-              ),
+            fontWeight: FontWeight.w800,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          ),
         ),
         Text(v, style: Theme.of(context).textTheme.bodySmall),
       ],
@@ -473,16 +491,16 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
 
   Widget _buildDecisionEditor() {
     return AdminSectionCard(
-      title: 'Manual Decision',
-      icon: Icons.edit_note_outlined,
+      title: 'Exception Control',
+      icon: Icons.manage_history_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'This writes a decision summary onto the case doc and appends an audit event.',
+            'Use only when automation has all required evidence but needs an audited recovery action. The save writes a decision summary onto the case doc and appends an immutable event.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                ),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            ),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<UnderwritingOutcome>(
@@ -539,8 +557,8 @@ class _UnderwritingCaseReviewScreenState extends State<UnderwritingCaseReviewScr
             Text(
               'Exclusions apply only to “Approve with exclusions”.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  ),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
             ),
         ],
       ),

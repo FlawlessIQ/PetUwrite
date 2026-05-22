@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Represents a comprehensive insurance claim filed by a policyholder
-/// Supports AI-assisted decision making, human oversight, and full claim lifecycle
+/// Supports automated decisioning, audited exception overrides, and full claim lifecycle.
 class Claim {
   final String claimId;
   final String policyId;
@@ -22,9 +22,9 @@ class Claim {
   final Map<String, dynamic>?
   aiReasoningExplanation; // SHAP-style explainability
 
-  // Human Override
+  // Exception Override
   final Map<String, dynamic>?
-  humanOverride; // { overriddenBy, overrideReason, overrideTimestamp }
+  humanOverride; // Legacy field: { overriddenBy, overrideReason, overrideTimestamp }
 
   // Claim Status & Lifecycle
   final ClaimStatus status;
@@ -32,8 +32,8 @@ class Claim {
   final DateTime updatedAt;
   final DateTime? settledAt;
 
-  // Advisory Lock for Concurrent Review (10-minute timeout)
-  final String? reviewLockedBy; // Admin user ID holding the lock
+  // Advisory Lock for Concurrent Exception Controls (10-minute timeout)
+  final String? reviewLockedBy; // Admin user ID holding the legacy lock
   final DateTime? reviewLockedAt; // When the lock was acquired
 
   Claim({
@@ -61,38 +61,49 @@ class Claim {
 
   /// Create Claim from Firestore document
   factory Claim.fromMap(Map<String, dynamic> map, String documentId) {
+    DateTime readDate(dynamic value) {
+      if (value is Timestamp) return value.toDate();
+      if (value is DateTime) return value;
+      if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+      return DateTime.now();
+    }
+
+    DateTime? readOptionalDate(dynamic value) {
+      if (value == null) return null;
+      if (value is Timestamp) return value.toDate();
+      if (value is DateTime) return value;
+      if (value is String) return DateTime.tryParse(value);
+      return null;
+    }
+
     return Claim(
       claimId: documentId,
-      policyId: map['policyId'] as String,
-      ownerId: map['ownerId'] as String,
-      petId: map['petId'] as String,
-      incidentDate: (map['incidentDate'] as Timestamp).toDate(),
-      claimType: ClaimType.fromString(map['claimType'] as String),
-      claimAmount: (map['claimAmount'] as num).toDouble(),
+      policyId: (map['policyId'] ?? '').toString(),
+      ownerId: (map['ownerId'] ?? '').toString(),
+      petId: (map['petId'] ?? '').toString(),
+      incidentDate: readDate(map['incidentDate']),
+      claimType: ClaimType.fromString(
+        (map['claimType'] ?? 'accident').toString(),
+      ),
+      claimAmount: (map['claimAmount'] as num?)?.toDouble() ?? 0,
       currency: map['currency'] as String? ?? 'USD',
-      description: map['description'] as String,
+      description: (map['description'] ?? '').toString(),
       attachments: List<String>.from(map['attachments'] as List? ?? []),
-      aiConfidenceScore: map['aiConfidenceScore'] as double?,
+      aiConfidenceScore: (map['aiConfidenceScore'] as num?)?.toDouble(),
       aiDecision: map['aiDecision'] != null
           ? AIDecision.fromString(map['aiDecision'] as String)
           : null,
       aiReasoningExplanation:
           map['aiReasoningExplanation'] as Map<String, dynamic>?,
       humanOverride: map['humanOverride'] as Map<String, dynamic>?,
-      status: ClaimStatus.fromString(map['status'] as String),
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : DateTime.now(),
-      updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : DateTime.now(),
-      settledAt: map['settledAt'] != null
-          ? (map['settledAt'] as Timestamp).toDate()
-          : null,
+      status: ClaimStatus.fromString(
+        (map['status'] ?? 'processing').toString(),
+      ),
+      createdAt: readDate(map['createdAt']),
+      updatedAt: readDate(map['updatedAt']),
+      settledAt: readOptionalDate(map['settledAt']),
       reviewLockedBy: map['reviewLockedBy'] as String?,
-      reviewLockedAt: map['reviewLockedAt'] != null
-          ? (map['reviewLockedAt'] as Timestamp).toDate()
-          : null,
+      reviewLockedAt: readOptionalDate(map['reviewLockedAt']),
     );
   }
 
@@ -185,7 +196,7 @@ class Claim {
     );
   }
 
-  /// Check if claim is currently locked for review
+  /// Check if claim is currently locked for exception control
   bool get isReviewLocked {
     if (reviewLockedBy == null || reviewLockedAt == null) return false;
 
@@ -202,17 +213,19 @@ class Claim {
     return DateTime.now().isAfter(lockExpiry);
   }
 
-  /// Check if claim was overridden by human
+  /// Check if an audited exception override exists
   bool get hasHumanOverride =>
       humanOverride != null && humanOverride!.isNotEmpty;
+
+  bool get hasExceptionOverride => hasHumanOverride;
 
   /// Check if AI made a decision
   bool get hasAIDecision => aiDecision != null;
 
-  /// Get final decision (human override takes precedence)
+  /// Get final decision (exception override takes precedence)
   String get finalDecision {
     if (hasHumanOverride) {
-      return 'Human Override: ${humanOverride!['decision'] ?? 'Unknown'}';
+      return 'Exception Override: ${humanOverride!['decision'] ?? 'Unknown'}';
     }
     if (hasAIDecision) {
       return 'AI: ${aiDecision!.displayName}';

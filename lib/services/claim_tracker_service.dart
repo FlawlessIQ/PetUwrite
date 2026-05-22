@@ -44,7 +44,7 @@ class ClaimTrackerService {
         return CloverMessage(
           expression: CloverExpression.thinking,
           message:
-              "To continue, please upload your vet records and receipts. Once they’re uploaded, we’ll pick up review automatically.",
+              "To continue, please upload your vet records and receipts. Once they’re uploaded, we’ll pick up the automated check.",
           sentiment: MessageSentiment.neutral,
         );
       }
@@ -64,7 +64,7 @@ class ClaimTrackerService {
           return CloverMessage(
             expression: CloverExpression.thinking,
             message:
-                "I'm ready to review your claim! Just upload your vet records and receipts to get started.",
+                "I'm ready to check your claim. Just upload your vet records and receipts to get started.",
             sentiment: MessageSentiment.neutral,
           );
         } else {
@@ -136,7 +136,7 @@ class ClaimTrackerService {
       progress += 20;
     }
 
-    // Step 3: Initial review complete (30%)
+    // Step 3: Initial automated check complete (30%)
     if (claim.aiDecision != null) {
       progress += 30;
     }
@@ -175,7 +175,7 @@ class ClaimTrackerService {
       if (claim.attachments.isEmpty) {
         return "Waiting for documents";
       }
-      return "5-10 minutes"; // automated review time
+      return "5-10 minutes"; // automated check time
     }
 
     return "A few minutes";
@@ -185,7 +185,7 @@ class ClaimTrackerService {
   static List<String> getDetailedUpdates(Claim claim) {
     final updates = <String>[];
 
-    // Document review updates
+    // Document check updates
     if (claim.attachments.isNotEmpty) {
       updates.add("✓ Received ${claim.attachments.length} document(s)");
 
@@ -196,9 +196,9 @@ class ClaimTrackerService {
       }
     }
 
-    // Review updates
+    // Automated check updates
     if (claim.aiDecision != null && claim.attachments.isNotEmpty) {
-      updates.add("✓ Initial review complete");
+      updates.add("✓ Initial check complete");
       final confidence = claim.aiConfidenceScore ?? 0;
       if (confidence >= 0.8) {
         updates.add("✓ Final checks in progress");

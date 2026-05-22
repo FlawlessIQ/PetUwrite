@@ -16,6 +16,7 @@ import '../screens/auth_required_checkout.dart';
 import '../screens/conversational_quote_flow.dart';
 import '../ui/components/app_shell.dart';
 import '../ui/tokens.dart';
+import '../utils/marketing_site_redirect.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -48,28 +49,35 @@ GoRouter createAppRouter() {
           GoRoute(
             path: '/',
             pageBuilder: (context, state) =>
-                const NoTransitionPage(child: HomePage()),
+                _legacyMarketingPage(const HomePage(), marketingPath: '/'),
           ),
           GoRoute(
             path: '/coverage',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: CoveragePage()),
+            pageBuilder: (context, state) => _legacyMarketingPage(
+              const CoveragePage(),
+              marketingPath: '/coverage',
+            ),
           ),
           GoRoute(
             path: '/how-it-works',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: HowItWorksPage()),
+            pageBuilder: (context, state) => _legacyMarketingPage(
+              const HowItWorksPage(),
+              marketingPath: '/how-it-works',
+            ),
           ),
           GoRoute(
             path: '/learn',
             pageBuilder: (context, state) =>
-                const NoTransitionPage(child: LearnPage()),
+                _legacyMarketingPage(const LearnPage(), marketingPath: '/'),
             routes: [
               GoRoute(
                 path: ':slug',
                 pageBuilder: (context, state) {
                   final slug = state.pathParameters['slug'] ?? 'article';
-                  return NoTransitionPage(child: ArticleDetailPage(slug: slug));
+                  return _legacyMarketingPage(
+                    ArticleDetailPage(slug: slug),
+                    marketingPath: '/',
+                  );
                 },
               ),
             ],
@@ -77,22 +85,26 @@ GoRouter createAppRouter() {
           GoRoute(
             path: '/faq',
             pageBuilder: (context, state) =>
-                const NoTransitionPage(child: FaqPage()),
+                _legacyMarketingPage(const FaqPage(), marketingPath: '/'),
           ),
           GoRoute(
             path: '/privacy',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: PrivacyPage()),
+            pageBuilder: (context, state) => _legacyMarketingPage(
+              const PrivacyPage(),
+              marketingPath: '/privacy',
+            ),
           ),
           GoRoute(
             path: '/terms',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: TermsPage()),
+            pageBuilder: (context, state) => _legacyMarketingPage(
+              const TermsPage(),
+              marketingPath: '/terms',
+            ),
           ),
           GoRoute(
             path: '/contact',
             pageBuilder: (context, state) =>
-                const NoTransitionPage(child: ContactPage()),
+                _legacyMarketingPage(const ContactPage(), marketingPath: '/'),
           ),
         ],
       ),
@@ -103,7 +115,8 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final extra = state.extra;
           final restorePendingDraft =
-              extra is Map<String, dynamic> && extra['restorePendingDraft'] == true;
+              extra is Map<String, dynamic> &&
+              extra['restorePendingDraft'] == true;
           return ConversationalQuoteFlow(
             restorePendingDraft: restorePendingDraft,
           );
@@ -149,6 +162,40 @@ GoRouter createAppRouter() {
       GoRoute(path: '/app', builder: (context, state) => const AuthGate()),
     ],
   );
+}
+
+Page<dynamic> _legacyMarketingPage(
+  Widget child, {
+  required String marketingPath,
+}) {
+  if (isRunningUnderAppMount()) {
+    return NoTransitionPage(child: _MarketingSiteRedirect(path: marketingPath));
+  }
+  return NoTransitionPage(child: child);
+}
+
+class _MarketingSiteRedirect extends StatefulWidget {
+  final String path;
+
+  const _MarketingSiteRedirect({required this.path});
+
+  @override
+  State<_MarketingSiteRedirect> createState() => _MarketingSiteRedirectState();
+}
+
+class _MarketingSiteRedirectState extends State<_MarketingSiteRedirect> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      redirectToMarketingSite(path: widget.path);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  }
 }
 
 class _HomeBackdrop extends StatelessWidget {

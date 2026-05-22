@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../admin_console/components/admin_section_card.dart';
+import '../theme/clovara_theme.dart';
 import '../services/reconciliation_service.dart';
 
 /// System Health Dashboard Widget
@@ -58,44 +60,19 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.all(16),
+    return AdminSectionCard(
+      title: 'System Health',
+      icon: Icons.monitor_heart_outlined,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh),
+          onPressed: _loadData,
+          tooltip: 'Refresh',
+        ),
+      ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4),
-                topRight: Radius.circular(4),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.monitor_heart, size: 28),
-                const SizedBox(width: 12),
-                const Text(
-                  'System Health',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _loadData,
-                  tooltip: 'Refresh',
-                ),
-              ],
-            ),
-          ),
-
-          // Content
           if (_isLoading)
             const Center(
               child: Padding(
@@ -104,16 +81,28 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
               ),
             )
           else if (_error != null)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: ClovaraColors.error.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: ClovaraColors.error.withOpacity(0.22),
+                ),
+              ),
               child: Column(
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: ClovaraColors.error,
+                  ),
                   const SizedBox(height: 8),
-                  Text(
+                  const Text(
                     'Error loading system health data',
                     style: TextStyle(
-                      color: Colors.red[700],
+                      color: ClovaraColors.error,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -129,22 +118,12 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
           else
             Column(
               children: [
-                // Health Score Section
                 _buildHealthScoreSection(),
-
                 const Divider(height: 1),
-
-                // Reconciliation Stats Section
                 _buildReconciliationStatsSection(),
-
                 const Divider(height: 1),
-
-                // Claim document extraction pipeline
                 _buildAttachmentExtractionSection(),
-
                 const Divider(height: 1),
-
-                // Failed Operations Section
                 _buildFailedOperationsSection(),
               ],
             ),
@@ -177,14 +156,14 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
             children: [
               const Text(
                 'Claim Document Extraction',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -254,10 +233,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
           if (health.recentErrors.isNotEmpty) ...[
             const Text(
               'Recent extraction failures',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             ListView.separated(
@@ -276,13 +252,19 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
                   subtitleParts.add('Attempt ${e.extractionAttemptCount}');
                 }
                 if (e.nextAttemptAt != null) {
-                  subtitleParts.add('Next: ${_formatTimestamp(e.nextAttemptAt!)}');
+                  subtitleParts.add(
+                    'Next: ${_formatTimestamp(e.nextAttemptAt!)}',
+                  );
                 }
 
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.error_outline, color: Colors.orange[700], size: 18),
+                    Icon(
+                      Icons.error_outline,
+                      color: Colors.orange[700],
+                      size: 18,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -296,13 +278,19 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
                           if (subtitleParts.isNotEmpty)
                             Text(
                               subtitleParts.join(' • '),
-                              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[700],
+                              ),
                             ),
                           if ((e.extractionError ?? '').isNotEmpty) ...[
                             const SizedBox(height: 2),
                             Text(
                               e.extractionError!,
-                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -321,10 +309,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
                 const SizedBox(width: 10),
                 const Text(
                   'No recent extraction failures',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -419,7 +404,9 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
                       'Failure Rate',
                       '${(_healthScore!.failureRate * 100).toStringAsFixed(2)}%',
                       Icons.trending_down,
-                      _healthScore!.failureRate > 0.05 ? Colors.red : Colors.green,
+                      _healthScore!.failureRate > 0.05
+                          ? Colors.red
+                          : Colors.green,
                     ),
                   ],
                 ),
@@ -463,10 +450,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
         children: [
           const Text(
             'Latest Reconciliation Run',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
 
@@ -574,10 +558,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
             const SizedBox(width: 12),
             const Text(
               'No failed operations ✨',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -593,10 +574,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
             children: [
               const Text(
                 'Failed Operations',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(width: 8),
               Container(
@@ -636,7 +614,9 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
               onPressed: () {
                 _showAllFailedOperations();
               },
-              child: Text('View all ${_failedOperations!.length} failed operations'),
+              child: Text(
+                'View all ${_failedOperations!.length} failed operations',
+              ),
             ),
           ],
         ],
@@ -673,7 +653,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
           ),
           if (operation.isEscalated)
             Text(
-              'ESCALATED - Manual intervention required',
+              'ESCALATED - Reconciliation exception opened',
               style: TextStyle(
                 color: Colors.red[700],
                 fontWeight: FontWeight.w600,
@@ -715,10 +695,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
               ),
               Text(
                 value,
@@ -734,7 +711,12 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
     );
   }
 
-  Widget _buildMetricCard(String label, String value, IconData icon, Color color) {
+  Widget _buildMetricCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -757,10 +739,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
             textAlign: TextAlign.center,
           ),
         ],
@@ -799,7 +778,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
   Future<void> _retryOperation(FailedOperation operation) async {
     try {
       await _reconciliationService.retryFailedPayout(operation.payoutId);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -808,7 +787,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
           ),
         );
       }
-      
+
       // Reload data after retry
       await Future.delayed(const Duration(seconds: 2));
       _loadData();
@@ -839,10 +818,7 @@ class _SystemHealthWidgetState extends State<SystemHealthWidget> {
                 children: [
                   const Text(
                     'All Failed Operations',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const Spacer(),
                   IconButton(

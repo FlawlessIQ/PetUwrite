@@ -5,16 +5,19 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/claim.dart';
 import '../../services/claim_tracker_service.dart';
 import '../../services/claims_service.dart';
-import 'claim_intake_screen.dart';
 import '../../theme/clovara_theme.dart';
+import '../../ui/components/clovara_logo.dart';
+import '../../ui/components/max_width.dart';
+import '../../ui/tokens.dart';
 import '../../widgets/claim_timeline_widget.dart';
-import '../../widgets/clover_avatar.dart';
+import 'claim_intake_screen.dart';
 
 class ClaimDetailsScreen extends StatefulWidget {
   final String claimId;
@@ -211,7 +214,7 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
             builder: (context) => AlertDialog(
               title: const Text('Submit without documents?'),
               content: const Text(
-                'You haven\'t uploaded any receipts or vet records yet. You can submit now and add documents later, but it may delay review.',
+                'You haven\'t uploaded any receipts or vet records yet. You can submit now and add documents later, but it may delay the automated check.',
               ),
               actions: [
                 TextButton(
@@ -271,90 +274,196 @@ class _ClaimDetailsScreenState extends State<ClaimDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('Claim Status')),
-      body: StreamBuilder<DocumentSnapshot<Claim>>(
-        stream: getClaimDocument(widget.claimId).snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return _ErrorState(
-              message: 'Failed to load claim: ${snapshot.error}',
-            );
-          }
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: StreamBuilder<DocumentSnapshot<Claim>>(
+          stream: getClaimDocument(widget.claimId).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return _ErrorState(
+                message: 'Failed to load claim: ${snapshot.error}',
+              );
+            }
 
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final claimDoc = snapshot.data!;
-          final claim = claimDoc.data();
+            final claimDoc = snapshot.data!;
+            final claim = claimDoc.data();
 
-          if (claim == null) {
-            return const _ErrorState(message: 'Claim not found');
-          }
+            if (claim == null) {
+              return const _ErrorState(message: 'Claim not found');
+            }
 
-          final cloverMessage = ClaimTrackerService.getCurrentMessage(claim);
-          final progress = ClaimTrackerService.getProgressPercentage(claim);
-          final eta = ClaimTrackerService.getEstimatedTimeRemaining(claim);
-          final updates = ClaimTrackerService.getDetailedUpdates(claim);
+            final cloverMessage = ClaimTrackerService.getCurrentMessage(claim);
+            final progress = ClaimTrackerService.getProgressPercentage(claim);
+            final eta = ClaimTrackerService.getEstimatedTimeRemaining(claim);
+            final updates = ClaimTrackerService.getDetailedUpdates(claim);
 
-          final canUpload =
-              claim.status == ClaimStatus.draft ||
-              claim.status == ClaimStatus.submitted ||
-              claim.status == ClaimStatus.processing ||
-              claim.status == ClaimStatus.awaitingInfo;
-          final canSubmit = claim.status == ClaimStatus.draft;
+            final canUpload =
+                claim.status == ClaimStatus.draft ||
+                claim.status == ClaimStatus.submitted ||
+                claim.status == ClaimStatus.processing ||
+                claim.status == ClaimStatus.awaitingInfo;
+            final canSubmit = claim.status == ClaimStatus.draft;
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-            children: [
-              _HeaderCard(claim: claim, progress: progress, eta: eta),
-              const SizedBox(height: 16),
-              Center(
-                child: CloverAvatar(
-                  expression: cloverMessage.expression,
-                  state: CloverState.idle,
-                  size: 120,
-                  message: cloverMessage.message,
-                  animated: true,
-                  showGlow: claim.status == ClaimStatus.processing,
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 42),
+              child: MaxWidth(
+                maxWidth: 980,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _ClaimPortalHeader(),
+                    const SizedBox(height: 22),
+                    _HeaderCard(claim: claim, progress: progress, eta: eta),
+                    const SizedBox(height: 16),
+                    _AutomationInsightCard(
+                      message: cloverMessage.message,
+                      progress: progress,
+                      status: claim.status,
+                    ),
+                    const SizedBox(height: 16),
+                    _ActionCard(
+                      busy: _busy,
+                      claim: claim,
+                      canUpload: canUpload,
+                      canSubmit: canSubmit,
+                      onContinue: () => _continueWithClover(context, claim),
+                      onUpload: () => _uploadDocuments(context, claim),
+                      onSubmit: () => _submitClaim(context, claim),
+                    ),
+                    const SizedBox(height: 16),
+                    ClaimTimelineWidget(claim: claim, showTimestamps: true),
+                    const SizedBox(height: 16),
+                    _UpdatesCard(updates: updates),
+                    const SizedBox(height: 16),
+                    _DecisionCard(claim: claim),
+                    const SizedBox(height: 16),
+                    _ReimbursementMethodCard(
+                      ownerId: claim.ownerId,
+                      busy: _busy,
+                      onSetup: () => _setupReimbursementMethod(context, claim),
+                      onRefresh: () =>
+                          _refreshReimbursementSetupStatus(context),
+                    ),
+                    const SizedBox(height: 16),
+                    _PayoutStatusCard(claimId: widget.claimId),
+                    const SizedBox(height: 16),
+                    _AttachmentsCard(
+                      attachments: claim.attachments,
+                      busy: _busy,
+                      canUpload: canUpload,
+                      onUpload: () => _uploadDocuments(context, claim),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 14),
-              _ActionCard(
-                busy: _busy,
-                claim: claim,
-                canUpload: canUpload,
-                canSubmit: canSubmit,
-                onContinue: () => _continueWithClover(context, claim),
-                onUpload: () => _uploadDocuments(context, claim),
-                onSubmit: () => _submitClaim(context, claim),
-              ),
-              const SizedBox(height: 16),
-              ClaimTimelineWidget(claim: claim, showTimestamps: true),
-              const SizedBox(height: 16),
-              _UpdatesCard(updates: updates),
-              const SizedBox(height: 16),
-              _DecisionCard(claim: claim),
-              const SizedBox(height: 16),
-              _ReimbursementMethodCard(
-                ownerId: claim.ownerId,
-                busy: _busy,
-                onSetup: () => _setupReimbursementMethod(context, claim),
-                onRefresh: () => _refreshReimbursementSetupStatus(context),
-              ),
-              const SizedBox(height: 16),
-              _PayoutStatusCard(claimId: widget.claimId),
-              const SizedBox(height: 16),
-              _AttachmentsCard(
-                attachments: claim.attachments,
-                busy: _busy,
-                canUpload: canUpload,
-                onUpload: () => _uploadDocuments(context, claim),
-              ),
-            ],
-          );
-        },
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ClaimPortalHeader extends StatelessWidget {
+  const _ClaimPortalHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        IconButton.filledTonal(
+          onPressed: () => Navigator.pop(context),
+          tooltip: 'Back to dashboard',
+          icon: const Icon(Icons.arrow_back),
+        ),
+        const SizedBox(width: 12),
+        const ClovaraLogo(size: ClovaraLogoSize.small, showText: true),
+      ],
+    );
+  }
+}
+
+class _AutomationInsightCard extends StatelessWidget {
+  const _AutomationInsightCard({
+    required this.message,
+    required this.progress,
+    required this.status,
+  });
+
+  final String message;
+  final int progress;
+  final ClaimStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = _statusColor(status);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.br20,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              status == ClaimStatus.awaitingInfo
+                  ? Icons.assignment_late_outlined
+                  : Icons.auto_awesome_outlined,
+              color: statusColor,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Automation status',
+                  style: GoogleFonts.dmSans(
+                    color: AppColors.green,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  message,
+                  style: GoogleFonts.dmSans(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$progress% complete. Documents, coverage terms, eligibility signals, and payout readiness are checked automatically.',
+                  style: GoogleFonts.dmSans(
+                    color: AppColors.textSubtle,
+                    fontSize: 13.5,
+                    height: 1.45,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -387,7 +496,7 @@ class _ActionCard extends StatelessWidget {
         ? FilledButton.icon(
             onPressed: busy ? null : onContinue,
             icon: const Icon(Icons.chat_bubble_outline),
-            label: const Text('Continue with Clover'),
+            label: const Text('Continue claim'),
           )
         : FilledButton.icon(
             onPressed: busy || !canUpload ? null : onUpload,
@@ -502,7 +611,7 @@ class _PayoutStatusCard extends StatelessWidget {
           'completed' => ('COMPLETED', ClovaraColors.forest),
           'pending' => ('IN PROGRESS', ClovaraColors.info),
           'pending_retry' => ('RETRYING', ClovaraColors.sunset),
-          'failed' => ('NEEDS REVIEW', ClovaraColors.error),
+          'failed' => ('ACTION NEEDED', ClovaraColors.error),
           _ => ('UNKNOWN', ClovaraColors.slate),
         };
 
@@ -586,7 +695,7 @@ class _PayoutStatusCard extends StatelessWidget {
               if (status == 'failed') ...[
                 const SizedBox(height: 8),
                 Text(
-                  'We hit an issue sending your reimbursement. Our team will review and reprocess it shortly.',
+                  'We hit an issue sending your reimbursement. Clovara will retry automatically and flag the payout for reconciliation if it continues.',
                   style: ClovaraTypography.bodySmall.copyWith(
                     color: ClovaraColors.slate,
                   ),
@@ -954,7 +1063,7 @@ class _DecisionCard extends StatelessWidget {
                 ? 'Decision'
                 : awaitingInfo
                 ? 'Information needed'
-                : 'Review update',
+                : 'Automation update',
             style: ClovaraTypography.h3.copyWith(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -963,14 +1072,14 @@ class _DecisionCard extends StatelessWidget {
           const SizedBox(height: 12),
           if (awaitingInfo)
             Text(
-              "We need a bit more information to complete review. Upload the requested documents (or reply in Clover to clarify details) and we'll continue automatically.",
+              "We need a bit more information to complete the check. Upload the requested documents (or reply in Clover to clarify details) and we'll continue automatically.",
               style: ClovaraTypography.bodySmall.copyWith(
                 color: ClovaraColors.slate,
               ),
             ),
           if (inProgress)
             Text(
-              "Review in progress — we're verifying your documents and policy details now.",
+              "Automated checks are in progress. We are verifying your documents and policy details now.",
               style: ClovaraTypography.bodySmall.copyWith(
                 color: ClovaraColors.slate,
               ),

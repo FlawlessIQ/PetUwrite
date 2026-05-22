@@ -740,8 +740,14 @@ exports.retryClaimAttachmentExtractions = openaiProxy.retryClaimAttachmentExtrac
 
 // Export underwriting rules (public callable for unauth quote flows)
 const underwritingRulesPublic = require("./underwritingRulesPublic");
+const underwritingEvaluation = require("./underwritingEvaluation");
+const noTouchQuote = require("./noTouchQuote");
 exports.getUnderwritingRulesPublic =
   underwritingRulesPublic.getUnderwritingRulesPublic;
+exports.evaluateUnderwritingPublic =
+  underwritingEvaluation.evaluateUnderwritingPublic;
+exports.submitNoTouchQuotePublic =
+  noTouchQuote.submitNoTouchQuotePublic;
 
 // Export product catalog switches (public callable for unauth quote flows)
 const productCatalogPublic = require("./productCatalogPublic");

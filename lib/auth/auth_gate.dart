@@ -4,9 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'customer_home_screen.dart';
 import '../screens/admin_console_screen.dart';
+import '../services/app_analytics_service.dart';
+import '../utils/marketing_site_redirect.dart';
 
 /// AuthGate handles routing users based on authentication status and role
-/// 
+///
 /// User roles:
 /// - 0: Customer (regular user)
 /// - 1: Premium Customer
@@ -23,9 +25,7 @@ class AuthGate extends StatelessWidget {
         // Show loading while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -36,7 +36,10 @@ class AuthGate extends StatelessWidget {
         // (ShellRoute '/') which renders lib/pages/home_page.dart.
         if (!snapshot.hasData || snapshot.data?.isAnonymous == true) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) context.go('/');
+            if (!context.mounted) return;
+            if (!redirectToMarketingSite(path: '/')) {
+              context.go('/sign-in');
+            }
           });
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
@@ -51,20 +54,35 @@ class AuthGate extends StatelessWidget {
 }
 
 /// Fetches user role from Firestore and routes to appropriate screen
-class RoleBasedRouter extends StatelessWidget {
+class RoleBasedRouter extends StatefulWidget {
   final String userId;
 
-  const RoleBasedRouter({
-    super.key,
-    required this.userId,
-  });
+  const RoleBasedRouter({super.key, required this.userId});
+
+  @override
+  State<RoleBasedRouter> createState() => _RoleBasedRouterState();
+}
+
+class _RoleBasedRouterState extends State<RoleBasedRouter> {
+  bool _trackedRoute = false;
+
+  void _trackRouteResolved(int userRole, String destination) {
+    if (_trackedRoute) return;
+    _trackedRoute = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppAnalyticsService.instance.track(
+        'auth_route_resolved',
+        properties: {'userRole': userRole, 'destination': destination},
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance
           .collection('users')
-          .doc(userId)
+          .doc(widget.userId)
           .get(),
       builder: (context, userSnapshot) {
         // Show loading while fetching user data
@@ -97,6 +115,10 @@ class RoleBasedRouter extends StatelessWidget {
                   ElevatedButton(
                     onPressed: () async {
                       await FirebaseAuth.instance.signOut();
+                      if (context.mounted &&
+                          !redirectToMarketingSite(path: '/')) {
+                        context.go('/sign-in');
+                      }
                     },
                     child: const Text('Sign Out'),
                   ),
@@ -127,6 +149,10 @@ class RoleBasedRouter extends StatelessWidget {
                   ElevatedButton(
                     onPressed: () async {
                       await FirebaseAuth.instance.signOut();
+                      if (context.mounted &&
+                          !redirectToMarketingSite(path: '/')) {
+                        context.go('/sign-in');
+                      }
                     },
                     child: const Text('Sign Out'),
                   ),
@@ -144,14 +170,17 @@ class RoleBasedRouter extends StatelessWidget {
         switch (userRole) {
           case 2: // Underwriter
           case 3: // Super Admin
+            _trackRouteResolved(userRole, 'admin_console');
             return const AdminConsoleScreen();
 
           case 1: // Premium Customer
             // Could route to premium features screen
+            _trackRouteResolved(userRole, 'customer_home_premium');
             return const CustomerHomeScreen(isPremium: true);
 
           case 0: // Regular Customer
           default:
+            _trackRouteResolved(userRole, 'customer_home');
             return const CustomerHomeScreen(isPremium: false);
         }
       },
@@ -175,10 +204,7 @@ class LoadingScreen extends StatelessWidget {
             const CircularProgressIndicator(),
             if (message != null) ...[
               const SizedBox(height: 16),
-              Text(
-                message!,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
+              Text(message!, style: Theme.of(context).textTheme.bodyLarge),
             ],
           ],
         ),
