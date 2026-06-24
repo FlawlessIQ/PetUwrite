@@ -10,6 +10,7 @@ import '../utils/marketing_site_redirect.dart';
 const _adminEmails = {
   'con.lawless@gmail.com',
   'conorlawless@gmail.com',
+  'conor@flawlessiq.com',
   'conor@clovara.com',
   'admin@clovara.com',
 };

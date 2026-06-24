@@ -186,7 +186,8 @@ class _LoginScreenState extends State<LoginScreen>
         ),
       );
       setState(() {
-        _errorMessage = 'An unexpected error occurred. Please try again.';
+        _errorMessage =
+            "We couldn't complete sign-in right now. Please try again.";
       });
     } finally {
       if (mounted) {
@@ -280,7 +281,8 @@ class _LoginScreenState extends State<LoginScreen>
         ),
       );
       setState(() {
-        _errorMessage = 'An unexpected error occurred. Please try again.';
+        _errorMessage =
+            "We couldn't create the account right now. Please try again.";
       });
     } finally {
       if (mounted) {
@@ -294,19 +296,27 @@ class _LoginScreenState extends State<LoginScreen>
   String _getErrorMessage(String code) {
     switch (code) {
       case 'user-not-found':
-        return 'No user found with this email.';
+        return "We couldn't find an account with that email. Create an account or check the email address.";
       case 'wrong-password':
-        return 'Wrong password provided.';
+      case 'invalid-credential':
+      case 'invalid-login-credentials':
+        return "We couldn't sign you in with that email and password. Check your details or reset your password.";
       case 'invalid-email':
-        return 'The email address is not valid.';
+        return 'Enter a valid email address.';
       case 'user-disabled':
-        return 'This user has been disabled.';
+        return 'This account is disabled. Contact Clovara support for help.';
       case 'email-already-in-use':
-        return 'An account already exists with this email.';
+        return 'An account already exists with this email. Sign in or reset your password.';
       case 'weak-password':
-        return 'The password must be at least 6 characters.';
+        return 'Use a password with at least 6 characters.';
+      case 'network-request-failed':
+        return "We couldn't reach Clovara sign-in. Check your connection and try again.";
+      case 'too-many-requests':
+        return 'Too many sign-in attempts. Please wait a few minutes and try again.';
+      case 'operation-not-allowed':
+        return 'Email sign-in is unavailable right now. Contact Clovara support for help.';
       default:
-        return 'An error occurred. Please try again.';
+        return "We couldn't complete sign-in right now. Please try again.";
     }
   }
 
@@ -386,7 +396,7 @@ class _LoginScreenState extends State<LoginScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Secure account access',
+          'Clovara account',
           style: GoogleFonts.dmSans(
             color: AppColors.green,
             fontSize: 12,
@@ -396,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         const SizedBox(height: 18),
         Text(
-          'One sign-in for policies, claims, and operations.',
+          "Sign in to manage your pet's coverage.",
           style: GoogleFonts.playfairDisplay(
             color: AppColors.text,
             fontSize: isMobile ? 38 : 54,
@@ -407,7 +417,7 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         const SizedBox(height: 18),
         Text(
-          'Customers land in policy management. Clovara operators are routed to the operations dashboard automatically based on account role.',
+          'Access quotes, policies, claims, documents, and billing in one secure place.',
           style: GoogleFonts.dmSans(
             color: AppColors.textSubtle,
             fontSize: 16,
@@ -419,9 +429,9 @@ class _LoginScreenState extends State<LoginScreen>
           spacing: 10,
           runSpacing: 10,
           children: const [
-            _TrustPill(icon: Icons.policy_outlined, label: 'Policy portal'),
+            _TrustPill(icon: Icons.policy_outlined, label: 'Policies'),
             _TrustPill(icon: Icons.receipt_long_outlined, label: 'Claims'),
-            _TrustPill(icon: Icons.admin_panel_settings_outlined, label: 'Ops'),
+            _TrustPill(icon: Icons.credit_card_outlined, label: 'Billing'),
           ],
         ),
       ],
@@ -476,8 +486,8 @@ class _LoginScreenState extends State<LoginScreen>
                   fontWeight: FontWeight.w700,
                 ),
                 tabs: const [
-                  Tab(text: 'Sign In'),
-                  Tab(text: 'Create Account'),
+                  Tab(text: 'Sign in'),
+                  Tab(text: 'Create account'),
                 ],
               ),
             ),
@@ -801,7 +811,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    _isSignUp ? 'Create Account' : 'Sign In',
+                                    _isSignUp ? 'Create account' : 'Sign in',
                                     style: const TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w700,
@@ -827,7 +837,7 @@ class _LoginScreenState extends State<LoginScreen>
     return TextButton(
       onPressed: _isLoading ? null : () => _showForgotPasswordDialog(),
       child: Text(
-        'Forgot Password?',
+        'Forgot password?',
         style: TextStyle(
           color: AppColors.green,
           fontSize: 16,
@@ -845,7 +855,7 @@ class _LoginScreenState extends State<LoginScreen>
         children: [
           // Copyright
           Text(
-            '© 2026 FlawlessIQ Inc. • Clovara',
+            '© 2026 Clovara',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: AppColors.textSubtle,
               fontSize: 12,
