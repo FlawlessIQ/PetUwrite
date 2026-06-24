@@ -7,13 +7,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../admin_console/components/admin_section_card.dart';
 import '../admin_console/components/admin_status_chip.dart';
+import '../auth/admin_access.dart';
 import '../config/pricing_config.dart';
 import '../theme/clovara_theme.dart';
 import '../services/underwriting_rules_engine.dart';
 
 /// Admin Rules Editor Page
 ///
-/// Allows admin users (userRole == 2) to update underwriting rules
+/// Allows admin users to update underwriting rules
 /// stored in Firestore: admin_settings/underwriting_rules
 ///
 /// Features:
@@ -88,34 +89,11 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
     super.dispose();
   }
 
-  /// Check if user has admin access (userRole == 2)
+  /// Check if user has admin access.
   Future<void> _checkAccessAndLoadRules() async {
     try {
       final user = _auth.currentUser;
-      if (user == null) {
-        setState(() {
-          _hasAccess = false;
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Prefer custom claim.
-      bool claimAdmin = false;
-      try {
-        final token = await user.getIdTokenResult(true);
-        claimAdmin = token.claims?['admin'] == true;
-      } catch (_) {
-        // Ignore and fall back to Firestore role.
-      }
-
-      // Check user role in users collection
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      final userData = userDoc.data();
-      final userRole = userData?['userRole'] ?? 0;
-
-      final roleAdmin = userRole == 2 || userRole == 3;
-      if (!claimAdmin && !roleAdmin) {
+      if (!await isAdminUser(user: user, firestore: _firestore)) {
         setState(() {
           _hasAccess = false;
           _isLoading = false;
@@ -743,7 +721,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
         icon: Icons.lock_outline,
         actions: [
           AdminStatusChip(
-            label: 'Required: userRole = 2',
+            label: 'Admin access required',
             color: ClovaraColors.kError,
           ),
         ],
@@ -758,7 +736,7 @@ class _AdminRulesEditorPageState extends State<AdminRulesEditorPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'If you believe this is an error, verify your user role in Firestore: users/{uid}.userRole.',
+                'Please sign in with an authorized Clovara admin account.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,

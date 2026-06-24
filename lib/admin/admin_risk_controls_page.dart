@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../auth/admin_access.dart';
 import '../theme/clovara_theme.dart';
 
 /// Admin Risk Controls Page - Manage underwriting parameters
-/// Only accessible to users with userRole == 2
+/// Only accessible to authorized admin users.
 class AdminRiskControlsPage extends StatefulWidget {
   const AdminRiskControlsPage({super.key});
 
@@ -91,7 +92,7 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
     super.dispose();
   }
 
-  /// Check if user has admin role (userRole == 2)
+  /// Check if user has admin access.
   Future<void> _checkAuthAndLoadSettings() async {
     try {
       final user = _auth.currentUser;
@@ -103,11 +104,7 @@ class _AdminRiskControlsPageState extends State<AdminRiskControlsPage> {
         return;
       }
 
-      // Check user role
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      final userRole = userDoc.data()?['userRole'] as int? ?? 0;
-
-      if (userRole != 2) {
+      if (!await isAdminUser(user: user, firestore: _firestore)) {
         setState(() {
           _isAuthorized = false;
           _isLoading = false;

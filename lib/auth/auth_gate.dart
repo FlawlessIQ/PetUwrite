@@ -5,11 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'customer_home_screen.dart';
+import 'admin_access.dart';
 import '../screens/admin_console_screen.dart';
 import '../services/app_analytics_service.dart';
 import '../utils/marketing_site_redirect.dart';
-
-const _adminEmails = {'con.lawless@gmail.com'};
 
 /// AuthGate handles routing users based on authentication status and role
 ///
@@ -69,8 +68,16 @@ class _RoleBasedRouterState extends State<RoleBasedRouter> {
   bool _trackedRoute = false;
 
   bool get _isKnownAdminEmail {
-    final email = widget.user.email?.trim().toLowerCase();
-    return email != null && _adminEmails.contains(email);
+    return isKnownAdminEmail(widget.user.email);
+  }
+
+  void _ensureAdminProfile() {
+    if (!_isKnownAdminEmail) return;
+    unawaited(
+      ensureAdminProfile(user: widget.user).catchError((error) {
+        debugPrint('Failed to ensure admin profile: $error');
+      }),
+    );
   }
 
   void _trackRouteResolved(int userRole, String destination) {
@@ -111,6 +118,7 @@ class _RoleBasedRouterState extends State<RoleBasedRouter> {
         // Handle error fetching user data
         if (userSnapshot.hasError) {
           if (_isKnownAdminEmail) {
+            _ensureAdminProfile();
             _trackRouteResolved(3, 'admin_console_email_fallback');
             return const AdminConsoleScreen();
           }
@@ -143,6 +151,7 @@ class _RoleBasedRouterState extends State<RoleBasedRouter> {
         // User document doesn't exist
         if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
           if (_isKnownAdminEmail) {
+            _ensureAdminProfile();
             _trackRouteResolved(3, 'admin_console_email_fallback');
             return const AdminConsoleScreen();
           }
@@ -170,6 +179,7 @@ class _RoleBasedRouterState extends State<RoleBasedRouter> {
 
         // Route based on role
         if (_isKnownAdminEmail) {
+          _ensureAdminProfile();
           _trackRouteResolved(3, 'admin_console_email_fallback');
           return const AdminConsoleScreen();
         }

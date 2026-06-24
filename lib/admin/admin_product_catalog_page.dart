@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../admin_console/components/admin_section_card.dart';
 import '../admin_console/components/admin_status_chip.dart';
+import '../auth/admin_access.dart';
 import '../services/product_catalog.dart';
 import '../theme/clovara_theme.dart';
 
@@ -58,9 +59,7 @@ class _AdminProductCatalogPageState extends State<AdminProductCatalogPage> {
         return;
       }
 
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      final role = userDoc.data()?['userRole'] as int? ?? 0;
-      if (role != 2) {
+      if (!await isAdminUser(user: user, firestore: _firestore)) {
         setState(() {
           _hasAccess = false;
           _isLoading = false;
