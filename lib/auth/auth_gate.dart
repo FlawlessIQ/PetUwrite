@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,13 +9,7 @@ import '../screens/admin_console_screen.dart';
 import '../services/app_analytics_service.dart';
 import '../utils/marketing_site_redirect.dart';
 
-const _adminEmails = {
-  'con.lawless@gmail.com',
-  'conorlawless@gmail.com',
-  'conor@flawlessiq.com',
-  'conor@clovara.com',
-  'admin@clovara.com',
-};
+const _adminEmails = {'con.lawless@gmail.com'};
 
 /// AuthGate handles routing users based on authentication status and role
 ///
@@ -151,36 +147,21 @@ class _RoleBasedRouterState extends State<RoleBasedRouter> {
             return const AdminConsoleScreen();
           }
 
-          return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.person_off, size: 64, color: Colors.orange),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'User profile not found',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Please contact support or sign out and try again.',
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () async {
-                      await FirebaseAuth.instance.signOut();
-                      if (context.mounted &&
-                          !redirectToMarketingSite(path: '/')) {
-                        context.go('/sign-in');
-                      }
-                    },
-                    child: const Text('Sign Out'),
-                  ),
-                ],
-              ),
-            ),
+          unawaited(
+            FirebaseFirestore.instance
+                .collection('users')
+                .doc(widget.user.uid)
+                .set({
+                  'uid': widget.user.uid,
+                  'email': widget.user.email,
+                  'userRole': 0,
+                  'createdAt': FieldValue.serverTimestamp(),
+                  'updatedAt': FieldValue.serverTimestamp(),
+                }, SetOptions(merge: true))
+                .catchError((_) {}),
           );
+          _trackRouteResolved(0, 'customer_home_profile_bootstrap');
+          return const CustomerHomeScreen(isPremium: false);
         }
 
         // Get user role (default to 0 if not set)
