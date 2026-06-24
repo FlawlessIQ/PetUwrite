@@ -7,6 +7,13 @@ import '../screens/admin_console_screen.dart';
 import '../services/app_analytics_service.dart';
 import '../utils/marketing_site_redirect.dart';
 
+const _adminEmails = {
+  'con.lawless@gmail.com',
+  'conorlawless@gmail.com',
+  'conor@clovara.com',
+  'admin@clovara.com',
+};
+
 /// AuthGate handles routing users based on authentication status and role
 ///
 /// User roles:
@@ -45,7 +52,7 @@ class AuthGate extends StatelessWidget {
         }
 
         // User is logged in - check their role
-        return RoleBasedRouter(userId: snapshot.data!.uid);
+        return RoleBasedRouter(user: snapshot.data!);
       },
     );
   }
@@ -53,9 +60,9 @@ class AuthGate extends StatelessWidget {
 
 /// Fetches user role from Firestore and routes to appropriate screen
 class RoleBasedRouter extends StatefulWidget {
-  final String userId;
+  final User user;
 
-  const RoleBasedRouter({super.key, required this.userId});
+  const RoleBasedRouter({super.key, required this.user});
 
   @override
   State<RoleBasedRouter> createState() => _RoleBasedRouterState();
@@ -63,6 +70,11 @@ class RoleBasedRouter extends StatefulWidget {
 
 class _RoleBasedRouterState extends State<RoleBasedRouter> {
   bool _trackedRoute = false;
+
+  bool get _isKnownAdminEmail {
+    final email = widget.user.email?.trim().toLowerCase();
+    return email != null && _adminEmails.contains(email);
+  }
 
   void _trackRouteResolved(int userRole, String destination) {
     if (_trackedRoute) return;
@@ -80,7 +92,7 @@ class _RoleBasedRouterState extends State<RoleBasedRouter> {
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance
           .collection('users')
-          .doc(widget.userId)
+          .doc(widget.user.uid)
           .get(),
       builder: (context, userSnapshot) {
         // Show loading while fetching user data
@@ -101,6 +113,11 @@ class _RoleBasedRouterState extends State<RoleBasedRouter> {
 
         // Handle error fetching user data
         if (userSnapshot.hasError) {
+          if (_isKnownAdminEmail) {
+            _trackRouteResolved(3, 'admin_console_email_fallback');
+            return const AdminConsoleScreen();
+          }
+
           return Scaffold(
             body: Center(
               child: Column(
@@ -128,6 +145,11 @@ class _RoleBasedRouterState extends State<RoleBasedRouter> {
 
         // User document doesn't exist
         if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+          if (_isKnownAdminEmail) {
+            _trackRouteResolved(3, 'admin_console_email_fallback');
+            return const AdminConsoleScreen();
+          }
+
           return Scaffold(
             body: Center(
               child: Column(
@@ -163,6 +185,12 @@ class _RoleBasedRouterState extends State<RoleBasedRouter> {
         // Get user role (default to 0 if not set)
         final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
         final userRole = userData?['userRole'] ?? 0;
+
+        // Route based on role
+        if (_isKnownAdminEmail) {
+          _trackRouteResolved(3, 'admin_console_email_fallback');
+          return const AdminConsoleScreen();
+        }
 
         // Route based on role
         switch (userRole) {
