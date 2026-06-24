@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { navItems } from "@/data/site";
@@ -10,6 +11,7 @@ import { track } from "@/hooks/useAnalytics";
 export function SiteNav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 60);
@@ -17,6 +19,10 @@ export function SiteNav() {
     window.addEventListener("scroll", update, { passive: true });
     return () => window.removeEventListener("scroll", update);
   }, []);
+
+  if (pathname?.startsWith("/app")) {
+    return null;
+  }
 
   return (
     <header

@@ -1,8 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { navItems } from "@/data/site";
 
 export function Footer() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/app")) {
+    return null;
+  }
+
   return (
     <footer className="bg-[#111111] text-[#8a8a8a]">
       <div className="mx-auto max-w-7xl px-5 py-10 md:px-8">

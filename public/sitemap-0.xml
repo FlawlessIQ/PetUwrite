@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
-<url><loc>https://pet-underwriter-ai.web.app/how-it-works</loc><lastmod>2026-05-22T11:57:27.672Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://pet-underwriter-ai.web.app/about</loc><lastmod>2026-05-22T11:57:27.673Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://pet-underwriter-ai.web.app</loc><lastmod>2026-05-22T11:57:27.673Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://pet-underwriter-ai.web.app/privacy</loc><lastmod>2026-05-22T11:57:27.673Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://pet-underwriter-ai.web.app/coverage</loc><lastmod>2026-05-22T11:57:27.673Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://pet-underwriter-ai.web.app/terms</loc><lastmod>2026-05-22T11:57:27.673Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://pet-underwriter-ai.web.app/quote</loc><lastmod>2026-05-22T11:57:27.673Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app/app/sign-in</loc><lastmod>2026-06-23T17:44:15.332Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app/privacy</loc><lastmod>2026-06-23T17:44:15.332Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app/app/payment</loc><lastmod>2026-06-23T17:44:15.332Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app/app</loc><lastmod>2026-06-23T17:44:15.332Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app/coverage</loc><lastmod>2026-06-23T17:44:15.332Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app/terms</loc><lastmod>2026-06-23T17:44:15.332Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app/quote</loc><lastmod>2026-06-23T17:44:15.332Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app/about</loc><lastmod>2026-06-23T17:44:15.332Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app/app/dashboard</loc><lastmod>2026-06-23T17:44:15.332Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app</loc><lastmod>2026-06-23T17:44:15.332Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app/how-it-works</loc><lastmod>2026-06-23T17:44:15.332Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://pet-underwriter-ai.web.app/app/admin</loc><lastmod>2026-06-23T17:44:15.333Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
 </urlset>

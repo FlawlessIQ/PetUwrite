@@ -80,7 +80,9 @@ export async function evaluateQuoteDecision(
     const response = await fetch(underwritingEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: { quote: buildEvaluationPayload(formData) } })
+      body: JSON.stringify({
+        data: { quote: buildEvaluationPayload(formData) }
+      })
     });
 
     if (!response.ok) {
@@ -92,13 +94,18 @@ export async function evaluateQuoteDecision(
     const normalized = normalizeRemoteDecision(result);
     if (normalized) return normalized;
   } catch (error) {
-    console.warn("[Underwriting] Remote evaluation unavailable; using local deterministic fallback.", error);
+    console.warn(
+      "[Underwriting] Remote evaluation unavailable; using local deterministic fallback.",
+      error
+    );
   }
 
   return evaluateQuoteDecisionLocally(formData);
 }
 
-export function evaluateQuoteDecisionLocally(formData: QuoteData): QuoteDecision {
+export function evaluateQuoteDecisionLocally(
+  formData: QuoteData
+): QuoteDecision {
   const selectedConditions = selectedMedicalConditions(formData);
   const ageMonths = calculateAgeMonths(formData);
   const normalizedBreed = normalizeText(formData.breed);
@@ -133,8 +140,7 @@ export function evaluateQuoteDecisionLocally(formData: QuoteData): QuoteDecision
   if (excludedBreed) {
     return declinedDecision({
       reasonCode: "EXCLUDED_BREED",
-      body:
-        "This breed is not eligible under the current underwriting rules. The decision is automatic and no payment is collected.",
+      body: "This breed is not eligible under the current underwriting rules. The decision is automatic and no payment is collected.",
       reasons: [`Breed rule matched: ${formData.breed}`],
       fraudSignals
     });
@@ -147,8 +153,7 @@ export function evaluateQuoteDecisionLocally(formData: QuoteData): QuoteDecision
   if (criticalDetail) {
     return declinedDecision({
       reasonCode: "DETERMINISTIC_CRITICAL_CONDITION",
-      body:
-        "The medical details match a condition that cannot be offered a new policy under the current rules.",
+      body: "The medical details match a condition that cannot be offered a new policy under the current rules.",
       reasons: ["Critical medical rule matched"],
       fraudSignals
     });
@@ -226,8 +231,7 @@ export function evaluateQuoteDecisionLocally(formData: QuoteData): QuoteDecision
   if (fraudSignals.some((signal) => signal.severity === "critical")) {
     return needMoreInfoDecision({
       reasonCode: "INTEGRITY_CHECKS_REQUIRED",
-      body:
-        "We need to verify a conflicting or unusual detail before pricing can be shown. This is a self-serve evidence step, not a manual review queue.",
+      body: "We need to verify a detail before we can show a reliable monthly price. Upload records or provide clinic details to continue underwriting.",
       reasons,
       requiredEvidence,
       fraudSignals
@@ -236,11 +240,11 @@ export function evaluateQuoteDecisionLocally(formData: QuoteData): QuoteDecision
 
   if (requiredEvidence.length > 0) {
     return needMoreInfoDecision({
-      reasonCode: selectedConditions.length > 0
-        ? "VET_RECORDS_REQUIRED"
-        : "VERIFY_INTAKE",
-      body:
-        "We need verifiable records or a cleaner intake signal before pricing can be shown. Upload the requested evidence and the system can re-run the decision automatically.",
+      reasonCode:
+        selectedConditions.length > 0
+          ? "VET_RECORDS_REQUIRED"
+          : "VERIFY_INTAKE",
+      body: "We need records or clinic details before pricing can be shown. Once the information is available, underwriting can rerun the decision.",
       reasons,
       requiredEvidence,
       fraudSignals
@@ -251,8 +255,7 @@ export function evaluateQuoteDecisionLocally(formData: QuoteData): QuoteDecision
     return {
       status: "approved_with_exclusions",
       label: "Approved with exclusions",
-      body:
-        "This can continue to plan selection with exclusions shown before checkout.",
+      body: "This application can continue to plan selection. Any exclusions will be shown and must be acknowledged before payment.",
       reasonCode: "APPROVED_WITH_EXCLUSIONS",
       reasons: reasons.length ? reasons : ["Deterministic approval path"],
       exclusions: Array.from(new Set(exclusions)),
@@ -268,8 +271,7 @@ export function evaluateQuoteDecisionLocally(formData: QuoteData): QuoteDecision
   return {
     status: "approved",
     label: "Straight-through approved",
-    body:
-      "Based on the answers so far, this quote can move directly into plan selection and payment.",
+    body: "Based on the information provided, this application can continue to plan selection and secure checkout.",
     reasonCode: "APPROVED",
     reasons: ["Clean screening path"],
     exclusions: [],
@@ -386,16 +388,14 @@ function unwrapCallableResult(payload: unknown) {
 }
 
 function parseStatus(value: unknown): QuoteDecisionStatus | null {
-  const raw = String(value ?? "").trim().toLowerCase();
+  const raw = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (raw === "approved" || raw === "straight") return "approved";
   if (raw === "approved_with_exclusions" || raw === "conditional") {
     return "approved_with_exclusions";
   }
-  if (
-    raw === "need_more_info" ||
-    raw === "needmoreinfo" ||
-    raw === "review"
-  ) {
+  if (raw === "need_more_info" || raw === "needmoreinfo" || raw === "review") {
     return "need_more_info";
   }
   if (raw === "declined" || raw === "denied") return "declined";
@@ -403,7 +403,9 @@ function parseStatus(value: unknown): QuoteDecisionStatus | null {
 }
 
 function parseRiskBand(value: unknown): QuoteDecision["riskBand"] {
-  const raw = String(value ?? "").trim().toLowerCase();
+  const raw = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (raw === "low" || raw === "medium" || raw === "high") return raw;
   if (raw === "veryhigh" || raw === "very_high" || raw === "very-high") {
     return "veryHigh";
@@ -426,7 +428,10 @@ function readEvidenceList(value: unknown): EvidenceRequirement[] {
   return value.filter(isRecord).map((item) => ({
     code: readString(item.code, "PROVIDE_EVIDENCE"),
     title: readString(item.title, "Provide evidence"),
-    details: readString(item.details, "Upload records so we can complete the automated decision.")
+    details: readString(
+      item.details,
+      "Upload records so we can complete the automated decision."
+    )
   }));
 }
 
@@ -440,8 +445,15 @@ function readSignalList(value: unknown): UnderwritingSignal[] {
 }
 
 function parseSeverity(value: unknown): UnderwritingSignal["severity"] {
-  const raw = String(value ?? "").trim().toLowerCase();
-  if (raw === "low" || raw === "medium" || raw === "high" || raw === "critical") {
+  const raw = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  if (
+    raw === "low" ||
+    raw === "medium" ||
+    raw === "high" ||
+    raw === "critical"
+  ) {
     return raw;
   }
   return "medium";
@@ -469,7 +481,9 @@ function needMoreInfoDecision({
     label: "More information needed",
     body,
     reasonCode,
-    reasons: reasons.length ? Array.from(new Set(reasons)) : ["Evidence required"],
+    reasons: reasons.length
+      ? Array.from(new Set(reasons))
+      : ["Evidence required"],
     exclusions: [],
     requiredEvidence: dedupeEvidence(requiredEvidence),
     pricingEnabled: false,
@@ -540,7 +554,7 @@ function bodyForStatus(status: QuoteDecisionStatus) {
   if (status === "declined") {
     return "This application is not eligible under the current underwriting rules.";
   }
-  return "We need more information before pricing can be shown.";
+  return "We need records or clinic details before pricing can be shown.";
 }
 
 const evidence = {

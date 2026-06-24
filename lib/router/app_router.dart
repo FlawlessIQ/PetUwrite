@@ -160,6 +160,40 @@ GoRouter createAppRouter() {
 
       // Keep existing AuthGate behavior available (optional deep link)
       GoRoute(path: '/app', builder: (context, state) => const AuthGate()),
+      GoRoute(path: '/admin', builder: (context, state) => const AuthGate()),
+      GoRoute(path: '/admin/', builder: (context, state) => const AuthGate()),
+      GoRoute(
+        path: '/dashboard',
+        builder: (context, state) => const AuthGate(),
+      ),
+      GoRoute(
+        path: '/dashboard/',
+        builder: (context, state) => const AuthGate(),
+      ),
+      GoRoute(
+        path: '/app/admin',
+        builder: (context, state) => const AuthGate(),
+      ),
+      GoRoute(
+        path: '/app/admin/',
+        builder: (context, state) => const AuthGate(),
+      ),
+      GoRoute(
+        path: '/app/dashboard',
+        builder: (context, state) => const AuthGate(),
+      ),
+      GoRoute(
+        path: '/app/dashboard/',
+        builder: (context, state) => const AuthGate(),
+      ),
+      GoRoute(
+        path: '/app/sign-in',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/app/sign-in/',
+        builder: (context, state) => const LoginScreen(),
+      ),
     ],
   );
 }

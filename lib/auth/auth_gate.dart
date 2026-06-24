@@ -32,14 +32,12 @@ class AuthGate extends StatelessWidget {
         // Treat anonymous sessions as unauthenticated for routing purposes.
         // We use anonymous auth to secure Storage/Firestore writes during
         // underwriting, but we don't want to force a full account/profile.
-        // When unauthenticated, always land on the marketing site home
-        // (ShellRoute '/') which renders lib/pages/home_page.dart.
+        // When unauthenticated, keep users inside the authenticated app mount
+        // and show sign-in. Marketing links handle the public site separately.
         if (!snapshot.hasData || snapshot.data?.isAnonymous == true) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!context.mounted) return;
-            if (!redirectToMarketingSite(path: '/')) {
-              context.go('/sign-in');
-            }
+            context.go('/sign-in');
           });
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),

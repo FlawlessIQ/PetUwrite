@@ -247,22 +247,54 @@ async function checkDocumentReuse({caseId, hashes, contact}) {
 
   for (const hash of hashes) {
     const hashDoc = await admin.firestore().collection("vet_document_hashes").doc(hash).get();
-    const seenCases = hashDoc.exists && Array.isArray(hashDoc.data()?.caseIds)
-      ? hashDoc.data().caseIds
+    const hashData = hashDoc.exists ? hashDoc.data() || {} : {};
+    const seenCases = Array.isArray(hashData.caseIds) ? hashData.caseIds : [];
+    const seenEmailHashes = Array.isArray(hashData.contactEmailHashes)
+      ? hashData.contactEmailHashes
       : [];
     for (const seenCaseId of seenCases) {
       const id = coerceString(seenCaseId);
       if (id && id !== caseId) matchedCaseIds.add(id);
     }
 
-    const query = await admin
-      .firestore()
-      .collectionGroup("vet_records")
-      .where("documentHash", "==", hash)
-      .limit(10)
-      .get();
+    if (
+      contactEmailHash &&
+      seenEmailHashes.some((seenHash) => {
+        const normalized = coerceString(seenHash);
+        return normalized &&
+          normalized !== "unknown" &&
+          normalized !== contactEmailHash;
+      })
+    ) {
+      return {
+        action: "decline",
+        reasonCode: "VET_DOCUMENT_REUSE_CROSS_ACCOUNT",
+        matchedCaseIds: Array.from(matchedCaseIds).sort(),
+      };
+    }
 
-    for (const doc of query.docs) {
+    let queryDocs = [];
+    try {
+      const query = await admin
+        .firestore()
+        .collectionGroup("vet_records")
+        .where("documentHash", "==", hash)
+        .limit(10)
+        .get();
+      queryDocs = query.docs;
+    } catch (error) {
+      if (!isFirestoreIndexUnavailable(error)) throw error;
+      logger.warn(
+        "Skipping vet_records reuse fallback; index unavailable",
+        {
+          caseId,
+          documentHash: hash,
+          error: error?.message || String(error),
+        },
+      );
+    }
+
+    for (const doc of queryDocs) {
       const data = doc.data() || {};
       const otherCaseId = coerceString(data.caseId);
       if (otherCaseId && otherCaseId !== caseId) matchedCaseIds.add(otherCaseId);
@@ -297,6 +329,15 @@ async function checkDocumentReuse({caseId, hashes, contact}) {
   }
 
   return {action: "pass", reasonCode: "NO_REUSE", matchedCaseIds: []};
+}
+
+function isFirestoreIndexUnavailable(error) {
+  const message = coerceString(error?.message || error);
+  return (
+    message.includes("FAILED_PRECONDITION") &&
+    message.includes("collection vet_records") &&
+    message.includes("documentHash")
+  );
 }
 
 async function recordDocumentHashes({caseId, records, contact}) {

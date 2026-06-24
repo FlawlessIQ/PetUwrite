@@ -1,6 +1,16 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  ClipboardCheck,
+  FileText,
+  LockKeyhole,
+  Search,
+  ShieldCheck
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { catBreeds, dogBreeds, plans, quoteRiders } from "@/data/site";
@@ -45,6 +55,15 @@ type UpdateQuoteField = <K extends keyof QuoteData>(
 type ScreeningStatus = QuoteDecisionStatus;
 type ScreeningResult = QuoteDecision;
 
+interface SavedQuoteDraft {
+  savedAt: string;
+  formData: QuoteData;
+  currentStep: QuoteStep;
+  submitted: boolean;
+  decisionResult: QuoteDecision | null;
+  submissionResult: NoTouchQuoteResult | null;
+}
+
 interface FinalStepContent {
   eyebrow: string;
   title: string;
@@ -58,6 +77,8 @@ interface FinalStepContent {
 
 const noConditions = "None of these";
 const totalSteps = 6;
+const quoteDraftStorageKey = "clovara_quote_draft_v1";
+const pendingPaymentStorageKey = "clovara_pending_payment_v1";
 
 const initialData: QuoteData = {
   quoteCaseId: "",
@@ -142,10 +163,10 @@ const annualLimitAdjustments: Record<AnnualLimitOption, number> = {
 const stepNames: Record<QuoteStep, string> = {
   1: "Pet",
   2: "Details",
-  3: "Screening",
+  3: "Health history",
   4: "Plans",
   5: "Options",
-  6: "Finalize"
+  6: "Application"
 };
 
 const underwritingFields: Array<keyof QuoteData> = [
@@ -184,9 +205,12 @@ export function QuoteFlow() {
   const [decisionResult, setDecisionResult] = useState<QuoteDecision | null>(
     null
   );
+  const [savedDraft, setSavedDraft] = useState<SavedQuoteDraft | null>(null);
+  const [draftMessage, setDraftMessage] = useState("");
 
   useEffect(() => {
     track("quote_started");
+    setSavedDraft(readQuoteDraft());
   }, []);
 
   const availableBreeds = useMemo(() => {
@@ -294,6 +318,7 @@ export function QuoteFlow() {
   };
 
   const startOver = () => {
+    clearQuoteDraft();
     setFormData(initialData);
     setErrors({});
     setPlanError("");
@@ -301,7 +326,65 @@ export function QuoteFlow() {
     setSubmissionResult(null);
     setSubmissionError("");
     setDecisionResult(null);
+    setSavedDraft(null);
+    setDraftMessage("");
     setCurrentStep(1);
+  };
+
+  const persistDraft = ({
+    nextFormData = formData,
+    nextCurrentStep = currentStep,
+    nextSubmitted = submitted,
+    nextDecisionResult = decisionResult,
+    nextSubmissionResult = submissionResult,
+    message = "Saved. You can continue this quote from this browser."
+  }: {
+    nextFormData?: QuoteData;
+    nextCurrentStep?: QuoteStep;
+    nextSubmitted?: boolean;
+    nextDecisionResult?: QuoteDecision | null;
+    nextSubmissionResult?: NoTouchQuoteResult | null;
+    message?: string;
+  } = {}) => {
+    const draft: SavedQuoteDraft = {
+      savedAt: new Date().toISOString(),
+      formData: sanitizeDraftFormData(nextFormData),
+      currentStep: nextCurrentStep,
+      submitted: nextSubmitted,
+      decisionResult: nextDecisionResult,
+      submissionResult: nextSubmissionResult
+    };
+
+    writeQuoteDraft(draft);
+    setSavedDraft(draft);
+    setDraftMessage(message);
+    track("quote_saved_for_later", {
+      caseId: nextFormData.quoteCaseId || nextSubmissionResult?.caseId,
+      step: nextCurrentStep,
+      screeningStatus: nextDecisionResult?.status ?? screeningResult.status
+    });
+  };
+
+  const resumeDraft = () => {
+    if (!savedDraft) return;
+
+    setFormData(savedDraft.formData);
+    setDecisionResult(savedDraft.decisionResult);
+    setSubmissionResult(savedDraft.submissionResult);
+    setSubmitted(savedDraft.submitted);
+    setCurrentStep(savedDraft.currentStep);
+    setErrors({});
+    setPlanError("");
+    setSubmissionError("");
+    setDraftMessage(
+      "Saved quote restored. Reattach any uploaded records before submitting."
+    );
+    track("quote_draft_resumed", {
+      caseId:
+        savedDraft.formData.quoteCaseId || savedDraft.submissionResult?.caseId,
+      step: savedDraft.currentStep,
+      screeningStatus: savedDraft.decisionResult?.status
+    });
   };
 
   const validateDetails = () => {
@@ -471,10 +554,22 @@ export function QuoteFlow() {
         estimatedMonthly,
         action
       });
+      const submittedFormData = { ...formData, quoteCaseId: result.caseId };
 
       setSubmissionResult(result);
       setDecisionResult(result.decision);
-      setFormData((current) => ({ ...current, quoteCaseId: result.caseId }));
+      setFormData(submittedFormData);
+      persistDraft({
+        nextFormData: submittedFormData,
+        nextCurrentStep: 6,
+        nextSubmitted: true,
+        nextDecisionResult: result.decision,
+        nextSubmissionResult: result,
+        message:
+          result.decision.status === "need_more_info"
+            ? "Saved. Use this browser to return to the open underwriting case."
+            : "Saved. The underwriting decision is recorded in this browser."
+      });
       completeStep(6);
       track(finalStepContent.event, {
         species: formData.petType,
@@ -516,13 +611,24 @@ export function QuoteFlow() {
         return;
       }
 
+      if (
+        result.payment.status === "configuration_required" &&
+        (result.decision.status === "approved" ||
+          result.decision.status === "approved_with_exclusions")
+      ) {
+        continueToEmbeddedPayment({
+          result,
+          formData: submittedFormData,
+          selectedPlan,
+          estimatedMonthly
+        });
+        return;
+      }
+
       setSubmitted(true);
     } catch (error) {
-      setSubmissionError(
-        error instanceof Error
-          ? error.message
-          : "The automated quote submission failed. Please try again."
-      );
+      console.error("[QuoteFlow] Quote submission failed", error);
+      setSubmissionError(formatSubmissionError(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -558,6 +664,29 @@ export function QuoteFlow() {
               estimatedMonthly={estimatedMonthly}
               content={finalStepContent}
               submissionResult={submissionResult}
+              formData={formData}
+              onStartOver={startOver}
+              onContinueEvidence={() => {
+                setSubmitted(false);
+                setCurrentStep(6);
+              }}
+              onContinuePayment={() => {
+                if (!submissionResult) return;
+                continueToEmbeddedPayment({
+                  result: submissionResult,
+                  formData,
+                  selectedPlan,
+                  estimatedMonthly
+                });
+              }}
+              onSaveForLater={() =>
+                persistDraft({
+                  nextCurrentStep: 6,
+                  message:
+                    "Saved. You can return from this browser and continue underwriting."
+                })
+              }
+              draftMessage={draftMessage}
             />
           ) : (
             <>
@@ -600,7 +729,10 @@ export function QuoteFlow() {
                   {currentStep === 1 && (
                     <StepOne
                       selected={formData.petType}
+                      savedDraft={savedDraft}
+                      draftMessage={draftMessage}
                       onSelect={selectPetType}
+                      onResume={resumeDraft}
                       onNext={() => {
                         if (!formData.petType) return;
                         completeStep(1);
@@ -698,8 +830,16 @@ export function QuoteFlow() {
                       }
                       onConsent={(consent) => updateField("consent", consent)}
                       onSubmit={submitQuote}
+                      onSaveForLater={() =>
+                        persistDraft({
+                          nextCurrentStep: 6,
+                          message:
+                            "Saved. Reattach any uploaded files when you return."
+                        })
+                      }
                       isSubmitting={isSubmitting}
                       submissionError={submissionError}
+                      draftMessage={draftMessage}
                     />
                   )}
                 </motion.div>
@@ -733,7 +873,7 @@ function SummaryList({
           } lbs`
         : "Not added"
     ],
-    ["Screening", screeningResult.label],
+    ["Underwriting", statusCopy(screeningResult.status).summary],
     ["Plan", formData.plan || "Not selected"],
     ["Monthly", estimatedMonthly ? `About $${estimatedMonthly}/mo` : "Pending"]
   ];
@@ -756,13 +896,22 @@ function SummaryList({
 
 function StepOne({
   selected,
+  savedDraft,
+  draftMessage,
   onSelect,
+  onResume,
   onNext
 }: {
   selected: PetType | "";
+  savedDraft: SavedQuoteDraft | null;
+  draftMessage: string;
   onSelect: (petType: PetType) => void;
+  onResume: () => void;
   onNext: () => void;
 }) {
+  const savedPetName = savedDraft?.formData.petName || "your pet";
+  const savedAt = savedDraft ? formatSavedAt(savedDraft.savedAt) : "";
+
   return (
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-clv-green">
@@ -772,9 +921,37 @@ function StepOne({
         Who are we covering today?
       </h1>
       <p className="mt-3 max-w-xl text-base leading-[1.7] text-clv-gray">
-        We will use this to tailor breed, weight, and medical questions before
-        showing plan options.
+        This starts a real quote application. We will ask for the details needed
+        to price coverage, check eligibility, and only collect payment if the
+        quote can move forward.
       </p>
+      {savedDraft && (
+        <div className="mt-6 rounded-xl border border-clv-green bg-clv-sage-light p-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-clv-charcoal">
+                Continue the saved quote for {savedPetName}
+              </p>
+              <p className="mt-1 text-sm leading-[1.55] text-clv-gray">
+                Saved {savedAt}. No account is needed on this browser.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-md bg-clv-green px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-clv-green-dark"
+              onClick={onResume}
+            >
+              Resume quote →
+            </button>
+          </div>
+          {draftMessage && (
+            <p className="mt-3 text-sm font-semibold text-clv-green">
+              {draftMessage}
+            </p>
+          )}
+        </div>
+      )}
+      <ProcessStrip />
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <PetCard
           label="Dog"
@@ -837,6 +1014,43 @@ function PetCard({
   );
 }
 
+function ProcessStrip() {
+  const items = [
+    {
+      icon: ClipboardCheck,
+      title: "About 3 minutes",
+      body: "Pet profile, health history, and owner details."
+    },
+    {
+      icon: ShieldCheck,
+      title: "Eligibility checked first",
+      body: "Underwriting runs before plan payment."
+    },
+    {
+      icon: LockKeyhole,
+      title: "No payment until ready",
+      body: "Checkout opens only when the quote can proceed."
+    }
+  ];
+
+  return (
+    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      {items.map(({ icon: Icon, title, body }) => (
+        <div
+          key={title}
+          className="rounded-lg border border-clv-gray-border bg-white p-4"
+        >
+          <Icon aria-hidden className="h-5 w-5 text-clv-green" />
+          <p className="mt-3 text-sm font-semibold text-clv-charcoal">
+            {title}
+          </p>
+          <p className="mt-1 text-xs leading-[1.55] text-clv-gray">{body}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function StepTwo({
   formData,
   errors,
@@ -856,8 +1070,6 @@ function StepTwo({
   onBodyCondition: (bodyCondition: BodyCondition) => void;
   onNext: () => void;
 }) {
-  const years = Array.from({ length: 16 }, (_, index) => String(index));
-  const months = Array.from({ length: 12 }, (_, index) => String(index));
   const species = formData.petType || "pet";
   const weightResult = assessWeight(formData);
 
@@ -869,6 +1081,10 @@ function StepTwo({
       <h1 className="mt-2 font-display text-[32px] font-bold tracking-[-0.02em] text-clv-charcoal">
         Tell us about your {species}.
       </h1>
+      <p className="mt-3 max-w-xl text-base leading-[1.7] text-clv-gray">
+        Use the information from your pet&apos;s most recent vet visit where you
+        can. Accurate age, breed, and weight help avoid delays later.
+      </p>
       <div className="mt-8 space-y-5">
         <Field
           id="petName"
@@ -893,94 +1109,23 @@ function StepTwo({
           error={errors.breed}
           describedBy="breed-error"
         >
-          <input
+          <BreedCombobox
             id="breed"
-            list="breed-options"
             value={formData.breed}
-            placeholder="Search or choose a breed"
-            className={inputClass(errors.breed)}
-            aria-describedby="breed-help breed-error"
-            aria-invalid={Boolean(errors.breed)}
-            onChange={(event) => onUpdate("breed", event.target.value)}
+            breeds={breeds}
+            error={errors.breed}
+            onChange={(value) => onUpdate("breed", value)}
           />
-          <datalist id="breed-options">
-            {breeds.map((breed) => (
-              <option key={breed} value={breed} />
-            ))}
-          </datalist>
           <p id="breed-help" className="mt-2 text-xs text-clv-gray">
             Includes mixed-size buckets and unknown options for rescue pets.
           </p>
         </Field>
 
-        <div className="grid gap-4 sm:grid-cols-[1fr_150px]">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              id="ageYears"
-              label="Years"
-              error={errors.ageYears}
-              describedBy="ageYears-error"
-            >
-              <select
-                id="ageYears"
-                value={formData.ageYears}
-                className={inputClass(errors.ageYears)}
-                aria-describedby="ageYears-error"
-                aria-invalid={Boolean(errors.ageYears)}
-                onChange={(event) => onUpdate("ageYears", event.target.value)}
-              >
-                <option value="">Select years</option>
-                {years.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field
-              id="ageMonths"
-              label="Months"
-              error={errors.ageMonths}
-              describedBy="ageMonths-error"
-            >
-              <select
-                id="ageMonths"
-                value={formData.ageMonths}
-                className={inputClass(errors.ageMonths)}
-                aria-describedby="ageMonths-error"
-                aria-invalid={Boolean(errors.ageMonths)}
-                onChange={(event) => onUpdate("ageMonths", event.target.value)}
-              >
-                <option value="">Select months</option>
-                {months.map((month) => (
-                  <option key={month} value={month}>
-                    {month}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <Field
-            id="weightLbs"
-            label="Weight"
-            error={errors.weightLbs}
-            describedBy="weightLbs-error"
-          >
-            <input
-              id="weightLbs"
-              type="number"
-              inputMode="decimal"
-              min="1"
-              value={formData.weightLbs}
-              placeholder="lbs"
-              className={inputClass(errors.weightLbs)}
-              aria-describedby="weightLbs-error"
-              aria-invalid={Boolean(errors.weightLbs)}
-              onChange={(event) => onUpdate("weightLbs", event.target.value)}
-            />
-          </Field>
-        </div>
+        <AgeWeightFields
+          formData={formData}
+          errors={errors}
+          onUpdate={onUpdate}
+        />
 
         {formData.ageYears === "0" && formData.ageMonths && (
           <p className="rounded-lg bg-clv-sage-light px-4 py-3 text-sm font-semibold text-clv-green">
@@ -1032,8 +1177,255 @@ function StepTwo({
         className="mt-8 w-full rounded-md bg-clv-charcoal px-7 py-[13px] text-sm font-semibold tracking-[0.02em] text-clv-white transition-colors hover:bg-[#333]"
         onClick={onNext}
       >
-        Continue to screening →
+        Continue to health history →
       </button>
+    </div>
+  );
+}
+
+function BreedCombobox({
+  id,
+  value,
+  breeds,
+  error,
+  onChange
+}: {
+  id: string;
+  value: string;
+  breeds: string[];
+  error?: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const query = value.trim().toLowerCase();
+  const matches = breeds
+    .filter((breed) => !query || breed.toLowerCase().includes(query))
+    .slice(0, 8);
+  const showCustomOption =
+    value.trim().length > 1 &&
+    !breeds.some((breed) => breed.toLowerCase() === query);
+
+  return (
+    <div className="relative">
+      <Search
+        aria-hidden
+        className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-clv-gray"
+      />
+      <input
+        id={id}
+        value={value}
+        autoComplete="off"
+        placeholder="Search or choose a breed"
+        className={`${inputClass(error)} pl-11 pr-11`}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={`${id}-suggestions`}
+        aria-describedby={`${id}-help ${id}-error`}
+        aria-invalid={Boolean(error)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => {
+          window.setTimeout(() => setOpen(false), 120);
+        }}
+        onChange={(event) => {
+          onChange(event.target.value);
+          setOpen(true);
+        }}
+      />
+      <button
+        type="button"
+        className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-clv-gray transition-colors hover:bg-clv-sage-light hover:text-clv-green"
+        aria-label="Show breed options"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <ChevronDown aria-hidden className="h-4 w-4" />
+      </button>
+      {open && (
+        <div
+          id={`${id}-suggestions`}
+          role="listbox"
+          className="absolute z-30 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-clv-gray-border bg-white p-2 shadow-[0_18px_40px_rgba(27,27,27,0.14)]"
+        >
+          {matches.map((breed) => (
+            <button
+              key={breed}
+              type="button"
+              role="option"
+              aria-selected={breed === value}
+              className={`flex min-h-[44px] w-full items-center rounded-lg px-3 text-left text-sm font-semibold transition-colors ${
+                breed === value
+                  ? "bg-clv-green text-white"
+                  : "text-clv-charcoal hover:bg-clv-sage-light"
+              }`}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                onChange(breed);
+                setOpen(false);
+              }}
+            >
+              {breed}
+            </button>
+          ))}
+          {showCustomOption && (
+            <button
+              type="button"
+              role="option"
+              aria-selected={false}
+              className="flex min-h-[44px] w-full items-center rounded-lg px-3 text-left text-sm font-semibold text-clv-charcoal transition-colors hover:bg-clv-sage-light"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => setOpen(false)}
+            >
+              Use &quot;{value.trim()}&quot;
+            </button>
+          )}
+          {matches.length === 0 && !showCustomOption && (
+            <p className="px-3 py-3 text-sm text-clv-gray">
+              No matching breeds found.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AgeWeightFields({
+  formData,
+  errors,
+  onUpdate
+}: {
+  formData: QuoteData;
+  errors: QuoteErrors;
+  onUpdate: UpdateQuoteField;
+}) {
+  const years = Array.from({ length: 16 }, (_, index) => String(index));
+  const months = Array.from({ length: 12 }, (_, index) => String(index));
+
+  return (
+    <div className="grid gap-4 md:grid-cols-[1fr_1fr_160px]">
+      <Field
+        id="ageYears"
+        label="Age in years"
+        error={errors.ageYears}
+        describedBy="ageYears-error"
+      >
+        <SelectControl
+          id="ageYears"
+          value={formData.ageYears}
+          error={errors.ageYears}
+          placeholder="Years"
+          ariaDescribedBy="ageYears-error"
+          onChange={(value) => onUpdate("ageYears", value)}
+          options={years.map((year) => ({
+            value: year,
+            label: year === "1" ? "1 year" : `${year} years`
+          }))}
+        />
+      </Field>
+
+      <Field
+        id="ageMonths"
+        label="Additional months"
+        error={errors.ageMonths}
+        describedBy="ageMonths-error"
+      >
+        <SelectControl
+          id="ageMonths"
+          value={formData.ageMonths}
+          error={errors.ageMonths}
+          placeholder="Months"
+          ariaDescribedBy="ageMonths-error"
+          onChange={(value) => onUpdate("ageMonths", value)}
+          options={months.map((month) => ({
+            value: month,
+            label: month === "1" ? "1 month" : `${month} months`
+          }))}
+        />
+      </Field>
+
+      <Field
+        id="weightLbs"
+        label="Current weight"
+        error={errors.weightLbs}
+        describedBy="weightLbs-error"
+      >
+        <div
+          className={`flex min-h-[52px] items-center rounded-md border bg-white transition-colors ${
+            errors.weightLbs
+              ? "border-red-600 focus-within:border-red-600"
+              : "border-clv-gray-border focus-within:border-clv-green"
+          }`}
+        >
+          <input
+            id="weightLbs"
+            type="text"
+            inputMode="decimal"
+            value={formData.weightLbs}
+            placeholder="0"
+            className="min-w-0 flex-1 rounded-md bg-transparent px-4 text-base text-clv-charcoal outline-none placeholder:text-clv-gray"
+            aria-describedby="weightLbs-error"
+            aria-invalid={Boolean(errors.weightLbs)}
+            onChange={(event) =>
+              onUpdate(
+                "weightLbs",
+                event.target.value.replace(/[^\d.]/g, "")
+              )
+            }
+          />
+          <span className="shrink-0 px-4 text-sm font-semibold text-clv-gray">
+            lbs
+          </span>
+        </div>
+      </Field>
+    </div>
+  );
+}
+
+function SelectControl({
+  id,
+  value,
+  error,
+  placeholder,
+  ariaDescribedBy,
+  options,
+  onChange
+}: {
+  id: string;
+  value: string;
+  error?: string;
+  placeholder: string;
+  ariaDescribedBy: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div
+      className={`relative flex min-h-[52px] items-center rounded-md border bg-white transition-colors ${
+        error
+          ? "border-red-600 focus-within:border-red-600"
+          : "border-clv-gray-border focus-within:border-clv-green"
+      }`}
+    >
+      <select
+        id={id}
+        value={value}
+        className="min-h-[50px] w-full appearance-none rounded-md bg-transparent px-4 pr-11 text-base font-semibold text-clv-charcoal outline-none"
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={Boolean(error)}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        aria-hidden
+        className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-clv-gray"
+      />
     </div>
   );
 }
@@ -1058,20 +1450,20 @@ function StepThree({
   return (
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-clv-green">
-        Medical screening
+        Health underwriting
       </p>
       <h1 className="mt-2 font-display text-[32px] font-bold tracking-[-0.02em] text-clv-charcoal">
-        Can {formData.petName || "your pet"} go straight through?
+        Health history for {formData.petName || "your pet"}.
       </h1>
       <p className="mt-3 text-base leading-[1.7] text-clv-gray">
-        These answers decide whether pricing can be shown now, whether coverage
-        needs exclusions, or whether the system needs more evidence first.
+        These answers determine whether we can show a price now, show a price
+        with a disclosed exclusion, or ask for records before quoting.
       </p>
 
       <div className="mt-8 space-y-6">
         <div>
           <p className="mb-3 text-sm font-semibold text-clv-charcoal">
-            Has your pet ever been diagnosed with any of these?
+            Has a veterinarian ever diagnosed your pet with any of these?
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             {conditionOptions.map((condition) => {
@@ -1102,7 +1494,7 @@ function StepThree({
 
         <div className="grid gap-5 sm:grid-cols-2">
           <ToggleGroup
-            label="Any symptoms right now?"
+            label="Any current symptoms or concerns?"
             error={errors.currentSymptoms}
             options={yesNoOptions}
             selected={formData.currentSymptoms}
@@ -1111,14 +1503,14 @@ function StepThree({
             }
           />
           <ToggleGroup
-            label="Any ongoing medication?"
+            label="Any medication right now?"
             error={errors.medication}
             options={yesNoOptions}
             selected={formData.medication}
             onSelect={(value) => onUpdate("medication", value as YesNoAnswer)}
           />
           <ToggleGroup
-            label="Surgery or hospital stay in 12 months?"
+            label="Any surgery or hospital stay in the past 12 months?"
             error={errors.recentSurgery}
             options={yesNoOptions}
             selected={formData.recentSurgery}
@@ -1127,7 +1519,7 @@ function StepThree({
             }
           />
           <ToggleGroup
-            label="Can you provide vet records?"
+            label="Do you have recent vet records available?"
             error={errors.vetRecords}
             options={yesNoOptions}
             selected={formData.vetRecords}
@@ -1144,7 +1536,9 @@ function StepThree({
         disabled={isEvaluating}
         onClick={onNext}
       >
-        {isEvaluating ? "Running underwriting checks..." : "Continue →"}
+        {isEvaluating
+          ? "Checking eligibility..."
+          : "Continue to underwriting →"}
       </button>
     </div>
   );
@@ -1171,8 +1565,12 @@ function StepFour({
         Plan assessment
       </p>
       <h1 className="mt-2 font-display text-[32px] font-bold tracking-[-0.02em] text-clv-charcoal">
-        Plans for {formData.petName || "your pet"}.
+        Choose a plan for {formData.petName || "your pet"}.
       </h1>
+      <p className="mt-3 max-w-xl text-base leading-[1.7] text-clv-gray">
+        These prices reflect the underwriting result so far. Final documents
+        will show the exact coverage terms before payment is complete.
+      </p>
       <div className="mt-5">
         <ScreeningCard result={screeningResult} compact />
       </div>
@@ -1227,7 +1625,10 @@ function StepFour({
               <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
                 <PlanMetric label="Deductible" value={plan.deductible} />
                 <PlanMetric label="Reimburses" value={plan.reimbursement} />
-                <PlanMetric label="Screening" value={screeningResult.label} />
+                <PlanMetric
+                  label="Underwriting"
+                  value={statusCopy(screeningResult.status).summary}
+                />
               </dl>
               <ul className="mt-4 grid gap-2 text-sm text-clv-gray sm:grid-cols-2">
                 {plan.highlights.map((highlight) => (
@@ -1277,8 +1678,12 @@ function StepFive({
         Coverage settings
       </p>
       <h1 className="mt-2 font-display text-[32px] font-bold tracking-[-0.02em] text-clv-charcoal">
-        Tune the plan before we send it.
+        Customize the quote.
       </h1>
+      <p className="mt-3 max-w-xl text-base leading-[1.7] text-clv-gray">
+        Adjust the deductible, reimbursement rate, annual limit, and optional
+        add-ons before moving to the application details.
+      </p>
       <div className="mt-6 rounded-xl border border-clv-gray-border bg-clv-sage-light p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -1286,7 +1691,7 @@ function StepFive({
               {selectedPlan?.title || "Selected plan"}
             </p>
             <p className="mt-1 text-sm leading-[1.6] text-clv-gray">
-              {screeningResult.body}
+              {statusCopy(screeningResult.status).body}
             </p>
           </div>
           <p className="font-display text-[34px] font-bold text-clv-green">
@@ -1367,7 +1772,7 @@ function StepFive({
         className="mt-8 w-full rounded-md bg-clv-charcoal px-7 py-[13px] text-sm font-semibold tracking-[0.02em] text-clv-white transition-colors hover:bg-[#333]"
         onClick={onNext}
       >
-        Continue to contact →
+        Continue to application →
       </button>
     </div>
   );
@@ -1385,8 +1790,10 @@ function StepSix({
   onExclusionAcknowledged,
   onConsent,
   onSubmit,
+  onSaveForLater,
   isSubmitting,
-  submissionError
+  submissionError,
+  draftMessage
 }: {
   formData: QuoteData;
   errors: QuoteErrors;
@@ -1399,8 +1806,10 @@ function StepSix({
   onExclusionAcknowledged: (exclusionAcknowledged: boolean) => void;
   onConsent: (consent: boolean) => void;
   onSubmit: () => void;
+  onSaveForLater: () => void;
   isSubmitting: boolean;
   submissionError: string;
+  draftMessage: string;
 }) {
   const showExclusions =
     screeningResult.status === "approved_with_exclusions" &&
@@ -1428,8 +1837,9 @@ function StepSix({
                 {selectedPlan?.title || "Selected plan"}
               </p>
               <p className="mt-1 text-sm text-clv-gray">
-                {screeningResult.label} · {formData.reimbursement}%
-                reimbursement · ${formData.deductible} deductible
+                {statusCopy(screeningResult.status).summary} ·{" "}
+                {formData.reimbursement}% reimbursement · ${formData.deductible}{" "}
+                deductible
               </p>
               {formData.riders.length > 0 && (
                 <p className="mt-1 text-sm text-clv-gray">
@@ -1456,11 +1866,11 @@ function StepSix({
       {showExclusions && (
         <div className="mt-6 rounded-xl border border-clv-amber bg-clv-amber-light p-5">
           <p className="text-sm font-semibold text-clv-charcoal">
-            Likely exclusions before binding
+            Exclusions to acknowledge before payment
           </p>
           <p className="mt-2 text-sm leading-[1.6] text-clv-gray">
-            These items are surfaced before checkout so the plan decision is
-            explicit before payment.
+            These conditions are not expected to be covered under this policy.
+            We show them before checkout so there is no surprise after payment.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {screeningResult.exclusions.map((exclusion) => (
@@ -1478,8 +1888,8 @@ function StepSix({
             error={errors.exclusionAcknowledged}
             onChange={onExclusionAcknowledged}
           >
-            I understand these conditions may be excluded before coverage is
-            final.
+            I understand the listed exclusions will apply if I continue with
+            this quote.
           </CheckboxRow>
         </div>
       )}
@@ -1487,11 +1897,12 @@ function StepSix({
       {showRecords && (
         <div className="mt-6 rounded-xl border border-clv-gray-border bg-white p-5">
           <p className="text-sm font-semibold text-clv-charcoal">
-            Medical details and records
+            Records needed to complete the quote
           </p>
           <p className="mt-2 text-sm leading-[1.6] text-clv-gray">
-            Add enough detail for the automated underwriting checks to rerun.
-            Upload records now or tell us which clinic to request them from.
+            We cannot show a reliable price until this information is verified.
+            Upload records now, or provide your clinic so the case can continue
+            as soon as records are available.
           </p>
 
           {screeningResult.requiredEvidence.length > 0 && (
@@ -1513,7 +1924,7 @@ function StepSix({
           <div className="mt-5 space-y-5">
             <Field
               id="conditionDetails"
-              label="Condition details"
+              label="Health details"
               error={errors.conditionDetails}
               describedBy="conditionDetails-error"
             >
@@ -1662,7 +2073,7 @@ function StepSix({
 
         <Field
           id="zipCode"
-          label="ZIP code"
+          label="ZIP code where the policy would be issued"
           error={errors.zipCode}
           describedBy="zipCode-error"
         >
@@ -1693,8 +2104,22 @@ function StepSix({
         onClick={onSubmit}
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Running automated checks..." : content.cta}
+        {isSubmitting ? "Submitting application..." : content.cta}
       </button>
+      {showRecords && (
+        <button
+          type="button"
+          className="mt-3 w-full rounded-md border border-clv-gray-light bg-white px-7 py-[13px] text-sm font-semibold tracking-[0.02em] text-clv-charcoal transition-colors hover:border-clv-green hover:text-clv-green"
+          onClick={onSaveForLater}
+        >
+          Save and continue later
+        </button>
+      )}
+      {draftMessage && showRecords && (
+        <p className="mt-3 text-sm font-semibold text-clv-green">
+          {draftMessage}
+        </p>
+      )}
       {submissionError && (
         <p className="mt-3 text-sm font-semibold text-red-700">
           {submissionError}
@@ -1711,23 +2136,46 @@ function ScreeningCard({
   result: ScreeningResult;
   compact?: boolean;
 }) {
-  const styles: Record<ScreeningStatus, string> = {
-    approved: "border-clv-green bg-clv-sage-light text-clv-green",
-    approved_with_exclusions:
-      "border-clv-green-mid bg-clv-sage-light text-clv-green",
-    need_more_info: "border-clv-amber bg-clv-amber-light text-clv-amber",
-    declined: "border-red-700 bg-red-50 text-red-800"
+  const styles: Record<ScreeningStatus, { card: string; icon: ReactNode }> = {
+    approved: {
+      card: "border-clv-green bg-clv-sage-light text-clv-green",
+      icon: <CheckCircle2 aria-hidden className="h-5 w-5" />
+    },
+    approved_with_exclusions: {
+      card: "border-clv-green-mid bg-clv-sage-light text-clv-green",
+      icon: <ShieldCheck aria-hidden className="h-5 w-5" />
+    },
+    need_more_info: {
+      card: "border-clv-amber bg-clv-amber-light text-clv-amber",
+      icon: <FileText aria-hidden className="h-5 w-5" />
+    },
+    declined: {
+      card: "border-red-700 bg-red-50 text-red-800",
+      icon: <AlertTriangle aria-hidden className="h-5 w-5" />
+    }
   };
+  const copy = statusCopy(result.status);
+  const reasons = customerReasons(result);
 
   return (
-    <article className={`rounded-xl border p-5 ${styles[result.status]}`}>
-      <p className="text-sm font-semibold">{result.label}</p>
-      <p className="mt-2 text-sm leading-[1.6] text-clv-charcoal">
-        {result.body}
-      </p>
-      {!compact && result.reasons.length > 0 && (
+    <article className={`rounded-xl border p-5 ${styles[result.status].card}`}>
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5">{styles[result.status].icon}</span>
+        <div>
+          <p className="text-sm font-semibold">{copy.title}</p>
+          <p className="mt-2 text-sm leading-[1.6] text-clv-charcoal">
+            {copy.body}
+          </p>
+        </div>
+      </div>
+      {result.source === "local" && !compact && (
+        <p className="mt-3 text-xs leading-[1.6] text-clv-gray">
+          Underwriting is checked again when the application is submitted.
+        </p>
+      )}
+      {!compact && reasons.length > 0 && (
         <ul className="mt-4 space-y-2 text-sm text-clv-gray">
-          {result.reasons.map((reason) => (
+          {reasons.map((reason) => (
             <li key={reason}>✓ {reason}</li>
           ))}
         </ul>
@@ -1735,7 +2183,7 @@ function ScreeningCard({
       {result.exclusions.length > 0 && (
         <div className="mt-4 rounded-lg bg-white/80 p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-clv-gray">
-            Exclusions
+            Likely exclusions
           </p>
           <p className="mt-1 text-sm font-semibold text-clv-charcoal">
             {result.exclusions.join(", ")}
@@ -1745,7 +2193,7 @@ function ScreeningCard({
       {!compact && result.requiredEvidence.length > 0 && (
         <div className="mt-4 rounded-lg bg-white/80 p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-clv-gray">
-            Evidence required
+            Needed to finish underwriting
           </p>
           <p className="mt-1 text-sm font-semibold text-clv-charcoal">
             {result.requiredEvidence.map((item) => item.title).join(", ")}
@@ -1755,10 +2203,10 @@ function ScreeningCard({
       {!compact && result.fraudSignals.length > 0 && (
         <div className="mt-4 rounded-lg bg-white/80 p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-clv-gray">
-            Integrity signals
+            Detail to verify
           </p>
           <p className="mt-1 text-sm font-semibold text-clv-charcoal">
-            {result.fraudSignals.map((item) => item.label).join(", ")}
+            {result.fraudSignals.map(formatSignalLabel).join(", ")}
           </p>
         </div>
       )}
@@ -1921,63 +2369,50 @@ function Confirmation({
   screeningResult,
   estimatedMonthly,
   content,
-  submissionResult
+  submissionResult,
+  formData,
+  onStartOver,
+  onContinueEvidence,
+  onContinuePayment,
+  onSaveForLater,
+  draftMessage
 }: {
   screeningResult: ScreeningResult;
   estimatedMonthly: number | null;
   content: FinalStepContent;
   submissionResult: NoTouchQuoteResult | null;
+  formData: QuoteData;
+  onStartOver: () => void;
+  onContinueEvidence: () => void;
+  onContinuePayment: () => void;
+  onSaveForLater: () => void;
+  draftMessage: string;
 }) {
   const paymentStatus = submissionResult?.payment.status;
+  const caseId = submissionResult?.caseId;
   const confirmationBody =
     paymentStatus === "configuration_required"
       ? "The application passed automated underwriting, but Stripe checkout is not configured in this environment. No policy was bound."
       : content.confirmationBody;
+  const nextSteps = nextStepsForDecision(screeningResult.status);
+  const supportHref = buildSupportHref({caseId, formData, screeningResult});
 
   return (
-    <div className="py-12 text-center">
-      <motion.svg
-        role="img"
-        aria-label="Quote submitted"
-        width="96"
-        height="96"
-        viewBox="0 0 96 96"
-        className="mx-auto"
-      >
-        <motion.circle
-          cx="48"
-          cy="48"
-          r="36"
-          fill="none"
-          stroke="#2D6A4F"
-          strokeWidth="4"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
-        />
-        <motion.path
-          d="M31 49 L43 61 L66 36"
-          fill="none"
-          stroke="#2D6A4F"
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ delay: 0.35, duration: 0.45, ease: "easeOut" }}
-        />
-      </motion.svg>
-      <h1 className="mt-8 font-display text-[30px] font-bold tracking-[-0.02em] text-clv-charcoal">
-        {content.confirmationTitle}
-      </h1>
-      <p className="mx-auto mt-3 max-w-md text-base leading-[1.75] text-clv-gray">
-        {confirmationBody}
-      </p>
-      {submissionResult?.caseId && (
-        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-clv-green">
-          Case {submissionResult.caseId}
+    <div className="py-12">
+      <ConfirmationMark status={screeningResult.status} />
+      <div className="text-center">
+        <h1 className="mt-8 font-display text-[30px] font-bold tracking-[-0.02em] text-clv-charcoal">
+          {content.confirmationTitle}
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-base leading-[1.75] text-clv-gray">
+          {confirmationBody}
         </p>
-      )}
+        {caseId && (
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-clv-green">
+            Case {caseId}
+          </p>
+        )}
+      </div>
       {(screeningResult.status === "approved" ||
         screeningResult.status === "approved_with_exclusions") && (
         <div className="mx-auto mt-6 max-w-sm rounded-xl border border-clv-gray-border bg-clv-sage-light p-4 text-left">
@@ -2000,9 +2435,140 @@ function Confirmation({
               Open secure checkout →
             </a>
           )}
+          {!submissionResult?.payment.checkoutUrl &&
+            paymentStatus === "configuration_required" && (
+              <button
+                type="button"
+                className="mt-4 inline-flex w-full items-center justify-center rounded-md bg-clv-green px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-clv-green-dark"
+                onClick={onContinuePayment}
+              >
+                Continue to payment
+              </button>
+            )}
+        </div>
+      )}
+      {(screeningResult.status === "need_more_info" ||
+        screeningResult.status === "declined") && (
+        <div className="mx-auto mt-8 max-w-2xl text-left">
+          <div className="rounded-xl border border-clv-gray-border bg-clv-sage-light p-5">
+            <p className="text-sm font-semibold text-clv-charcoal">
+              What happens next
+            </p>
+            <ol className="mt-4 space-y-3 text-sm leading-[1.6] text-clv-gray">
+              {nextSteps.map((step) => (
+                <li key={step} className="flex gap-3">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-clv-green" />
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {(screeningResult.reasons.length > 0 ||
+            screeningResult.requiredEvidence.length > 0) && (
+            <div className="mt-4 rounded-xl border border-clv-gray-border bg-white p-5">
+              {screeningResult.reasons.length > 0 && (
+                <>
+                  <p className="text-sm font-semibold text-clv-charcoal">
+                    Underwriting notes
+                  </p>
+                  <ul className="mt-3 space-y-2 text-sm leading-[1.6] text-clv-gray">
+                    {customerReasons(screeningResult).map((reason) => (
+                      <li key={reason}>✓ {reason}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {screeningResult.requiredEvidence.length > 0 && (
+                <div className={screeningResult.reasons.length ? "mt-5" : ""}>
+                  <p className="text-sm font-semibold text-clv-charcoal">
+                    To continue, upload
+                  </p>
+                  <ul className="mt-3 space-y-2 text-sm leading-[1.6] text-clv-gray">
+                    {screeningResult.requiredEvidence.map((item) => (
+                      <li key={item.code}>
+                        <span className="font-semibold text-clv-charcoal">
+                          {item.title}:
+                        </span>{" "}
+                        {item.details}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            {screeningResult.status === "need_more_info" ? (
+              <>
+                <button
+                  type="button"
+                  className="inline-flex flex-1 items-center justify-center rounded-md bg-clv-green px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-clv-green-dark"
+                  onClick={onContinueEvidence}
+                >
+                  Add records and rerun underwriting
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex flex-1 items-center justify-center rounded-md border border-clv-gray-light px-5 py-3 text-sm font-semibold text-clv-charcoal transition-colors hover:border-clv-green hover:text-clv-green"
+                  onClick={onSaveForLater}
+                >
+                  Save and continue later
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="inline-flex flex-1 items-center justify-center rounded-md bg-clv-green px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-clv-green-dark"
+                onClick={onStartOver}
+              >
+                Start a corrected quote
+              </button>
+            )}
+            <a
+              href={supportHref}
+              className="inline-flex flex-1 items-center justify-center rounded-md border border-clv-gray-light px-5 py-3 text-sm font-semibold text-clv-charcoal transition-colors hover:border-clv-green hover:text-clv-green"
+            >
+              Contact support
+            </a>
+          </div>
+          {draftMessage && screeningResult.status === "need_more_info" && (
+            <p className="mt-3 text-sm font-semibold text-clv-green">
+              {draftMessage}
+            </p>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function ConfirmationMark({status}: {status: ScreeningStatus}) {
+  const Icon =
+    status === "declined"
+      ? AlertTriangle
+      : status === "need_more_info"
+        ? FileText
+        : CheckCircle2;
+  const tone =
+    status === "declined"
+      ? "border-red-700 bg-red-50 text-red-800"
+      : status === "need_more_info"
+        ? "border-clv-amber bg-clv-amber-light text-clv-amber"
+        : "border-clv-green bg-clv-sage-light text-clv-green";
+
+  return (
+    <motion.div
+      role="img"
+      aria-label={statusCopy(status).title}
+      className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full border-4 ${tone}`}
+      initial={{scale: 0.92, opacity: 0}}
+      animate={{scale: 1, opacity: 1}}
+      transition={{duration: 0.35, ease: "easeOut"}}
+    >
+      <Icon aria-hidden className="h-11 w-11" />
+    </motion.div>
   );
 }
 
@@ -2030,38 +2596,84 @@ function planDescription(plan: PlanId) {
   return descriptions[plan];
 }
 
+function nextStepsForDecision(status: ScreeningStatus) {
+  if (status === "declined") {
+    return [
+      "No payment was collected and no policy was started.",
+      "The decision notice has been recorded with the case ID shown above.",
+      "If any pet, weight, breed, or medical-history detail was entered incorrectly, start a corrected quote and rerun underwriting."
+    ];
+  }
+
+  if (status === "need_more_info") {
+    return [
+      "Pricing is still blocked, but the application can continue without a human review queue.",
+      "Upload the missing record details listed below, then submit again to rerun automated underwriting.",
+      "If the new evidence clears the checks, the flow will continue to plan selection or checkout."
+    ];
+  }
+
+  return [];
+}
+
+function buildSupportHref({
+  caseId,
+  formData,
+  screeningResult
+}: {
+  caseId: string | undefined;
+  formData: QuoteData;
+  screeningResult: ScreeningResult;
+}) {
+  const subject = caseId
+    ? `Clovara quote case ${caseId}`
+    : "Clovara quote application";
+  const body = [
+    `Case: ${caseId || "not shown"}`,
+    `Pet: ${formData.petName || "Not provided"}`,
+    `Breed: ${formData.breed || "Not provided"}`,
+    `Underwriting result: ${statusCopy(screeningResult.status).summary}`,
+    "",
+    "I have a question about this automated underwriting result."
+  ].join("\n");
+
+  return `mailto:support@clovara.com?subject=${encodeURIComponent(
+    subject
+  )}&body=${encodeURIComponent(body)}`;
+}
+
 function getFinalStepContent(
   status: ScreeningStatus,
   estimatedMonthly: number | null
 ): FinalStepContent {
   if (status === "approved") {
     return {
-      eyebrow: "Review and start coverage",
-      title: "Ready to continue to payment?",
-      body: "This application is approved for straight-through processing. Review the plan summary, confirm your details, then continue to secure payment.",
+      eyebrow: "Application review",
+      title: "Review your quote before payment.",
+      body: "The application is eligible to continue. Confirm the owner details and plan choices, then open secure checkout to complete the purchase.",
       consentLabel:
-        "I confirm these application details are accurate and understand payment does not waive waiting periods, exclusions, or final policy terms.",
-      cta: "Continue to payment →",
+        "I confirm the application details are accurate and understand coverage is subject to the final policy documents, waiting periods, and state availability.",
+      cta: "Open secure checkout →",
       event: "payment_started",
-      confirmationTitle: "Payment is the next step.",
+      confirmationTitle: "Quote ready for checkout.",
       confirmationBody: `Your application is ready for checkout at about $${
         estimatedMonthly ?? "--"
-      }/mo. In production, this should open secure payment before coverage is bound.`
+      }/mo. Secure payment opens before coverage is bound.`
     };
   }
 
   if (status === "approved_with_exclusions") {
     return {
-      eyebrow: "Review exclusions",
-      title: "Review exclusions before payment.",
-      body: "The application can continue to payment, but the exclusions shown here are part of the automated decision and must be acknowledged first.",
+      eyebrow: "Application review",
+      title: "Review the quote and exclusions.",
+      body: "The application is eligible to continue with the listed exclusions. Acknowledge them before opening secure checkout.",
       consentLabel:
-        "I understand the listed exclusions apply before coverage can be bound.",
-      cta: "Continue to payment →",
+        "I confirm the application details are accurate and understand the listed exclusions will apply if I purchase this policy.",
+      cta: "Acknowledge and open checkout →",
       event: "payment_started_with_exclusions",
-      confirmationTitle: "Exclusions acknowledged.",
+      confirmationTitle: "Quote ready with exclusions.",
       confirmationBody:
-        "The plan is ready for secure payment with the automated exclusions attached to the policy record."
+        "The plan is ready for secure payment with the exclusions attached to the application record."
     };
   }
 
@@ -2069,29 +2681,90 @@ function getFinalStepContent(
     return {
       eyebrow: "Automated decision",
       title: "This application is not eligible.",
-      body: "The decision was made automatically from the current underwriting rules. No payment is collected, and the outcome is complete.",
+      body: "Based on the information provided, this application cannot be offered a new policy under the current underwriting rules. No payment will be collected.",
       consentLabel:
-        "I confirm the contact details are correct so Clovara can send the decision notice.",
-      cta: "Send decision notice →",
+        "I confirm the contact details are correct so Clovara can send a copy of this decision.",
+      cta: "Email decision summary →",
       event: "quote_declined",
-      confirmationTitle: "Decision recorded.",
+      confirmationTitle: "Application not eligible.",
       confirmationBody:
-        "The automated decision has been recorded. No payment was collected."
+        "Based on the current underwriting rules, we cannot offer a new policy for this application. No payment was collected."
     };
   }
 
   return {
-    eyebrow: "More information needed",
-    title: "Finish the evidence step.",
-    body: "Pricing is blocked until the required evidence is provided. Upload records or clinic details here so the system can rerun the decision automatically.",
+    eyebrow: "Records needed",
+    title: "Complete underwriting before pricing.",
+    body: "We need records or clinic details before we can show a price. Submit the information here and the application can be rerun once the evidence is available.",
     consentLabel:
-      "I agree to save this evidence request and receive the secure follow-up link by email.",
-    cta: "Save evidence request →",
+      "I authorize Clovara to use these records or clinic details to complete underwriting for this quote application.",
+    cta: "Submit records for underwriting →",
     event: "underwriting_evidence_requested",
-    confirmationTitle: "Evidence request saved.",
+    confirmationTitle: "More records needed.",
     confirmationBody:
-      "The requested evidence has been saved. Once records are available, the automated underwriting checks can rerun before payment."
+      "The application is still open, but pricing remains blocked until the missing evidence clears automated underwriting."
   };
+}
+
+function statusCopy(status: ScreeningStatus) {
+  const copy: Record<
+    ScreeningStatus,
+    { title: string; summary: string; body: string }
+  > = {
+    approved: {
+      title: "Eligible for an instant quote",
+      summary: "Eligible",
+      body: "We can show plan prices now and continue to secure checkout after you review the application."
+    },
+    approved_with_exclusions: {
+      title: "Eligible with exclusions",
+      summary: "Eligible with exclusions",
+      body: "We can show prices, but specific conditions must be excluded and acknowledged before payment."
+    },
+    need_more_info: {
+      title: "Records needed before pricing",
+      summary: "Records needed",
+      body: "We need to verify one or more details before showing a reliable monthly price."
+    },
+    declined: {
+      title: "Not eligible for a new policy",
+      summary: "Not eligible",
+      body: "This application cannot continue to payment under the current underwriting rules."
+    }
+  };
+
+  return copy[status];
+}
+
+function customerReasons(result: ScreeningResult) {
+  return result.reasons.map((reason) => {
+    if (reason === "Clean screening path") {
+      return "No follow-up records needed based on these answers";
+    }
+    if (reason === "Deterministic approval path") {
+      return "Eligible based on the information provided";
+    }
+    if (reason === "Evidence required") {
+      return "Additional records are required before pricing";
+    }
+    if (reason === "Critical medical rule matched") {
+      return "Medical history does not meet the current eligibility rules";
+    }
+    if (reason.startsWith("Breed rule matched")) {
+      return "Breed is not eligible under the current rules";
+    }
+    return reason;
+  });
+}
+
+function formatSignalLabel(signal: { code: string; label: string }) {
+  if (signal.code === "WEIGHT_OUTLIER_CRITICAL") {
+    return "Current weight";
+  }
+  if (signal.code === "BREED_SPECIES_CONFLICT") {
+    return "Breed and species";
+  }
+  return signal.label;
 }
 
 function formatRiderNames(riderIds: RiderId[]) {
@@ -2124,6 +2797,157 @@ function estimateMonthly(
     riderTotal;
 
   return Math.max(18, total);
+}
+
+function formatSubmissionError(error: unknown) {
+  const fallback =
+    "We could not submit the application right now. Please try again in a few minutes.";
+  if (!(error instanceof Error)) return fallback;
+
+  const message = error.message;
+  if (
+    message.includes("FAILED_PRECONDITION") ||
+    message.includes("INTERNAL") ||
+    message.includes("firestore/indexes") ||
+    message.includes("firebase.google.com")
+  ) {
+    return fallback;
+  }
+
+  return message || fallback;
+}
+
+function continueToEmbeddedPayment({
+  result,
+  formData,
+  selectedPlan,
+  estimatedMonthly
+}: {
+  result: NoTouchQuoteResult;
+  formData: QuoteData;
+  selectedPlan: (typeof plans)[number] | undefined;
+  estimatedMonthly: number | null;
+}) {
+  const amount = result.payment.monthlyPremium ?? estimatedMonthly ?? 0;
+  const payload = {
+    savedAt: new Date().toISOString(),
+    caseId: result.caseId,
+    policyId: result.payment.policyId || `pending-${result.caseId}`,
+    monthlyPremium: amount,
+    paymentStatus: result.payment.status,
+    paymentReason: result.payment.reason || "",
+    decisionStatus: result.decision.status,
+    exclusions: result.decision.exclusions,
+    pet: {
+      name: formData.petName,
+      type: formData.petType,
+      breed: formData.breed,
+      ageYears: formData.ageYears,
+      ageMonths: formData.ageMonths,
+      weightLbs: formData.weightLbs
+    },
+    contact: {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      zipCode: formData.zipCode
+    },
+    plan: selectedPlan
+      ? {
+          id: selectedPlan.id,
+          title: selectedPlan.title
+        }
+      : {
+          id: formData.plan,
+          title: formData.plan || "Selected plan"
+        },
+    options: {
+      deductible: formData.deductible,
+      reimbursement: formData.reimbursement,
+      annualLimit: formData.annualLimit,
+      riders: formData.riders
+    }
+  };
+
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(
+      `${pendingPaymentStorageKey}:${result.caseId}`,
+      JSON.stringify(payload)
+    );
+    window.sessionStorage.setItem(pendingPaymentStorageKey, JSON.stringify(payload));
+    window.location.assign(`/app/payment?caseId=${encodeURIComponent(result.caseId)}`);
+  }
+}
+
+function sanitizeDraftFormData(formData: QuoteData): QuoteData {
+  return {
+    ...formData,
+    vetRecordFileNames: [],
+    vetRecordUploads: []
+  };
+}
+
+function readQuoteDraft() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(quoteDraftStorageKey);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<SavedQuoteDraft>;
+    if (!parsed.formData || !isQuoteStep(parsed.currentStep)) {
+      return null;
+    }
+
+    return {
+      savedAt: parsed.savedAt || new Date().toISOString(),
+      formData: sanitizeDraftFormData({
+        ...initialData,
+        ...parsed.formData
+      }),
+      currentStep: parsed.currentStep,
+      submitted: Boolean(parsed.submitted),
+      decisionResult: parsed.decisionResult ?? null,
+      submissionResult: parsed.submissionResult ?? null
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeQuoteDraft(draft: SavedQuoteDraft) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(quoteDraftStorageKey, JSON.stringify(draft));
+}
+
+function clearQuoteDraft() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(quoteDraftStorageKey);
+}
+
+function isQuoteStep(value: unknown): value is QuoteStep {
+  return (
+    value === 1 ||
+    value === 2 ||
+    value === 3 ||
+    value === 4 ||
+    value === 5 ||
+    value === 6
+  );
+}
+
+function formatSavedAt(value: string) {
+  const savedAt = new Date(value);
+  if (Number.isNaN(savedAt.getTime())) {
+    return "recently";
+  }
+
+  return savedAt.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
 }
 
 function assessWeight(formData: QuoteData) {

@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build && node scripts/copy-legacy-app.mjs && next-sitemap",
+    "build:next-only": "next build && next-sitemap",
+    "build:legacy-app": "next build && node scripts/copy-legacy-app.mjs && next-sitemap",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write ."

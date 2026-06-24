@@ -422,14 +422,8 @@ class _AdminRail extends StatelessWidget {
     return Container(
       width: 280,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AdminColors.sidebar, AdminColors.sidebarDeep],
-        ),
-        border: Border(
-          right: BorderSide(color: Colors.white.withOpacity(0.08)),
-        ),
+        color: AdminColors.sidebar,
+        border: const Border(right: BorderSide(color: AdminColors.border)),
       ),
       child: Column(
         children: [
@@ -439,9 +433,9 @@ class _AdminRail extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.06),
+                color: AdminColors.surfaceRaised,
                 borderRadius: BorderRadius.circular(AdminRadii.lg),
-                border: Border.all(color: Colors.white.withOpacity(0.10)),
+                border: Border.all(color: AdminColors.border),
               ),
               child: Row(
                 children: [
@@ -449,12 +443,12 @@ class _AdminRail extends StatelessWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: AdminColors.success.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AdminColors.successSoft,
+                      borderRadius: BorderRadius.circular(AdminRadii.md),
                     ),
                     child: const Icon(
                       Icons.auto_awesome_outlined,
-                      color: Color(0xFF52B788),
+                      color: AdminColors.success,
                       size: 20,
                     ),
                   ),
@@ -467,13 +461,13 @@ class _AdminRail extends StatelessWidget {
                           'Operations',
                           style: Theme.of(context).textTheme.labelLarge
                               ?.copyWith(
-                                color: Colors.white,
+                                color: AdminColors.text,
                                 fontWeight: FontWeight.w900,
                               ),
                         ),
                         const SizedBox(height: 1),
                         Text(
-                          'Automation cockpit',
+                          'No-touch command center',
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(color: AdminColors.sidebarMuted),
                         ),
@@ -515,9 +509,9 @@ class _RailHealthCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.07),
+        color: AdminColors.surfaceRaised,
         borderRadius: BorderRadius.circular(AdminRadii.lg),
-        border: Border.all(color: Colors.white.withOpacity(0.10)),
+        border: Border.all(color: AdminColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,12 +522,12 @@ class _RailHealthCard extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: AdminColors.success.withOpacity(0.22),
-                  borderRadius: BorderRadius.circular(10),
+                  color: AdminColors.successSoft,
+                  borderRadius: BorderRadius.circular(AdminRadii.md),
                 ),
                 child: const Icon(
                   Icons.bolt_outlined,
-                  color: Color(0xFF52B788),
+                  color: AdminColors.success,
                   size: 18,
                 ),
               ),
@@ -541,7 +535,7 @@ class _RailHealthCard extends StatelessWidget {
               Text(
                 'No-touch target',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Colors.white,
+                  color: AdminColors.text,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -571,10 +565,10 @@ class _AdminDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final themed = Theme.of(context).copyWith(
       canvasColor: AdminColors.sidebar,
-      dividerColor: Colors.white.withOpacity(0.10),
+      dividerColor: AdminColors.border,
       listTileTheme: const ListTileThemeData(
-        iconColor: Colors.white,
-        textColor: Colors.white,
+        iconColor: AdminColors.text,
+        textColor: AdminColors.text,
       ),
     );
 
@@ -584,13 +578,7 @@ class _AdminDrawer extends StatelessWidget {
         backgroundColor: AdminColors.sidebar,
         child: SafeArea(
           child: DecoratedBox(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [AdminColors.sidebar, AdminColors.sidebarDeep],
-              ),
-            ),
+            decoration: const BoxDecoration(color: AdminColors.sidebar),
             child: Column(
               children: [
                 Padding(
@@ -606,7 +594,7 @@ class _AdminDrawer extends StatelessWidget {
                     ],
                   ),
                 ),
-                Divider(height: 1, color: Colors.white.withOpacity(0.10)),
+                const Divider(height: 1, color: AdminColors.border),
                 Expanded(
                   child: ListView(
                     children: [
@@ -615,14 +603,14 @@ class _AdminDrawer extends StatelessWidget {
                           leading: Icon(
                             spec.icon,
                             color: spec.item == selected
-                                ? const Color(0xFF52B788)
+                                ? AdminColors.success
                                 : AdminColors.sidebarMuted,
                           ),
                           title: Text(
                             spec.label,
                             style: TextStyle(
                               color: spec.item == selected
-                                  ? Colors.white
+                                  ? AdminColors.text
                                   : AdminColors.sidebarMuted,
                               fontWeight: spec.item == selected
                                   ? FontWeight.w900
@@ -661,21 +649,19 @@ class _AdminNavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = selected ? Colors.white : AdminColors.sidebarMuted;
+    final c = selected ? AdminColors.text : AdminColors.sidebarMuted;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(AdminRadii.lg),
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: selected ? AdminColors.sidebarActive : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AdminRadii.lg),
           border: Border.all(
-            color: selected
-                ? Colors.white.withOpacity(0.08)
-                : Colors.transparent,
+            color: selected ? AdminColors.border : Colors.transparent,
           ),
         ),
         child: Row(
@@ -686,18 +672,18 @@ class _AdminNavTile extends StatelessWidget {
               height: 34,
               decoration: BoxDecoration(
                 color: selected
-                    ? AdminColors.success
-                    : Colors.white.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(12),
+                    ? AdminColors.successSoft
+                    : AdminColors.surfaceRaised,
+                borderRadius: BorderRadius.circular(AdminRadii.md),
                 border: Border.all(
-                  color: selected
-                      ? AdminColors.success
-                      : Colors.white.withOpacity(0.10),
+                  color: selected ? AdminColors.success : AdminColors.border,
                 ),
               ),
               child: Icon(
                 spec.icon,
-                color: selected ? Colors.white : AdminColors.sidebarMuted,
+                color: selected
+                    ? AdminColors.success
+                    : AdminColors.sidebarMuted,
                 size: 19,
               ),
             ),
@@ -716,7 +702,7 @@ class _AdminNavTile extends StatelessWidget {
                 width: 6,
                 height: 6,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF52B788),
+                  color: AdminColors.success,
                   shape: BoxShape.circle,
                 ),
               ),

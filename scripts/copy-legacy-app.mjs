@@ -5,6 +5,7 @@ import path from "node:path";
 const root = process.cwd();
 const source = path.join(root, "build", "web");
 const destination = path.join(root, "out", "app");
+const appHtmlPath = path.join(root, "out", "app.html");
 const indexPath = path.join(destination, "index.html");
 const bootstrapPath = path.join(destination, "flutter_bootstrap.js");
 const mainJsPath = path.join(source, "main.dart.js");
@@ -48,6 +49,7 @@ const patched = html
     `${appCacheResetScript}\n  <script src="flutter_bootstrap.js?v=${appBuildId}" async></script>`
   );
 await writeFile(indexPath, patched);
+await writeFile(appHtmlPath, patched);
 
 const bootstrap = await readFile(bootstrapPath, "utf8");
 const patchedBootstrap = bootstrap
@@ -55,7 +57,7 @@ const patchedBootstrap = bootstrap
   .replace(/serviceWorkerSettings:\s*\{\s*serviceWorkerVersion:\s*"[^"]+"\s*\/\*[\s\S]*?\*\/\s*\}/, "serviceWorkerSettings: null");
 await writeFile(bootstrapPath, patchedBootstrap);
 
-for (const route of ["sign-in", "app"]) {
+for (const route of ["sign-in", "admin", "dashboard", "app"]) {
   await writeFile(path.join(destination, `${route}.html`), patched);
   const routeDirectory = path.join(destination, route);
   await mkdir(routeDirectory, { recursive: true });
