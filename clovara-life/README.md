@@ -11,7 +11,7 @@ Vite + React + TypeScript + Tailwind. No component libraries.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 93 engine, platform and data-integrity tests
+npm test           # 94 engine, platform and data-integrity tests
 npm run build      # → dist/
 npm run icons      # regenerate public/og.png and the apple-touch icon
 
@@ -76,7 +76,7 @@ src/
   engine/
     project.ts       The pure function. project(profile) → Projection.
     platform.ts      Score, shop, coverage, rewards, companion, home — all pure.
-    project.test.ts  52 tests.
+    project.test.ts  53 tests.
     platform.test.ts 41 tests.
   components/        UI. No logic lives here that isn't presentational.
 ```
@@ -235,6 +235,18 @@ Three things worth knowing about the result:
   variant would assert a breed-level result the study does not make.
 - **Every McMillan figure already in the file was verified against Table S3.** All thirteen
   matched exactly, including the mixed-breed fallbacks' crossbred figure of 12.0.
+- **Eight breeds were re-anchored off the wrong metric.** Boxer, Cavalier King Charles Spaniel,
+  Cocker Spaniel, German Shepherd, English Springer Spaniel, Staffordshire Bull Terrier, Yorkshire
+  Terrier and Jack Russell Terrier were all `published` already — but on Teng's life expectancy at
+  age 0, which counts puppies that die young and runs systematically low. All eight now sit on a
+  McMillan median with the Teng figure retained beside it, metric attached. The Cavalier was the
+  worst affected at more than a year low. **Every dog in the file is now anchored to median
+  survival, and a test asserts it.**
+
+  The Cocker Spaniel needed a judgement call: the app keeps one generic entry covering both
+  Cockers, and the study reports them separately (English, 26,303 dogs; American, 657). Both
+  landed on exactly 13.3 years, which is the only reason one entry is still defensible. Had they
+  diverged it would have had to split in two or drop to `derived`.
 
 **Golden Retriever is no longer on this list, and Max is a Golden Retriever.** His range moved from
 10.5–12.5 to 12.0–14.0 on a published median of 13.2 years from 11,506 dogs. If an investor asks
@@ -250,12 +262,6 @@ where his number comes from, that is now a one-sentence answer instead of a cave
 3. **AAHA/AAFP 2021 Table 4**, the per-life-stage diagnostic matrix. The stage care templates
    currently follow the guidelines' readable prose; the exact test-by-stage grid needs journal
    access to transcribe.
-4. **Re-anchoring the seven breeds still set against life expectancy at age 0** — Boxer, Cavalier
-   King Charles Spaniel, German Shepherd, English Springer Spaniel, Staffordshire Bull Terrier,
-   Yorkshire Terrier and Jack Russell Terrier. All seven now have a McMillan median available and
-   the methodology says to prefer it. Their baselines were left alone in this pass because they
-   were already `published` and already reviewed; three are within 0.4 years of where the rule
-   would put them and four are not. A decision, not an oversight.
 
 Separately, **205 of 273 condition onset windows are clinical convention rather than a cited
 study** for that specific condition in that specific breed. They are directionally right and

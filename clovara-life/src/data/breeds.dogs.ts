@@ -176,10 +176,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'medium',
     aliases: ['springer'],
-    baseline: { low: 11.5, high: 13.5 },
+    baseline: { low: 12, high: 14.5 },
     weight: { low: 40, high: 53 },
     confidence: 'published',
-    evidence: [{ ...TENG_DOG_2022, figure: '11.93 years life expectancy at age 0' }, MONTOYA_2023],
+    evidence: [{ ...MCMILLAN_2024, figure: '13.5 years median survival (17,905 dogs, 6,221 deaths)' }, { ...TENG_DOG_2022, figure: '11.93 years life expectancy at age 0' }, MONTOYA_2023],
+    note: 'Re-anchored to median survival: 13.5 years from 17,905 dogs, against Teng\'s 11.93 life expectancy at age 0.',
     conditions: [
       {
         id: 'ear-infections',
@@ -225,10 +226,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'medium',
     aliases: ['american cocker', 'english cocker'],
-    baseline: { low: 11, high: 13 },
+    baseline: { low: 12, high: 14 },
     weight: { low: 20, high: 34 },
     confidence: 'published',
-    evidence: [{ ...TENG_DOG_2022, figure: '11.33 years life expectancy at age 0' }, MONTOYA_2023],
+    evidence: [{ ...MCMILLAN_2024, figure: 'English Cocker Spaniel 13.3 years median survival (26,303 dogs, 7,584 deaths); American Cocker Spaniel 13.3 (657 dogs, 293 deaths)' }, { ...TENG_DOG_2022, figure: '11.33 years life expectancy at age 0' }, MONTOYA_2023],
+    note: 'Re-anchored to median survival. This entry covers both Cockers, and the study reports them separately — English from 26,303 dogs and American from 657 — which landed on exactly the same median of 13.3 years. That agreement is why one entry is still defensible here; if the two figures had diverged this would have had to split into two breeds or drop to derived.',
     conditions: [
       {
         id: 'ear-infections',
@@ -543,11 +545,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'small',
     aliases: ['cavalier', 'ckcs'],
-    baseline: { low: 9, high: 11.5 },
+    baseline: { low: 10.5, high: 12.5 },
     weight: { low: 13, high: 18 },
     confidence: 'published',
-    evidence: [{ ...TENG_DOG_2022, figure: '10.46 years life expectancy at age 0' }],
-    note: 'Mitral valve disease dominates this breed\'s health picture and appears earlier than in almost any other breed, which is why the range sits below the small-breed average despite the size.',
+    evidence: [{ ...MCMILLAN_2024, figure: '11.8 years median survival (13,782 dogs, 6,879 deaths)' }, { ...TENG_DOG_2022, figure: '10.46 years life expectancy at age 0' }, MONTOYA_2023],
+    note: 'Re-anchored from life expectancy at age 0 to median survival, and this was the largest correction of the eight: Teng reports 10.46 years, McMillan 11.8 from 13,782 dogs. The previous range sat more than a year low. Both figures are UK primary care, so the difference is the metric, not the population.',
     conditions: [
       {
         id: 'mitral-valve',
@@ -599,7 +601,8 @@ export const DOG_BREEDS: Breed[] = [
     baseline: { low: 10, high: 12 },
     weight: { low: 50, high: 88 },
     confidence: 'published',
-    evidence: [{ ...TENG_DOG_2022, figure: '10.19 years life expectancy at age 0' }, MONTOYA_2023],
+    evidence: [{ ...MCMILLAN_2024, figure: '11.3 years median survival (19,908 dogs, 10,773 deaths)' }, { ...TENG_DOG_2022, figure: '10.19 years life expectancy at age 0' }, MONTOYA_2023],
+    note: 'Re-anchored to median survival: 11.3 years from 19,908 dogs, against Teng\'s 10.19 life expectancy at age 0. The previous range was already close to where the median puts it.',
     conditions: [
       {
         id: 'hip-dysplasia',
@@ -796,10 +799,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'large',
     aliases: [],
-    baseline: { low: 9, high: 11 },
+    baseline: { low: 10, high: 12 },
     weight: { low: 50, high: 80 },
     confidence: 'published',
-    evidence: [{ ...TENG_DOG_2022, figure: '10.04 years life expectancy at age 0' }],
+    evidence: [{ ...MCMILLAN_2024, figure: '11.3 years median survival (11,294 dogs, 5,925 deaths)' }, { ...TENG_DOG_2022, figure: '10.04 years life expectancy at age 0' }, MONTOYA_2023],
+    note: 'Re-anchored from life expectancy at age 0 to median survival. Teng reports 10.04 years, McMillan 11.3 from 11,294 dogs — the gap is puppy and juvenile deaths, which the first metric includes and the second does not. An owner asking about the Boxer in front of them is asking the second question.',
     conditions: [
       {
         id: 'mast-cell',
@@ -1249,10 +1253,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'small',
     aliases: ['parson russell', 'jrt'],
-    baseline: { low: 12.5, high: 15 },
+    baseline: { low: 12, high: 14 },
     weight: { low: 13, high: 17 },
     confidence: 'published',
-    evidence: [{ ...TENG_DOG_2022, figure: '12.72 years life expectancy at age 0 — the longest-lived breed in that study' }],
+    evidence: [{ ...MCMILLAN_2024, figure: '13.3 years median survival (19,166 dogs, 13,497 deaths)' }, { ...TENG_DOG_2022, figure: '12.72 years life expectancy at age 0 — the longest-lived breed in that study' }, MONTOYA_2023],
+    note: 'Re-anchored to median survival: 13.3 years from 19,166 dogs. Teng\'s 12.72 years was the longest life expectancy at age 0 of any breed in that study, which is a different and more flattering claim than McMillan\'s ranking — the two studies measure different things and this breed is where that is easiest to misread.',
     conditions: [
       {
         id: 'patellar-luxation',
@@ -1298,14 +1303,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'toy',
     aliases: ['yorkie'],
-    baseline: { low: 12, high: 14.5 },
+    baseline: { low: 12, high: 14 },
     weight: { low: 4, high: 7 },
     confidence: 'published',
-    evidence: [
-      { ...TENG_DOG_2022, figure: '12.54 years life expectancy at age 0' },
-      { ...MONTOYA_2023, label: 'Salt et al. 2019 — largest overweight penalty of any breed studied, −2.5 years', metric: 'median lifespan difference by body condition' },
-    ],
-    note: 'This is the breed where being overweight carried the largest measured lifespan penalty in a 50,787-dog US study — larger than in any big breed.',
+    evidence: [{ ...MCMILLAN_2024, figure: '13.3 years median survival (14,579 dogs, 9,509 deaths)' }, { ...TENG_DOG_2022, figure: '12.54 years life expectancy at age 0' }, MONTOYA_2023],
+    note: 'Re-anchored to median survival: 13.3 years from 14,579 dogs, against Teng\'s 12.54 life expectancy at age 0. Separately, this is the breed where being overweight carried the largest measured lifespan penalty in a 50,787-dog US study — larger than in any big breed.',
     conditions: [
       {
         id: 'periodontal',
@@ -1550,10 +1552,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'medium',
     aliases: ['staffy', 'staffie'],
-    baseline: { low: 11, high: 13 },
+    baseline: { low: 10.5, high: 13 },
     weight: { low: 24, high: 38 },
     confidence: 'published',
-    evidence: [{ ...TENG_DOG_2022, figure: '11.33 years life expectancy at age 0' }],
+    evidence: [{ ...MCMILLAN_2024, figure: '12.0 years median survival (36,216 dogs, 25,332 deaths)' }, { ...TENG_DOG_2022, figure: '11.33 years life expectancy at age 0' }, MONTOYA_2023],
+    note: 'Re-anchored to median survival: 12.0 years from 36,216 dogs — the largest single-breed sample in the study, and 25,332 of them deceased, so the estimate is tight (95% CI 12.0 to 12.1).',
     conditions: [
       {
         id: 'atopy',

@@ -88,6 +88,17 @@ describe('data integrity', () => {
     }
   })
 
+  it('anchors every dog to median survival, not to life expectancy at age 0', () => {
+    // The two metrics are not interchangeable: life expectancy at age 0 counts
+    // puppies that die young and runs systematically below median survival. A
+    // dog entry whose only figure is the former is anchored to the wrong
+    // question, so every one of them now carries a McMillan median as well.
+    for (const b of DOG_BREEDS) {
+      const figures = b.evidence.map((e) => `${e.metric ?? ''} ${e.figure ?? ''}`).join(' | ')
+      expect(figures, b.id).toMatch(/median survival/)
+    }
+  })
+
   it('keeps both Poodle entries derived, because the study pooled them', () => {
     // McMillan reports one undifferentiated "Poodle" row and leaves Body Size
     // as NA for it. Claiming that figure for either variant would assert a
