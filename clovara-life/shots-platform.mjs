@@ -3,7 +3,12 @@ import { mkdirSync } from 'node:fs'
 
 const BASE = process.env.BASE || 'http://localhost:4173'
 const OUT = 'shots'
-const EXE = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+/**
+ * Browser to launch. Defaults to whatever Playwright resolved for this
+ * platform, so the script runs on a developer Mac as well as in CI. Set
+ * PW_EXECUTABLE to pin a specific binary.
+ */
+const LAUNCH = process.env.PW_EXECUTABLE ? { executablePath: process.env.PW_EXECUTABLE } : {}
 mkdirSync(OUT, { recursive: true })
 
 const DESKTOP = { width: 1440, height: 980 }
@@ -12,7 +17,7 @@ const PHONE = { width: 390, height: 844 }
 const SURFACES = ['Home', 'Care', 'Rewards', 'Shop', 'Coverage', 'Life']
 
 async function open(viewport, mobile = false) {
-  const browser = await chromium.launch({ executablePath: EXE })
+  const browser = await chromium.launch(LAUNCH)
   const ctx = await browser.newContext(
     mobile ? { viewport, deviceScaleFactor: 2, isMobile: true, hasTouch: true } : { viewport },
   )

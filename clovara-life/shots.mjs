@@ -1,6 +1,13 @@
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 
+/**
+ * Browser to launch. Defaults to whatever Playwright resolved for this
+ * platform, so the script runs on a developer Mac as well as in CI. Set
+ * PW_EXECUTABLE to pin a specific binary.
+ */
+const LAUNCH = process.env.PW_EXECUTABLE ? { executablePath: process.env.PW_EXECUTABLE } : {}
+
 const BASE = process.env.BASE || 'http://localhost:4173'
 const OUT = 'shots'
 mkdirSync(OUT, { recursive: true })
@@ -15,7 +22,7 @@ async function pickPet(page, name) {
 }
 
 async function run(label, viewport, fn) {
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' })
+  const browser = await chromium.launch(LAUNCH)
   const ctx = await browser.newContext({ viewport, ...(viewport.isMobile ? { deviceScaleFactor: 2, isMobile: true, hasTouch: true } : {}) })
   const page = await ctx.newPage()
   const errors = []

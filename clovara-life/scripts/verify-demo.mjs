@@ -6,7 +6,12 @@ import { chromium } from 'playwright'
  */
 
 const BASE = process.env.BASE || 'http://127.0.0.1:4173'
-const EXE = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+/**
+ * Browser to launch. Defaults to whatever Playwright resolved for this
+ * platform, so the script runs on a developer Mac as well as in CI. Set
+ * PW_EXECUTABLE to pin a specific binary.
+ */
+const LAUNCH = process.env.PW_EXECUTABLE ? { executablePath: process.env.PW_EXECUTABLE } : {}
 const KEY = 'clovara-life.pets.v1'
 
 let pass = 0
@@ -21,7 +26,7 @@ const ok = (name, cond, detail = '') => {
   }
 }
 
-const browser = await chromium.launch({ executablePath: EXE })
+const browser = await chromium.launch(LAUNCH)
 
 async function page(opts = {}) {
   const ctx = await browser.newContext(opts)
