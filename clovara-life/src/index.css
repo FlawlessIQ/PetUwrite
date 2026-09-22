@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --clover: linear-gradient(140deg, #d98a26, #8fa83e 48%, #1e7a46);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: #f6f3eb;
+  color: #1b1e1b;
+  font-family: Poppins, system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid #1a5c38;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: #e4eae0;
+  color: #0f3d26;
+}
+
+@layer components {
+  .card {
+    @apply rounded-card border border-line bg-white shadow-soft;
+  }
+
+  .pill {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[15px] font-medium transition;
+  }
+
+  .pill-primary {
+    @apply pill bg-forest text-white hover:bg-deep disabled:cursor-not-allowed disabled:bg-line disabled:text-muted;
+  }
+
+  .pill-secondary {
+    @apply pill bg-ink text-cream hover:bg-black;
+  }
+
+  .pill-ghost {
+    @apply pill border border-line bg-white text-ink hover:border-forest hover:text-forest;
+  }
+
+  .label {
+    @apply text-[11px] font-medium uppercase tracking-[0.14em] text-muted;
+  }
+
+  /* 16px minimum: below this iOS Safari force-zooms on focus and never
+     zooms back out, leaving the rest of the demo scrolled sideways. */
+  .field {
+    @apply w-full rounded-soft border border-line bg-white px-4 py-3 text-[16px] text-ink
+      placeholder:text-muted/60 focus:border-forest focus:outline-none;
+  }
+}
+
+.gradient-text {
+  background: var(--clover);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Reveal animation — fully disabled under reduced motion. */
+.reveal {
+  animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

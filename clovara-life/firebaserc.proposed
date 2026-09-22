@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "pet-underwriter-ai"
+  },
+  "targets": {
+    "pet-underwriter-ai": {
+      "hosting": {
+        "main": [
+          "pet-underwriter-ai"
+        ],
+        "life": [
+          "clovara-life"
+        ]
+      }
+    }
+  }
+}
