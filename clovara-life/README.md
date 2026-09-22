@@ -143,10 +143,31 @@ The session hint (`clovara-life.session.v1`) is a breadcrumb, never an authority
 browser had a session, so load the SDK and ask; it says nothing about whether that session is still
 valid. The real answer always comes from `onAuthStateChanged`.
 
-**Providers:** email/password and Google are wired and verified end to end against
-`pet-underwriter-ai`. Apple is not — it needs an Apple Developer Program membership, a Services ID
-and a signing key configured in the Firebase console first. Once that exists it is a few lines in
-`firebase.ts` beside the Google provider.
+**Providers:** email/password and Google are wired. Apple is not — it needs an Apple Developer
+Program membership, a Services ID and a signing key configured in the Firebase console first. Once
+that exists it is a few lines in `firebase.ts` beside the Google provider.
+
+### One console step is outstanding
+
+Firebase auto-authorises `<project>.web.app`, but **`clovara-life.web.app` is a second hosting site
+in the same project and was not added**. The live authorised-domain list is `localhost`,
+`pet-underwriter-ai.firebaseapp.com`, `pet-underwriter-ai.web.app`.
+
+| | localhost | clovara-life.web.app |
+|---|---|---|
+| Email / password | works | **works** (not domain-restricted) |
+| Google | works | **fails** — `auth/unauthorized-domain` |
+
+Fix: Firebase Console → Authentication → Settings → Authorized domains → add `clovara-life.web.app`.
+No code change, no redeploy.
+
+Until then the app degrades honestly rather than mysteriously — the Google button returns *"This
+site is not on the project's authorised domain list yet"* instead of a silent failure or a raw
+error code. You can verify the list any time without the console:
+
+```bash
+curl -s "https://identitytoolkit.googleapis.com/v1/projects?key=$(grep -o "AIza[A-Za-z0-9_-]*" src/auth/config.ts | head -1)" | python3 -m json.tool | grep -A6 authorizedDomains
+```
 
 **Data namespace.** Life members get their own top-level Firestore collection, `life_members/{uid}`
 (`MEMBERS_COLLECTION` in `auth/config.ts`) — deliberately *not* the `users/{uid}` that the
