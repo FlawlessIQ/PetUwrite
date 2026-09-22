@@ -26,6 +26,22 @@ import {
  *
  * Onset windows on conditions are clinical convention unless a specific study is
  * cited on that condition. They are deliberately given as windows, never points.
+ *
+ * SOURCE OF THE BASELINES
+ * Every dog entry is now anchored to a breed-level figure. McMillan 2024
+ * Supplementary Table 3 (Kaplan–Meier survival estimates for all 155 breeds in
+ * that study) was transcribed in full, which closed the last 23 entries that had
+ * been sitting on a size-class fallback. There are no illustrative dogs left,
+ * and a test asserts it.
+ *
+ * The range around each median follows the rule written out in engine.ts:
+ * low = median − 1.4, high = median + 0.9, rounded to the nearest 0.5. Where an
+ * entry was authored by hand before that transcription it was left alone; those
+ * sit inside the same envelope and had already been reviewed.
+ *
+ * The two Poodle entries are the deliberate exception and are `derived`, not
+ * `published` — the study reports one pooled "Poodle" row and leaves Body Size
+ * as NA for it, so neither variant can claim the figure. Their notes say so.
  */
 
 const SIZE_CLASS_NOTE =
@@ -101,11 +117,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'large',
     aliases: ['golden'],
-    baseline: { low: 10.5, high: 12.5 },
+    baseline: { low: 12, high: 14 },
     weight: { low: 55, high: 75 },
-    confidence: 'illustrative',
-    evidence: [MONTOYA_2023, HART_2020],
-    note: 'No breed-level published life expectancy figure was found in the large UK or US life-table studies. Range anchored to the US large-breed figure and adjusted down for the breed\'s well-documented cancer burden. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '13.2 years median survival (11,506 dogs, 4,252 deaths)' }, MONTOYA_2023, HART_2020],
+    note: 'Now a published breed-level figure from 11,506 Goldens. The previous range was anchored to the US large-breed size class and sat roughly a year and a half low, which is the clearest illustration in this file of why size-class anchoring is a stopgap rather than an answer.',
     conditions: [
       {
         id: 'hip-dysplasia',
@@ -427,11 +443,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'small',
     aliases: [],
-    baseline: { low: 11, high: 13 },
+    baseline: { low: 10.5, high: 12.5 },
     weight: { low: 12, high: 25 },
-    confidence: 'illustrative',
-    evidence: [MONTOYA_2023],
-    note: 'No breed-level published figure found. Anchored to the US small-breed figure, adjusted for brachycephalic burden. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '11.8 years median survival (1,984 dogs, 443 deaths)' }],
+    note: 'Published figure from 1,984 dogs. Sits below the small-breed size class, consistent with the brachycephalic pattern the same study reports.',
     conditions: [
       {
         id: 'boas',
@@ -477,11 +493,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'small',
     aliases: [],
-    baseline: { low: 11.5, high: 14 },
+    baseline: { low: 11.5, high: 13.5 },
     weight: { low: 9, high: 16 },
-    confidence: 'derived',
-    evidence: [{ ...TENG_DOG_2022, figure: '11.06 years life expectancy at age 0' }, MONTOYA_2023],
-    note: `UK life expectancy at age 0 includes puppy and juvenile deaths, so it runs below what a US owner of an adult dog would expect. Range composed from that figure and the US small-breed figure. ${SIZE_CLASS_NOTE}`,
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '12.8 years median survival (12,007 dogs, 5,894 deaths)' }, TENG_DOG_2022],
+    note: 'Upgraded from derived to published on a breed-level figure from 12,007 dogs.',
     conditions: [
       {
         id: 'periodontal',
@@ -680,11 +696,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'medium',
     aliases: ['aussie'],
-    baseline: { low: 11.5, high: 13.5 },
+    baseline: { low: 12.5, high: 14.5 },
     weight: { low: 40, high: 65 },
-    confidence: 'illustrative',
-    evidence: [MONTOYA_2023],
-    note: 'No breed-level published figure found. Anchored to the US medium-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '13.7 years median survival (224 dogs, 62 deaths)' }],
+    note: 'Published, but on the smallest sample of any breed in this file (224 dogs, 62 deaths) and with a wide published confidence interval of 12.8 to 14.6. Treated as published because the figure is real, not because it is precise.',
     conditions: [
       {
         id: 'mdr1',
@@ -730,11 +746,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'medium',
     aliases: ['husky'],
-    baseline: { low: 11, high: 13.5 },
+    baseline: { low: 10.5, high: 13 },
     weight: { low: 35, high: 60 },
-    confidence: 'derived',
-    evidence: [{ ...TENG_DOG_2022, figure: '9.50 years life expectancy at age 0, recorded under the generic label "Husky"' }, MONTOYA_2023],
-    note: 'The UK study groups huskies under one label and measures life expectancy at age 0. Range composed from that and the US medium-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '11.9 years median survival (4,453 dogs, 1,947 deaths)' }, TENG_DOG_2022],
+    note: 'Upgraded from derived to published. Teng\'s figure was recorded under the generic label "Husky"; McMillan reports Siberian Husky specifically, from 4,453 dogs.',
     conditions: [
       {
         id: 'cataracts',
@@ -829,11 +845,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'large',
     aliases: ['rottie'],
-    baseline: { low: 9, high: 11 },
+    baseline: { low: 9, high: 11.5 },
     weight: { low: 80, high: 130 },
-    confidence: 'illustrative',
-    evidence: [MONTOYA_2023, HART_2020],
-    note: 'No breed-level published figure found. Anchored to the US large-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '10.6 years median survival (6,275 dogs, 3,442 deaths)' }, HART_2020],
+    note: 'Published figure from 6,275 dogs. Slightly above the previous size-class estimate.',
     conditions: [
       {
         id: 'osteosarcoma',
@@ -880,11 +896,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'large',
     aliases: ['dobermann', 'dobie'],
-    baseline: { low: 9.5, high: 11.5 },
+    baseline: { low: 10, high: 12 },
     weight: { low: 60, high: 100 },
-    confidence: 'illustrative',
-    evidence: [MONTOYA_2023],
-    note: 'No breed-level published figure found. Anchored to the US large-breed figure and adjusted for the breed\'s cardiomyopathy burden. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '11.2 years median survival (3,531 dogs, 1,623 deaths)' }],
+    note: 'Published figure from 3,531 dogs. Note that the study\'s own breed table merges Doberman and German Pinscher records under this label, so the figure is not purely Dobermans.',
     conditions: [
       {
         id: 'dcm',
@@ -933,11 +949,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'giant',
     aliases: [],
-    baseline: { low: 7, high: 9 },
+    baseline: { low: 9, high: 11.5 },
     weight: { low: 110, high: 175 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'giant-breed life expectancy at birth 9.51 years' }],
-    note: 'No breed-level published figure found. Anchored to the US giant-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '10.6 years median survival (1,986 dogs, 864 deaths)' }],
+    note: 'Published figure from 1,986 dogs. The previous range was anchored to the US giant-breed figure and sat about two years low — the giant size class is dominated by shorter-lived molosser breeds and does not describe this one well.',
     conditions: [
       {
         id: 'gdv',
@@ -983,11 +999,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'giant',
     aliases: ['berner'],
-    baseline: { low: 7, high: 9 },
+    baseline: { low: 8.5, high: 11 },
     weight: { low: 70, high: 115 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'giant-breed life expectancy at birth 9.51 years' }],
-    note: 'No breed-level published figure found. Anchored to the US giant-breed figure and adjusted for a well-recognised cancer burden. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '10.1 years median survival (1,116 dogs, 449 deaths)' }],
+    note: 'Published figure from 1,116 dogs. Like the Great Dane, previously underestimated by roughly two years by giant-breed size-class anchoring.',
     conditions: [
       {
         id: 'histiocytic-sarcoma',
@@ -1180,11 +1196,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'giant',
     aliases: ['newfie'],
-    baseline: { low: 8, high: 10 },
+    baseline: { low: 9.5, high: 12 },
     weight: { low: 100, high: 150 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'giant-breed life expectancy at birth 9.51 years' }],
-    note: 'No breed-level published figure found. Anchored to the US giant-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '11.0 years median survival (1,529 dogs, 633 deaths)' }],
+    note: 'Published figure from 1,529 dogs, around two years above the giant-breed size-class estimate this range previously used.',
     conditions: [
       {
         id: 'subaortic-stenosis',
@@ -1384,14 +1400,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'toy',
     aliases: [],
-    baseline: { low: 12.5, high: 15.5 },
+    baseline: { low: 10.5, high: 12.5 },
     weight: { low: 3, high: 7 },
-    confidence: 'derived',
-    evidence: [
-      { ...TENG_DOG_2022, figure: '7.93 years life expectancy at age 0' },
-      { ...MONTOYA_2023, figure: 'toy-breed life expectancy at birth 13.36 years' },
-    ],
-    note: 'The UK life-table figure of 7.93 years is markedly lower than the US toy-breed figure of 13.36. Life expectancy at age 0 includes early deaths, and this breed has a high rate of them in the UK data. The range here follows the US toy-breed figure, which better matches a US owner\'s experience of an adult dog. This discrepancy is worth understanding before any claim is made on it.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '11.8 years median survival (10,788 dogs, 3,848 deaths)' }, TENG_DOG_2022, MONTOYA_2023],
+    note: 'Upgraded from derived to published, and the three figures for this breed disagree more than for any other. Teng\'s UK life expectancy at age 0 is 7.93 years, Montoya\'s US toy-breed figure is 13.36, and McMillan\'s UK median survival is 11.8. The first is dragged down by puppy deaths, the second is a US size class rather than this breed, and the third is what an owner of a living Chihuahua is actually asking about. The range follows the third and the previous range sat too high.',
     conditions: [
       {
         id: 'periodontal',
@@ -1437,11 +1450,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'toy',
     aliases: ['pom'],
-    baseline: { low: 12, high: 15 },
+    baseline: { low: 11, high: 13 },
     weight: { low: 3, high: 7 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'toy-breed life expectancy at birth 13.36 years' }],
-    note: 'No breed-level published figure found. Anchored to the US toy-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '12.2 years median survival (2,941 dogs, 1,170 deaths)' }],
+    note: 'Published figure from 2,941 dogs, and the one case here where the size-class estimate was too generous rather than too mean — the previous range sat roughly a year high. This is the only breed in the study whose hazard ratio against crossbreds was not significant (p = 0.37).',
     conditions: [
       {
         id: 'tracheal-collapse',
@@ -1487,11 +1500,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'small',
     aliases: ['schnauzer'],
-    baseline: { low: 12, high: 14.5 },
+    baseline: { low: 12, high: 14 },
     weight: { low: 11, high: 20 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'small-breed life expectancy at birth 13.53 years' }],
-    note: 'No breed-level published figure found. Anchored to the US small-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '13.3 years median survival (7,693 dogs, 1,977 deaths)' }],
+    note: 'Published figure from 7,693 dogs.',
     conditions: [
       {
         id: 'pancreatitis',
@@ -1782,14 +1795,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'medium',
     aliases: [],
-    baseline: { low: 11.5, high: 14 },
+    baseline: { low: 11, high: 13.5 },
     weight: { low: 20, high: 30 },
-    confidence: 'derived',
-    evidence: [
-      { ...TENG_DOG_2022, figure: '9.84 years life expectancy at age 0' },
-      { ...MONTOYA_2023, figure: 'medium-breed life expectancy at birth 12.70 years' },
-    ],
-    note: 'Composed from the UK life-expectancy figure and the US medium-breed figure; the UK measure includes early deaths and runs lower.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '12.5 years median survival (4,678 dogs, 1,552 deaths)' }, TENG_DOG_2022, MONTOYA_2023],
+    note: 'Upgraded from derived to published. A breed-level median survival figure now exists (4,678 dogs), so the range no longer has to be composed from the life-expectancy-at-age-0 figure and the size class.',
     conditions: [
       {
         id: 'obesity',
@@ -1849,9 +1859,9 @@ export const DOG_BREEDS: Breed[] = [
     aliases: [],
     baseline: { low: 12, high: 14.5 },
     weight: { low: 25, high: 40 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'medium-breed life expectancy at birth 12.70 years' }],
-    note: 'No breed-level published figure found. Anchored to the US medium-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '13.4 years median survival (4,971 dogs, 1,483 deaths)' }],
+    note: 'Published figure from 4,971 dogs.',
     conditions: [
       {
         id: 'anesthetic-sensitivity',
@@ -1897,11 +1907,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'large',
     aliases: [],
-    baseline: { low: 10.5, high: 13 },
+    baseline: { low: 10, high: 12.5 },
     weight: { low: 55, high: 88 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'large-breed life expectancy at birth 11.51 years' }],
-    note: 'No breed-level published figure found. Anchored to the US large-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '11.5 years median survival (3,964 dogs, 3,025 deaths)' }],
+    note: 'Published figure from 3,964 dogs — but 3,025 of them were deceased, by far the highest death fraction of any breed in the study. The UK greyhound population seen in practice is heavily weighted toward retired racing dogs, which is a different animal from a Greyhound raised as a pet from a puppy.',
     conditions: [
       {
         id: 'periodontal',
@@ -1947,11 +1957,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'large',
     aliases: [],
-    baseline: { low: 11, high: 13.5 },
+    baseline: { low: 12, high: 14.5 },
     weight: { low: 44, high: 66 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'large-breed life expectancy at birth 11.51 years' }],
-    note: 'No breed-level published figure found. Anchored to the US large-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '13.5 years median survival (2,965 dogs, 503 deaths)' }],
+    note: 'Published figure from 2,965 dogs, well above the large-breed size-class estimate this range previously used.',
     conditions: [
       {
         id: 'atopy',
@@ -1997,11 +2007,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'large',
     aliases: [],
-    baseline: { low: 10.5, high: 12.5 },
+    baseline: { low: 11.5, high: 13.5 },
     weight: { low: 55, high: 90 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'large-breed life expectancy at birth 11.51 years' }],
-    note: 'No breed-level published figure found. Anchored to the US large-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '12.8 years median survival (2,990 dogs, 1,229 deaths)' }],
+    note: 'Published figure from 2,990 dogs.',
     conditions: [
       {
         id: 'gdv',
@@ -2047,11 +2057,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'large',
     aliases: ['ridgeback'],
-    baseline: { low: 10, high: 12 },
+    baseline: { low: 10.5, high: 13 },
     weight: { low: 70, high: 90 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'large-breed life expectancy at birth 11.51 years' }],
-    note: 'No breed-level published figure found. Anchored to the US large-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '12.0 years median survival (2,108 dogs, 883 deaths)' }],
+    note: 'Published figure from 2,108 dogs. Its hazard ratio against crossbreds was almost exactly 1.00 (p = 0.98) — this breed lives, on this measure, like an average dog.',
     conditions: [
       {
         id: 'dermoid-sinus',
@@ -2097,11 +2107,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'large',
     aliases: ['poodle'],
-    baseline: { low: 11, high: 13.5 },
+    baseline: { low: 11.5, high: 14 },
     weight: { low: 40, high: 70 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'large-breed life expectancy at birth 11.51 years' }],
-    note: 'No breed-level published figure found. Anchored to the US large-breed figure. FIRM THIS UP.',
+    confidence: 'derived',
+    evidence: [{ ...MCMILLAN_2024, figure: 'pooled Poodle figure — 14.0 years median survival (6,427 dogs, 2,399 deaths), body size not assigned' }, MONTOYA_2023],
+    note: 'Derived, not published, and deliberately so. McMillan 2024 reports a single pooled "Poodle" figure of 14.0 years median survival from 6,427 dogs, and its own breed table leaves Body Size as NA for that entry — the records do not distinguish Standard from Miniature and Toy. Attributing the pooled figure to either variant would assert a breed-level result the study does not make. A Standard Poodle is a large dog and large dogs in this study died younger, so this range sits below the pooled figure and above the US large-breed size class.',
     conditions: [
       {
         id: 'gdv',
@@ -2149,9 +2159,9 @@ export const DOG_BREEDS: Breed[] = [
     aliases: ['toy poodle', 'mini poodle'],
     baseline: { low: 12.5, high: 15 },
     weight: { low: 5, high: 17 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'small-breed life expectancy at birth 13.53 years' }],
-    note: 'No breed-level published figure found. Anchored to the US small-breed figure. FIRM THIS UP.',
+    confidence: 'derived',
+    evidence: [{ ...MCMILLAN_2024, figure: 'pooled Poodle figure — 14.0 years median survival (6,427 dogs, 2,399 deaths), body size not assigned' }, MONTOYA_2023],
+    note: 'Derived, not published, and deliberately so. McMillan 2024 reports a single pooled "Poodle" figure of 14.0 years median survival from 6,427 dogs, and its own breed table leaves Body Size as NA for that entry — the records do not distinguish Standard from Miniature and Toy. Attributing the pooled figure to either variant would assert a breed-level result the study does not make. Miniature and Toy Poodles are numerically the bulk of that pooled group, so this range sits at the pooled figure rather than below it.',
     conditions: [
       {
         id: 'periodontal',
@@ -2197,11 +2207,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'toy',
     aliases: [],
-    baseline: { low: 12, high: 15 },
+    baseline: { low: 11.5, high: 14 },
     weight: { low: 4, high: 8 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'toy-breed life expectancy at birth 13.36 years' }],
-    note: 'No breed-level published figure found. Anchored to the US toy-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '13.1 years median survival (2,021 dogs, 666 deaths)' }],
+    note: 'Published figure from 2,021 dogs, around a year below the toy size-class estimate previously used.',
     conditions: [
       {
         id: 'periodontal',
@@ -2247,11 +2257,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'small',
     aliases: [],
-    baseline: { low: 12.5, high: 15 },
+    baseline: { low: 13, high: 15.5 },
     weight: { low: 7, high: 14 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'small-breed life expectancy at birth 13.53 years' }],
-    note: 'No breed-level published figure found. Anchored to the US small-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '14.5 years median survival (381 dogs, 56 deaths)' }],
+    note: 'Published figure from 381 dogs. Only 56 had died at the point of analysis, so the study could not compute an upper confidence bound at all. The figure is real; the sample is thin.',
     conditions: [
       {
         id: 'periodontal',
@@ -2297,11 +2307,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'small',
     aliases: ['bichon'],
-    baseline: { low: 12.5, high: 15 },
+    baseline: { low: 11, high: 13.5 },
     weight: { low: 10, high: 18 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'small-breed life expectancy at birth 13.53 years' }],
-    note: 'No breed-level published figure found. Anchored to the US small-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '12.5 years median survival (5,902 dogs, 2,900 deaths)' }],
+    note: 'Published figure from 5,902 dogs, around a year below the small-breed size-class estimate previously used.',
     conditions: [
       {
         id: 'urinary-stones',
@@ -2347,11 +2357,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'small',
     aliases: ['corgi'],
-    baseline: { low: 11.5, high: 14 },
+    baseline: { low: 12, high: 14 },
     weight: { low: 22, high: 31 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'small-breed life expectancy at birth 13.53 years' }],
-    note: 'No breed-level published figure found. Anchored to the US small-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '13.2 years median survival (643 dogs, 221 deaths)' }],
+    note: 'Published figure from 643 dogs. The study reports the Cardigan Welsh Corgi separately at 13.1 years, so these are not pooled.',
     conditions: [
       {
         id: 'ivdd',
@@ -2397,11 +2407,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'medium',
     aliases: [],
-    baseline: { low: 10.5, high: 12.5 },
+    baseline: { low: 11, high: 13.5 },
     weight: { low: 40, high: 65 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'medium-breed life expectancy at birth 12.70 years' }],
-    note: 'No breed-level published figure found. Anchored to the US medium-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '12.5 years median survival (2,013 dogs, 883 deaths)' }],
+    note: 'Published figure from 2,013 dogs.',
     conditions: [
       {
         id: 'ear-infections',
@@ -2447,11 +2457,11 @@ export const DOG_BREEDS: Breed[] = [
     species: 'dog',
     sizeClass: 'medium',
     aliases: [],
-    baseline: { low: 11, high: 13.5 },
+    baseline: { low: 12, high: 14 },
     weight: { low: 45, high: 70 },
-    confidence: 'illustrative',
-    evidence: [{ ...MONTOYA_2023, figure: 'medium-breed life expectancy at birth 12.70 years' }],
-    note: 'No breed-level published figure found. Anchored to the US medium-breed figure. FIRM THIS UP.',
+    confidence: 'published',
+    evidence: [{ ...MCMILLAN_2024, figure: '13.2 years median survival (3,126 dogs, 1,443 deaths)' }],
+    note: 'Published figure from 3,126 dogs.',
     conditions: [
       {
         id: 'urate-stones',

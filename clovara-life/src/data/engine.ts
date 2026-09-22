@@ -40,6 +40,20 @@
  *
  *   3. THE END-OF-LIFE ALLOWANCE. Healthy years sit below total lifespan.
  *
+ * Where a breed has a median survival figure, the range is now set by one
+ * explicit rule rather than by eye:
+ *
+ *     baseline.low  = median − 1.4,  rounded to the nearest 0.5
+ *     baseline.high = median + 0.9,  rounded to the nearest 0.5
+ *
+ * That envelope was read off the thirteen entries authored by hand against a
+ * McMillan median before the Supplementary Table 3 transcription (offsets ran
+ * −0.6 to −1.8 low and +0.2 to +1.4 high, widths 2.0 to 2.5 years). The
+ * midpoint deliberately lands below the published median, which is the
+ * end-of-life allowance in point 3 made concrete. The earlier hand-authored
+ * entries were left as they were rather than recomputed — they sit inside this
+ * envelope and they had already been reviewed.
+ *
  * Every breed carries a `confidence`:
  *   published    — a breed-level figure exists in the cited study.
  *   derived      — a figure exists but does not transfer directly; the range is

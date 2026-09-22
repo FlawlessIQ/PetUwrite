@@ -71,6 +71,34 @@ describe('data integrity', () => {
     }
   })
 
+  it('has no illustrative dogs left after the McMillan Table S3 transcription', () => {
+    // Every one of the 155 breeds in that table carries a median survival
+    // figure, so a dog entry falling back to a size class now means either a
+    // breed the study did not cover or a regression. Cats are a separate
+    // problem — six are still waiting on the Teng 2024 feline table.
+    const illustrativeDogs = DOG_BREEDS.filter((b) => b.confidence === 'illustrative')
+    expect(illustrativeDogs.map((b) => b.name)).toEqual([])
+  })
+
+  it('anchors every published dog to a real median survival figure', () => {
+    for (const b of DOG_BREEDS) {
+      if (b.confidence !== 'published') continue
+      const figures = b.evidence.map((e) => e.figure).filter(Boolean).join(' ')
+      expect(figures, b.id).toMatch(/\d/)
+    }
+  })
+
+  it('keeps both Poodle entries derived, because the study pooled them', () => {
+    // McMillan reports one undifferentiated "Poodle" row and leaves Body Size
+    // as NA for it. Claiming that figure for either variant would assert a
+    // breed-level result the study does not make.
+    for (const id of ['standard-poodle', 'miniature-poodle']) {
+      const b = findBreed(id)!
+      expect(b.confidence, id).toBe('derived')
+      expect(b.note, id).toMatch(/pooled/i)
+    }
+  })
+
   it('flags every illustrative breed so it can be surfaced and firmed up', () => {
     const illustrative = ALL_BREEDS.filter((b) => b.confidence === 'illustrative')
     // This is expected to be non-empty. The point is that it is enumerable.

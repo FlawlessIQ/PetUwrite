@@ -11,7 +11,7 @@ Vite + React + TypeScript + Tailwind. No component libraries.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 90 engine, platform and data-integrity tests
+npm test           # 93 engine, platform and data-integrity tests
 npm run build      # → dist/
 npm run icons      # regenerate public/og.png and the apple-touch icon
 
@@ -76,7 +76,7 @@ src/
   engine/
     project.ts       The pure function. project(profile) → Projection.
     platform.ts      Score, shop, coverage, rewards, companion, home — all pure.
-    project.test.ts  49 tests.
+    project.test.ts  52 tests.
     platform.test.ts 41 tests.
   components/        UI. No logic lives here that isn't presentational.
 ```
@@ -191,37 +191,71 @@ also the only input on the form nobody can act on after the fact.
 
 ## Figures marked illustrative
 
-67 breeds. **32 published**, **6 derived**, **29 illustrative**. "Illustrative" means no
-breed-level life expectancy figure was found in the literature searched; the range is anchored to
-the published US size-class figure (Montoya 2023: toy 13.36, small 13.53, medium 12.70, large
-11.51, giant 9.51) and set by clinical convention. Every one is flagged in the data and surfaced
-in the app's own methodology panel.
+67 breeds. **57 published**, **4 derived**, **6 illustrative** — and every remaining illustrative
+entry is a cat. There are no illustrative dogs left.
 
-**Dogs (23):** Golden Retriever, Boston Terrier, Australian Shepherd, Rottweiler, Doberman
-Pinscher, Great Dane, Bernese Mountain Dog, Newfoundland, Pomeranian, Miniature Schnauzer,
-Whippet, Greyhound, Vizsla, Weimaraner, Rhodesian Ridgeback, Poodle (Standard), Poodle (Miniature
-or Toy), Maltese, Havanese, Bichon Frise, Pembroke Welsh Corgi, Basset Hound, Dalmatian
+"Illustrative" means no breed-level life expectancy figure was found in the literature searched;
+the range is anchored to the published US size-class figure (Montoya 2023: toy 13.36, small 13.53,
+medium 12.70, large 11.51, giant 9.51) and set by clinical convention. Every one is flagged in the
+data and surfaced in the app's own methodology panel.
+
+**Dogs: none.**
 
 **Cats (6):** Maine Coon, Ragdoll, British Shorthair, Norwegian Forest Cat, Russian Blue,
 Abyssinian
 
-**Golden Retriever is on this list, and Max is a Golden Retriever.** Worth knowing if an investor
-asks where his number comes from. The honest answer is that the two big UK life-table studies
-cover 18 and 155 breeds respectively and neither published a retrievable Golden figure; his range
-sits on the US large-breed figure adjusted down for the breed's well-documented cancer burden.
+### How the 23 dog gaps were closed
 
-**Where to firm these up, in order of value:**
+McMillan 2024 Supplementary Table 3 (Kaplan–Meier estimates for all 155 breeds) was transcribed in
+full. Twenty-one entries went straight to `published`; four that were `derived` off a
+life-expectancy-at-age-0 figure were upgraded on a real median; the two Poodle entries went the
+other way, to `derived`, for the reason below.
 
-1. **McMillan 2024 Supplementary Table 3** covers all 155 breeds and would close roughly 20 of the
-   29 gaps in one go. It is behind a robots.txt-blocked supplementary PDF — download it manually
-   from the article page, or email the corresponding author at Dogs Trust.
-2. **Teng 2024 feline breed table.** Five values are known as an unordered set (10.3, 10.0, 9.7,
+Each new range was set by one rule, applied uniformly and stated here so it can be argued with:
+
+```
+baseline.low  = median − 1.4      rounded to the nearest 0.5
+baseline.high = median + 0.9      rounded to the nearest 0.5
+```
+
+That envelope was read off the thirteen entries already authored against a McMillan median before
+this pass (offsets ran −0.6 to −1.8 at the low end and +0.2 to +1.4 at the high end, widths 2.0 to
+2.5 years). Healthy years sit below total lifespan, which is why the midpoint lands under the
+published median rather than on it.
+
+Three things worth knowing about the result:
+
+- **Size-class anchoring was badly wrong at the top end.** Great Dane, Bernese Mountain Dog and
+  Newfoundland were each about two years low, because the giant size class is dominated by
+  shorter-lived molossers. Pomeranian and Bichon Frise were about a year high in the other
+  direction. If anyone asks what "illustrative" actually cost in accuracy, this is the answer.
+- **The two Poodle entries are now `derived`, not `published`.** The study reports one pooled
+  "Poodle" figure of 14.0 years and its own breed table leaves Body Size as `NA` for that row — the
+  records do not separate Standard from Miniature and Toy. Attributing the pooled figure to either
+  variant would assert a breed-level result the study does not make.
+- **Every McMillan figure already in the file was verified against Table S3.** All thirteen
+  matched exactly, including the mixed-breed fallbacks' crossbred figure of 12.0.
+
+**Golden Retriever is no longer on this list, and Max is a Golden Retriever.** His range moved from
+10.5–12.5 to 12.0–14.0 on a published median of 13.2 years from 11,506 dogs. If an investor asks
+where his number comes from, that is now a one-sentence answer instead of a caveat.
+
+**Where to firm the rest up, in order of value:**
+
+1. **Teng 2024 feline breed table.** Five values are known as an unordered set (10.3, 10.0, 9.7,
    9.7, 9.6) belonging to Ragdoll, Maine Coon, British Shorthair, Russian Blue and Norwegian
-   Forest Cat. Journal access would resolve the mapping and close five cat gaps immediately. They
-   were deliberately not guessed.
+   Forest Cat. Journal access would resolve the mapping and close five of the six remaining gaps
+   immediately. They were deliberately not guessed.
+2. **A breed-level figure for the Abyssinian**, the sixth and last gap.
 3. **AAHA/AAFP 2021 Table 4**, the per-life-stage diagnostic matrix. The stage care templates
    currently follow the guidelines' readable prose; the exact test-by-stage grid needs journal
    access to transcribe.
+4. **Re-anchoring the seven breeds still set against life expectancy at age 0** — Boxer, Cavalier
+   King Charles Spaniel, German Shepherd, English Springer Spaniel, Staffordshire Bull Terrier,
+   Yorkshire Terrier and Jack Russell Terrier. All seven now have a McMillan median available and
+   the methodology says to prefer it. Their baselines were left alone in this pass because they
+   were already `published` and already reviewed; three are within 0.4 years of where the rule
+   would put them and four are not. A decision, not an oversight.
 
 Separately, **205 of 273 condition onset windows are clinical convention rather than a cited
 study** for that specific condition in that specific breed. They are directionally right and
