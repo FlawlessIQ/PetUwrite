@@ -12,6 +12,9 @@ import { Shop } from './components/Shop'
 import { Coverage } from './components/Coverage'
 import { TabBar, TopNav, SURFACES, type Surface } from './components/Nav'
 import { CloverMark, Wordmark } from './components/CloverMark'
+import { AccountSheet } from './components/AccountSheet'
+import { useAuth } from './auth/AuthProvider'
+import { displayNameFor } from './auth/session'
 
 const STORAGE_KEY = 'clovara-life.pets.v1'
 const SURFACE_IDS = new Set<string>(SURFACES.map((s) => s.id))
@@ -104,14 +107,19 @@ function PetSwitcher({
   onSelect,
   onAdd,
   onReset,
+  onAccount,
   hasUserPets,
+  accountLabel,
 }: {
   pets: PetProfile[]
   activeId: string | null
   onSelect: (id: string) => void
   onAdd: () => void
   onReset: () => void
+  onAccount: () => void
   hasUserPets: boolean
+  /** Null when signed out — the menu item says "Sign in" instead. */
+  accountLabel: string | null
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -179,6 +187,24 @@ function PetSwitcher({
           >
             + Add a pet
           </button>
+          <button
+            role="menuitem"
+            type="button"
+            onClick={() => {
+              onAccount()
+              setOpen(false)
+            }}
+            className="w-full shrink-0 border-t border-line px-4 py-2.5 text-left text-[14px] text-ink transition hover:bg-cream"
+          >
+            {accountLabel ? (
+              <>
+                <span className="block truncate font-medium">{accountLabel}</span>
+                <span className="block text-[12.5px] text-muted">Signed in · manage account</span>
+              </>
+            ) : (
+              'Sign in'
+            )}
+          </button>
           {hasUserPets && (
             <button
               role="menuitem"
@@ -202,6 +228,8 @@ export default function App() {
   const [userPets, setUserPets] = useState<PetProfile[]>([])
   const [activeId, setActiveId] = useState<string>(() => parseHash()?.petId ?? DEMO_PETS[0].id)
   const [adding, setAdding] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const { user } = useAuth()
   const [surface, setSurface] = useState<Surface>(() => parseHash()?.surface ?? 'home')
 
   useEffect(() => {
@@ -296,7 +324,9 @@ export default function App() {
                   onSelect={selectPet}
                   onAdd={() => setAdding(true)}
                   onReset={resetDemo}
+                  onAccount={() => setAccountOpen(true)}
                   hasUserPets={userPets.length > 0}
+                  accountLabel={user ? displayNameFor(user) : null}
                 />
                 <button
                   type="button"
@@ -310,6 +340,8 @@ export default function App() {
           )}
         </div>
       </header>
+
+      {accountOpen && <AccountSheet onClose={() => setAccountOpen(false)} />}
 
       <main id="main" className="flex-1">
         {adding ? (

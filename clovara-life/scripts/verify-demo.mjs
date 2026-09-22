@@ -237,6 +237,31 @@ console.log('\nShare card')
   await p.context().close()
 }
 
+// ── 9. Auth stays off the demo path ─────────────────────────────────────────
+// The Firebase SDK is ~46KB gzipped across three chunks. A signed-out visitor —
+// which is what an investor demo is — must not fetch any of it. This is the
+// check that keeps `src/auth/firebase.ts` honest: the moment someone turns one
+// of those dynamic imports into a static one, this fails.
+console.log('\nAuth is lazy')
+{
+  const p = await page()
+  const scripts = []
+  p.on('request', (r) => {
+    if (r.resourceType() === 'script') scripts.push(r.url().split('/').pop())
+  })
+  await p.goto(BASE, { waitUntil: 'networkidle' })
+  // Sweep every surface, not just the landing one, so a stray import anywhere
+  // in the app is caught too.
+  for (const s of ['home', 'care', 'rewards', 'shop', 'coverage', 'life']) {
+    await p.goto(`${BASE}#/pet/demo-max/${s}`, { waitUntil: 'networkidle' })
+  }
+  await p.waitForTimeout(400)
+  const sdk = scripts.filter((u) => /index\.esm|firebase/i.test(u))
+  ok('signed-out demo fetches no Firebase chunks', sdk.length === 0, sdk.join(', '))
+  ok('no page errors while signed out', p.errors.length === 0, p.errors.slice(0, 2).join(' | '))
+  await p.context().close()
+}
+
 await browser.close()
 
 console.log(`\n${pass} passed, ${fail} failed\n`)

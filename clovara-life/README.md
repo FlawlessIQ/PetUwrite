@@ -11,7 +11,7 @@ Vite + React + TypeScript + Tailwind. No component libraries.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 94 engine, platform and data-integrity tests
+npm test           # 102 engine, platform and data-integrity tests
 npm run build      # → dist/
 npm run icons      # regenerate public/og.png and the apple-touch icon
 
@@ -78,6 +78,12 @@ src/
     platform.ts      Score, shop, coverage, rewards, companion, home — all pure.
     project.test.ts  53 tests.
     platform.test.ts 41 tests.
+  auth/
+    config.ts        Firebase web config + the Life data namespace. No secrets.
+    session.ts       The pure half of auth: error copy, validation, session hint.
+    firebase.ts      The ONLY module that imports the SDK, and only dynamically.
+    AuthProvider.tsx React context. One listener, one place that sets status.
+    session.test.ts  8 tests.
   components/        UI. No logic lives here that isn't presentational.
 ```
 
@@ -116,6 +122,45 @@ passed to all of them — no screen holds its own copy of the truth.
 
 ---
 
+## Accounts
+
+Signing in is **never** a precondition for using Clovara Life. Signed out, the app
+behaves exactly as it always has — demo pets, local storage, no network — and that is the state
+the investor demo runs in. An account is additive.
+
+**Auth lives behind a dynamic import.** The Firebase SDK is ~46KB gzipped across three chunks and
+the signed-out path must not pay for it. `src/auth/firebase.ts` is the only module that touches
+`firebase/*`, every import in it is dynamic, and exactly two things trigger a load: a real auth
+interaction, or a session hint left in `localStorage` by a previous sign-in. A cold signed-out load
+fetches **one** script and zero Firebase chunks — there is a check for this below.
+
+| | signed-out load | after opening Sign in |
+|---|---|---|
+| scripts fetched | 1 | 4 |
+| Firebase chunks | **0** | 3 |
+
+The session hint (`clovara-life.session.v1`) is a breadcrumb, never an authority. It says this
+browser had a session, so load the SDK and ask; it says nothing about whether that session is still
+valid. The real answer always comes from `onAuthStateChanged`.
+
+**Providers:** email/password and Google are wired and verified end to end against
+`pet-underwriter-ai`. Apple is not — it needs an Apple Developer Program membership, a Services ID
+and a signing key configured in the Firebase console first. Once that exists it is a few lines in
+`firebase.ts` beside the Google provider.
+
+**Data namespace.** Life members get their own top-level Firestore collection, `life_members/{uid}`
+(`MEMBERS_COLLECTION` in `auth/config.ts`) — deliberately *not* the `users/{uid}` that the
+underwriting product uses, which carries `userRole`, admin claims and a large reviewed rules block.
+The auth user pool is shared, so one Clovara identity works across both products; only the data is
+separated, and nothing Life does can collide with or weaken those rules.
+
+**Error copy is mapped, never raw.** `authErrorMessage` turns SDK codes into something an owner can
+act on, and deliberately preserves the ambiguity Firebase builds in: `wrong-password` and
+`user-not-found` collapse to one code so accounts cannot be enumerated, and our copy must not
+helpfully un-collapse it. A test asserts those four codes produce exactly one message.
+
+---
+
 ## Demo hardening
 
 Everything here exists because it would be visible in front of an investor.
@@ -130,7 +175,7 @@ Everything here exists because it would be visible in front of an investor.
 | **Branded first paint** + `<noscript>` | `index.html` `#boot` | A slow network previously showed a blank cream rectangle |
 | **OG card and app icons** | `scripts/make-icons.mjs` | Rendered through the same Chromium and fonts as the app, so the share card can't drift from the product |
 
-`scripts/verify-demo.mjs` asserts all of it end to end — 27 checks including deliberately corrupting
+`scripts/verify-demo.mjs` asserts all of it end to end — 29 checks including deliberately corrupting
 localStorage, forcing a render throw, and sweeping every surface at 320px for overflow.
 
 ---

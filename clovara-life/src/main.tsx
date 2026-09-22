@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { AuthProvider } from './auth/AuthProvider'
 // Latin-only subsets. The full imports ship 56 font files (devanagari,
 // cyrillic, vietnamese) that unicode-range means no browser here will ever
 // fetch — they were 1.5MB of deploy weight for nothing.
@@ -17,7 +18,11 @@ import './index.css'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      {/* Inside the boundary on purpose: an auth failure must land on the
+          branded recovery screen, not a white page. */}
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,
 )
