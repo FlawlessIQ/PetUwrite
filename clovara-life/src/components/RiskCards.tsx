@@ -43,6 +43,18 @@ export function RiskCards({ projection, name }: { projection: Projection; name: 
                 {card.action}
               </p>
 
+              {card.context && (
+                <p className="mt-2.5 rounded-soft border border-line bg-cream/60 px-3 py-2.5 text-[13.5px] leading-relaxed text-ink/80">
+                  <span className="mb-1 block text-[11px] uppercase tracking-[0.09em] text-muted">
+                    About {name} specifically
+                  </span>
+                  {card.context.text}
+                  <span className="mt-1.5 block text-[12.5px] text-muted">
+                    {card.context.source.label}
+                  </span>
+                </p>
+              )}
+
               {card.tier === 'high' && (
                 <p className="mt-2 text-[12px] uppercase tracking-[0.09em] text-accent">
                   {projection.breed.isMixed

@@ -98,6 +98,29 @@ export type ActivityLevel = 'low' | 'moderate' | 'high'
 export type DietQuality = 'measured' | 'free-fed' | 'unsure'
 export type Sex = 'male' | 'female'
 
+/**
+ * How much of the world a cat has access to. Asked for cats only; the engine
+ * ignores it on a dog.
+ *
+ * `indoor-outdoor` is the REFERENCE, not `indoor`. Two reasons. The populations
+ * the breed baselines are read from are mixed, UK-heavy and largely outdoor-
+ * access. And the one direct comparison we have (Kent 2022) put indoor–outdoor
+ * cats level with indoor-only ones. See OUTDOOR_DELTAS in engine.ts.
+ */
+export type OutdoorAccess = 'indoor' | 'indoor-outdoor' | 'outdoor'
+
+/**
+ * Age band at neutering, in Hart 2020's own bands.
+ *
+ * Recorded for dogs and used ONLY to frame joint-disorder risk on the care
+ * cards. It is deliberately not a lifespan adjustment: Hart reports joint
+ * disorder incidence, not survival, and reading a number of years off it would
+ * be inventing one. It is also not actionable — nobody can re-time a neuter
+ * that already happened — so it belongs in "what to watch for", never in the
+ * projection.
+ */
+export type NeuterAgeBand = 'under-6m' | '6-11m' | '12-23m' | '24m-plus' | 'unsure'
+
 export interface PetProfile {
   id: string
   name: string
@@ -107,11 +130,22 @@ export interface PetProfile {
   birthDate: string
   sex: Sex
   neutered: boolean
+  /**
+   * Optional, dogs only. Absent means the owner was not asked or did not know,
+   * and nothing is inferred from that. Never affects the projection.
+   */
+  neuterAgeBand?: NeuterAgeBand
   weightLb: number
   conditionIds: string[]
   activity: ActivityLevel
   dental: DentalRoutine
   diet: DietQuality
+  /**
+   * Optional, cats only. Absent is treated as the reference (`indoor-outdoor`),
+   * so a pet saved before this field existed keeps the number its owner already
+   * saw rather than having an answer guessed for it.
+   */
+  outdoorAccess?: OutdoorAccess
   /** Set only on the seeded demo pets. */
   demo?: boolean
   /** Optional colour-of-story detail shown on the journey. */
@@ -141,6 +175,12 @@ export interface RiskCard {
   mode: 'watch' | 'manage' | 'active'
   window: string
   confidence: Confidence
+  /**
+   * Framing that comes from this animal rather than from the breed — currently
+   * only age at neutering against joint disorders. Always qualitative, always
+   * carries the study it comes from, and never moves the projection.
+   */
+  context?: { text: string; source: Citation }
 }
 
 export interface LeverOption {
@@ -153,7 +193,7 @@ export interface LeverOption {
 }
 
 export interface Lever {
-  id: 'weight' | 'dental' | 'activity'
+  id: 'weight' | 'dental' | 'activity' | 'outdoor'
   label: string
   question: string
   evidenceTier: EvidenceTier

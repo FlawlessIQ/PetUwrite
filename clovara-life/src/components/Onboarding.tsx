@@ -4,12 +4,22 @@ import type {
   Breed,
   DentalRoutine,
   DietQuality,
+  NeuterAgeBand,
+  OutdoorAccess,
   PetProfile,
   Sex,
   SizeClass,
   Species,
 } from '../data/types'
-import { MIXED_BY_SIZE, SIZE_LABELS, breedsFor, conditionsFor, findBreed } from '../data/engine'
+import {
+  JOINT_RISK_WEIGHT_LB,
+  MIXED_BY_SIZE,
+  NEUTER_AGE_LABELS,
+  SIZE_LABELS,
+  breedsFor,
+  conditionsFor,
+  findBreed,
+} from '../data/engine'
 import { readBodyCondition } from '../engine/project'
 import { CloverMark } from './CloverMark'
 
@@ -72,14 +82,27 @@ export function Onboarding({ onComplete, onCancel }: Props) {
   const [birthDate, setBirthDate] = useState('')
   const [sex, setSex] = useState<Sex | null>(null)
   const [neutered, setNeutered] = useState<boolean | null>(null)
+  const [neuterAgeBand, setNeuterAgeBand] = useState<NeuterAgeBand | null>(null)
   const [weightLb, setWeightLb] = useState('')
   const [conditionIds, setConditionIds] = useState<string[]>([])
   const [conditionQuery, setConditionQuery] = useState('')
   const [activity, setActivity] = useState<ActivityLevel>('moderate')
   const [dental, setDental] = useState<DentalRoutine>('weekly')
   const [diet, setDiet] = useState<DietQuality>('measured')
+  const [outdoorAccess, setOutdoorAccess] = useState<OutdoorAccess>('indoor')
 
   const breed: Breed | undefined = breedId ? findBreed(breedId) : undefined
+
+  /**
+   * Age at neutering is only asked where it is used: a neutered dog whose breed
+   * is big enough to sit in Hart 2020's group. Asking a Chihuahua's owner a
+   * question we would then ignore is worse than not asking.
+   */
+  const asksNeuterAge =
+    species === 'dog' &&
+    neutered === true &&
+    !!breed &&
+    (breed.weight.low + breed.weight.high) / 2 >= JOINT_RISK_WEIGHT_LB
 
   const breedMatches = useMemo(() => {
     if (!species) return []
@@ -137,11 +160,15 @@ export function Onboarding({ onComplete, onCancel }: Props) {
       birthDate,
       sex: sex ?? 'female',
       neutered: neutered ?? true,
+      // Both fields are omitted rather than defaulted where they were not
+      // asked. An unanswered question must not read as an answer.
+      ...(asksNeuterAge && neuterAgeBand ? { neuterAgeBand } : {}),
       weightLb: weightNum,
       conditionIds,
       activity,
       dental,
       diet,
+      ...(species === 'cat' ? { outdoorAccess } : {}),
     })
   }
 
@@ -372,13 +399,31 @@ export function Onboarding({ onComplete, onCancel }: Props) {
               <Segmented
                 name="Neuter status"
                 value={neutered === null ? null : neutered ? 'yes' : 'no'}
-                onChange={(v) => setNeutered(v === 'yes')}
+                onChange={(v) => {
+                  setNeutered(v === 'yes')
+                  if (v !== 'yes') setNeuterAgeBand(null)
+                }}
                 options={[
                   { value: 'yes', label: 'Yes' },
                   { value: 'no', label: 'No' },
                 ]}
               />
             </div>
+            {asksNeuterAge && (
+              <div className="reveal">
+                <span className="label mb-2 block">Roughly how old were they then?</span>
+                <p className="mb-2.5 text-[13.5px] leading-snug text-muted">
+                  Optional. In dogs this size, the timing is associated with joint disorder risk —
+                  so we use it to decide what to watch for. It never changes the projection.
+                </p>
+                <Segmented
+                  name="Age at neutering"
+                  value={neuterAgeBand}
+                  onChange={setNeuterAgeBand}
+                  options={NEUTER_AGE_LABELS}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -496,6 +541,29 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                 These are the parts you can change. You'll be able to play with them in a moment.
               </p>
             </div>
+            {species === 'cat' && (
+              <div>
+                <span className="label mb-2 block">Outdoor access</span>
+                <Segmented
+                  name="Outdoor access"
+                  value={outdoorAccess}
+                  onChange={setOutdoorAccess}
+                  options={[
+                    { value: 'indoor' as OutdoorAccess, label: 'Indoor', hint: 'Never out alone' },
+                    {
+                      value: 'indoor-outdoor' as OutdoorAccess,
+                      label: 'Both',
+                      hint: 'Comes and goes',
+                    },
+                    {
+                      value: 'outdoor' as OutdoorAccess,
+                      label: 'Outdoor',
+                      hint: 'Mostly lives outside',
+                    },
+                  ]}
+                />
+              </div>
+            )}
             <div>
               <span className="label mb-2 block">Activity level</span>
               <Segmented

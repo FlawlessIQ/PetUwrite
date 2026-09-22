@@ -4,6 +4,7 @@ import type {
   EvidenceTier,
   Lever,
   LifeStage,
+  OutdoorAccess,
   PetProfile,
   Projection,
   RiskCard,
@@ -17,13 +18,18 @@ import {
   DOG_STAGE_BOUNDS,
   DOG_STAGE_TEMPLATES,
   EVIDENCE_LABELS,
+  JOINT_CONDITION_IDS,
+  JOINT_RISK_WEIGHT_LB,
   KNOWN_CONDITIONS,
   LEVER_CITATIONS,
   MAX_CONDITION_PENALTY,
   MAX_SWING,
+  NEUTER_AGE_CITATION,
   NEUTER_DELTA,
+  OUTDOOR_DELTAS,
   WEIGHT_DELTAS,
   findBreed,
+  outdoorAgeTaper,
 } from '../data/engine'
 
 const round = (n: number, dp = 1) => Math.round(n * 10 ** dp) / 10 ** dp
@@ -174,7 +180,42 @@ function windowLabel(onset: [number, number], age: number): string {
   return `Typical window was ages ${a} to ${b}`
 }
 
-function buildRiskCards(breed: Breed, age: number, declared: Set<string>): RiskCard[] {
+/**
+ * Age-at-neutering framing for the joint cards, per Hart 2020.
+ *
+ * Deliberately narrow. It applies to dogs only, to the breeds whose typical
+ * adult size puts them in Hart's ≥20 kg group, and only to the three joint
+ * disorders Hart actually examined. It says what to watch and what to raise
+ * with a vet. It never moves the projection, and it never tells an owner they
+ * made the wrong call — the decision is years behind them and was usually their
+ * vet's to make.
+ */
+function neuterAgeContext(breed: Breed, profile: PetProfile): RiskCard['context'] | undefined {
+  if (breed.species !== 'dog' || !profile.neutered) return undefined
+  const band = profile.neuterAgeBand
+  if (!band || band === 'unsure') return undefined
+
+  const typicalAdultLb = (breed.weight.low + breed.weight.high) / 2
+  if (typicalAdultLb < JOINT_RISK_WEIGHT_LB) return undefined
+
+  const text =
+    band === 'under-6m'
+      ? 'Neutered before six months. In dogs of this adult size, that timing is associated with a higher incidence of joint disorders — enough that it is worth watching for stiffness and lameness earlier than you otherwise would, and worth mentioning at the next exam. It is an association in a retrospective study, not a verdict, and nothing about it is undoable.'
+      : band === '6-11m'
+        ? 'Neutered between six and twelve months. In dogs of this adult size the joint-disorder association is weaker at this timing than before six months, but it is not absent. Worth a mention at the next exam rather than a worry.'
+        : 'Neutered at a year or later, which in dogs of this adult size is the timing least associated with joint disorders in the study below.'
+
+  return { text, source: NEUTER_AGE_CITATION }
+}
+
+function buildRiskCards(
+  breed: Breed,
+  age: number,
+  declared: Set<string>,
+  profile: PetProfile,
+): RiskCard[] {
+  const jointContext = neuterAgeContext(breed, profile)
+
   return breed.conditions
     .map((c) => {
       const inWindow = age >= c.onset[0] && age <= c.onset[1]
@@ -191,6 +232,7 @@ function buildRiskCards(breed: Breed, age: number, declared: Set<string>): RiskC
         mode,
         window: windowLabel(c.onset, age),
         confidence: c.confidence,
+        context: JOINT_CONDITION_IDS.has(c.id) ? jointContext : undefined,
       }
     })
     .sort((a, b) => {
@@ -206,9 +248,17 @@ function buildRiskCards(breed: Breed, age: number, declared: Set<string>): RiskC
 // Levers
 // ───────────────────────────────────────────────────────────────────────────
 
-function buildLevers(breed: Breed, profile: PetProfile, bodyCondition: BodyCondition): Lever[] {
+function buildLevers(
+  breed: Breed,
+  profile: PetProfile,
+  bodyCondition: BodyCondition,
+  outdoor: OutdoorAccess,
+  age: number,
+): Lever[] {
   const isCat = breed.species === 'cat'
   const w = (c: BodyCondition) => weightDeltaFor(breed.species, breed.sizeClass, c)
+  const taper = outdoorAgeTaper(age)
+  const o = (v: OutdoorAccess) => round(OUTDOOR_DELTAS[v] * (OUTDOOR_DELTAS[v] < 0 ? taper : 1), 2)
 
   return [
     {
@@ -277,6 +327,44 @@ function buildLevers(breed: Breed, profile: PetProfile, bodyCondition: BodyCondi
       ],
       citations: LEVER_CITATIONS.activity,
     },
+    // Cats only. A dog's outdoor time is a walk; a cat's is an unsupervised
+    // territory, which is a different question with a different literature.
+    ...(isCat
+      ? [
+          {
+            id: 'outdoor' as const,
+            label: 'Outdoor access',
+            question: 'How much of the world do they get?',
+            evidenceTier: 'associational' as const,
+            evidenceNote:
+              taper < 0.9
+                ? `The direction is documented; the size is not what most people assume. The deaths outdoor access adds — traffic above all — are overwhelmingly deaths of young cats, and one necropsy series found no significant difference between indoor, indoor–outdoor and outdoor cats once they had passed their first year. ${profile.name} is past that, so this moves the projection less than it would for a kitten. The magnitude is ours, not a published figure.`
+                : 'The direction is documented; the size is not what most people assume. The "outdoor cats live two to five years" line comes from feral colony work and does not describe a cat with a house to come back to. What the owned-cat data shows is that the cost is real and is paid almost entirely in the first few years — median age at death from trauma is 3.0 years against 14.0 across all causes. The magnitude here is ours, not a published figure.',
+            current: outdoor,
+            options: [
+              {
+                value: 'indoor',
+                label: 'Indoor',
+                delta: o('indoor'),
+                note: 'Never outside unsupervised. Removes traffic, fights and retrovirus exposure outright — which is a smaller number of years than it sounds, and the surest one.',
+              },
+              {
+                value: 'indoor-outdoor',
+                label: 'Both',
+                delta: o('indoor-outdoor'),
+                note: 'Comes and goes, sleeps at home. This is our reference point, not a penalty — in the one direct comparison we have, these cats did as well as indoor-only ones.',
+              },
+              {
+                value: 'outdoor',
+                label: 'Outdoor',
+                delta: o('outdoor'),
+                note: 'Lives mostly outside, with no reliable indoor base. The group that did clearly worse — and the group whose range we widen, because a farm track and a main road are not the same risk.',
+              },
+            ],
+            citations: LEVER_CITATIONS.outdoor,
+          },
+        ]
+      : []),
   ]
 }
 
@@ -288,7 +376,10 @@ export interface ProjectOptions {
   /** Injected so the function stays pure and testable. */
   now?: Date
   /** Lever overrides from the interactive panel. */
-  overrides?: Partial<Pick<PetProfile, 'activity' | 'dental'>> & { weight?: BodyCondition }
+  overrides?: Partial<Pick<PetProfile, 'activity' | 'dental'>> & {
+    weight?: BodyCondition
+    outdoor?: OutdoorAccess
+  }
 }
 
 /**
@@ -309,6 +400,10 @@ export function project(profile: PetProfile, options: ProjectOptions = {}): Proj
   const bodyCondition = options.overrides?.weight ?? measured
   const dental = options.overrides?.dental ?? profile.dental
   const activity = options.overrides?.activity ?? profile.activity
+  // Absent means the owner was never asked. The reference costs them nothing,
+  // which is the only honest thing to do with a question we did not put.
+  const outdoor: OutdoorAccess =
+    options.overrides?.outdoor ?? profile.outdoorAccess ?? 'indoor-outdoor'
 
   // ── Factors ──────────────────────────────────────────────────────────────
   const factors: Projection['factors'] = []
@@ -340,6 +435,22 @@ export function project(profile: PetProfile, options: ProjectOptions = {}): Proj
     'directional',
   )
 
+  if (breed.species === 'cat') {
+    // Tapered: the penalty a free-roaming cat carries is mostly a young-cat
+    // penalty, and a cat who has already lived through those years has already
+    // survived the risk it describes. The positive for indoor is not tapered —
+    // it is a small credit for exposures removed, not for a hazard outrun.
+    const raw = OUTDOOR_DELTAS[outdoor] ?? 0
+    push(
+      `Outdoor access — ${outdoor === 'indoor-outdoor' ? 'indoor and outdoor' : outdoor}`,
+      raw < 0 ? raw * outdoorAgeTaper(age) : raw,
+      raw < 0
+        ? 'Scaled down with age. The mortality outdoor access adds falls overwhelmingly on young cats.'
+        : 'A small credit for exposures removed outright, not a published survival difference.',
+      'associational',
+    )
+  }
+
   if (profile.neutered) {
     push(
       'Neutered',
@@ -350,7 +461,8 @@ export function project(profile: PetProfile, options: ProjectOptions = {}): Proj
   }
 
   const rawShift = factors.reduce((sum, f) => sum + f.delta, 0)
-  const shift = clamp(rawShift, MAX_SWING.down, MAX_SWING.up)
+  const cap = MAX_SWING[breed.species]
+  const shift = clamp(rawShift, cap.down, cap.up)
 
   // ── Declared conditions: pull the low end, widen the range ────────────────
   const declaredList = KNOWN_CONDITIONS.filter((c) => declared.has(c.id))
@@ -366,6 +478,9 @@ export function project(profile: PetProfile, options: ProjectOptions = {}): Proj
   if (breed.isMixed) widen += 0.3
   if (declaredList.length >= 2) widen += 0.3
   if (profile.weightLb <= 0) widen += 0.3
+  // Not "we know less about cats outdoors" — we know less about THIS cat's
+  // outdoors. A farm track and a main road are the same answer on this form.
+  if (breed.species === 'cat' && outdoor === 'outdoor') widen += 0.25
   const widened = widen > 0
 
   let low = breed.baseline.low + shift - conditionPenalty - widen
@@ -397,8 +512,8 @@ export function project(profile: PetProfile, options: ProjectOptions = {}): Proj
     arcPosition: clamp(age / healthyYearsRange.high, 0, 1),
     currentStage,
     stages,
-    riskCards: buildRiskCards(breed, age, declared),
-    levers: buildLevers(breed, { ...profile, dental, activity }, bodyCondition),
+    riskCards: buildRiskCards(breed, age, declared, profile),
+    levers: buildLevers(breed, { ...profile, dental, activity }, bodyCondition, outdoor, age),
     breed,
     factors,
     widened,

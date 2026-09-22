@@ -22,10 +22,19 @@ const SURFACE_IDS = new Set<string>(SURFACES.map((s) => s.id))
  * during render, because `project()` throws on an unknown breed and there is no
  * way to recover from that mid-demo without devtools.
  */
+const OUTDOOR_VALUES = new Set(['indoor', 'indoor-outdoor', 'outdoor'])
+const NEUTER_BANDS = new Set(['under-6m', '6-11m', '12-23m', '24m-plus', 'unsure'])
+
+/** Optional field: absent is fine, present and wrong is not. */
+const optionalOneOf = (v: unknown, allowed: Set<string>) =>
+  v === undefined || (typeof v === 'string' && allowed.has(v))
+
 function isValidPet(p: unknown): p is PetProfile {
   if (!p || typeof p !== 'object') return false
   const x = p as Record<string, unknown>
   return (
+    optionalOneOf(x.outdoorAccess, OUTDOOR_VALUES) &&
+    optionalOneOf(x.neuterAgeBand, NEUTER_BANDS) &&
     typeof x.id === 'string' &&
     typeof x.name === 'string' &&
     x.name.trim().length > 0 &&

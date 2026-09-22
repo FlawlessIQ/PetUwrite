@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import type { BodyCondition, EvidenceTier, Lever, Projection } from '../data/types'
+import type { BodyCondition, EvidenceTier, Lever, OutdoorAccess, Projection } from '../data/types'
 import { EVIDENCE_LABELS } from '../data/engine'
 
 export interface LeverState {
   weight?: BodyCondition
   dental?: 'daily' | 'weekly' | 'rarely'
   activity?: 'low' | 'moderate' | 'high'
+  /** Cats only — the lever is not rendered for a dog. */
+  outdoor?: OutdoorAccess
 }
 
 const TIER_STYLE: Record<EvidenceTier, string> = {
@@ -55,6 +57,7 @@ export function Levers({
     if (lever.id === 'weight') onChange({ ...state, weight: value as BodyCondition })
     if (lever.id === 'dental') onChange({ ...state, dental: value as LeverState['dental'] })
     if (lever.id === 'activity') onChange({ ...state, activity: value as LeverState['activity'] })
+    if (lever.id === 'outdoor') onChange({ ...state, outdoor: value as OutdoorAccess })
   }
 
   const diff = projection.healthyYearsRange.low - baseline.healthyYearsRange.low
@@ -130,7 +133,8 @@ export function Levers({
           </p>
         ) : (
           <p className="text-[14px] text-muted">
-            Set to what you told us. Change any of the three to see the projection move.
+            Set to what you told us. Change any of the {projection.levers.length === 4 ? 'four' : 'three'} to see the
+            projection move.
           </p>
         )}
         {Object.keys(state).length > 0 && (

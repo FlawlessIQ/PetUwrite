@@ -11,7 +11,7 @@ Vite + React + TypeScript + Tailwind. No component libraries.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 75 engine, platform and data-integrity tests
+npm test           # 90 engine, platform and data-integrity tests
 npm run build      # → dist/
 npm run icons      # regenerate public/og.png and the apple-touch icon
 
@@ -76,7 +76,7 @@ src/
   engine/
     project.ts       The pure function. project(profile) → Projection.
     platform.ts      Score, shop, coverage, rewards, companion, home — all pure.
-    project.test.ts  31 tests.
+    project.test.ts  49 tests.
     platform.test.ts 41 tests.
   components/        UI. No logic lives here that isn't presentational.
 ```
@@ -137,25 +137,55 @@ localStorage, forcing a render throw, and sweeping every surface at 320px for ov
 
 ## The honest bits
 
-Three things in here are deliberate and worth knowing before the demo.
+Five things in here are deliberate and worth knowing before the demo. Points 4 and 5 are the ones
+most likely to be argued with, and they are the ones where the app disagrees with the received
+wisdom on the evidence rather than on instinct.
 
 **1. Studies do not measure the same thing.** "Life expectancy at age 0" includes animals that die
 as puppies and kittens and runs systematically below "median survival" or "median age at death".
 The two large UK studies disagree by more than five years on the French Bulldog for exactly this
 reason. Figures are never averaged across studies; every citation carries its `metric`.
 
-**2. The three levers are not equally evidenced, and the UI says so.** Each carries a badge:
+**2. The levers are not equally evidenced, and the UI says so.** Each carries a badge. Dogs get
+three; cats get a fourth.
 
 | Lever | Tier | Why |
 |---|---|---|
 | Body condition | Strong evidence | Purina lifetime feeding trial (13.0 vs 11.2 years median), plus 50,787 US dogs showing the effect is *largest in small breeds* |
 | Dental care | Associational | Periodontal disease is associated with kidney disease, but **no study shows dental care extends lifespan** and AAHA calls the causal story "oversimplified". Weighted small on purpose. |
 | Activity | Directional | The Dog Aging Project's cognitive-dysfunction finding is cross-sectional and its authors state causality cannot be determined. No lifespan study exists. |
+| Outdoor access *(cats)* | Associational | Direction documented, magnitude not. See below — it is the one lever whose weight is larger than its tier, and the app says so on the lever itself. |
 
 **3. Cats are not small dogs.** In dogs, overweight is the clear risk. In cats, the largest body-
 condition study found *thin* cats at markedly higher risk and mild overweight not significantly
 associated with shorter survival. So "lean" is a positive in a dog and a mild negative in a cat.
 That asymmetry is in the engine, not a bug.
+
+**4. Outdoor access costs less than everyone says, and the app is the one saying so.** The line
+everyone repeats — indoor cats live fifteen years, outdoor cats live two to five — comes from feral
+colony work and does not describe an owned cat with a house to come back to. The owned-cat evidence
+is narrower and more useful:
+
+- **McDonald 2017** (2,738 UK cats): median age at death 14.0 years across all causes, **3.0 years
+  where the cause was trauma**, 2.7 where it was a road traffic accident.
+- **Kent 2022** (3,108 necropsies): outdoor-only cats died younger than indoor-only and
+  indoor–outdoor cats across all ages (7.25 vs 9.43 and 9.82) — but **among cats who had already
+  reached one year, the three groups were not significantly different** (9.98 / 10.09 / 9.80,
+  p = 0.11). Indoor–outdoor was never the worse group.
+
+So the cost is real and is paid almost entirely by young cats. Three things follow, and all three
+are in the engine: `indoor-outdoor` is the **reference**, not the penalty; the penalty for a
+free-roaming cat **tapers with age** (full weight to two, decaying to a floor of 35% by ten); and
+the range **widens** for an outdoor cat, because a farm track and a main road are the same answer on
+our form. The magnitude and the shape of the taper are ours, not published, and the lever says that
+on screen.
+
+**5. Age at neutering is recorded and deliberately not projected.** Hart 2020 found joint disorder
+incidence rising with early neutering in dogs over roughly 45 lb, and nothing in small breeds. We
+ask for it — only of neutered dogs whose breed is big enough to be in that group — and use it to
+frame the hip, elbow and cruciate cards. It moves no number. Hart measured joint disorder
+incidence, not survival, and converting one into the other would mean inventing a figure. It is
+also the only input on the form nobody can act on after the fact.
 
 ---
 
@@ -202,10 +232,11 @@ becomes a shipping product rather than a demo.
 
 ## Known limitations, stated in the app
 
-- Indoor versus outdoor living is one of the largest determinants of feline life expectancy and is
-  not asked about.
-- Age at neutering is associated with joint disorder risk in dogs over roughly 45 lb; the app
-  records neuter status but not the age it happened.
+- The outdoor-access magnitude, and the rate at which it tapers with age, are ours. The direction is
+  documented; no study puts years on it for an owned cat.
+- Nothing here knows the road outside the door. "Outdoor" covers a cat on a farm track and a cat on
+  a main road, and those are not the same animal.
+- Age at neutering frames the joint cards and nothing else, for the reason above.
 - Everything is a breed average. It says nothing about an individual animal's genetics.
 
 ## Guardrails

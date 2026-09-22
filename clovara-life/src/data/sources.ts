@@ -238,3 +238,33 @@ export const APOP_2022: Citation = {
   metric: 'proportion overweight or obese',
   figure: '59% of dogs, 61% of cats',
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Outdoor access in cats
+//
+// Read these three together, because the picture they make is not the one the
+// popular claim describes. The often-quoted "outdoor cats live 2–5 years" comes
+// from feral colony work and does not describe an owned cat with a home to come
+// back to.
+// ───────────────────────────────────────────────────────────────────────────
+
+export const MCDONALD_2017: Citation = {
+  label: 'McDonald et al. 2017, J Small Anim Pract 58(10) — 2,738 UK cats with recorded mortality (VetCompass)',
+  url: 'https://onlinelibrary.wiley.com/doi/abs/10.1111/jsap.12716',
+  metric: 'median age at death, by cause',
+  figure: '14.0 yr all causes; 3.0 yr where the cause was trauma; 2.7 yr where it was a road traffic accident',
+}
+
+export const KENT_2022: Citation = {
+  label: 'Kent et al. 2022, PLOS ONE 17(12):e0278199 — necropsy series of 3,108 cats, 1989–2019',
+  url: 'https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0278199',
+  metric: 'median age at death by housing (indoor only / indoor–outdoor / outdoor only)',
+  figure:
+    'all ages 9.43 / 9.82 / 7.25 yr (p = 0.0001). Cats already past one year: 9.98 / 10.09 / 9.80 yr, NOT significant (p = 0.11). Referral and emergency population.',
+}
+
+export const AAFP_RETROVIRUS_2020: Citation = {
+  label: 'Little et al. 2020, J Feline Med Surg 22(1):5–30 — AAFP Feline Retrovirus Testing and Management Guidelines',
+  url: 'https://journals.sagepub.com/doi/10.1177/1098612X19895940',
+  metric: 'clinical guideline — outdoor access and contact with cats of unknown status as the route of FeLV and FIV transmission',
+}

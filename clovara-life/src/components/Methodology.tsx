@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Projection } from '../data/types'
-import { EVIDENCE_LABELS, NEUTER_CITATIONS, STAGE_CITATIONS } from '../data/engine'
+import { EVIDENCE_LABELS, NEUTER_AGE_CITATION, NEUTER_CITATIONS, STAGE_CITATIONS } from '../data/engine'
 
 const CONFIDENCE_COPY = {
   published: 'A breed-level figure for this breed exists in the study cited below.',
@@ -18,6 +18,7 @@ export function Methodology({ projection }: { projection: Projection }) {
     ...breed.evidence,
     ...projection.levers.flatMap((l) => l.citations),
     ...NEUTER_CITATIONS,
+    ...(breed.species === 'dog' ? [NEUTER_AGE_CITATION] : []),
     ...STAGE_CITATIONS,
   ]
   const seen = new Set<string>()
@@ -112,15 +113,27 @@ export function Methodology({ projection }: { projection: Projection }) {
             <h3 className="label mb-2">What we do not model</h3>
             <ul className="space-y-1.5 text-[14px] leading-relaxed text-muted">
               {breed.species === 'cat' && (
+                <>
+                  <li>
+                    The road outside your door. We ask whether a cat goes out; we cannot ask what
+                    they go out into, and a farm track and a main road are the same answer on this
+                    form.
+                  </li>
+                  <li>
+                    How much outdoor access is worth in years. The direction is documented and the
+                    cost falls almost entirely on young cats — the size of the adjustment, and the
+                    rate at which we taper it with age, are ours rather than a published figure.
+                  </li>
+                </>
+              )}
+              {breed.species === 'dog' && (
                 <li>
-                  Indoor versus outdoor living, which is one of the largest determinants of feline
-                  life expectancy.
+                  Age at neutering, as a number of years. Where we ask for it — dogs whose adult
+                  size puts them in the group Hart 2020 studied — it frames what to watch for on the
+                  joint cards and nothing else. That study measured joint disorder incidence, not
+                  survival, and turning one into the other would mean inventing a figure.
                 </li>
               )}
-              <li>
-                Age at neutering, which is associated with joint disorder risk in dogs over roughly
-                45 lb.
-              </li>
               <li>Individual genetics. Everything here is a breed average.</li>
             </ul>
           </div>

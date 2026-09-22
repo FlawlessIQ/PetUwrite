@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { project, ageInYears, readBodyCondition } from './project'
 import { DEMO_PETS } from '../data/demoPets'
-import { ALL_BREEDS, findBreed, DOG_BREEDS, CAT_BREEDS } from '../data/engine'
+import {
+  ALL_BREEDS,
+  findBreed,
+  DOG_BREEDS,
+  CAT_BREEDS,
+  JOINT_CONDITION_IDS,
+  outdoorAgeTaper,
+} from '../data/engine'
 import type { PetProfile } from '../data/types'
 
 /** Fixed clock so every assertion is deterministic. */
@@ -110,7 +117,8 @@ describe('demo pets', () => {
       expect(p.stages.length).toBe(4)
       expect(p.riskCards.length).toBeGreaterThanOrEqual(4)
       expect(p.riskCards.length).toBeLessThanOrEqual(5)
-      expect(p.levers.length).toBe(3)
+      // Cats carry a fourth lever — outdoor access — that dogs do not.
+      expect(p.levers.length).toBe(pet.species === 'cat' ? 4 : 3)
       expect(p.currentStage).toBeTruthy()
       expect(p.arcPosition).toBeGreaterThanOrEqual(0)
       expect(p.arcPosition).toBeLessThanOrEqual(1)
@@ -269,6 +277,159 @@ describe('edge cases', () => {
       )
       expect(p.healthyYearsRange.high, b.id).toBeGreaterThan(p.healthyYearsRange.low)
       expect(p.riskCards.length, b.id).toBeGreaterThanOrEqual(3)
+    }
+  })
+})
+
+describe('outdoor access (cats)', () => {
+  const cat = (over: Partial<PetProfile> = {}): PetProfile =>
+    base({ species: 'cat', breedId: 'domestic-shorthair', weightLb: 10, ...over })
+
+  const low = (p: PetProfile) => project(p, { now: NOW }).healthyYearsRange.low
+
+  it('moves the projection in both directions around the reference', () => {
+    const indoor = low(cat({ outdoorAccess: 'indoor' }))
+    const both = low(cat({ outdoorAccess: 'indoor-outdoor' }))
+    const outdoor = low(cat({ outdoorAccess: 'outdoor' }))
+    expect(indoor).toBeGreaterThan(both)
+    expect(outdoor).toBeLessThan(both)
+  })
+
+  it('treats indoor-outdoor as the reference, not indoor', () => {
+    // Kent 2022 put indoor-outdoor cats level with indoor-only ones, and the
+    // breed baselines are read from populations full of them. A pet saved
+    // before the field existed must therefore keep the number it had.
+    const unasked = project(cat({ outdoorAccess: undefined }), { now: NOW })
+    const both = project(cat({ outdoorAccess: 'indoor-outdoor' }), { now: NOW })
+    expect(unasked.healthyYearsRange).toEqual(both.healthyYearsRange)
+    // And neither shows up in "what moved the number", because neither did.
+    // A question we never put must not appear on screen as an answer.
+    expect(unasked.factors.some((f) => f.label.startsWith('Outdoor access'))).toBe(false)
+    expect(both.factors.some((f) => f.label.startsWith('Outdoor access'))).toBe(false)
+    expect(
+      project(cat({ outdoorAccess: 'indoor' }), { now: NOW }).factors.some((f) =>
+        f.label.startsWith('Outdoor access'),
+      ),
+    ).toBe(true)
+  })
+
+  it('tapers the outdoor penalty with age, because the risk falls on young cats', () => {
+    const penalty = (birthDate: string) =>
+      low(cat({ birthDate, outdoorAccess: 'indoor-outdoor' })) -
+      low(cat({ birthDate, outdoorAccess: 'outdoor' }))
+    const kitten = penalty('2026-02-14') // ~6 months
+    const middle = penalty('2020-08-14') // 6 years
+    const old = penalty('2016-08-14') // 10 years
+    expect(kitten).toBeGreaterThan(middle)
+    expect(middle).toBeGreaterThan(old)
+    // Tapered, never abolished — and never inverted into a bonus.
+    expect(old).toBeGreaterThan(0)
+  })
+
+  it('stops distinguishing once the cat has outlived the projection entirely', () => {
+    // Not a taper effect. Past the breed baseline the engine pins the low end
+    // to the animal's actual age, which flattens every factor, not just this
+    // one — a fourteen-year-old outdoor cat has demonstrably survived the risk
+    // the adjustment describes, and saying otherwise would be absurd.
+    const at14 = (v: PetProfile['outdoorAccess']) =>
+      project(cat({ birthDate: '2012-08-14', outdoorAccess: v }), { now: NOW }).healthyYearsRange
+        .low
+    expect(at14('outdoor')).toBe(at14('indoor-outdoor'))
+    expect(at14('outdoor')).toBeGreaterThan(14)
+  })
+
+  it('widens the range for a free-roaming cat rather than only lowering it', () => {
+    const width = (v: PetProfile['outdoorAccess']) => {
+      const r = project(cat({ outdoorAccess: v }), { now: NOW }).healthyYearsRange
+      return r.high - r.low
+    }
+    expect(width('outdoor')).toBeGreaterThan(width('indoor-outdoor'))
+    expect(project(cat({ outdoorAccess: 'outdoor' }), { now: NOW }).widened).toBe(true)
+  })
+
+  it('is a cat lever only, and is ignored entirely on a dog', () => {
+    const catP = project(cat(), { now: NOW })
+    const dogP = project(base(), { now: NOW })
+    expect(catP.levers.map((l) => l.id)).toContain('outdoor')
+    expect(dogP.levers.map((l) => l.id)).not.toContain('outdoor')
+    expect(catP.levers.find((l) => l.id === 'outdoor')!.evidenceTier).toBe('associational')
+
+    // A dog carrying the field by accident must not have its number moved.
+    const withField = project({ ...base(), outdoorAccess: 'outdoor' }, { now: NOW })
+    expect(withField.healthyYearsRange).toEqual(dogP.healthyYearsRange)
+  })
+
+  it('responds to the lever override the same way it responds to the profile', () => {
+    const fromProfile = low(cat({ outdoorAccess: 'outdoor' }))
+    const fromLever = project(cat({ outdoorAccess: 'indoor' }), {
+      now: NOW,
+      overrides: { outdoor: 'outdoor' },
+    }).healthyYearsRange.low
+    expect(fromLever).toBeCloseTo(fromProfile, 5)
+  })
+
+  it('keeps a stacked worst case plausible for a cat', () => {
+    const worst = project(
+      cat({ neutered: false, outdoorAccess: 'outdoor', birthDate: '2025-08-14' }),
+      { now: NOW, overrides: { weight: 'overweight', dental: 'rarely', activity: 'low' } },
+    )
+    expect(worst.healthyYearsRange.low).toBeGreaterThan(2)
+    expect(worst.healthyYearsRange.high).toBeGreaterThan(worst.healthyYearsRange.low)
+  })
+})
+
+describe('age at neutering (dogs)', () => {
+  const jointCard = (p: PetProfile) =>
+    project(p, { now: NOW }).riskCards.find((r) => r.id === 'hip-dysplasia')
+
+  it('frames the joint card for a large breed neutered early', () => {
+    const card = jointCard(base({ neuterAgeBand: 'under-6m' }))
+    expect(card?.context?.text).toMatch(/before six months/i)
+    expect(card?.context?.source.label).toMatch(/Hart/)
+  })
+
+  it('never moves the projection, whatever the answer', () => {
+    const none = project(base(), { now: NOW }).healthyYearsRange
+    for (const band of ['under-6m', '6-11m', '12-23m', '24m-plus', 'unsure'] as const) {
+      expect(project(base({ neuterAgeBand: band }), { now: NOW }).healthyYearsRange, band).toEqual(
+        none,
+      )
+    }
+  })
+
+  it('stays off small breeds, where Hart found no effect', () => {
+    const yorkie = base({ breedId: 'yorkshire-terrier', weightLb: 6, neuterAgeBand: 'under-6m' })
+    const cards = project(yorkie, { now: NOW }).riskCards
+    expect(cards.every((c) => !c.context)).toBe(true)
+  })
+
+  it('stays off cards that are not joint disorders', () => {
+    const cards = project(base({ neuterAgeBand: 'under-6m' }), { now: NOW }).riskCards
+    const dental = cards.find((c) => c.id === 'periodontal')
+    if (dental) expect(dental.context).toBeUndefined()
+    expect(cards.filter((c) => c.context).every((c) => JOINT_CONDITION_IDS.has(c.id))).toBe(true)
+  })
+
+  it('says nothing when the owner was not asked, or did not know', () => {
+    expect(jointCard(base())?.context).toBeUndefined()
+    expect(jointCard(base({ neuterAgeBand: 'unsure' }))?.context).toBeUndefined()
+    // An intact dog has no age at neutering to reason about.
+    expect(jointCard(base({ neutered: false, neuterAgeBand: 'under-6m' }))?.context).toBeUndefined()
+  })
+})
+
+describe('outdoorAgeTaper', () => {
+  it('holds full weight through the years the risk actually falls in', () => {
+    expect(outdoorAgeTaper(0)).toBe(1)
+    expect(outdoorAgeTaper(2)).toBe(1)
+  })
+
+  it('decays with age and never passes its floor or its ceiling', () => {
+    expect(outdoorAgeTaper(6)).toBeLessThan(1)
+    expect(outdoorAgeTaper(6)).toBeGreaterThan(outdoorAgeTaper(10))
+    for (const age of [0, 1, 3, 7, 12, 20, 40]) {
+      expect(outdoorAgeTaper(age), String(age)).toBeGreaterThanOrEqual(0.35)
+      expect(outdoorAgeTaper(age), String(age)).toBeLessThanOrEqual(1)
     }
   })
 })

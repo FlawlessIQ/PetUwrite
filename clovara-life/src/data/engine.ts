@@ -91,6 +91,31 @@
  * So "lean" is a positive in a dog and a mild negative in a cat, and the engine
  * reflects that rather than porting dog logic across.
  *
+ * OUTDOOR ACCESS, AND WHY IT IS SMALLER THAN YOU EXPECT
+ * Cats get a fourth factor dogs do not. The headline claim everyone repeats —
+ * indoor cats live fifteen years, outdoor cats live two to five — comes from
+ * feral colony work and says nothing about an owned cat with a house to come
+ * back to. The owned-cat evidence says something more specific: the cost of
+ * outdoor access is real, and it is paid almost entirely by young cats. Median
+ * age at death from trauma is 3.0 years against 14.0 across all causes
+ * (McDonald 2017), and among cats who had already reached their first birthday
+ * one necropsy series found no significant difference between indoor-only,
+ * indoor–outdoor and outdoor cats at all (Kent 2022).
+ *
+ * So the adjustment is age-tapered rather than flat, indoor–outdoor is the
+ * reference rather than the penalty, and the magnitude at the top of the taper
+ * is ours rather than a published figure. The full reasoning is written out
+ * over OUTDOOR_DELTAS below.
+ *
+ * WHAT WE RECORD BUT DELIBERATELY DO NOT PROJECT
+ * Age at neutering in dogs over roughly 45 lb is associated with joint disorder
+ * incidence (Hart 2020). We ask for it, and we use it to frame the joint cards
+ * on the care plan — but not to move the projection. Hart measures joint
+ * disorder incidence, not survival, and converting one into a number of years
+ * would be inventing a figure. It is also the one input on this list that
+ * nobody can act on after the fact, which makes "here is what to watch for"
+ * the only useful thing to do with it.
+ *
  * UNCERTAINTY HONESTY
  * The range widens when we know less: an illustrative breed baseline, a mixed
  * breed, a pet whose weight sits far outside the breed's typical adult range.
@@ -99,17 +124,17 @@
  * plausible whatever combination of inputs is given.
  *
  * KNOWN LIMITATIONS
- * - Indoor versus outdoor living is one of the largest determinants of feline
- *   life expectancy and this version does not ask about it.
- * - Age at neutering matters for joint disease in dogs over roughly 45 lb, and
- *   this version records neuter status but not the age it happened.
+ * - The outdoor-access magnitude and the shape of its age taper are ours. The
+ *   direction is well documented; no study puts years on it for an owned cat.
+ * - Nothing here knows the road outside the door. "Outdoor" covers a cat on a
+ *   farm track and a cat on a main road, and those are not the same animal.
  * - All breed data is breed-average. It says nothing about an individual
  *   animal's genetics.
  *
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import type { Breed, EvidenceTier, Species, SizeClass, Citation } from './types'
+import type { Breed, EvidenceTier, NeuterAgeBand, Species, SizeClass, Citation } from './types'
 import { DOG_BREEDS } from './breeds.dogs'
 import { CAT_BREEDS } from './breeds.cats'
 import {
@@ -128,6 +153,10 @@ import {
   AAHA_FELINE_2021,
   AAHA_SENIOR_2023,
   APOP_2022,
+  HART_2020,
+  MCDONALD_2017,
+  KENT_2022,
+  AAFP_RETROVIRUS_2020,
 } from './sources'
 
 export * from './types'
@@ -207,8 +236,84 @@ export const ACTIVITY_DELTAS: Record<string, number> = {
 
 export const NEUTER_DELTA: Record<Species, number> = { dog: 0.4, cat: 0.6 }
 
-/** Maximum the projection may move in either direction, in years. */
-export const MAX_SWING = { down: -2.6, up: 1.4 }
+/**
+ * Outdoor access. Cats only.
+ *
+ * The popular claim — indoor cats live 15 years, outdoor cats live 2 to 5 —
+ * comes from feral colony work and does not describe an owned cat with a house
+ * to come back to. What the owned-cat literature actually shows is narrower and
+ * more interesting:
+ *
+ *   McDonald 2017 (2,738 UK cats): median age at death 14.0 years across all
+ *   causes, but 3.0 years where the cause was trauma and 2.7 where it was a
+ *   road traffic accident. The cost of outdoor access is real and it is paid
+ *   almost entirely by young cats.
+ *
+ *   Kent 2022 (3,108 necropsies): outdoor-only cats died younger than both
+ *   indoor-only and indoor–outdoor cats across all ages (7.25 vs 9.43 and 9.82
+ *   years, p = 0.0001) — but among cats that had already reached one year the
+ *   three groups were not significantly different (9.98 / 10.09 / 9.80,
+ *   p = 0.11). Indoor–outdoor was never the worse group. It was marginally the
+ *   best.
+ *
+ * Two things follow, and both are in the numbers below.
+ *
+ * 1. `indoor-outdoor` is the REFERENCE, at zero. Not `indoor`. A cat with a cat
+ *    flap and a home base is not the risk case, and the populations the breed
+ *    baselines come from are full of them. `indoor` gets a small positive for
+ *    the exposures it removes outright — traffic, fights, FeLV and FIV
+ *    transmission (AAFP 2020) — not for anything a survival study has measured.
+ *
+ * 2. The penalty for a free-roaming cat TAPERS WITH AGE. A flat penalty would
+ *    tell the owner of a twelve-year-old outdoor cat that she is losing a year
+ *    she has demonstrably already survived, and would contradict Kent's adult
+ *    result. The shape of the taper is ours, not published: full weight up to
+ *    age 2, decaying to a floor of 35% by roughly age 10.
+ */
+export const OUTDOOR_DELTAS: Record<string, number> = {
+  indoor: 0.2,
+  'indoor-outdoor': 0,
+  outdoor: -1.0,
+}
+
+/** See OUTDOOR_DELTAS. Our interpretation of McDonald 2017, not a published curve. */
+export function outdoorAgeTaper(ageYears: number): number {
+  if (ageYears <= 2) return 1
+  return Math.max(0.35, 1 - (ageYears - 2) / 8)
+}
+
+/**
+ * Maximum the projection may move in either direction, in years.
+ *
+ * Per species, because the cat model carries a fourth factor the dog model does
+ * not. A single ceiling set for three modest factors would silently swallow the
+ * new one — a perfectly kept indoor cat would hit the cap and the outdoor lever
+ * would appear to do nothing, which is the one impression we cannot afford to
+ * give about the factor we just added.
+ */
+export const MAX_SWING: Record<Species, { down: number; up: number }> = {
+  dog: { down: -2.6, up: 1.4 },
+  cat: { down: -3.0, up: 1.7 },
+}
+
+/**
+ * Typical adult weight, in pounds, above which Hart 2020's joint-disorder
+ * finding applies. Hart's own cut is 20 kg. Read against the midpoint of the
+ * breed's typical adult range, not the animal's current weight — the finding is
+ * about mature body size, and an overweight spaniel is not a Labrador.
+ */
+export const JOINT_RISK_WEIGHT_LB = 45
+
+/** The joint disorders Hart 2020 actually examined. Patellar luxation is not one. */
+export const JOINT_CONDITION_IDS = new Set(['hip-dysplasia', 'elbow-dysplasia', 'ccl'])
+
+export const NEUTER_AGE_LABELS: { value: NeuterAgeBand; label: string }[] = [
+  { value: 'under-6m', label: 'Under 6 months' },
+  { value: '6-11m', label: '6–11 months' },
+  { value: '12-23m', label: '1 year' },
+  { value: '24m-plus', label: '2 years or older' },
+  { value: 'unsure', label: 'Not sure' },
+]
 
 /** Maximum the declared-conditions penalty may pull the low end down. */
 export const MAX_CONDITION_PENALTY = 1.8
@@ -228,13 +333,17 @@ export const EVIDENCE_LABELS: Record<EvidenceTier, { label: string; blurb: strin
   },
 }
 
-export const LEVER_CITATIONS: Record<'weight' | 'dental' | 'activity', Citation[]> = {
+export const LEVER_CITATIONS: Record<'weight' | 'dental' | 'activity' | 'outdoor', Citation[]> = {
   weight: [KEALY_2002, LAWLER_2008, SMITH_2006, SALT_2019, TENG_BCS_2018, APOP_2022],
   dental: [AAHA_DENTAL_2019, GLICKMAN_2011, TREVEJO_2018, BANFIELD_DENTAL_2024],
   activity: [BRAY_2023],
+  outdoor: [MCDONALD_2017, KENT_2022, AAFP_RETROVIRUS_2020],
 }
 
 export const NEUTER_CITATIONS: Citation[] = [HOFFMAN_2013]
+
+/** Age at neutering. Framing only — see NeuterAgeBand in types.ts. */
+export const NEUTER_AGE_CITATION: Citation = HART_2020
 
 export const STAGE_CITATIONS: Citation[] = [AAHA_CANINE_2019, AAHA_FELINE_2021, AAHA_SENIOR_2023]
 

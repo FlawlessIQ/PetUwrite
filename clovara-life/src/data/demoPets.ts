@@ -11,7 +11,9 @@ import type { PetProfile } from './types'
  *            whose risk profile is unlike any other. Shows the model is reading
  *            the breed, not the size.
  *  Luna    — a cat, and an older one. Shows the species-specific body-condition
- *            logic and the fixed-age feline life stages.
+ *            logic, the fixed-age feline life stages, and the outdoor-access
+ *            lever at the shallow end of its age taper — at nine, most of what
+ *            outdoor access costs a cat is already behind her.
  */
 export const DEMO_PETS: PetProfile[] = [
   {
@@ -22,6 +24,10 @@ export const DEMO_PETS: PetProfile[] = [
     birthDate: '2020-05-10',
     sex: 'male',
     neutered: true,
+    // The common US story, and the one Hart 2020 speaks to: a large-breed dog
+    // neutered at the shelter's default age. It frames his hip card; it does
+    // not move his number.
+    neuterAgeBand: 'under-6m',
     weightLb: 79,
     conditionIds: ['hip-dysplasia'],
     activity: 'moderate',
@@ -55,6 +61,7 @@ export const DEMO_PETS: PetProfile[] = [
     sex: 'female',
     neutered: true,
     weightLb: 11,
+    outdoorAccess: 'indoor',
     conditionIds: [],
     activity: 'moderate',
     dental: 'rarely',
