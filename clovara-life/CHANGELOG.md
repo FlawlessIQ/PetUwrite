@@ -5,6 +5,40 @@ has the commits.
 
 ## P1 — Onboarding & capture (in progress)
 
+### The annual re-projection (P1, SPEC §4.3)
+
+- "Anything change this year?" — the yearly data refresh and the moment the
+  projection is honestly restated, on one screen.
+- **The journey map already marked this `built`.** It was not: there was no code
+  behind it. It is now, and the implementation was aligned to what the map
+  promises partners rather than the other way round.
+- **Anchored on the birthday**, as the map says — not on the anniversary of the
+  last review, which drifts later every year somebody answers a fortnight late
+  until the ritual lands in a different season than it started.
+- **But never before we have known them a year.** A nine-year-old rescue adopted
+  six days before their birthday has a birthday behind them and no year for us
+  to ask about.
+- **It does not ask the questions itself.** Each item offers "still true" or
+  "this changed", and "this changed" opens the question that already exists in
+  Sharpen. A second set of pickers would be a second set to keep honest and the
+  first to drift.
+- It says what we currently hold in words — "Rosie was plump" — so answering is
+  a correction rather than a fresh interrogation. Where nobody was ever asked it
+  says so, rather than showing a default as though it were a fact.
+- It only re-asks what can change in a year. Breed, birthday and sex are not
+  there; neutering is, but only while the answer is still no.
+- The range from the last review is stored, so next year has something to
+  compare against — without it "re-projection" is only a data refresh.
+- A year on the number has usually gone down, because the animal is a year
+  older. The copy says that plainly and never implies the owner could have
+  prevented the passage of time.
+- "Not now" is honoured for the session and deliberately not persisted: a review
+  a year overdue should be offered again next visit, not never.
+- Pets saved before this existed are given an anchor dated today, not backdated
+  — and for cloud pets it is written back, because anchoring only in memory
+  would reset the clock on every load and the review would never once fire.
+- 26 engine tests and 23 browser checks.
+
 ### The four numbers (P1 metrics, SPEC §4.3)
 
 - SPEC names four metrics for this phase — time-to-reveal, tier-1 completion in

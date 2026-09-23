@@ -44,6 +44,12 @@ export function isValidPet(p: unknown): p is PetProfile {
     (x.neutered === undefined || typeof x.neutered === 'boolean') &&
     (x.birthDateApprox === undefined || typeof x.birthDateApprox === 'boolean') &&
     (x.conditionsReviewed === undefined || typeof x.conditionsReviewed === 'boolean') &&
+    (x.knownSince === undefined || typeof x.knownSince === 'string') &&
+    (x.lastReviewedAt === undefined || typeof x.lastReviewedAt === 'string') &&
+    (x.lastReviewedRange === undefined ||
+      (!!x.lastReviewedRange &&
+        typeof x.lastReviewedRange === 'object' &&
+        Number.isFinite((x.lastReviewedRange as Record<string, unknown>).low))) &&
     (x.photo === undefined ||
       (!!x.photo &&
         typeof x.photo === 'object' &&
@@ -59,13 +65,39 @@ export function isValidPet(p: unknown): p is PetProfile {
   )
 }
 
-export function loadLocalPets(): PetProfile[] {
+/**
+ * Gives a pet saved before the annual review existed an anchor for it.
+ *
+ * Dated now, not backdated to their birthday: we genuinely do not know when we
+ * last asked about this animal, and guessing "a year ago" would put a review in
+ * front of everyone at once, on a screen none of them asked for. A year from
+ * today is the honest and the quiet answer.
+ *
+ * Pure and exported so a test can prove it never touches a pet that already has
+ * one — a backfill that overwrites is a backfill that resets everybody's clock
+ * on every load.
+ */
+export function withReviewAnchor(pets: PetProfile[], now: Date): PetProfile[] {
+  let changed = false
+  const out = pets.map((p) => {
+    if (p.knownSince) return p
+    changed = true
+    return { ...p, knownSince: now.toISOString() }
+  })
+  return changed ? out : pets
+}
+
+export function loadLocalPets(now: Date = new Date()): PetProfile[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
     // Drop anything malformed rather than letting it reach the engine.
-    return Array.isArray(parsed) ? parsed.filter(isValidPet) : []
+    if (!Array.isArray(parsed)) return []
+    const pets = parsed.filter(isValidPet)
+    const anchored = withReviewAnchor(pets, now)
+    if (anchored !== pets) saveLocalPets(anchored)
+    return anchored
   } catch {
     return []
   }

@@ -90,6 +90,13 @@ const NEUTRAL = {
  * screen (the same reasoning as `isValidPet` in App.tsx, applied to the other
  * storage backend).
  */
+/** A stored healthy-years range. Rejected wholesale if either end is missing. */
+function isRange(v: unknown): v is { low: number; high: number } {
+  if (!v || typeof v !== 'object') return false
+  const r = v as Record<string, unknown>
+  return Number.isFinite(r.low) && Number.isFinite(r.high)
+}
+
 export function profileFromFirestore(stored: unknown): MappedPet | null {
   if (!stored || typeof stored !== 'object') return null
   const p = stored as Partial<StoredPet> & { id?: unknown }
@@ -183,6 +190,12 @@ export function profileFromFirestore(stored: unknown): MappedPet | null {
 
   const reviewed = fieldValue(p.conditionsReviewed, isBoolean)
   if (reviewed !== undefined) profile.conditionsReviewed = reviewed
+  const knownSince = fieldValue(p.knownSince, isString)
+  if (knownSince !== undefined) profile.knownSince = knownSince
+  const lastReviewed = fieldValue(p.lastReviewedAt, isString)
+  if (lastReviewed !== undefined) profile.lastReviewedAt = lastReviewed
+  const lastRange = fieldValue(p.lastReviewedRange, isRange)
+  if (lastRange !== undefined) profile.lastReviewedRange = lastRange
   const approx = fieldValue(p.birthDateApprox, isBoolean)
   if (approx !== undefined) profile.birthDateApprox = approx
   const bcs = fieldValue(p.bodyConditionScore, isBodyScore)
@@ -251,6 +264,9 @@ export function storedFromProfile(
   if (profile.bodyConditionScore) out.bodyConditionScore = f(profile.bodyConditionScore)
   if (profile.photo) out.photo = f(profile.photo)
   if (profile.conditionsReviewed) out.conditionsReviewed = f(profile.conditionsReviewed)
+  if (profile.knownSince) out.knownSince = f(profile.knownSince)
+  if (profile.lastReviewedAt) out.lastReviewedAt = f(profile.lastReviewedAt)
+  if (profile.lastReviewedRange) out.lastReviewedRange = f(profile.lastReviewedRange)
   // Only write what was actually answered. weightLb of 0 means "not given".
   if (Number.isFinite(profile.weightLb) && profile.weightLb > 0) {
     out.weightLb = f(profile.weightLb)

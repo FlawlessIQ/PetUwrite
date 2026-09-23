@@ -76,6 +76,10 @@ export interface StoredPet {
   sex?: Field<Sex>
   neutered?: Field<boolean>
   conditionsReviewed?: Field<boolean>
+  /** ISO dates anchoring the annual re-projection (SPEC §4.3). */
+  knownSince?: Field<string>
+  lastReviewedAt?: Field<string>
+  lastReviewedRange?: Field<{ low: number; high: number }>
   neuterAgeBand?: Field<NeuterAgeBand>
   weightLb?: Field<number>
   bodyConditionScore?: Field<BodyConditionScore>

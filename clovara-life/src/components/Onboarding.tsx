@@ -151,6 +151,11 @@ export function Onboarding({ onComplete, onCancel }: Props) {
       birthDate: useExact ? exactDate : birthDateFromMonths(ageMonths, now),
       ...(useExact ? {} : { birthDateApprox: true }),
       sex,
+      // When we first knew them — the anchor for the annual review (SPEC
+      // §4.3). Not the birthday: a nine-year-old rescue adopted last week has
+      // been ours for a week, and asking "what changed this year?" on day one
+      // would be a strange way to meet someone's dog.
+      knownSince: now.toISOString(),
       // Tier 1 stays genuinely absent. Writing defaults here would tell the
       // accuracy meter we know things nobody has been asked (SPEC §4.2).
       weightLb: 0,

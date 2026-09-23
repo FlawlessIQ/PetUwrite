@@ -4,7 +4,7 @@ import type { User } from '../auth/firebase'
 import { profileFromFirestore, storedFromProfile } from '../data/fromFirestore'
 import { loadStore } from './db'
 import { track } from '../analytics/track'
-import { clearLocalPets, loadLocalPets, saveLocalPets } from './localPets'
+import { clearLocalPets, loadLocalPets, saveLocalPets, withReviewAnchor } from './localPets'
 
 /**
  * Where a household's pets come from, and how the ones made before there was an
@@ -82,7 +82,23 @@ export function usePets(user: User | null): PetsState {
         if (cancelled || !mounted.current) return
         setHouseholdId(household.id)
         setMemberCount(household.memberIds?.length ?? 1)
-        setCloudPets(mapped.map((m) => m!.profile))
+
+        // Give pets saved before the annual review existed an anchor for it,
+        // and WRITE IT BACK. Anchoring only in memory would reset the clock on
+        // every load, so the review would never once come due — the feature
+        // would look built and never fire.
+        const loaded = mapped.map((m) => m!.profile)
+        const anchored = withReviewAnchor(loaded, new Date())
+        setCloudPets(anchored)
+        if (anchored !== loaded) {
+          for (const pet of anchored) {
+            if (loaded.some((p) => p.id === pet.id && p.knownSince === pet.knownSince)) continue
+            await store.savePet(
+              household.id,
+              storedFromProfile(pet, { householdId: household.id, uid: user.uid, now: new Date() }),
+            )
+          }
+        }
       } catch {
         if (!cancelled && mounted.current) {
           // Offline or denied. Showing the local pets is better than showing

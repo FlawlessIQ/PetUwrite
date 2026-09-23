@@ -35,10 +35,17 @@ export function Sharpen({
   pet,
   householdId,
   onUpdate,
+  revisitField = null,
 }: {
   pet: PetProfile
   householdId: string | null
   onUpdate: (patch: Partial<PetProfile>) => void
+  /**
+   * A field the annual review sent someone here to change. It is shown even
+   * though it is already answered — otherwise "this changed" would scroll to
+   * a question that is not on the page.
+   */
+  revisitField?: string | null
 }) {
   const [showAnswered, setShowAnswered] = useState(false)
   /**
@@ -81,7 +88,8 @@ export function Sharpen({
   }) => {
     const meta = accuracy.fields.find((f) => f.field === field)
     if (!meta) return null
-    if (meta.answered && !showAnswered && !justAnswered.has(field)) return null
+    if (meta.answered && !showAnswered && !justAnswered.has(field) && field !== revisitField)
+      return null
     return (
       <div className="border-t border-line px-5 py-5 first:border-t-0 sm:px-6">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">

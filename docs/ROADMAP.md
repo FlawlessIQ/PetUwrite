@@ -38,7 +38,7 @@ Companion AI architecture (the big one) · claims operations design · affinity/
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 242 unit plus 94 emulator plus seven end-to-end scripts.
+- **SPEC §1 says "75+ tests".** It is 268 unit plus 94 emulator plus eight end-to-end scripts.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
@@ -47,3 +47,7 @@ Companion AI architecture (the big one) · claims operations design · affinity/
   costs us storage forever, and half of it cannot be decoded in a browser. 2048px is ample
   for the body-condition comparison the original was being kept for. The avatar is a
   separate 512px square, so the analysable copy is never the cropped one.
+- **The journey map marked "The Annual Re-Projection" as `built` before it was.** It is built
+  now (2026-09-23) and the map is true again. Worth a pass over the other `built` moments to
+  check none of them are making the same claim — flagged to Conor rather than assumed.
+

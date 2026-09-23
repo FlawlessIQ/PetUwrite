@@ -7,6 +7,8 @@ import { Methodology } from './Methodology'
 import { RiskCards } from './RiskCards'
 import { Timeline } from './Timeline'
 import { Sharpen } from './Sharpen'
+import { AnnualReview } from './AnnualReview'
+import { reviewDue } from '../engine/review'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
 
@@ -30,6 +32,16 @@ export function Journey({
   onUpdate?: (patch: Partial<PetProfile>) => void
 }) {
   const [levers, setLevers] = useState<LeverState>({})
+  /**
+   * The annual review, and the question it sends someone to.
+   *
+   * Dismissal is session-only and deliberately not persisted: "not now" means
+   * not now, and a pet whose review is a year overdue should be asked again on
+   * the next visit rather than never.
+   */
+  const [reviewDismissed, setReviewDismissed] = useState(false)
+  const [revisit, setRevisit] = useState<string | null>(null)
+  const showReview = !!onUpdate && !reviewDismissed && reviewDue(pet, new Date())
 
   const baseline = useMemo(() => project(pet), [pet])
   const projection = useMemo(
@@ -98,7 +110,26 @@ export function Journey({
       {/* ── Body ─────────────────────────────────────────────────────────── */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
         <div className="space-y-5">
-          {onUpdate && <Sharpen pet={pet} householdId={householdId} onUpdate={onUpdate} />}
+          {showReview && onUpdate && (
+            <AnnualReview
+              pet={pet}
+              currentRange={{ low: baseline.healthyYearsRange.low, high: baseline.healthyYearsRange.high }}
+              onRevisit={setRevisit}
+              onComplete={(patch) => {
+                onUpdate(patch)
+                setReviewDismissed(true)
+              }}
+              onDismiss={() => setReviewDismissed(true)}
+            />
+          )}
+          {onUpdate && (
+            <Sharpen
+              pet={pet}
+              householdId={householdId}
+              onUpdate={onUpdate}
+              revisitField={revisit}
+            />
+          )}
           <Timeline projection={projection} name={pet.name} />
         </div>
         <div className="space-y-5">

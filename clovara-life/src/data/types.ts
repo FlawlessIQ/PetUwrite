@@ -207,6 +207,27 @@ export interface PetProfile {
   /** Optional colour-of-story detail shown on the journey. */
   headline?: string
   /**
+   * When we first knew this pet, and when they were last reviewed (SPEC §4.3's
+   * annual re-projection).
+   *
+   * `knownSince` is separate from `birthDate` on purpose: a nine-year-old
+   * rescue adopted last week has been ours for a week, and anchoring the yearly
+   * review on their birthday would put a "what changed this year?" in front of
+   * someone who has not had them for a year. Both absent means no review is
+   * due, which is the safe direction.
+   */
+  knownSince?: string
+  lastReviewedAt?: string
+  /**
+   * The healthy-years range as it stood at the last review.
+   *
+   * Two numbers, stored so that next year's review can say what we said last
+   * year. Without it the "annual re-projection" is only a data refresh — there
+   * is nothing to re-project against, because today's profile cannot tell us
+   * what we believed twelve months ago.
+   */
+  lastReviewedRange?: { low: number; high: number }
+  /**
    * The owner has seen the conditions list and made a choice — including
    * choosing none.
    *
