@@ -31,6 +31,9 @@ const MetricsDashboard = lazy(() =>
 )
 // Lazy for the same reason: a page most visitors never open should not be in
 // the bundle they all download.
+const AteSomething = lazy(() =>
+  import('./components/AteSomething').then((m) => ({ default: m.AteSomething })),
+)
 const DataCovenant = lazy(() =>
   import('./components/DataCovenant').then((m) => ({ default: m.DataCovenant })),
 )
@@ -63,6 +66,12 @@ function isAdminRoute(): boolean {
 /** `#/covenant` — the Data Covenant (invariant 5). A real page, so it can be linked. */
 function isCovenantRoute(): boolean {
   return window.location.hash.startsWith('#/covenant')
+}
+
+/** `#/ate` — "he ate something" (SPEC §6.5). Its own route so it can be a
+ *  bookmark, a shortcut, and one tap from anywhere. */
+function isAteRoute(): boolean {
+  return window.location.hash.startsWith('#/ate')
 }
 
 function PetSwitcher({
@@ -212,6 +221,7 @@ export default function App() {
   const [accountOpen, setAccountOpen] = useState(false)
   const [adminRoute, setAdminRoute] = useState(isAdminRoute)
   const [covenantRoute, setCovenantRoute] = useState(isCovenantRoute)
+  const [ateRoute, setAteRoute] = useState(isAteRoute)
   const [surface, setSurface] = useState<Surface>(() => parseHash()?.surface ?? 'home')
 
   useEffect(() => {
@@ -265,10 +275,10 @@ export default function App() {
   // ── URL sync ─────────────────────────────────────────────────────────────
   // Write state → hash. Guarded so it never fights the hashchange listener.
   useEffect(() => {
-    if (!active || adminRoute || covenantRoute) return
+    if (!active || adminRoute || covenantRoute || ateRoute) return
     const next = `#/pet/${encodeURIComponent(active.id)}/${surface}`
     if (window.location.hash !== next) window.history.replaceState(null, '', next)
-  }, [active, surface, adminRoute, covenantRoute])
+  }, [active, surface, adminRoute, covenantRoute, ateRoute])
 
   // Read hash → state, for back/forward and pasted links.
   useEffect(() => {
@@ -281,6 +291,7 @@ export default function App() {
     const onAdmin = () => {
       setAdminRoute(isAdminRoute())
       setCovenantRoute(isCovenantRoute())
+      setAteRoute(isAteRoute())
     }
     window.addEventListener('hashchange', onHash)
     window.addEventListener('hashchange', onAdmin)
@@ -436,7 +447,19 @@ export default function App() {
             onDismiss={dismissImport}
           />
         )}
-        {covenantRoute ? (
+        {ateRoute && active ? (
+          <Suspense
+            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
+          >
+            <AteSomething
+              pet={active}
+              onClose={() => {
+                window.location.hash = `#/pet/${encodeURIComponent(active.id)}/home`
+                setAteRoute(false)
+              }}
+            />
+          </Suspense>
+        ) : covenantRoute ? (
           <Suspense
             fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
           >

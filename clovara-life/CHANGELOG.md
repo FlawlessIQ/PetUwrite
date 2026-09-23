@@ -5,6 +5,41 @@ has the commits.
 
 ## P3 — Launch moments (in progress)
 
+### "He ate a grape" — toxin lookup (P3.5)
+
+- The highest-stakes screen in the product: somebody opens it when an animal is
+  already in trouble. Every decision is biased towards the phone call.
+- **The order of the page is the design.** Somebody frightened reads the first
+  thing and acts on it, so the poison-line numbers and "do not try to make them
+  sick" come *before* the lookup. The calculator is the least important thing on
+  the page; its only job is to stop somebody who has decided a small piece of
+  chocolate is fine from being right by accident.
+- **Nothing is ever a clearance.** The best verdict available is "watch closely,
+  and ring if anything changes — this is a guide, not a clearance". A test reads
+  the verdict box and fails on the words *safe*, *fine* or *harmless*.
+- **Bands out, never numbers out** (SPEC §6.5). Thresholds exist to compute a
+  band and are never rendered — an owner given a milligram figure will try to
+  decide for themselves; an owner given "ring now" picks up the phone.
+- **Thresholds sit deliberately below the published clinical ones.** Chocolate
+  signs are described from around 20 mg/kg; we escalate at 8. Over-referring
+  costs somebody a phone call. Under-referring costs an animal.
+- **Some things are never banded by weight at all** — grapes and raisins are
+  idiosyncratic, xylitol acts at tiny amounts, and a lily and a cat is an
+  emergency at any exposure including pollen groomed off a coat.
+- **Every uncertainty escalates upward**: unknown weight, unknown amount,
+  unknown form all resolve to "ring now", and the copy says why.
+- **It never tells anybody to induce vomiting.** That injures and kills animals,
+  it is contraindicated for corrosives and petroleum products, and people reach
+  for it because the internet told them to. Asserted by a test.
+- Poison lines are tap-to-call and say **up front that they charge**, rather
+  than letting somebody discover it at the worst possible moment.
+- Nearest-open-ER is a `PlacesProvider` seam with a null implementation that
+  says plainly it cannot search yet — at 2am, "no results" reads as "there is
+  nowhere open". **Needs a Google Places key to switch on.**
+- **VET-REVIEW: this content has not been reviewed by a veterinarian.** It is
+  the most important item in the open "clinical content ownership" dependency.
+- 21 engine tests, 27 browser checks.
+
 ### Vaccine Autopilot (P3.4)
 
 - The core course for each species, with typical age windows computed from the

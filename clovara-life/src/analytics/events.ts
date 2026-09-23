@@ -34,6 +34,9 @@ export const EVENT_NAMES = [
   'passport_stamp',
   /** An owner recorded a vaccination date (SPEC §6.4). */
   'vaccine_recorded',
+  /** Somebody looked up something their pet ate (SPEC §6.5). */
+  'toxin_lookup',
+  'poison_line_tapped',
 ] as const
 
 export type EventName = (typeof EVENT_NAMES)[number]

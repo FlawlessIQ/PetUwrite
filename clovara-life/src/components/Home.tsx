@@ -338,6 +338,25 @@ export function Home({
         </div>
       </div>
 
+      {/* One tap from the home screen, deliberately. Somebody whose dog has
+          just eaten something should not be navigating a menu. */}
+      <a
+        href="#/ate"
+        className="mt-6 flex items-center justify-between gap-3 rounded-soft border border-line bg-white px-4 py-3.5 transition hover:border-forest/50"
+      >
+        <span className="min-w-0">
+          <span className="block text-[14.5px] font-medium text-ink">
+            {pet.name} ate something they shouldn&rsquo;t have
+          </span>
+          <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">
+            How urgent it is, and who to ring.
+          </span>
+        </span>
+        <span aria-hidden="true" className="shrink-0 text-[18px] leading-none text-muted">
+          →
+        </span>
+      </a>
+
       <p className="mt-6 text-[13px] leading-relaxed text-muted">
         Activity and streak figures in this preview are simulated — there is no wearable connected.
         They are derived from {pet.name}'s declared routine so they stay consistent with the rest of

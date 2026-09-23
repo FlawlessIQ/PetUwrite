@@ -50,7 +50,7 @@ const STAGES=[
  ]},
  {name:"The worry moments", age:"Any Tuesday, 11pm", job:"Every owner knows the 11pm fear. Clovara answers with her history in hand — informing and routing to vets, never guessing, never diagnosing.", moments:[
   ["The Companion That Remembers","'She's limping after walks' → recalls the hip note from 2024, says what to watch, books a video vet with her history summary prepared.","Care","built","love"],
-  ["'She Ate a Grape'","Instant dose-by-weight risk answer, nearest open emergency vet, one tap to the poison line.","Care","launch","love"],
+  ["'She Ate a Grape'","Instant risk banding by her weight, one tap to the poison line, and the plain instruction not to wait for signs.","Care","built","love"],
   ["The Lump Diary","Photograph the weird thing; compare it against last month's photo of the same thing. Watch or go — with receipts.","Care","next","data"],
   ["Gait Check","Slow-motion video of her walk, compared to her own baseline from years ago — catching the limp before the limp.","Plan","sky","data"],
   ["Second Opinion","Upload a diagnosis or a $6,000 estimate: plain-language explanation, questions to ask, fair local cost range.","Care","next","love"],

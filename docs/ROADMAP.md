@@ -11,7 +11,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 | P0 Foundations | Auth · Firestore households/pets · Stripe trial+sub · analytics gates · email skeleton | `shipped` 2026-09-23 — all eight steps deployed and verified on the live project |
 | P1 Onboarding & capture | 60s Tier-0 · live-updating reveal · silhouette BCS · condition chips · accuracy meter · photo · family circle · ask registry · Data Covenant page · annual re-projection · phase metrics · vaccine-card extraction w/ confirm-chips | `shipped except two blocked items` 2026-09-23 — Tier-0, Tier-1 sharpening, silhouette BCS, accuracy meter, Data Covenant, ask registry, family circle, photo, the annual re-projection and the four SPEC §4.3 metrics are all deployed and verified. **Blocked: vet-record extraction (P1.7)** on the Firestore security review and an LLM key. **Not started: "tell me about him" conversational onboarding**, which SPEC §4.3 marks P1-optional and which also needs an LLM key. |
 | P2 Protect attach | Pre-priced offer (smart default) · screen of truth · mock rating adapter · post-bind states | planned |
-| P3 Launch moments | **Arrival certificate `shipped` 2026-09-23** · **first-night mode `shipped` 2026-09-23** · **socialization passport `shipped` 2026-09-23** · **vaccine autopilot `shipped` 2026-09-23** · "ate a grape" · sitter mode · gotcha day · renewal-explained (flagged) · FitnessProvider adapter + simulated provider | in progress — building in SPEC §6 order; everything here is buildable without an external dependency except the nearest-open-ER lookup in "ate a grape", which needs a Places API key |
+| P3 Launch moments | **Arrival certificate `shipped` 2026-09-23** · **first-night mode `shipped` 2026-09-23** · **socialization passport `shipped` 2026-09-23** · **vaccine autopilot `shipped` 2026-09-23** · **"ate a grape" `shipped` 2026-09-23 (ER lookup behind a seam, needs a Places key)** · sitter mode · gotcha day · renewal-explained (flagged) · FitnessProvider adapter + simulated provider | in progress — building in SPEC §6 order; everything here is buildable without an external dependency except the nearest-open-ER lookup in "ate a grape", which needs a Places API key |
 
 ## External dependencies (not engineering; engineering must not fake them)
 
@@ -23,7 +23,8 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 | Firestore security review before vet records ship | Conor (budget line exists) | `blocking P1.7` — everything else in P1 can ship without it; vet-record extraction cannot. records/ and events/ are denied outright meanwhile |
 | Breed data: McMillan 2024 Supp. Table 3 | Conor (file supplied 2026-09-22) | `shipped` — all 23 dog gaps closed; no illustrative dogs remain |
 | Breed data: Teng 2024 cat table (5 gaps), Abyssinian figure, AAHA Table 4 | Conor to obtain files | open |
-| Vet review pass: condition onset windows; clinical content ownership | Vet advisor | open |
+| Vet review pass: condition onset windows; clinical content ownership | Vet advisor | open — **now includes `data/toxins.ts`, which is the highest-stakes content in the product and is marked VET-REVIEW. It is bands-only and biased towards the phone call, but it has not been read by a vet.** |
+| Google Places API key + billing (nearest open emergency vet, SPEC §6.5) | Conor | open — the `PlacesProvider` seam and a null implementation are built; the null one says plainly it cannot search rather than returning "no results", which at 2am reads as "nowhere is open" |
 | Real shop SKUs / affiliate agreements | Conor + Dan | open |
 | Telehealth partner for companion routing | Conor | unscoped |
 | Apple Sign-In: Developer Program membership, Services ID, signing key | Conor | `deferred` — needed only when a native iOS app ships; email link + Google cover web |
@@ -38,7 +39,7 @@ Companion AI architecture (the big one) · claims operations design · affinity/
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 335 unit plus 94 emulator plus twelve end-to-end scripts.
+- **SPEC §1 says "75+ tests".** It is 356 unit plus 94 emulator plus thirteen end-to-end scripts.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
