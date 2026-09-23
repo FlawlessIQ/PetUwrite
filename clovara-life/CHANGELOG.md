@@ -23,6 +23,12 @@ has the commits.
   worse than a letter.
 - Stored per household and per pet, under rules that deny a stranger the full
   copy even if they know its exact path — asserted by a check that tries it.
+- Eight rules checks against the real Storage emulator, seven of them refusals:
+  the stranger, the made-up household id, the signed-out visitor, the PDF
+  wearing a `.jpg` name, the oversized file, and vet records — which are denied
+  outright until the security review SPEC §7 requires has happened. That last
+  one was mutation-tested: weaken the rule and the check fails, which is the
+  only way to know a denial test is not passing vacuously.
 
 ### Ask registry (P1.6)
 

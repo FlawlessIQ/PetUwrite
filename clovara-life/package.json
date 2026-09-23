@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "shots": "node shots.mjs",
     "icons": "node scripts/make-icons.mjs",
-    "test:emulator": "cd .. && npx firebase emulators:exec --only firestore,auth --project pet-underwriter-ai 'cd clovara-life && VITE_RUN_EMULATOR_TESTS=1 VITE_USE_EMULATORS=1 npx vitest run src/store src/analytics'",
+    "test:emulator": "cd .. && npx firebase emulators:exec --only firestore,auth,storage --project pet-underwriter-ai 'cd clovara-life && VITE_RUN_EMULATOR_TESTS=1 VITE_USE_EMULATORS=1 npx vitest run src/store src/analytics'",
     "typecheck": "tsc -b",
     "verify:migration": "cd .. && npx firebase emulators:exec --only firestore,auth --project pet-underwriter-ai 'cd clovara-life && VITE_USE_EMULATORS=1 npx vite build >/dev/null && (npx vite preview --port 4174 --host 127.0.0.1 >/dev/null 2>&1 &) ; sleep 3; node scripts/verify-migration.mjs'",
     "verify:stripe": "cd .. && npx firebase emulators:exec --only firestore,auth,functions --project pet-underwriter-ai 'cd clovara-life && sleep 6 && node scripts/verify-stripe.mjs'",

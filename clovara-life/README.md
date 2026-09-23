@@ -16,7 +16,7 @@ npm run build      # → dist/
 npm run icons      # regenerate public/og.png and the apple-touch icon
 npm run typecheck      # tsc -b. NOT `tsc --noEmit` — tsconfig.json is a solution
                        # file with "files": [], so that form checks nothing.
-npm run test:emulator  # 61 more against the real Firestore/Auth emulators and
+npm run test:emulator  # 69 more against the real Firestore/Auth emulators and
                        # the real firestore.rules — repository round-trips plus
                        # the denials (a stranger reading your pets, editing the
                        # append-only event log, reading it without admin)
