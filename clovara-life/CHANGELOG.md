@@ -5,6 +5,34 @@ has the commits.
 
 ## P3 — Launch moments (in progress)
 
+### Vaccine Autopilot (P3.4)
+
+- The core course for each species, with typical age windows computed from the
+  birthday, and somewhere to record what actually happened.
+- **Built as a record with a reminder attached, never a prescription.** A
+  vaccination schedule is a veterinary decision that depends on the brand used,
+  the local disease picture, the law where somebody lives, and the animal in
+  front of the vet. The disclaimer saying so sits **above** the schedule rather
+  than under it — whose decision this is needs saying before somebody reads a
+  list, not after.
+- **There is no "overdue" status, by design.** A dose can be past its typical
+  window, which is worth a call; calling it overdue would assert we know it was
+  not given, and the commonest reason a dose is missing here is that nobody
+  typed it in. The copy asks — "if they have already had these, record them" —
+  rather than accusing.
+- **Core only.** Leptospirosis, kennel cough, Lyme and feline leukaemia are
+  genuinely lifestyle-and-region dependent, so they appear as questions to ask a
+  vet and are never scheduled. A test greps the schedule to keep it that way.
+- **Rabies is law, not medicine, and the law differs** — mandated for most pets
+  in the US, not routinely given in the UK or Ireland outside travel. It carries
+  a "depends on local law" flag rather than being omitted or universalised.
+- Stops after the first adult booster. Later intervals depend on the product
+  used and on local guidance, and a date we cannot know should not appear as
+  though we know it.
+- Never says a pet is protected, immune or covered — whether a course worked is
+  a clinical question, and titres are not something we have.
+- 14 engine tests, 28 browser checks, most of them about what it must not say.
+
 ### Socialization Passport (P3.3)
 
 - Around a hundred firsts per species, grouped into pages: people, handling,

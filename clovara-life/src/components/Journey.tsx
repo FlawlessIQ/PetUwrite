@@ -11,6 +11,7 @@ import { AnnualReview } from './AnnualReview'
 import { ShareCard } from './ShareCard'
 import { FirstNight } from './FirstNight'
 import { Passport } from './Passport'
+import { Vaccines } from './Vaccines'
 import { reviewDue } from '../engine/review'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
@@ -130,6 +131,7 @@ export function Journey({
               onClose={() => onDismissArrival?.()}
             />
           )}
+          <Vaccines pet={pet} onUpdate={onUpdate} />
           <Passport pet={pet} onUpdate={onUpdate} />
           {showReview && onUpdate && (
             <AnnualReview

@@ -18,7 +18,7 @@ const STAGES=[
  ]},
  {name:"Puppyhood", age:"8 weeks – 1 year", job:"The loud, brief chapter where lifelong health and confidence are set — the plan is at its busiest when she is smallest.", moments:[
   ["Socialization Passport","~100 firsts before 16 weeks — umbrellas, skateboards, the vacuum — a stamped, gamified checklist backed by real behavioral evidence.","Care","built","habit"],
-  ["Vaccine Autopilot","The whole series scheduled, reminded, and reimbursed through her wellness rider.","Protect","launch","habit"],
+  ["Vaccine Autopilot","The whole core series laid out from her birthday, reminded, and recorded as it happens — with your vet still setting the schedule.","Protect","built","habit"],
   ["The Growth Reveal","'She'll be about 62 lbs' — her projected adult self, updated as she grows.","Plan","next","love"],
   ["Two-Minute Trainer","Daily micro-lessons matched to her age and breed temperament.","Care","next","habit"],
   ["Gotcha Day","Her homecoming anniversary, celebrated every year with a shareable card.","Care","launch","growth"]

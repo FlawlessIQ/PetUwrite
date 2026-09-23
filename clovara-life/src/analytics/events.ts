@@ -32,6 +32,8 @@ export const EVENT_NAMES = [
   'share_card',
   /** A Socialization Passport stamp was added or removed (SPEC §6.3). */
   'passport_stamp',
+  /** An owner recorded a vaccination date (SPEC §6.4). */
+  'vaccine_recorded',
 ] as const
 
 export type EventName = (typeof EVENT_NAMES)[number]

@@ -227,6 +227,14 @@ export interface PetProfile {
    */
   socialStamps?: string[]
   /**
+   * What the owner says was given, and when (SPEC §6.4).
+   *
+   * Their note to themselves. Not a medical record, never sent anywhere, and
+   * explicitly not evidence of anything — the absence of an entry means nobody
+   * typed it in, which is not the same as a dose not given.
+   */
+  vaccineRecords?: { doseId: string; givenOn: string }[]
+  /**
    * The healthy-years range as it stood at the last review.
    *
    * Two numbers, stored so that next year's review can say what we said last
