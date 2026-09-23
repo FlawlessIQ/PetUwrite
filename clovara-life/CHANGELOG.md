@@ -262,7 +262,42 @@ has the commits.
 - 21 layout tests, and 12 browser checks that read the pixels back — including
   that the card is not blank, which is the failure no pure test can see.
 
-## P1 — Onboarding & capture (in progress)
+## P1 — Onboarding & capture
+
+### The two blocked P1 items, built and switched off (P1.7 + conversational)
+
+Both were listed as blocked. Neither was blocked on engineering, so both are
+now built behind flags — the review and the key become a switch rather than a
+build, the same pattern as the rating adapter and the fitness provider.
+
+**Vet-record extraction (P1.7)**
+- `ExtractionProvider` is the contract; `StubExtractor` is what runs today.
+- **The stub returns nothing and says why.** It must never return
+  plausible-looking samples: a stub inventing "Rabies, 12 March 2025" would put
+  a fabricated vaccination in front of an owner to confirm, and a confirmed
+  fabrication is indistinguishable from a real record forever after.
+- **Invariant 8 is enforced by the types.** An extractor returns `Candidate`,
+  never a stored field, and the only route to data is `confirm()`.
+- `confirm()` stamps `extracted_confirmed` and **never `vet_verified`** — an
+  owner reading a scan and tapping yes is not a veterinary attestation, and
+  conflating the two would launder a guess into a medical fact.
+- **Confidence is never rendered.** A score shown as "94%" invites an owner to
+  trust the high ones without reading them, which is the exact failure
+  invariant 8 exists to prevent. It orders the list and nothing else.
+- **Reject is as prominent as confirm.** A flow where yes is a button and no is
+  a grey link collects agreement rather than confirmation.
+- Still gated on the Firestore security review: `records/` is denied outright in
+  both rule sets, so nothing could be uploaded even if the flag were flipped.
+
+**"Tell me about him" (P1-optional)**
+- Built as SPEC asks — "an alternate entry to the same capture functions, not a
+  fork". It produces the same `Candidate` list and goes through the same chips.
+- The deterministic fallback reads **weight and neuter status only**. A regex
+  that guessed at conditions would produce confident nonsense: "no history of
+  seizures" contains "seizures". Asserted with four negatives.
+- It gets "not neutered" right, which matters because the phrase contains
+  "neutered" and the wrong answer would be shown to an owner with our
+  confidence behind it.
 
 ### The annual re-projection (P1, SPEC §4.3)
 

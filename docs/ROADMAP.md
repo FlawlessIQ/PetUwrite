@@ -9,7 +9,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 | Phase | Scope | Status |
 |---|---|---|
 | P0 Foundations | Auth · Firestore households/pets · Stripe trial+sub · analytics gates · email skeleton | `shipped` 2026-09-23 — all eight steps deployed and verified on the live project |
-| P1 Onboarding & capture | 60s Tier-0 · live-updating reveal · silhouette BCS · condition chips · accuracy meter · photo · family circle · ask registry · Data Covenant page · annual re-projection · phase metrics · vaccine-card extraction w/ confirm-chips | `shipped except two blocked items` 2026-09-23 — Tier-0, Tier-1 sharpening, silhouette BCS, accuracy meter, Data Covenant, ask registry, family circle, photo, the annual re-projection and the four SPEC §4.3 metrics are all deployed and verified. **Blocked: vet-record extraction (P1.7)** on the Firestore security review and an LLM key. **Not started: "tell me about him" conversational onboarding**, which SPEC §4.3 marks P1-optional and which also needs an LLM key. |
+| P1 Onboarding & capture | 60s Tier-0 · live-updating reveal · silhouette BCS · condition chips · accuracy meter · photo · family circle · ask registry · Data Covenant page · annual re-projection · phase metrics · vaccine-card extraction w/ confirm-chips | `shipped except two blocked items` 2026-09-23 — Tier-0, Tier-1 sharpening, silhouette BCS, accuracy meter, Data Covenant, ask registry, family circle, photo, the annual re-projection and the four SPEC §4.3 metrics are all deployed and verified. **Both previously-blocked items are now BUILT AND SWITCHED OFF** (2026-09-23): vet-record extraction ships behind `EXTRACTION_ENABLED` with a `StubExtractor` that returns nothing and says why, and conversational onboarding behind `CONVERSATIONAL_ONBOARDING_ENABLED` with a deterministic fallback. The Firestore security review and an LLM key are now switches, not builds. `records/` stays denied in both rule sets until the review. |
 | P2 Protect attach | Pre-priced offer (smart default) · screen of truth · mock rating adapter · post-bind states | `shipped` 2026-09-23 — built against `MockRatingAdapter`; `canBind` is false and binding says so. Post-bind states land with the carrier programme, which is the only thing missing. LEGAL-REVIEW on disclosures, fraud notice and waiting periods. |
 | P3 Launch moments | **Arrival certificate `shipped` 2026-09-23** · **first-night mode `shipped` 2026-09-23** · **socialization passport `shipped` 2026-09-23** · **vaccine autopilot `shipped` 2026-09-23** · **"ate a grape" `shipped` 2026-09-23 (ER lookup behind a seam, needs a Places key)** · **sitter mode `shipped` 2026-09-23** · **gotcha day `shipped` 2026-09-23** · **renewal-explained `shipped dark` 2026-09-23 (flag off until real policies)** · **FitnessProvider adapter + simulated provider `shipped` 2026-09-23** | `shipped` 2026-09-23 — all ten P3 items built — building in SPEC §6 order; everything here is buildable without an external dependency except the nearest-open-ER lookup in "ate a grape", which needs a Places API key |
 
@@ -19,8 +19,8 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 |---|---|---|
 | Carrier program live (Accelerant): agreement, filed rates, licensing | Conor | in diligence |
 | Wearable partner signed (Tractive / Fi / PetPace diligence) | Conor + Matt | evaluating |
-| LEGAL-REVIEW items: disclosures, auto-renew (CA/NY), attestation, toxin copy, VAS state list | Counsel (to engage) | open |
-| Firestore security review before vet records ship | Conor (budget line exists) | `blocking P1.7` — everything else in P1 can ship without it; vet-record extraction cannot. records/ and events/ are denied outright meanwhile |
+| LEGAL-REVIEW items: disclosures, auto-renew (CA/NY), attestation, toxin copy, VAS state list | Counsel (to engage) | open — **now also the P2 attach disclosures, fraud notice and waiting periods (`data/attach.ts`), with four questions logged** |
+| Firestore security review before vet records ship | Conor (budget line exists) | `blocks switching on P1.7, not building it` — the extraction pipeline, confirm-chips and provenance stamping are built and tested behind a flag. records/ stays denied in both rule sets until the review. |
 | Breed data: McMillan 2024 Supp. Table 3 | Conor (file supplied 2026-09-22) | `shipped` — all 23 dog gaps closed; no illustrative dogs remain |
 | Breed data: Teng 2024 cat table (5 gaps), Abyssinian figure, AAHA Table 4 | Conor to obtain files | open |
 | Vet review pass: condition onset windows; clinical content ownership | Vet advisor | open — **now includes `data/toxins.ts`, which is the highest-stakes content in the product and is marked VET-REVIEW. It is bands-only and biased towards the phone call, but it has not been read by a vet.** |
@@ -39,7 +39,7 @@ Companion AI architecture (the big one) · claims operations design · affinity/
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 401 unit plus 94 emulator plus fifteen end-to-end scripts.
+- **SPEC §1 says "75+ tests".** It is 425 unit plus 94 emulator plus fifteen end-to-end scripts.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
@@ -62,4 +62,21 @@ Companion AI architecture (the big one) · claims operations design · affinity/
   what never will. Claims experience is kept because it is a filed rating factor rather than a
   behaviour score. **The journey copy still says the old thing and needs Conor's call** — it is the
   vision text, not mine to rewrite.
+
+## What is left
+
+Every buildable item on this roadmap is built. What remains is not engineering:
+
+| | Needed for |
+|---|---|
+| Firestore security review | switching on vet-record extraction |
+| An LLM key | extraction, and conversational onboarding |
+| Google Places key | nearest-open-ER in "ate a grape" |
+| Counsel | attach disclosures, fraud notice, CA/NY auto-renewal, Data Covenant, toxin copy, VAS state list |
+| A vet | `data/toxins.ts` above all, plus condition onset windows |
+| Carrier programme | real binding; `canBind` is false and the flow says so |
+| Clovara-entity Stripe account | anything going live |
+| Teng 2024 cat table, Abyssinian, AAHA Table 4 | the last five illustrative feline figures |
+| Wearable partner | a real `FitnessProvider`; the seam is built |
+| Stripe test key rotation | recommended after the earlier `.env` exposure |
 

@@ -14,6 +14,8 @@ export const EVENT_NAMES = [
   'tier1_field_added',
   'accuracy_score',
   'records_connected',
+  /** A confirm-chip was kept or discarded (invariant 8). */
+  'extraction_chip',
   'attach_offer_viewed',
   /** The screen of truth was reached (SPEC §5). */
   'attach_truth_viewed',
