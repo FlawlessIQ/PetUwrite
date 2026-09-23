@@ -9,6 +9,7 @@ import { Timeline } from './Timeline'
 import { Sharpen } from './Sharpen'
 import { AnnualReview } from './AnnualReview'
 import { ShareCard } from './ShareCard'
+import { FirstNight } from './FirstNight'
 import { reviewDue } from '../engine/review'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
@@ -116,6 +117,9 @@ export function Journey({
       {/* ── Body ─────────────────────────────────────────────────────────── */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
         <div className="space-y-5">
+          {/* Before everything else for the first 72 hours: at 2am nothing else
+              on this screen matters. */}
+          <FirstNight pet={pet} />
           {showArrival && (
             <ShareCard
               pet={pet}

@@ -5,6 +5,28 @@ has the commits.
 
 ## P3 — Launch moments (in progress)
 
+### First-Night Mode (P3.2)
+
+- Puppies and kittens under twelve weeks, for their first seventy-two hours.
+  Hour by hour, anchored on when they came home — not on their birthday.
+- **Designed for 2am on a phone**, which drove every decision: the block you are
+  in is open, everything else is collapsed, and **the escalation list is never
+  behind a tap.** Somebody frightened at three in the morning should not have to
+  expand anything to find out whether to ring a vet.
+- One escalation list, worded identically in every block. Those signs mean the
+  same thing at 3am on night one as at noon on day three, and varying the
+  wording would imply a variation in urgency that does not exist.
+- Every block says what is **normal** at that hour. The failure mode of a 2am
+  surface is panic at something ordinary — crying, not eating, a worse second
+  night than the first.
+- Nothing diagnoses, treats, or names a drug (invariant 4), asserted by a test
+  that greps the content for clinical vocabulary.
+- Separate content for kittens, which is a different animal in a different
+  situation — one room and a litter tray, not a crate and a lead.
+- A clock that went backwards renders hour zero rather than an empty screen:
+  somebody is standing in their hallway with a puppy.
+- 14 engine tests, 20 browser checks at phone width.
+
 ### Arrival Certificate, and the share pipeline (P3.1)
 
 - A card at pet creation: the photo, the name, "their plan begins today". Drawn
