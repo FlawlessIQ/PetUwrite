@@ -5,6 +5,32 @@ has the commits.
 
 ## P1 — Onboarding & capture (in progress)
 
+### The four numbers (P1 metrics, SPEC §4.3)
+
+- SPEC names four metrics for this phase — time-to-reveal, tier-1 completion in
+  the first session, accuracy-score distribution, records-connected by day 30.
+  The event vocabulary already declared three of them. **Nothing emitted any of
+  them**, so all four were unmeasured.
+- They are computed by a pure module with its own tests, separate from the page
+  that renders them: a number that decides whether onboarding is working should
+  be checkable without a browser.
+- **Demo pets are excluded from all four.** Max, Winston and Luna are walked
+  through live in front of investors — a session that reveals in two seconds and
+  sharpens nothing. Left in, they would report a wonderful time-to-reveal and a
+  terrible tier-1 completion, both meaningless.
+- Time-to-reveal is measured from the first onboarding step, not from page load,
+  and the stopwatch answers **once**. A returning user reaching their own pet in
+  a second is not an onboarding, and counting it would flatter the number into
+  uselessness.
+- Sessions that answered nothing stay in the tier-1 denominator. A rate that
+  silently drops them is always 100%.
+- Where there is no data the dashboard says so — "nobody is 30 days old yet",
+  not `0%`. Records-connected reads zero because P1.7 is blocked, and the page
+  says that on the page rather than leaving someone to infer a usage problem.
+- 25 unit tests on the arithmetic, and an 18-check browser run proving the
+  events actually fire — including that no pet name, email, or free text ever
+  reaches the analytics store.
+
 ### A photo of them (P1.4)
 
 - A pet can have a photo. Taken with the camera on a phone, or picked from a

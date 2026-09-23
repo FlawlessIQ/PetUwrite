@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { PetProfile } from './data/types'
 import { DEMO_PETS } from './data/demoPets'
 import { project } from './engine/project'
+import { planAccuracy } from './engine/accuracy'
 import { Journey } from './components/Journey'
 import { Onboarding } from './components/Onboarding'
 import { Home } from './components/Home'
@@ -16,6 +17,7 @@ import { AccountSheet } from './components/AccountSheet'
 import { useAuth } from './auth/AuthProvider'
 import { displayNameFor } from './auth/session'
 import { track } from './analytics/track'
+import { takeTimeToReveal } from './analytics/timing'
 import { clearLocalPets } from './store/localPets'
 import { usePets } from './store/usePets'
 import { ImportPrompt } from './components/ImportPrompt'
@@ -296,7 +298,33 @@ export default function App() {
     if (surface !== 'life' || !active) return
     if (revealed.current.has(active.id)) return
     revealed.current.add(active.id)
-    track('reveal_viewed', { pet_is_demo: !!active.demo, species: active.species })
+    // Present only when this reveal followed an onboarding in this session.
+    // A returning user reaches their pet in about a second, and counting that
+    // as a time-to-reveal would flatter the number into meaninglessness.
+    const ms = takeTimeToReveal()
+    track('reveal_viewed', {
+      pet_is_demo: !!active.demo,
+      species: active.species,
+      ...(ms === null ? {} : { ms_to_reveal: ms }),
+    })
+  }, [surface, active])
+
+  /**
+   * The accuracy-score distribution SPEC §4.3 asks for.
+   *
+   * Emitted when the score for a pet reaches a band it has not reached before
+   * in this session, rather than on every tap: a score that rises 4 → 18 → 31
+   * as somebody answers is one pet sharpening, and recording each step would
+   * make the distribution a picture of how much they fiddled.
+   */
+  const scoreBands = useRef(new Map<string, number>())
+  useEffect(() => {
+    if (surface !== 'life' || !active) return
+    const score = planAccuracy(active).score
+    const band = Math.floor(score / 10)
+    if ((scoreBands.current.get(active.id) ?? -1) >= band) return
+    scoreBands.current.set(active.id, band)
+    track('accuracy_score', { score, pet_is_demo: !!active.demo, species: active.species })
   }, [surface, active])
 
   const trialDays = trialDaysLeft(membership.entitlement, new Date())

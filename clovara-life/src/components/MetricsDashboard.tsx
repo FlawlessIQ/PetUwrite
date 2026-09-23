@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { queuedCount } from '../analytics/track'
 import type { AnalyticsEvent, EventName } from '../analytics/events'
+import {
+  accuracyDistribution,
+  recordsByDay30,
+  tier1Completion,
+  timeToReveal,
+} from '../analytics/phaseMetrics'
 
 /**
  * The internal metrics page (SPEC §3: "a tiny internal dashboard page,
@@ -18,7 +24,6 @@ interface Totals {
   uniqueVisitors: Record<string, Set<string>>
   firstSeen: Map<string, number>
   lastSeen: Map<string, number>
-  accuracyScores: number[]
   total: number
 }
 
@@ -27,7 +32,6 @@ function summarise(events: AnalyticsEvent[]): Totals {
   const uniqueVisitors: Record<string, Set<string>> = {}
   const firstSeen = new Map<string, number>()
   const lastSeen = new Map<string, number>()
-  const accuracyScores: number[] = []
 
   for (const e of events) {
     counts[e.name] = (counts[e.name] ?? 0) + 1
@@ -39,11 +43,8 @@ function summarise(events: AnalyticsEvent[]): Totals {
       const prevLast = lastSeen.get(e.visitorId)
       if (prevLast === undefined || t > prevLast) lastSeen.set(e.visitorId, t)
     }
-    if (e.name === 'accuracy_score' && typeof e.props.score === 'number') {
-      accuracyScores.push(e.props.score)
-    }
   }
-  return { counts, uniqueVisitors, firstSeen, lastSeen, accuracyScores, total: events.length }
+  return { counts, uniqueVisitors, firstSeen, lastSeen, total: events.length }
 }
 
 /**
@@ -119,6 +120,14 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
 
   const t = events ? summarise(events) : null
   const retention = t ? weekFourRetention(t) : null
+  const phase = events
+    ? {
+        reveal: timeToReveal(events),
+        tier1: tier1Completion(events),
+        accuracy: accuracyDistribution(events),
+        records: recordsByDay30(events, new Date()),
+      }
+    : null
   const top = t ? (t.uniqueVisitors.reveal_viewed?.size ?? 0) : 0
 
   return (
@@ -174,9 +183,112 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
             </ul>
           </section>
 
+          {phase && (
+            <section className="card overflow-hidden">
+              <div className="border-b border-line bg-cream/50 px-5 py-4">
+                <h2 className="font-display text-[20px] text-ink">Phase 1 — the four numbers</h2>
+                <p className="mt-1 text-[13.5px] text-muted">
+                  SPEC §4.3's metrics for onboarding. Demo pets are excluded from all four —
+                  Max, Winston and Luna are walked through in front of investors, which is a
+                  session that reveals in seconds and sharpens nothing.
+                </p>
+              </div>
+              <ul className="divide-y divide-line text-[15px]">
+                <li className="px-5 py-3">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="text-ink">Time to the reveal</span>
+                    <span className="text-deep">
+                      {phase.reveal.medianSeconds === null
+                        ? 'nobody has onboarded yet'
+                        : `${phase.reveal.medianSeconds.toFixed(0)}s median`}
+                    </span>
+                  </div>
+                  {phase.reveal.samples > 0 && (
+                    <p className="mt-1 text-[13px] text-muted">
+                      {phase.reveal.p90Seconds?.toFixed(0)}s at the 90th ·{' '}
+                      {phase.reveal.withinTarget} of {phase.reveal.samples} inside SPEC's
+                      sixty-second target
+                    </p>
+                  )}
+                </li>
+
+                <li className="px-5 py-3">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="text-ink">Tier-1 answered in the first session</span>
+                    <span className="text-deep">
+                      {phase.tier1.rate === null
+                        ? 'no onboardings yet'
+                        : `${Math.round(phase.tier1.rate * 100)}%`}
+                    </span>
+                  </div>
+                  {phase.tier1.sessions > 0 && (
+                    <p className="mt-1 text-[13px] text-muted">
+                      {phase.tier1.completedAny} of {phase.tier1.sessions} sessions ·{' '}
+                      {phase.tier1.meanFields.toFixed(1)} fields each on average, sessions that
+                      answered nothing included
+                    </p>
+                  )}
+                </li>
+
+                <li className="px-5 py-3">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="text-ink">Plan accuracy</span>
+                    <span className="text-deep">
+                      {phase.accuracy.medianScore === null
+                        ? 'no scores yet'
+                        : `${Math.round(phase.accuracy.medianScore)}% median`}
+                    </span>
+                  </div>
+                  {phase.accuracy.visitors > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {phase.accuracy.bands.map((b) => {
+                        const pct = Math.round((b.count / phase.accuracy.visitors) * 100)
+                        return (
+                          <div key={b.label} className="flex items-center gap-3">
+                            <span className="w-[66px] shrink-0 text-[13px] text-muted">
+                              {b.label}
+                            </span>
+                            <span className="h-2 flex-1 overflow-hidden rounded-full bg-cream">
+                              <span
+                                className="block h-full rounded-full bg-forest"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </span>
+                            <span className="w-[34px] shrink-0 text-right text-[13px] text-muted">
+                              {b.count}
+                            </span>
+                          </div>
+                        )
+                      })}
+                      <p className="pt-1 text-[13px] text-muted">
+                        One score per visitor — their highest.
+                      </p>
+                    </div>
+                  )}
+                </li>
+
+                <li className="px-5 py-3">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="text-ink">Records connected by day 30</span>
+                    <span className="text-deep">
+                      {phase.records.eligible === 0
+                        ? 'nobody is 30 days old yet'
+                        : `${phase.records.connected} of ${phase.records.eligible}`}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[13px] text-muted">
+                    Vet-record extraction (P1.7) is blocked on the Firestore security review, so
+                    this reads zero because the feature does not exist — not because nobody uses
+                    it.
+                  </p>
+                </li>
+              </ul>
+            </section>
+          )}
+
           <section className="card overflow-hidden">
             <div className="border-b border-line bg-cream/50 px-5 py-4">
-              <h2 className="font-display text-[20px] text-ink">Retention and sharpness</h2>
+              <h2 className="font-display text-[20px] text-ink">Retention and volume</h2>
             </div>
             <ul className="divide-y divide-line text-[15px]">
               <li className="flex items-baseline justify-between gap-4 px-5 py-3">
@@ -185,14 +297,6 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
                   {retention && retention.eligible > 0
                     ? `${retention.retained} of ${retention.eligible}`
                     : 'nobody is 28 days old yet'}
-                </span>
-              </li>
-              <li className="flex items-baseline justify-between gap-4 px-5 py-3">
-                <span className="text-ink">Median plan accuracy</span>
-                <span className="text-deep">
-                  {t.accuracyScores.length
-                    ? `${[...t.accuracyScores].sort((a, b) => a - b)[Math.floor(t.accuracyScores.length / 2)]}%`
-                    : 'no scores yet'}
                 </span>
               </li>
               <li className="flex items-baseline justify-between gap-4 px-5 py-3">

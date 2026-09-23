@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { track } from '../analytics/track'
 import type {
   ActivityLevel,
   BodyConditionScore,
@@ -51,6 +52,9 @@ export function Sharpen({
   const [justAnswered, setJustAnswered] = useState<Set<string>>(() => new Set())
   const answer = (field: string, patch: Partial<PetProfile>) => {
     setJustAnswered((prev) => new Set(prev).add(field))
+    // Every Tier-1 answer goes through here, which is why the event does too:
+    // a second emission site is how a funnel quietly stops counting something.
+    track('tier1_field_added', { field, pet_is_demo: !!pet.demo, species: pet.species })
     onUpdate(patch)
   }
   const breed = findBreed(pet.breedId)

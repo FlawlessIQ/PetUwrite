@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { markOnboardingStart } from '../analytics/timing'
 import type { Breed, PetProfile, Sex, SizeClass, Species } from '../data/types'
 import { MIXED_BY_SIZE, SIZE_LABELS, breedsFor, findBreed } from '../data/engine'
 import { CloverMark } from './CloverMark'
@@ -89,6 +90,9 @@ function birthDateFromMonths(months: number, now: Date): string {
 }
 
 export function Onboarding({ onComplete, onCancel }: Props) {
+  // Starts the one stopwatch SPEC §4.1 implies with its sixty-second target.
+  // Here rather than at app load: a page view is not an onboarding.
+  useEffect(() => markOnboardingStart(), [])
   const [step, setStep] = useState(0)
   const [species, setSpecies] = useState<Species | null>(null)
   const [breedId, setBreedId] = useState<string | null>(null)

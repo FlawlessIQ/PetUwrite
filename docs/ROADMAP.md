@@ -38,7 +38,7 @@ Companion AI architecture (the big one) · claims operations design · affinity/
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 217 unit plus 69 emulator plus six end-to-end scripts.
+- **SPEC §1 says "75+ tests".** It is 242 unit plus 94 emulator plus seven end-to-end scripts.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
