@@ -1,9 +1,11 @@
 {
   "name": "clovara-life-functions",
-  "description": "Cloud Functions for Clovara Life. Separate codebase from the underwriting functions — see firebase.json.",
+  "description": "Cloud Functions for Clovara Life. Separate codebase from the underwriting functions \u2014 see firebase.json. Secrets live in Secret Manager; local overrides go in .secret.local, NEVER .env (which firebase deploys as plain env vars).",
   "private": true,
   "main": "index.js",
-  "engines": { "node": "20" },
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "test": "node --test"
   },

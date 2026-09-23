@@ -30,8 +30,12 @@ const FN = `http://127.0.0.1:5001/${PROJECT}/us-central1`
 const FS = `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents`
 const AUTH = `http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1`
 
+// .secret.local, not .env: the Functions emulator reads secret overrides from
+// this file, and — the reason it matters — `.env` is UPLOADED AND DEPLOYED as
+// plain environment variables, which both leaks the key into the deployed
+// service and collides with the same name declared via defineSecret().
 const env = Object.fromEntries(
-  readFileSync(new URL('../functions/.env', import.meta.url), 'utf8')
+  readFileSync(new URL('../functions/.secret.local', import.meta.url), 'utf8')
     .split('\n')
     .filter((l) => l.includes('=') && !l.startsWith('#'))
     .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]),
