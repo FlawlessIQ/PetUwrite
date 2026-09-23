@@ -3,6 +3,30 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## P3 — Launch moments (in progress)
+
+### Arrival Certificate, and the share pipeline (P3.1)
+
+- A card at pet creation: the photo, the name, "their plan begins today". Drawn
+  on the device with canvas — no dependency, no upload, and it never reaches our
+  servers unless the owner shares it.
+- **The projection is deliberately not on it.** SPEC §6.1 lists photo, name and
+  the line, and that is the whole card. A healthy-years range is a claim about
+  one identifiable animal, and putting it on something built to be posted turns
+  a private planning number into a prediction strangers read as a deadline.
+- Share sheet first on a phone, download everywhere else. Cancelling the sheet
+  is a decision, not a failure — it does not fall through to a download nobody
+  asked for.
+- **The photo is optional at three levels**: absent, failed to load, or loaded
+  from a cross-origin URL that taints the canvas so `toBlob` throws a mile from
+  the cause. All three fall back to the initial and still produce a card.
+- Waits for `document.fonts.ready`. Drawing before the bundled faces arrive
+  produces a card in Georgia that looks fine enough that nobody notices it is
+  wrong until it is on somebody's timeline.
+- The same pipeline serves Gotcha Day (§6.7), as SPEC asks.
+- 21 layout tests, and 12 browser checks that read the pixels back — including
+  that the card is not blank, which is the failure no pure test can see.
+
 ## P1 — Onboarding & capture (in progress)
 
 ### The annual re-projection (P1, SPEC §4.3)

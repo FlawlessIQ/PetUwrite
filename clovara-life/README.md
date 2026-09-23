@@ -11,7 +11,7 @@ Vite + React + TypeScript + Tailwind. No component libraries.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 268 engine, platform and data-integrity tests
+npm test           # 289 engine, platform and data-integrity tests
 npm run build      # → dist/
 npm run icons      # regenerate public/og.png and the apple-touch icon
 npm run typecheck      # tsc -b. NOT `tsc --noEmit` — tsconfig.json is a solution
@@ -30,6 +30,8 @@ npm run verify:onboarding # 17 checks driving Tier 0 → reveal → Tier 1: five
                        # questions with no account wall, then every answer
                        # moving the projection and persisting
 npm run verify:household # 16 checks on invite and join, 11 of them refusals
+npm run verify:share   # 12 checks on the Arrival Certificate, including reading the
+                       # rendered pixels back — a blank card passes every pure test
 npm run verify:review  # 23 checks on the annual re-projection: when it is due,
                        # what it re-asks, and that finishing it stops it coming back
 npm run verify:metrics # 18 checks that the four SPEC §4.3 metrics are actually

@@ -11,7 +11,7 @@ const STAGES=[
  ]},
  {name:"The welcome", age:"Day one · week one", job:"Sixty seconds in, the family sees something no pet product has ever shown them — and the whole household joins her circle.", moments:[
   ["The Plan Reveal","Breed, birthday, weight — and her healthy-years outlook, breed risks, and life plan appear. The 'it knows my dog' moment.","Plan","built","growth"],
-  ["Arrival Certificate","A beautiful shareable card: her photo, her name, 'her plan begins today.' A keepsake that's also organic acquisition.","Plan","launch","growth"],
+  ["Arrival Certificate","A beautiful shareable card: her photo, her name, 'her plan begins today.' A keepsake that's also organic acquisition.","Plan","built","growth"],
   ["The Family Circle","Everyone in the household joins her pack with one code — the same plan, the same record, whoever opens the app.","Care","built","habit"],
   ["First-Night Mode","2am, the puppy is crying, and the app is awake with you — calm, specific, hour by hour.","Care","launch","love"],
   ["Protect Her Now","Insurance offered at the emotional peak of the reveal — one tap, quote pre-filled from her plan, covered before she has any history.","Protect","built","revenue"]

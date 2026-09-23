@@ -339,11 +339,18 @@ export default function App() {
     window.scrollTo({ top: 0 })
   }
 
+  /**
+   * The pet made in this session, so the Arrival Certificate (SPEC §6.1) is
+   * offered once, at creation, and not to everyone who opens the app.
+   */
+  const [arrivalFor, setArrivalFor] = useState<string | null>(null)
+
   const addPet = (pet: PetProfile) => {
     void persistPet(pet)
     setActiveId(pet.id)
     setAdding(false)
     setSurface('life')
+    setArrivalFor(pet.id)
     track('pet_created', { species: pet.species, has_weight: pet.weightLb > 0 })
     window.scrollTo({ top: 0 })
   }
@@ -484,6 +491,8 @@ export default function App() {
                 onUpdate={
                   active.demo ? undefined : (patch) => void updatePet(active.id, patch)
                 }
+                showArrival={arrivalFor === active.id}
+                onDismissArrival={() => setArrivalFor(null)}
               />
             )}
           </div>

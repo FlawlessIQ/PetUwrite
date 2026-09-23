@@ -28,6 +28,8 @@ export const EVENT_NAMES = [
   'signed_in',
   'pet_created',
   'pets_imported',
+  /** An Arrival or Gotcha Day card was offered and acted on (SPEC §6.1, §6.7). */
+  'share_card',
 ] as const
 
 export type EventName = (typeof EVENT_NAMES)[number]

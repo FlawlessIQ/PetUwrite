@@ -8,6 +8,7 @@ import { RiskCards } from './RiskCards'
 import { Timeline } from './Timeline'
 import { Sharpen } from './Sharpen'
 import { AnnualReview } from './AnnualReview'
+import { ShareCard } from './ShareCard'
 import { reviewDue } from '../engine/review'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
@@ -25,11 +26,16 @@ export function Journey({
   pet,
   householdId = null,
   onUpdate,
+  showArrival = false,
+  onDismissArrival,
 }: {
   pet: PetProfile
   householdId?: string | null
   /** Absent for demo pets — they are a fixed exhibit, not someone's record. */
   onUpdate?: (patch: Partial<PetProfile>) => void
+  /** The Arrival Certificate, offered once at creation (SPEC §6.1). */
+  showArrival?: boolean
+  onDismissArrival?: () => void
 }) {
   const [levers, setLevers] = useState<LeverState>({})
   /**
@@ -110,6 +116,15 @@ export function Journey({
       {/* ── Body ─────────────────────────────────────────────────────────── */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
         <div className="space-y-5">
+          {showArrival && (
+            <ShareCard
+              pet={pet}
+              kind="arrival"
+              breedName={projection.breed.name}
+              ageLabel={ageLabel(projection.ageYears)}
+              onClose={() => onDismissArrival?.()}
+            />
+          )}
           {showReview && onUpdate && (
             <AnnualReview
               pet={pet}
