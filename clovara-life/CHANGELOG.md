@@ -5,6 +5,32 @@ has the commits.
 
 ## P3 — Launch moments (in progress)
 
+### Socialization Passport (P3.3)
+
+- Around a hundred firsts per species, grouped into pages: people, handling,
+  sounds, surfaces, things, places, animals, and being a pet.
+- **The two windows are not the same, and this is the thing most products get
+  wrong.** A puppy's sensitive period runs roughly 3–14 weeks, so one homed at
+  eight arrives with most of it ahead of them. A kitten's runs roughly 2–7 and
+  is therefore usually **over before they are adopted**. Gamifying a closed
+  window would sell somebody a race they never had the chance to enter, so the
+  kitten copy says plainly that the early part belonged to whoever raised them
+  — and that what remains still works.
+- **Nothing rewards speed.** No streak, no daily target, no countdown that
+  shames. The failure mode of a gamified checklist is somebody pushing a
+  frightened animal through the last few stamps to finish the page, so the
+  principle line says a frightened animal has not been socialised — they have
+  been frightened, and it does not count.
+- Qualitative only, as SPEC requires: "they met this and it was fine", never how
+  often or for how long. Asserted by a test that greps the content for counts,
+  durations and protocols.
+- When a puppy may safely meet unknown dogs is sent to their vet rather than
+  answered — it depends on vaccination and on where they live.
+- Stamps are stored as ids, so the copy can be rewritten without rewriting
+  anybody's history, and a retired stamp stops counting rather than quietly
+  filling the passport.
+- 18 engine tests, 23 browser checks.
+
 ### First-Night Mode (P3.2)
 
 - Puppies and kittens under twelve weeks, for their first seventy-two hours.

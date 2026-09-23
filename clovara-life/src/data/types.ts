@@ -219,6 +219,14 @@ export interface PetProfile {
   knownSince?: string
   lastReviewedAt?: string
   /**
+   * Socialization Passport stamps collected (SPEC §6.3), by stamp id.
+   *
+   * Ids rather than labels so the copy can be rewritten without rewriting
+   * everybody's history, and a set rather than counts because SPEC asks for
+   * qualitative marks only — "they met this and it was fine", never how often.
+   */
+  socialStamps?: string[]
+  /**
    * The healthy-years range as it stood at the last review.
    *
    * Two numbers, stored so that next year's review can say what we said last

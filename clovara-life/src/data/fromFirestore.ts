@@ -196,6 +196,8 @@ export function profileFromFirestore(stored: unknown): MappedPet | null {
   if (lastReviewed !== undefined) profile.lastReviewedAt = lastReviewed
   const lastRange = fieldValue(p.lastReviewedRange, isRange)
   if (lastRange !== undefined) profile.lastReviewedRange = lastRange
+  const stamps = fieldValue(p.socialStamps, isStringArray)
+  if (stamps !== undefined) profile.socialStamps = stamps
   const approx = fieldValue(p.birthDateApprox, isBoolean)
   if (approx !== undefined) profile.birthDateApprox = approx
   const bcs = fieldValue(p.bodyConditionScore, isBodyScore)
@@ -267,6 +269,7 @@ export function storedFromProfile(
   if (profile.knownSince) out.knownSince = f(profile.knownSince)
   if (profile.lastReviewedAt) out.lastReviewedAt = f(profile.lastReviewedAt)
   if (profile.lastReviewedRange) out.lastReviewedRange = f(profile.lastReviewedRange)
+  if (profile.socialStamps?.length) out.socialStamps = f(profile.socialStamps)
   // Only write what was actually answered. weightLb of 0 means "not given".
   if (Number.isFinite(profile.weightLb) && profile.weightLb > 0) {
     out.weightLb = f(profile.weightLb)

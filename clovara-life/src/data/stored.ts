@@ -80,6 +80,7 @@ export interface StoredPet {
   knownSince?: Field<string>
   lastReviewedAt?: Field<string>
   lastReviewedRange?: Field<{ low: number; high: number }>
+  socialStamps?: Field<string[]>
   neuterAgeBand?: Field<NeuterAgeBand>
   weightLb?: Field<number>
   bodyConditionScore?: Field<BodyConditionScore>

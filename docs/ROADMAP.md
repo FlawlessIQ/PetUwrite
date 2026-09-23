@@ -11,7 +11,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 | P0 Foundations | Auth · Firestore households/pets · Stripe trial+sub · analytics gates · email skeleton | `shipped` 2026-09-23 — all eight steps deployed and verified on the live project |
 | P1 Onboarding & capture | 60s Tier-0 · live-updating reveal · silhouette BCS · condition chips · accuracy meter · photo · family circle · ask registry · Data Covenant page · annual re-projection · phase metrics · vaccine-card extraction w/ confirm-chips | `shipped except two blocked items` 2026-09-23 — Tier-0, Tier-1 sharpening, silhouette BCS, accuracy meter, Data Covenant, ask registry, family circle, photo, the annual re-projection and the four SPEC §4.3 metrics are all deployed and verified. **Blocked: vet-record extraction (P1.7)** on the Firestore security review and an LLM key. **Not started: "tell me about him" conversational onboarding**, which SPEC §4.3 marks P1-optional and which also needs an LLM key. |
 | P2 Protect attach | Pre-priced offer (smart default) · screen of truth · mock rating adapter · post-bind states | planned |
-| P3 Launch moments | **Arrival certificate `shipped` 2026-09-23** · **first-night mode `shipped` 2026-09-23** · socialization passport · vaccine autopilot · "ate a grape" · sitter mode · gotcha day · renewal-explained (flagged) · FitnessProvider adapter + simulated provider | in progress — building in SPEC §6 order; everything here is buildable without an external dependency except the nearest-open-ER lookup in "ate a grape", which needs a Places API key |
+| P3 Launch moments | **Arrival certificate `shipped` 2026-09-23** · **first-night mode `shipped` 2026-09-23** · **socialization passport `shipped` 2026-09-23** · vaccine autopilot · "ate a grape" · sitter mode · gotcha day · renewal-explained (flagged) · FitnessProvider adapter + simulated provider | in progress — building in SPEC §6 order; everything here is buildable without an external dependency except the nearest-open-ER lookup in "ate a grape", which needs a Places API key |
 
 ## External dependencies (not engineering; engineering must not fake them)
 
@@ -38,7 +38,7 @@ Companion AI architecture (the big one) · claims operations design · affinity/
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 303 unit plus 94 emulator plus ten end-to-end scripts.
+- **SPEC §1 says "75+ tests".** It is 321 unit plus 94 emulator plus eleven end-to-end scripts.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
