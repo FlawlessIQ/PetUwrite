@@ -5,6 +5,29 @@ has the commits.
 
 ## P3 — Launch moments (in progress)
 
+### Renewal, Explained (P3.8) — behind a flag
+
+- Ships dark, per SPEC §6.8: nothing can be renewed until the carrier program is
+  live, and a renewal screen driven by illustrative numbers is a screen about
+  nothing.
+- **It departs from the journey copy, deliberately.** The map describes this as
+  "why her premium is what it is — and what her care this year kept it from
+  being". The second half cannot be built: the Data Covenant promises premiums
+  do not move on this data, *"not up, and not down as a reward for behaving"*.
+  A renewal screen crediting an owner's care would break the covenant in the
+  direction people find pleasant — which is exactly the direction a product like
+  this drifts.
+- **Claims experience is not a behaviour score**, and that distinction is what
+  the screen turns on. Whether a policy was claimed on is a filed rating factor
+  everywhere insurance is sold. How somebody looked after their pet is not, and
+  must never become one. The copy says so in both the claimed and unclaimed case.
+- The second half of the page is the point: it names what will **never** be in
+  the price — the companion conversations, the tracker, the streaks, the score,
+  and whether you opened the app at all. At renewal that sentence is worth more
+  than a discount, and it is what makes the first half believable.
+- A test greps every generated line for *streak*, *tracker*, *your care*,
+  *reward* and *discount for*, in both the claimed and unclaimed case.
+
 ### Gotcha Day (P3.7)
 
 - The homecoming anniversary, with a card through the same pipeline as the
