@@ -196,10 +196,13 @@ describe('profileFromFirestore — untrusted input', () => {
   it('rejects a field whose envelope is wrong, however plausible the value', () => {
     // A raw value with no provenance is not a Field. Accepting it would create
     // stored data with no answer to "who said this", breaking invariant 8.
+    // The field is left ABSENT, not defaulted — and the engine resolves absent
+    // to its zero-delta reference, so the projection is unchanged either way.
+    // What differs is that the accuracy meter still knows to ask.
     const mapped = profileFromFirestore(
       tier0Only({ activity: 'high' } as unknown as Partial<StoredPet>),
     )!
-    expect(mapped.profile.activity).toBe('moderate')
+    expect(mapped.profile.activity).toBeUndefined()
     expect(mapped.assumed.some((a) => a.field === 'activity')).toBe(true)
 
     const badProv = profileFromFirestore(
@@ -207,7 +210,7 @@ describe('profileFromFirestore — untrusted input', () => {
         activity: { value: 'high', provenance: 'vibes', updatedAt: NOW.toISOString(), updatedBy: UID },
       } as unknown as Partial<StoredPet>),
     )!
-    expect(badProv.profile.activity).toBe('moderate')
+    expect(badProv.profile.activity).toBeUndefined()
   })
 
   it('is pure — same input, same output', () => {

@@ -89,9 +89,12 @@ export function clovaraScore(profile: PetProfile, projection: Projection): Score
   const weightPts =
     bc === 'ideal' ? 35 : bc === 'lean' ? (isCat ? 20 : 33) : 12
 
-  const dentalPts = profile.dental === 'daily' ? 25 : profile.dental === 'weekly' ? 15 : 5
-  const activityPts = profile.activity === 'high' ? 20 : profile.activity === 'moderate' ? 14 : 6
-  const dietPts = profile.diet === 'measured' ? 10 : profile.diet === 'free-fed' ? 4 : 6
+  const dental = profile.dental ?? 'weekly'
+  const activity = profile.activity ?? 'moderate'
+  const diet = profile.diet ?? 'unsure'
+  const dentalPts = dental === 'daily' ? 25 : dental === 'weekly' ? 15 : 5
+  const activityPts = activity === 'high' ? 20 : activity === 'moderate' ? 14 : 6
+  const dietPts = diet === 'measured' ? 10 : diet === 'free-fed' ? 4 : 6
   const neuterPts = profile.neutered ? 10 : 6
 
   const bands: ScoreBand[] = [
@@ -118,9 +121,9 @@ export function clovaraScore(profile: PetProfile, projection: Projection): Score
       earned: dentalPts,
       max: 25,
       detail:
-        profile.dental === 'daily'
+        dental === 'daily'
           ? 'Daily, which is the standard the guidelines describe.'
-          : profile.dental === 'weekly'
+          : dental === 'weekly'
             ? 'Weekly. A reasonable place to build from.'
             : 'Rarely — the most common answer, and the easiest to change.',
     },
@@ -130,9 +133,9 @@ export function clovaraScore(profile: PetProfile, projection: Projection): Score
       earned: activityPts,
       max: 20,
       detail:
-        profile.activity === 'high'
+        activity === 'high'
           ? 'Well above average for the breed.'
-          : profile.activity === 'moderate'
+          : activity === 'moderate'
             ? 'Steady and regular, which matters more than intensity.'
             : 'Low. Worth building gradually rather than in weekend bursts.',
     },
@@ -142,9 +145,9 @@ export function clovaraScore(profile: PetProfile, projection: Projection): Score
       earned: dietPts,
       max: 10,
       detail:
-        profile.diet === 'measured'
+        diet === 'measured'
           ? 'Measured meals. This is how body condition holds.'
-          : profile.diet === 'free-fed'
+          : diet === 'free-fed'
             ? 'Free fed. Portion control is where weight gain usually starts.'
             : 'Not recorded. Measuring meals is the change with the most behind it.',
     },
@@ -398,9 +401,9 @@ export interface RewardsView {
  */
 export function buildRewards(profile: PetProfile, projection: Projection): RewardsView {
   const dentalDays =
-    profile.dental === 'daily' ? seeded(profile.id + 'd', 24, 61) : profile.dental === 'weekly' ? seeded(profile.id + 'd', 4, 9) : seeded(profile.id + 'd', 0, 2)
+    (profile.dental ?? 'weekly') === 'daily' ? seeded(profile.id + 'd', 24, 61) : (profile.dental ?? 'weekly') === 'weekly' ? seeded(profile.id + 'd', 4, 9) : seeded(profile.id + 'd', 0, 2)
   const walkDays =
-    profile.activity === 'high' ? seeded(profile.id + 'w', 18, 44) : profile.activity === 'moderate' ? seeded(profile.id + 'w', 6, 16) : seeded(profile.id + 'w', 1, 4)
+    (profile.activity ?? 'moderate') === 'high' ? seeded(profile.id + 'w', 18, 44) : (profile.activity ?? 'moderate') === 'moderate' ? seeded(profile.id + 'w', 6, 16) : seeded(profile.id + 'w', 1, 4)
 
   const points =
     600 +

@@ -3,6 +3,38 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## P1 — Onboarding & capture (in progress)
+
+### Plan-accuracy meter (P1.1)
+
+- `planAccuracy(profile)` in the engine package: pure, deterministic, 27 tests.
+  Shown on Home until the plan is >90% sharp, per SPEC §4.2.
+- **It measures projection sharpness, not engagement.** A field earns points in
+  proportion to how much it moves or narrows the projection, so the meter and
+  the engine cannot disagree. A photo is worth nothing — it is the most
+  satisfying thing an owner can add and it sharpens the projection not at all.
+- **Tier 0 is worth 40 of the 100.** The breed baseline and the age *are* the
+  projection; everything in Tier 1 adjusts a number those two produced. Scoring
+  them at zero would tell someone their reveal was worthless at the moment they
+  were most impressed by it.
+- **You cannot reach 100% on a mixed breed**, and the meter says why. A
+  size-class fallback means we genuinely know less, and no amount of answering
+  fixes it. Ceilings: 85% mixed, 88% illustrative, 94% derived.
+- Only asks what applies. A dog is never marked down for the cat question; a
+  small dog is never asked about neuter age, because Hart found no effect there.
+- "None that I know of" is a real answer (invariant 9). `conditionsReviewed`
+  records that the owner saw the list and chose none, so the meter stops asking
+  rather than nagging forever at someone whose pet is simply healthy.
+
+### Tier 0 / Tier 1 split in the model
+
+`activity`, `dental`, `diet` and `neutered` are now **optional** on `PetProfile`.
+SPEC §4.1 puts them after the reveal, and while they were required the meter
+could not tell "answered" from "defaulted" — it was claiming to know the daily
+routine of a pet whose owner had answered five questions. The engine resolves
+absent to its own zero-delta reference, so projections are unchanged; what
+changed is that the difference is now representable.
+
 ## P0 — Foundations (complete)
 
 ### Entitlement gating (P0.6)

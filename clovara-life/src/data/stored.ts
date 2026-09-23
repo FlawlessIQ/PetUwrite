@@ -72,6 +72,7 @@ export interface StoredPet {
   // ── Tier 1 — every one optional ──────────────────────────────────────────
   sex?: Field<Sex>
   neutered?: Field<boolean>
+  conditionsReviewed?: Field<boolean>
   neuterAgeBand?: Field<NeuterAgeBand>
   weightLb?: Field<number>
   conditionIds?: Field<string[]>

@@ -1,8 +1,11 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  base: '/',
   plugins: [react()],
-  build: { outDir: 'dist', sourcemap: false },
+  test: {
+    // `functions/` is a separate CommonJS codebase tested with node:test
+    // (`npm test --prefix functions`). Vitest must not try to collect it.
+    exclude: ['**/node_modules/**', '**/dist/**', 'functions/**'],
+  },
 })

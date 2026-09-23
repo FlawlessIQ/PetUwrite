@@ -129,7 +129,13 @@ export interface PetProfile {
   /** ISO date string. */
   birthDate: string
   sex: Sex
-  neutered: boolean
+  /**
+   * Optional since SPEC §4.1 moved this out of Tier 0 — the reveal happens
+   * before anyone is asked. Absent means "not told yet", which the engine
+   * treats as no adjustment either way, NOT as intact. `false` is a real answer
+   * that someone gave.
+   */
+  neutered?: boolean
   /**
    * Optional, dogs only. Absent means the owner was not asked or did not know,
    * and nothing is inferred from that. Never affects the projection.
@@ -137,9 +143,16 @@ export interface PetProfile {
   neuterAgeBand?: NeuterAgeBand
   weightLb: number
   conditionIds: string[]
-  activity: ActivityLevel
-  dental: DentalRoutine
-  diet: DietQuality
+  /**
+   * Tier 1, so all optional (SPEC §4.1/§4.2). Absent means nobody has been
+   * asked — which is NOT the same as the middle setting, even though the engine
+   * treats both as no adjustment. The accuracy meter needs to tell them apart
+   * or it would claim to know the daily routine of a pet whose owner has
+   * answered five questions.
+   */
+  activity?: ActivityLevel
+  dental?: DentalRoutine
+  diet?: DietQuality
   /**
    * Optional, cats only. Absent is treated as the reference (`indoor-outdoor`),
    * so a pet saved before this field existed keeps the number its owner already
@@ -150,6 +163,16 @@ export interface PetProfile {
   demo?: boolean
   /** Optional colour-of-story detail shown on the journey. */
   headline?: string
+  /**
+   * The owner has seen the conditions list and made a choice — including
+   * choosing none.
+   *
+   * Without this, "no conditions declared" and "never asked" are the same empty
+   * array, and the accuracy meter would nag forever at someone whose pet is
+   * simply healthy. Invariant 9 makes "none that I know of" a real answer, and
+   * this is what records that it was given.
+   */
+  conditionsReviewed?: boolean
 }
 
 export interface LifeStage {

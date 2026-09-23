@@ -1,3 +1,4 @@
+import { accuracyLine, planAccuracy } from '../engine/accuracy'
 import type { PetProfile, Projection } from '../data/types'
 import { buildCoverage, buildHome, buildRewards } from '../engine/platform'
 import { useState } from 'react'
@@ -87,6 +88,7 @@ export function Home({
   onNavigate: (s: Surface) => void
 }) {
   const [scoreOpen, setScoreOpen] = useState(false)
+  const accuracy = planAccuracy(pet)
   const h = buildHome(pet, projection)
   const rewards = buildRewards(pet, projection)
   const coverage = buildCoverage(pet, projection)
@@ -100,6 +102,59 @@ export function Home({
           {pet.name}'s day
         </h1>
       </header>
+
+      {/* ── Plan accuracy (SPEC §4.2) — shown until the plan is >90% sharp ── */}
+      {accuracy.showOnHome && (
+        <section
+          aria-labelledby="accuracy-heading"
+          className="card mb-5 overflow-hidden border-forest/25 bg-sage/30"
+        >
+          <div className="px-5 py-4 sm:px-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h2 id="accuracy-heading" className="font-display text-[19px] leading-tight text-ink">
+                {accuracyLine(pet.name, accuracy)}
+              </h2>
+              <span className="font-display text-[22px] font-semibold text-deep">
+                {accuracy.score}%
+              </span>
+            </div>
+
+            <div
+              className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/70"
+              role="progressbar"
+              aria-valuenow={accuracy.score}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${pet.name}'s plan accuracy`}
+            >
+              <div
+                className="h-full rounded-full bg-forest transition-[width] duration-700 ease-out"
+                style={{ width: `${accuracy.score}%` }}
+              />
+            </div>
+
+            {accuracy.nextBest && (
+              <p className="mt-3 text-[14px] leading-relaxed text-ink/80">
+                {accuracy.nextBest.benefit}
+              </p>
+            )}
+            {accuracy.ceiling && (
+              <p className="mt-2 text-[13px] leading-relaxed text-muted">
+                {accuracy.ceiling.reason}
+              </p>
+            )}
+            {accuracy.nextBest && (
+              <button
+                type="button"
+                onClick={() => onNavigate('life')}
+                className="pill-primary mt-4"
+              >
+                Add {accuracy.nextBest.label}
+              </button>
+            )}
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-start">
         <div className="space-y-5">

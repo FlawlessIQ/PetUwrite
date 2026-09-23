@@ -1,6 +1,8 @@
 import type {
+  ActivityLevel,
   BodyCondition,
   Breed,
+  DentalRoutine,
   EvidenceTier,
   Lever,
   LifeStage,
@@ -254,6 +256,9 @@ function buildLevers(
   bodyCondition: BodyCondition,
   outdoor: OutdoorAccess,
   age: number,
+  /** Already resolved against overrides and the zero-delta defaults. */
+  dental: DentalRoutine,
+  activity: ActivityLevel,
 ): Lever[] {
   const isCat = breed.species === 'cat'
   const w = (c: BodyCondition) => weightDeltaFor(breed.species, breed.sizeClass, c)
@@ -303,7 +308,7 @@ function buildLevers(
       evidenceTier: 'associational',
       evidenceNote:
         'We weight this one carefully. Periodontal disease is associated with kidney disease in both dogs and cats, but no study shows dental care extends lifespan, and AAHA calls the causal story oversimplified. We move the projection modestly and say so.',
-      current: profile.dental,
+      current: dental,
       options: [
         { value: 'daily', label: 'Daily', delta: DENTAL_DELTAS.daily, note: 'The standard the guidelines describe, and realistic once it is a habit.' },
         { value: 'weekly', label: 'Weekly', delta: DENTAL_DELTAS.weekly, note: 'Better than nothing and a reasonable place to build from.' },
@@ -319,7 +324,7 @@ function buildLevers(
       evidenceNote: isCat
         ? 'No feline lifespan study exists here. We treat activity as a healthspan factor and keep its weight small.'
         : 'The Dog Aging Project found higher activity associated with markedly lower odds of cognitive dysfunction, but the study is cross-sectional and its authors state plainly that causality cannot be determined. So this moves the number gently.',
-      current: profile.activity,
+      current: activity,
       options: [
         { value: 'high', label: 'High', delta: ACTIVITY_DELTAS.high, note: isCat ? 'Hunting play several times a day, climbing, real movement.' : 'Long daily exercise, varied and consistent.' },
         { value: 'moderate', label: 'Moderate', delta: ACTIVITY_DELTAS.moderate, note: isCat ? 'Some daily play, moves around the home freely.' : 'A regular daily walk and some play.' },
@@ -398,8 +403,11 @@ export function project(profile: PetProfile, options: ProjectOptions = {}): Proj
 
   const measured = readBodyCondition(profile.weightLb, breed)
   const bodyCondition = options.overrides?.weight ?? measured
-  const dental = options.overrides?.dental ?? profile.dental
-  const activity = options.overrides?.activity ?? profile.activity
+  // Absent resolves to the engine's own zero-delta reference, so an unanswered
+  // question costs nothing and claims nothing. The difference between "not
+  // asked" and "answered as the middle" lives on the profile, not here.
+  const dental = options.overrides?.dental ?? profile.dental ?? 'weekly'
+  const activity = options.overrides?.activity ?? profile.activity ?? 'moderate'
   // Absent means the owner was never asked. The reference costs them nothing,
   // which is the only honest thing to do with a question we did not put.
   const outdoor: OutdoorAccess =
@@ -513,7 +521,7 @@ export function project(profile: PetProfile, options: ProjectOptions = {}): Proj
     currentStage,
     stages,
     riskCards: buildRiskCards(breed, age, declared, profile),
-    levers: buildLevers(breed, { ...profile, dental, activity }, bodyCondition, outdoor, age),
+    levers: buildLevers(breed, profile, bodyCondition, outdoor, age, dental, activity),
     breed,
     factors,
     widened,

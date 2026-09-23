@@ -41,12 +41,13 @@ export function isValidPet(p: unknown): p is PetProfile {
     !!findBreed(x.breedId) &&
     typeof x.birthDate === 'string' &&
     !Number.isNaN(new Date(x.birthDate).getTime()) &&
+    (x.neutered === undefined || typeof x.neutered === 'boolean') &&
     Array.isArray(x.conditionIds) &&
     typeof x.weightLb === 'number' &&
     Number.isFinite(x.weightLb) &&
-    (x.dental === 'daily' || x.dental === 'weekly' || x.dental === 'rarely') &&
-    (x.activity === 'low' || x.activity === 'moderate' || x.activity === 'high') &&
-    (x.diet === 'measured' || x.diet === 'free-fed' || x.diet === 'unsure')
+    optionalOneOf(x.dental, new Set(['daily', 'weekly', 'rarely'])) &&
+    optionalOneOf(x.activity, new Set(['low', 'moderate', 'high'])) &&
+    optionalOneOf(x.diet, new Set(['measured', 'free-fed', 'unsure']))
   )
 }
 

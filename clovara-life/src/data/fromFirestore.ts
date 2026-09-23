@@ -63,12 +63,8 @@ export interface MappedPet {
  */
 const NEUTRAL = {
   sex: 'female',
-  neutered: false,
   weightLb: 0,
   conditionIds: [] as string[],
-  activity: 'moderate',
-  dental: 'weekly',
-  diet: 'unsure',
 } as const
 
 /**
@@ -117,13 +113,6 @@ export function profileFromFirestore(stored: unknown): MappedPet | null {
     breedId,
     birthDate,
     sex: take(p.sex, isSex, NEUTRAL.sex, 'sex', 'Not recorded — it does not move the projection.'),
-    neutered: take(
-      p.neutered,
-      isBoolean,
-      NEUTRAL.neutered,
-      'neutered',
-      "Not recorded, so we have not applied any neutering effect either way. Tell us and we'll sharpen this.",
-    ),
     weightLb: take(
       p.weightLb,
       isFiniteNumber,
@@ -138,22 +127,48 @@ export function profileFromFirestore(stored: unknown): MappedPet | null {
       'conditionIds',
       "Nothing declared. We're reading this as nothing known rather than nothing there.",
     ),
-    activity: take(
-      p.activity,
-      isActivity,
-      NEUTRAL.activity,
-      'activity',
-      "Assuming a typical day until you tell us otherwise — that's the middle setting, not a guess in either direction.",
-    ),
-    dental: take(
-      p.dental,
-      isDental,
-      NEUTRAL.dental,
-      'dental',
-      'Assuming the middle of the range, which moves the projection by nothing.',
-    ),
-    diet: take(p.diet, isDiet, NEUTRAL.diet, 'diet', 'Not recorded.'),
   }
+
+  const optional = <T>(
+    raw: unknown,
+    ok: (v: unknown) => v is T,
+    key: 'activity' | 'dental' | 'diet',
+    note: string,
+  ) => {
+    const v = fieldValue(raw, ok)
+    if (v === undefined) assumed.push({ field: key, note })
+    else Object.assign(profile, { [key]: v })
+  }
+  optional(
+    p.activity,
+    isActivity,
+    'activity',
+    "Assuming a typical day until you tell us otherwise — that's the middle setting, not a guess in either direction.",
+  )
+  optional(
+    p.dental,
+    isDental,
+    'dental',
+    'Assuming the middle of the range, which moves the projection by nothing.',
+  )
+  optional(p.diet, isDiet, 'diet', 'Not recorded.')
+
+  // `neutered` is left ABSENT when nobody has said. The engine adds its bonus
+  // only when the field is true, so absent costs nothing — but writing `false`
+  // would record "intact" as though someone had told us, which is a different
+  // claim and one the accuracy meter would then stop asking about.
+  const neutered = fieldValue(p.neutered, isBoolean)
+  if (neutered === undefined) {
+    assumed.push({
+      field: 'neutered',
+      note: "Not recorded, so we have not applied any neutering effect either way. Tell us and we'll sharpen this.",
+    })
+  } else {
+    profile.neutered = neutered
+  }
+
+  const reviewed = fieldValue(p.conditionsReviewed, isBoolean)
+  if (reviewed !== undefined) profile.conditionsReviewed = reviewed
 
   // Optional engine fields: absent means absent. The engine already treats a
   // missing outdoorAccess as its reference and a missing neuterAgeBand as "not
@@ -204,14 +219,15 @@ export function storedFromProfile(
     breedId: f(profile.breedId),
     birthDate: f(profile.birthDate),
     sex: f(profile.sex),
-    neutered: f(profile.neutered),
     conditionIds: f(profile.conditionIds ?? []),
-    activity: f(profile.activity),
-    dental: f(profile.dental),
-    diet: f(profile.diet),
   }
+  if (profile.activity) out.activity = f(profile.activity)
+  if (profile.dental) out.dental = f(profile.dental)
+  if (profile.diet) out.diet = f(profile.diet)
 
   if (ctx.importedFrom) out.importedFrom = ctx.importedFrom
+  if (typeof profile.neutered === 'boolean') out.neutered = f(profile.neutered)
+  if (profile.conditionsReviewed) out.conditionsReviewed = f(profile.conditionsReviewed)
   // Only write what was actually answered. weightLb of 0 means "not given".
   if (Number.isFinite(profile.weightLb) && profile.weightLb > 0) {
     out.weightLb = f(profile.weightLb)
