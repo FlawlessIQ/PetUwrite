@@ -44,6 +44,10 @@ export function isValidPet(p: unknown): p is PetProfile {
     (x.neutered === undefined || typeof x.neutered === 'boolean') &&
     (x.birthDateApprox === undefined || typeof x.birthDateApprox === 'boolean') &&
     (x.conditionsReviewed === undefined || typeof x.conditionsReviewed === 'boolean') &&
+    (x.photo === undefined ||
+      (!!x.photo &&
+        typeof x.photo === 'object' &&
+        typeof (x.photo as Record<string, unknown>).avatarUrl === 'string')) &&
     (x.bodyConditionScore === undefined ||
       (typeof x.bodyConditionScore === 'number' && x.bodyConditionScore >= 1 && x.bodyConditionScore <= 5)) &&
     Array.isArray(x.conditionIds) &&

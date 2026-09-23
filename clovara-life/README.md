@@ -11,12 +11,12 @@ Vite + React + TypeScript + Tailwind. No component libraries.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 203 engine, platform and data-integrity tests
+npm test           # 217 engine, platform and data-integrity tests
 npm run build      # → dist/
 npm run icons      # regenerate public/og.png and the apple-touch icon
 npm run typecheck      # tsc -b. NOT `tsc --noEmit` — tsconfig.json is a solution
                        # file with "files": [], so that form checks nothing.
-npm run test:emulator  # 37 more against the real Firestore/Auth emulators and
+npm run test:emulator  # 61 more against the real Firestore/Auth emulators and
                        # the real firestore.rules — repository round-trips plus
                        # the denials (a stranger reading your pets, editing the
                        # append-only event log, reading it without admin)
@@ -29,6 +29,10 @@ npm run verify:stripe  # 25 checks on a real Stripe test clock: trial starts,
 npm run verify:onboarding # 17 checks driving Tier 0 → reveal → Tier 1: five
                        # questions with no account wall, then every answer
                        # moving the projection and persisting
+npm run verify:household # 16 checks on invite and join, 11 of them refusals
+npm run verify:photo   # 14 checks uploading a 10MB phone photo: the avatar and
+                       # the 2048px copy that appear, the household path they
+                       # land under, and the stranger who cannot read either
 
 # End-to-end demo checks: crash recovery, routing, iOS zoom, overflow, share tags.
 # Point it at a preview server or the deployed URL.

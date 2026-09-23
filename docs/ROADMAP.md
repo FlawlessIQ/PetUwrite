@@ -38,7 +38,12 @@ Companion AI architecture (the big one) · claims operations design · affinity/
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 149 unit plus 47 emulator plus four end-to-end scripts.
+- **SPEC §1 says "75+ tests".** It is 217 unit plus 61 emulator plus six end-to-end scripts.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
+- **SPEC §4.2 says "store original" for the pet photo; we store a 2048px long-edge JPEG.**
+  A 12MB HEIC straight off a phone serves nobody: it costs the owner their data allowance,
+  costs us storage forever, and half of it cannot be decoded in a browser. 2048px is ample
+  for the body-condition comparison the original was being kept for. The avatar is a
+  separate 512px square, so the analysable copy is never the cropped one.

@@ -15,6 +15,7 @@
  */
 import type {
   ActivityLevel,
+  PetProfile,
   BodyConditionScore,
   DentalRoutine,
   DietQuality,
@@ -83,6 +84,7 @@ export interface StoredPet {
   dental?: Field<DentalRoutine>
   diet?: Field<DietQuality>
   outdoorAccess?: Field<OutdoorAccess>
+  photo?: Field<PetProfile['photo']>
   headline?: Field<string>
 }
 

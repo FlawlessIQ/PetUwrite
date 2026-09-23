@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 // `?raw` rather than node:fs — the app project deliberately carries no node
 // types, and Vite hands us the source either way.
 import sharpenSource from '../components/Sharpen.tsx?raw'
+import photoPickerSource from '../components/PhotoPicker.tsx?raw'
 import { ASK_REGISTRY, asksFor, fieldsOn } from './askRegistry'
 import type { PetProfile } from './types'
 
@@ -98,6 +99,25 @@ describe('asksFor narrows to the pet in front of you', () => {
   })
 })
 
+/**
+ * Every field Sharpen asks for, however it is rendered.
+ *
+ * Most go through <Question field="…">, which reads its copy from the accuracy
+ * meter. The photo cannot — it is worth zero accuracy points by design — so it
+ * carries a `data-ask` marker instead. Both count, or the enforcement below
+ * would have a hole exactly where the exception is.
+ */
+function askedFields(): string[] {
+  // Both Sharpen and the components it composes — the photo picker is its own
+  // file, and an enforcement test that only read one of them would have a hole
+  // exactly where the exception is.
+  const sources = [sharpenSource, photoPickerSource]
+  return sources.flatMap((src) => [
+    ...[...src.matchAll(/<Question\s+field="([a-zA-Z]+)"/g)].map((m) => m[1]),
+    ...[...src.matchAll(/data-ask="([a-zA-Z]+)"/g)].map((m) => m[1]),
+  ])
+}
+
 describe('the registry is enforced, not advisory', () => {
   /**
    * The load-bearing test. Sharpen renders the Tier-1 questions; if someone
@@ -106,7 +126,7 @@ describe('the registry is enforced, not advisory', () => {
    * in the right place".
    */
   it('Sharpen asks for nothing the registry does not place on the Life surface', () => {
-    const asked = [...sharpenSource.matchAll(/<Question\s+field="([a-zA-Z]+)"/g)].map((m) => m[1])
+    const asked = askedFields()
     expect(asked.length, 'no <Question field="..."> found — did the markup change?').toBeGreaterThan(
       4,
     )
@@ -117,7 +137,7 @@ describe('the registry is enforced, not advisory', () => {
   })
 
   it('the registry does not place anything on Life that Sharpen forgot to ask', () => {
-    const asked = new Set([...sharpenSource.matchAll(/<Question\s+field="([a-zA-Z]+)"/g)].map((m) => m[1]))
+    const asked = new Set(askedFields())
     for (const field of fieldsOn('life')) {
       expect(asked.has(field), `registry places "${field}" on 'life' but Sharpen never asks it`).toBe(
         true,

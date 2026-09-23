@@ -35,6 +35,19 @@ import {
 } from './stored'
 import { findBreed } from './engine'
 
+/** Untrusted like everything else out of Firestore — a half-written photo
+ *  record must not put a broken image on every screen. */
+const isPhoto = (v: unknown): v is PetProfile['photo'] => {
+  if (!v || typeof v !== 'object') return false
+  const p = v as Record<string, unknown>
+  return (
+    typeof p.avatarUrl === 'string' &&
+    p.avatarUrl.startsWith('http') &&
+    typeof p.avatarPath === 'string' &&
+    typeof p.fullPath === 'string'
+  )
+}
+
 /** A field we had no answer for, and what we did about it. */
 export interface Assumption {
   field: string
@@ -190,6 +203,8 @@ export function profileFromFirestore(stored: unknown): MappedPet | null {
   }
   const headline = fieldValue(p.headline, isString)
   if (headline) profile.headline = headline
+  const photo = fieldValue(p.photo, isPhoto)
+  if (photo) profile.photo = photo
 
   return { profile, assumed }
 }
@@ -234,6 +249,7 @@ export function storedFromProfile(
   if (typeof profile.neutered === 'boolean') out.neutered = f(profile.neutered)
   if (profile.birthDateApprox) out.birthDateApprox = f(profile.birthDateApprox)
   if (profile.bodyConditionScore) out.bodyConditionScore = f(profile.bodyConditionScore)
+  if (profile.photo) out.photo = f(profile.photo)
   if (profile.conditionsReviewed) out.conditionsReviewed = f(profile.conditionsReviewed)
   // Only write what was actually answered. weightLb of 0 means "not given".
   if (Number.isFinite(profile.weightLb) && profile.weightLb > 0) {

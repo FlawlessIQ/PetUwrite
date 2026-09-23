@@ -189,6 +189,21 @@ export interface PetProfile {
   outdoorAccess?: OutdoorAccess
   /** Set only on the seeded demo pets. */
   demo?: boolean
+  /**
+   * Their photo. `avatarUrl` is what every surface renders; `fullPath` is the
+   * copy kept for a future body-condition trend (SPEC §4.2).
+   *
+   * Worth nothing to the accuracy meter on purpose — it is the most satisfying
+   * thing an owner can add and it sharpens the projection not at all.
+   */
+  photo?: {
+    fullPath: string
+    avatarPath: string
+    avatarUrl: string
+    uploadedAt: string
+    width: number
+    height: number
+  }
   /** Optional colour-of-story detail shown on the journey. */
   headline?: string
   /**

@@ -11,6 +11,7 @@ import { Shop } from './components/Shop'
 import { Coverage } from './components/Coverage'
 import { TabBar, TopNav, SURFACES, type Surface } from './components/Nav'
 import { CloverMark, Wordmark } from './components/CloverMark'
+import { PetAvatar } from './components/PetAvatar'
 import { AccountSheet } from './components/AccountSheet'
 import { useAuth } from './auth/AuthProvider'
 import { displayNameFor } from './auth/session'
@@ -109,6 +110,7 @@ function PetSwitcher({
         aria-haspopup="menu"
         className="flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-2 text-[14.5px] font-medium text-ink transition hover:border-forest/50"
       >
+        {active && <PetAvatar pet={active} size={22} className="-ml-1" />}
         <span className="max-w-[8rem] truncate">{active ? active.name : 'Choose a pet'}</span>
         <span aria-hidden="true" className="text-[11px] text-muted">
           ▾
@@ -133,7 +135,10 @@ function PetSwitcher({
                 p.id === activeId ? 'bg-sage text-deep' : 'hover:bg-cream'
               }`}
             >
-              <span className="truncate">{p.name}</span>
+              <span className="flex min-w-0 items-center gap-2.5">
+                <PetAvatar pet={p} size={26} />
+                <span className="truncate">{p.name}</span>
+              </span>
               <span className="shrink-0 text-[12px] text-muted">{p.demo ? 'Demo' : 'Yours'}</span>
             </button>
           ))}
@@ -447,6 +452,7 @@ export default function App() {
             {surface === 'life' && (
               <Journey
                 pet={active}
+                householdId={householdId}
                 onUpdate={
                   active.demo ? undefined : (patch) => void updatePet(active.id, patch)
                 }

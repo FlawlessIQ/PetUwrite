@@ -10,6 +10,7 @@ import type {
 import { JOINT_RISK_WEIGHT_LB, NEUTER_AGE_LABELS, conditionsFor, findBreed } from '../data/engine'
 import { planAccuracy } from '../engine/accuracy'
 import { BCS_LABELS, Silhouette } from './Silhouette'
+import { PhotoPicker } from './PhotoPicker'
 
 /**
  * Tier 1 — sharpening, after the reveal (SPEC §4.2).
@@ -31,9 +32,11 @@ import { BCS_LABELS, Silhouette } from './Silhouette'
  */
 export function Sharpen({
   pet,
+  householdId,
   onUpdate,
 }: {
   pet: PetProfile
+  householdId: string | null
   onUpdate: (patch: Partial<PetProfile>) => void
 }) {
   const [showAnswered, setShowAnswered] = useState(false)
@@ -320,6 +323,8 @@ export function Sharpen({
         />
       </Question>
 
+
+      <PhotoPicker pet={pet} householdId={householdId} onUpdate={onUpdate} />
 
       <div className="border-t border-line bg-cream/50 px-5 py-3.5 sm:px-6">
         <button

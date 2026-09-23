@@ -71,6 +71,44 @@ service firebase.storage {
                    && request.resource.contentType.matches('application/pdf|text/plain');
     }
     
+    // ═══════════════════════════════════════════════════════════════════════
+    // CLOVARA LIFE
+    //
+    // Purely additive. Nothing above this comment is changed, and nothing here
+    // touches the underwriting paths — note that the existing /pets/{petId}
+    // block above is keyed on the underwriting `pets` collection, which is a
+    // different thing from a Life pet. Life paths are prefixed `life/` so the
+    // two can never be confused by a glob.
+    //
+    // Authority is the Firestore household, exactly as in firestore.rules: if
+    // you are in the household's memberIds you may read and write its pets'
+    // photos, and otherwise you may not.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    function lifeIsHouseholdMember(householdId) {
+      return isAuthenticated()
+        && firestore.exists(/databases/(default)/documents/households/$(householdId))
+        && request.auth.uid in firestore.get(/databases/(default)/documents/households/$(householdId)).data.memberIds;
+    }
+
+    match /life/households/{householdId}/pets/{petId}/{fileName} {
+      allow read: if lifeIsHouseholdMember(householdId);
+      // Images only, and small ones: the client resizes to a 2048px long edge
+      // before uploading, so anything near this ceiling did not come from our
+      // uploader.
+      allow write: if lifeIsHouseholdMember(householdId)
+                   && request.resource.size < 12 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if lifeIsHouseholdMember(householdId);
+    }
+
+    // Vet records land here in P1.7 and are DENIED until the security review
+    // SPEC §7 requires has happened. Denied explicitly rather than left to the
+    // catch-all, so removing this line has to be a decision someone makes.
+    match /life/households/{householdId}/pets/{petId}/records/{allPaths=**} {
+      allow read, write: if false;
+    }
+
     // Deny all other access
     match /{allPaths=**} {
       allow read, write: if false;

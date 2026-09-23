@@ -7,6 +7,7 @@ import { Methodology } from './Methodology'
 import { RiskCards } from './RiskCards'
 import { Timeline } from './Timeline'
 import { Sharpen } from './Sharpen'
+import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
 
 function ageLabel(years: number) {
@@ -20,9 +21,11 @@ function ageLabel(years: number) {
 
 export function Journey({
   pet,
+  householdId = null,
   onUpdate,
 }: {
   pet: PetProfile
+  householdId?: string | null
   /** Absent for demo pets — they are a fixed exhibit, not someone's record. */
   onUpdate?: (patch: Partial<PetProfile>) => void
 }) {
@@ -48,9 +51,12 @@ export function Journey({
           {breed.name} · {ageLabel(projection.ageYears)} ·{' '}
           {pet.neutered ? (pet.sex === 'female' ? 'Spayed female' : 'Neutered male') : pet.sex === 'female' ? 'Female' : 'Male'}
         </p>
-        <h1 className="mt-1.5 font-display text-[38px] leading-[1.08] text-ink sm:text-[46px]">
-          {pet.name}
-        </h1>
+        <div className="mt-1.5 flex items-center gap-3.5">
+          <PetAvatar pet={pet} size={56} />
+          <h1 className="font-display text-[38px] leading-[1.08] text-ink sm:text-[46px]">
+            {pet.name}
+          </h1>
+        </div>
         {pet.headline && (
           <p className="mt-2 max-w-[62ch] text-[15.5px] leading-relaxed text-muted">{pet.headline}</p>
         )}
@@ -92,7 +98,7 @@ export function Journey({
       {/* ── Body ─────────────────────────────────────────────────────────── */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
         <div className="space-y-5">
-          {onUpdate && <Sharpen pet={pet} onUpdate={onUpdate} />}
+          {onUpdate && <Sharpen pet={pet} householdId={householdId} onUpdate={onUpdate} />}
           <Timeline projection={projection} name={pet.name} />
         </div>
         <div className="space-y-5">

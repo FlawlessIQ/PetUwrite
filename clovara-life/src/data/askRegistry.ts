@@ -109,6 +109,17 @@ export const ASK_REGISTRY: Ask[] = [
     applies: answered('dental'),
   },
 
+  {
+    // Worth zero to the accuracy meter on purpose — it sharpens nothing. It is
+    // on the Life surface because it is where someone is already looking at
+    // their pet, not because the plan needs it.
+    field: 'photo',
+    trigger: 'life',
+    question: 'Add a photo of them?',
+    benefit: 'It makes the app theirs, and we keep a larger copy so their shape can be compared over time.',
+    applies: (pet) => pet.photo === undefined,
+  },
+
   // ── Contextual: asked where the answer does something ────────────────────
   {
     // SPEC §4.3's own example. Diet is worth almost nothing to the projection

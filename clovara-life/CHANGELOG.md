@@ -5,6 +5,25 @@ has the commits.
 
 ## P1 — Onboarding & capture (in progress)
 
+### A photo of them (P1.4)
+
+- A pet can have a photo. Taken with the camera on a phone, or picked from a
+  library anywhere else.
+- **It is worth zero to the accuracy meter, on purpose.** Everything else on the
+  Life surface sharpens the projection; this one does not, and the app does not
+  pretend otherwise. It is offered because it is the screen where someone is
+  already looking at their pet.
+- Two copies are kept: a 512px square avatar, and a 2048px long-edge copy for
+  the body-condition trend SPEC §4.2 wants later. A 10.2MB phone photo becomes
+  1.65MB, in the browser, before anything is uploaded.
+- The square crop is biased **up** on a portrait photo — a dead-centre crop of a
+  standing dog is a picture of its chest.
+- With no photo, the fallback is the pet's initial in their own colour. Never a
+  stock animal icon: a generic dog silhouette standing in for a specific dog is
+  worse than a letter.
+- Stored per household and per pet, under rules that deny a stranger the full
+  copy even if they know its exact path — asserted by a check that tries it.
+
 ### Ask registry (P1.6)
 
 - SPEC §4.3's declarative table — field, trigger screen, benefit copy — as
