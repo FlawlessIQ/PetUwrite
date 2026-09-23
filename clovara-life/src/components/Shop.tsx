@@ -3,6 +3,8 @@ import type { PetProfile, Projection } from '../data/types'
 import { recommendProducts } from '../engine/platform'
 import { CLAIM_STRENGTH_LABELS, type ClaimStrength } from '../data/products'
 import { MemberGate } from './MemberGate'
+import { asksFor } from '../data/askRegistry'
+import { ContextualAsk } from './ContextualAsk'
 import { CloverMark } from './CloverMark'
 
 const STRENGTH_STYLE: Record<ClaimStrength, string> = {
@@ -17,6 +19,7 @@ export function Shop({
   member,
   busy,
   onStartTrial,
+  onUpdate,
 }: {
   pet: PetProfile
   projection: Projection
@@ -24,7 +27,13 @@ export function Shop({
   member: boolean
   busy: boolean
   onStartTrial: () => void
+  /** Absent for demo pets, which are a fixed exhibit. */
+  onUpdate?: (patch: Partial<PetProfile>) => void
 }) {
+  const [dismissedAsk, setDismissedAsk] = useState(false)
+  // SPEC §4.3 places the diet question here rather than in onboarding: it is
+  // worth almost nothing to the projection and quite a lot to a shelf of food.
+  const dietAsk = onUpdate && !dismissedAsk ? asksFor('shop', pet).find((a) => a.field === 'diet') : undefined
   const [open, setOpen] = useState<string | null>(null)
   const recs = recommendProducts(pet, projection)
   const picked = recs.filter((r) => r.matched.length > 0 || r.stages)
@@ -44,6 +53,20 @@ export function Shop({
           not because someone merchandised a shelf.
         </p>
       </header>
+
+      {dietAsk && onUpdate && (
+        <ContextualAsk
+          ask={dietAsk}
+          value={pet.diet}
+          onAnswer={(v) => onUpdate({ diet: v })}
+          onDismiss={() => setDismissedAsk(true)}
+          options={[
+            { value: 'measured' as const, label: 'Measured meals' },
+            { value: 'free-fed' as const, label: 'Free fed' },
+            { value: 'unsure' as const, label: 'Not sure' },
+          ]}
+        />
+      )}
 
       <section aria-labelledby="picked-heading">
         <h2 id="picked-heading" className="label mb-3">

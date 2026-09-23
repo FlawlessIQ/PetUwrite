@@ -15,7 +15,8 @@
     "typecheck": "tsc -b",
     "verify:migration": "cd .. && npx firebase emulators:exec --only firestore,auth --project pet-underwriter-ai 'cd clovara-life && VITE_USE_EMULATORS=1 npx vite build >/dev/null && (npx vite preview --port 4174 --host 127.0.0.1 >/dev/null 2>&1 &) ; sleep 3; node scripts/verify-migration.mjs'",
     "verify:stripe": "cd .. && npx firebase emulators:exec --only firestore,auth,functions --project pet-underwriter-ai 'cd clovara-life && sleep 6 && node scripts/verify-stripe.mjs'",
-    "verify:onboarding": "node scripts/verify-onboarding.mjs"
+    "verify:onboarding": "node scripts/verify-onboarding.mjs",
+    "verify:household": "cd .. && npx firebase emulators:exec --only firestore,auth,functions --project pet-underwriter-ai 'cd clovara-life && sleep 6 && node scripts/verify-household.mjs'"
   },
   "dependencies": {
     "@fontsource/playfair-display": "^5.3.0",

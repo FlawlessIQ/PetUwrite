@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { displayNameFor, looksLikeEmail } from '../auth/session'
 import { CloverMark } from './CloverMark'
 import { isMember, trialDaysLeft, type Entitlement } from '../store/membership'
+import { FamilyCircle } from './FamilyCircle'
 
 /**
  * The account panel. Deliberately a modal rather than a route: signing in is
@@ -19,6 +20,7 @@ export function AccountSheet({
   onStartTrial,
   membershipBusy,
   membershipError,
+  memberCount,
 }: {
   onClose: () => void
   entitlement: Entitlement
@@ -26,6 +28,7 @@ export function AccountSheet({
   onStartTrial: () => void
   membershipBusy: boolean
   membershipError: string | null
+  memberCount: number
 }) {
   const {
     user,
@@ -107,6 +110,8 @@ export function AccountSheet({
                     : 'Start your 7-day free trial'}
               </button>
             </div>
+
+            <FamilyCircle memberCount={memberCount} />
 
             {/* Invariant 5: linked from settings. */}
             <a

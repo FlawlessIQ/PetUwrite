@@ -639,6 +639,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Household invites. NO client access at all, in either direction.
+    //
+    // An invite code is a key to everything known about someone's pets. If a
+    // client could read this collection it could enumerate live codes; if it
+    // could write, it could mint itself one for any household. Both halves run
+    // in a Cloud Function using the Admin SDK, which bypasses these rules, so
+    // the client never needs either.
+    match /life_invites/{code} {
+      allow read, write: if false;
+    }
+
     match /ai_training_exports/{exportId} {
       allow read: if isAdmin();
       allow write: if false; // Only Cloud Functions can write

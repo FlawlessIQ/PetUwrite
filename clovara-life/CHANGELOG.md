@@ -5,6 +5,38 @@ has the commits.
 
 ## P1 — Onboarding & capture (in progress)
 
+### Ask registry (P1.6)
+
+- SPEC §4.3's declarative table — field, trigger screen, benefit copy — as
+  `data/askRegistry.ts`.
+- **It is enforced, not advisory.** A test reads the Sharpen source and fails if
+  a question appears on a screen the registry does not place it on, or if the
+  registry places one the screen forgot to ask. "Just one more field" is how
+  onboarding stops ever ending in the bad sense, and this is the thing that
+  stops it.
+- It caught a real inconsistency the moment it was written: diet was being asked
+  on the Life surface, when SPEC §4.3 puts it at the first shop visit. It is
+  worth almost nothing to the projection and quite a lot to a shelf of food, so
+  it now appears on Shop as a contextual ask that clears once answered.
+- A test asserts identity and payment are **never** asked on a pet screen, and
+  that payment is only asked at trial end — never to start one.
+
+### Family circle (P1.6)
+
+- Invite someone into a household with an eight-character code; join with one.
+- **Both halves run server-side.** A client that could add a uid to a household
+  document could add itself to any household it could name, so membership is
+  changed only by a Cloud Function using the Admin SDK, and the rules deny
+  clients all access to `life_invites` in both directions.
+- Codes avoid `0 O 1 I L` — the characters people mistype reading a code across
+  a kitchen table, which is exactly how this one gets shared. Single-use, seven
+  days, and a key to everything known about someone's pets, which is why it
+  expires at all.
+- **Joining with pets of your own is refused, not merged.** Two households of
+  pets becoming one is a real feature with real ways to lose an animal's record,
+  and it is not this one. The refusal says so and offers to sort it out by hand.
+- 16 emulator checks, of which 11 are refusals.
+
 ### The Data Covenant (P1.5)
 
 - Invariant 5, as a real page at `#/covenant` — linkable, not a modal. Linked

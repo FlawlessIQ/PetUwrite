@@ -29,6 +29,8 @@ export interface PetsState {
   importing: boolean
   /** Null until signed in and the household is known. */
   householdId: string | null
+  /** How many people share these pets. 0 until the household is known. */
+  memberCount: number
   addPet: (pet: PetProfile) => Promise<void>
   /** Tier-1 sharpening. Writes through immediately — there is no save button. */
   updatePet: (petId: string, patch: Partial<PetProfile>) => Promise<void>
@@ -41,6 +43,7 @@ export function usePets(user: User | null): PetsState {
   const [localPets, setLocalPets] = useState<PetProfile[]>([])
   const [cloudPets, setCloudPets] = useState<PetProfile[] | null>(null)
   const [householdId, setHouseholdId] = useState<string | null>(null)
+  const [memberCount, setMemberCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [importable, setImportable] = useState<PetProfile[]>([])
   const [importing, setImporting] = useState(false)
@@ -61,6 +64,7 @@ export function usePets(user: User | null): PetsState {
     if (!user) {
       setCloudPets(null)
       setHouseholdId(null)
+      setMemberCount(0)
       setImportable([])
       setDismissed(false)
       return
@@ -77,6 +81,7 @@ export function usePets(user: User | null): PetsState {
         const mapped = docs.map(profileFromFirestore).filter((m) => m !== null)
         if (cancelled || !mounted.current) return
         setHouseholdId(household.id)
+        setMemberCount(household.memberIds?.length ?? 1)
         setCloudPets(mapped.map((m) => m!.profile))
       } catch {
         if (!cancelled && mounted.current) {
@@ -204,6 +209,7 @@ export function usePets(user: User | null): PetsState {
     importable,
     importing,
     householdId,
+    memberCount,
     addPet,
     updatePet,
     runImport,

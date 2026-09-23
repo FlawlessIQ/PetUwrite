@@ -197,6 +197,7 @@ export default function App() {
     updatePet,
     resetLocal,
     householdId,
+    memberCount,
   } = usePets(user)
   const membership = useMembership(user, householdId)
   const [activeId, setActiveId] = useState<string>(() => parseHash()?.petId ?? DEMO_PETS[0].id)
@@ -379,6 +380,7 @@ export default function App() {
           onStartTrial={() => void membership.beginTrial()}
           membershipBusy={membership.busy}
           membershipError={membership.error}
+          memberCount={memberCount}
         />
       )}
 
@@ -436,6 +438,9 @@ export default function App() {
                 member={memberView}
                 busy={membership.busy}
                 onStartTrial={membership.beginTrial}
+                onUpdate={
+                  active.demo ? undefined : (patch) => void updatePet(active.id, patch)
+                }
               />
             )}
             {surface === 'coverage' && <Coverage pet={active} projection={projection} />}

@@ -3,7 +3,6 @@ import type {
   ActivityLevel,
   BodyConditionScore,
   DentalRoutine,
-  DietQuality,
   NeuterAgeBand,
   OutdoorAccess,
   PetProfile,
@@ -321,18 +320,6 @@ export function Sharpen({
         />
       </Question>
 
-      <Question field="diet" title="How do they eat?">
-        <Choice
-          label="Feeding"
-          value={pet.diet}
-          onPick={(v: DietQuality) => answer('diet', { diet: v })}
-          options={[
-            { value: 'measured', label: 'Measured meals' },
-            { value: 'free-fed', label: 'Free fed' },
-            { value: 'unsure', label: 'Not sure' },
-          ]}
-        />
-      </Question>
 
       <div className="border-t border-line bg-cream/50 px-5 py-3.5 sm:px-6">
         <button

@@ -28,6 +28,7 @@ const {
 } = require('./shared')
 const { autoRenewalDisclosure, membershipSeparationNotice } = require('./legal')
 const { sendTemplate } = require('./email')
+const { createInvite, redeemInvite } = require('./household')
 
 setGlobalOptions({ region: 'us-central1', maxInstances: 10 })
 
@@ -261,6 +262,22 @@ async function handleEvent(event) {
       return
   }
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Family circle
+// ───────────────────────────────────────────────────────────────────────────
+
+exports.createHouseholdInvite = onCall({ cors: true }, async (req) => {
+  const uid = req.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Sign in first.')
+  return createInvite(uid, req.auth.token?.email)
+})
+
+exports.redeemHouseholdInvite = onCall({ cors: true }, async (req) => {
+  const uid = req.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Sign in first.')
+  return redeemInvite(uid, req.data?.code)
+})
 
 /** The address Stripe holds for a customer. Email is never read from our side. */
 async function emailFor(customerId) {
