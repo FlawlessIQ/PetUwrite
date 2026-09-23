@@ -5,6 +5,17 @@ has the commits.
 
 ## P3 — Launch moments (in progress)
 
+### Gotcha Day (P3.7)
+
+- The homecoming anniversary, with a card through the same pipeline as the
+  Arrival Certificate — which is why that pipeline was built to be reused.
+- **Anchored on the homecoming, never the birthday.** A rescue born in 2017 and
+  homed in 2024 has one Gotcha Day behind them, not eight.
+- Nothing is offered on the day they arrived, and nothing before a full year —
+  a card reading "0 years home" would be a strange thing to be handed.
+- It lingers for a week. A prompt that appears only on the exact day is one most
+  families never see; one that lingers for a month stops meaning anything.
+
 ### Sitter Mode (P3.6)
 
 - An expiring, revocable, read-only link for whoever is minding the animal —

@@ -105,6 +105,60 @@ await page.reload({ waitUntil: 'networkidle' })
 await page.waitForTimeout(1200)
 ok('and it does not return on every load', (await card.count()) === 0)
 
+console.log('\nGotcha Day — the same pipeline (SPEC §6.7)')
+const threeYearsAgo = new Date()
+threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3)
+await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.evaluate(
+  (pet) => {
+    localStorage.clear()
+    localStorage.setItem('clovara-life.pets.v1', JSON.stringify([pet]))
+    window.location.hash = `#/pet/${pet.id}/life`
+  },
+  {
+    id: 'pet-g',
+    name: 'Rosie',
+    species: 'dog',
+    breedId: 'golden-retriever',
+    birthDate: '2019-05-01',
+    sex: 'female',
+    weightLb: 65,
+    conditionIds: [],
+    knownSince: threeYearsAgo.toISOString(),
+    lastReviewedAt: new Date().toISOString(),
+  },
+)
+await page.reload({ waitUntil: 'networkidle' })
+await page.waitForTimeout(1800)
+const gotcha = page.locator('section[aria-labelledby="share-card-heading"]')
+ok('the Gotcha Day card appears on the anniversary', (await gotcha.count()) === 1)
+ok('headed as a Gotcha Day, not an arrival', /Gotcha Day/.test(await gotcha.innerText()))
+const gImg = gotcha.locator('img')
+await gImg.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
+const gDims = await gImg.evaluate((el) => ({ w: el.naturalWidth, h: el.naturalHeight }))
+ok('it rendered a real card', gDims.w === 1080 && gDims.h === 1080)
+const gInk = await page.evaluate(() => {
+  const el = document.querySelector('section[aria-labelledby="share-card-heading"] img')
+  const c = document.createElement('canvas')
+  c.width = el.naturalWidth
+  c.height = el.naturalHeight
+  c.getContext('2d').drawImage(el, 0, 0)
+  const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data
+  let dark = 0
+  for (let i = 0; i < d.length; i += 4 * 97) if (d[i] < 120 && d[i + 1] < 120 && d[i + 2] < 120) dark++
+  return dark
+})
+ok(`and it is not blank (${gInk} dark samples)`, gInk > 20)
+
+await page.evaluate(() => {
+  const pets = JSON.parse(localStorage.getItem('clovara-life.pets.v1'))
+  pets[0].knownSince = new Date(Date.now() - 200 * 86400000).toISOString()
+  localStorage.setItem('clovara-life.pets.v1', JSON.stringify(pets))
+})
+await page.reload({ waitUntil: 'networkidle' })
+await page.waitForTimeout(1500)
+ok('and it is absent on an ordinary day', (await gotcha.count()) === 0)
+
 ok('no page errors throughout', errors.length === 0, errors.slice(0, 2).join(' | '))
 
 await browser.close()

@@ -14,6 +14,7 @@ import { Passport } from './Passport'
 import { Vaccines } from './Vaccines'
 import { SitterMode } from './SitterMode'
 import { reviewDue } from '../engine/review'
+import { gotchaState } from '../engine/gotchaDay'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
 
@@ -53,6 +54,9 @@ export function Journey({
    * the next visit rather than never.
    */
   const [reviewDismissed, setReviewDismissed] = useState(false)
+  /** Gotcha Day (SPEC §6.7) — the same share pipeline as the certificate. */
+  const [gotchaDismissed, setGotchaDismissed] = useState(false)
+  const gotcha = gotchaState(pet, new Date())
   const [revisit, setRevisit] = useState<string | null>(null)
   const showReview = !!onUpdate && !reviewDismissed && reviewDue(pet, new Date())
 
@@ -126,6 +130,16 @@ export function Journey({
           {/* Before everything else for the first 72 hours: at 2am nothing else
               on this screen matters. */}
           <FirstNight pet={pet} />
+          {gotcha.active && !gotchaDismissed && !showArrival && (
+            <ShareCard
+              pet={pet}
+              kind="gotcha"
+              years={gotcha.years}
+              breedName={projection.breed.name}
+              ageLabel={ageLabel(projection.ageYears)}
+              onClose={() => setGotchaDismissed(true)}
+            />
+          )}
           {showArrival && (
             <ShareCard
               pet={pet}

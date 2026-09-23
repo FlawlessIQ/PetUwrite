@@ -86,4 +86,5 @@ Format: date · decision · why. Never rewrite old entries; reversals get new en
 - **2026-09-23** · Expired, revoked and never-existed sitter tokens all return an identical 404. · Distinguishable responses would turn the public endpoint into an oracle for guessing tokens.
 - **2026-09-23** · Revoking a link that belongs to another household silently succeeds. · An error saying "that link is not yours" confirms the token is real, which is the thing the endpoint must not reveal.
 - **2026-09-23** · Sitter links require an account. · The link has to keep working when the owner's phone is in their pocket, which a signed-out local-only record cannot do.
+- **2026-09-23** · Gotcha Day is anchored on `knownSince`, never the birthday, and the card lingers for a week after the day. · A rescue's homecoming and birth date are years apart and the homecoming is the one families mark; a prompt that shows only on the exact day is one most people never see.
 

@@ -21,7 +21,7 @@ const STAGES=[
   ["Vaccine Autopilot","The whole core series laid out from her birthday, reminded, and recorded as it happens — with your vet still setting the schedule.","Protect","built","habit"],
   ["The Growth Reveal","'She'll be about 62 lbs' — her projected adult self, updated as she grows.","Plan","next","love"],
   ["Two-Minute Trainer","Daily micro-lessons matched to her age and breed temperament.","Care","next","habit"],
-  ["Gotcha Day","Her homecoming anniversary, celebrated every year with a shareable card.","Care","launch","growth"]
+  ["Gotcha Day","Her homecoming anniversary, celebrated every year with a shareable card.","Care","built","growth"]
  ]},
  {name:"The daily rhythm", age:"The adult years", job:"Most healthy years are won in the quiet part: small things, done consistently, made effortless — while Clovara watches for what a family can't see.", moments:[
   ["Clovara Score & Streaks","Her wellness score and care streaks — the daily open, the habit loop, the rewards that map to what actually adds healthy years.","Care","built","habit"],
