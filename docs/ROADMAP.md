@@ -8,7 +8,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 
 | Phase | Scope | Status |
 |---|---|---|
-| P0 Foundations | Auth · Firestore households/pets · Stripe trial+sub · analytics gates · email skeleton | planned |
+| P0 Foundations | Auth · Firestore households/pets · Stripe trial+sub · analytics gates · email skeleton | in progress |
 | P1 Onboarding & capture | 60s Tier-0 · live-updating reveal · silhouette BCS · condition chips · accuracy meter · photo · vaccine-card extraction w/ confirm-chips · family circle · ask registry · Data Covenant page | planned |
 | P2 Protect attach | Pre-priced offer (smart default) · screen of truth · mock rating adapter · post-bind states | planned |
 | P3 Launch moments | Arrival certificate · first-night mode · socialization passport · vaccine autopilot · "ate a grape" · sitter mode · gotcha day · renewal-explained (flagged) · FitnessProvider adapter + simulated provider | planned |
@@ -26,6 +26,9 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 | Vet review pass: condition onset windows; clinical content ownership | Vet advisor | open |
 | Real shop SKUs / affiliate agreements | Conor + Dan | open |
 | Telehealth partner for companion routing | Conor | unscoped |
+| Apple Sign-In: Developer Program membership, Services ID, signing key | Conor | `deferred` — needed only when a native iOS app ships; email link + Google cover web |
+| Clovara-entity Stripe account (replaces the FlawlessIQ sandbox before go-live) | Conor | open |
+| Firebase console: `clovara-life.web.app` on authorized domains; email-link provider enabled | Conor | in progress |
 
 ## Next horizon (needs spec before build — see docs gap register in project)
 
