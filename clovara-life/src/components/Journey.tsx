@@ -149,6 +149,24 @@ export function Journey({
               onClose={() => onDismissArrival?.()}
             />
           )}
+          {/* SPEC §5's primary entry point: the offer at the emotional peak of
+              the reveal. A link rather than a modal — nothing is interrupted. */}
+          <a
+            href="#/protect"
+            className="flex items-center justify-between gap-3 rounded-card border border-forest/25 bg-sage/40 px-5 py-4 transition hover:border-forest/50"
+          >
+            <span className="min-w-0">
+              <span className="block font-display text-[17px] leading-snug text-deep">
+                Protect {pet.name} from today
+              </span>
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">
+                A price worked out from this plan — no form, and nothing you have already told us.
+              </span>
+            </span>
+            <span aria-hidden="true" className="shrink-0 text-[18px] leading-none text-forest">
+              →
+            </span>
+          </a>
           <Vaccines pet={pet} onUpdate={onUpdate} />
           <Passport pet={pet} onUpdate={onUpdate} />
           {showReview && onUpdate && (

@@ -31,6 +31,9 @@ const MetricsDashboard = lazy(() =>
 )
 // Lazy for the same reason: a page most visitors never open should not be in
 // the bundle they all download.
+const AttachFlow = lazy(() =>
+  import('./components/Attach').then((m) => ({ default: m.Attach })),
+)
 const SitterCardPage = lazy(() =>
   import('./components/SitterCard').then((m) => ({ default: m.SitterCard })),
 )
@@ -81,6 +84,11 @@ function isAteRoute(): boolean {
 function sitterToken(): string | null {
   const m = /^#\/sitter\/([^/?]+)/.exec(window.location.hash)
   return m ? decodeURIComponent(m[1]) : null
+}
+
+/** `#/protect` — the attach flow (SPEC §5). */
+function isProtectRoute(): boolean {
+  return window.location.hash.startsWith('#/protect')
 }
 
 function PetSwitcher({
@@ -232,6 +240,7 @@ export default function App() {
   const [covenantRoute, setCovenantRoute] = useState(isCovenantRoute)
   const [ateRoute, setAteRoute] = useState(isAteRoute)
   const [sitter, setSitter] = useState<string | null>(sitterToken)
+  const [protectRoute, setProtectRoute] = useState(isProtectRoute)
   const [surface, setSurface] = useState<Surface>(() => parseHash()?.surface ?? 'home')
 
   useEffect(() => {
@@ -285,10 +294,10 @@ export default function App() {
   // ── URL sync ─────────────────────────────────────────────────────────────
   // Write state → hash. Guarded so it never fights the hashchange listener.
   useEffect(() => {
-    if (!active || adminRoute || covenantRoute || ateRoute) return
+    if (!active || adminRoute || covenantRoute || ateRoute || protectRoute) return
     const next = `#/pet/${encodeURIComponent(active.id)}/${surface}`
     if (window.location.hash !== next) window.history.replaceState(null, '', next)
-  }, [active, surface, adminRoute, covenantRoute, ateRoute])
+  }, [active, surface, adminRoute, covenantRoute, ateRoute, protectRoute])
 
   // Read hash → state, for back/forward and pasted links.
   useEffect(() => {
@@ -303,6 +312,7 @@ export default function App() {
       setCovenantRoute(isCovenantRoute())
       setAteRoute(isAteRoute())
       setSitter(sitterToken())
+      setProtectRoute(isProtectRoute())
     }
     window.addEventListener('hashchange', onHash)
     window.addEventListener('hashchange', onAdmin)
@@ -470,7 +480,20 @@ export default function App() {
             onDismiss={dismissImport}
           />
         )}
-        {ateRoute && active ? (
+        {protectRoute && active ? (
+          <Suspense
+            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
+          >
+            <AttachFlow
+              pet={active}
+              projection={project(active)}
+              onClose={() => {
+                window.location.hash = `#/pet/${encodeURIComponent(active.id)}/coverage`
+                setProtectRoute(false)
+              }}
+            />
+          </Suspense>
+        ) : ateRoute && active ? (
           <Suspense
             fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
           >

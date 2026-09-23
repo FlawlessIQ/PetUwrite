@@ -3,6 +3,45 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## P2 — Protect: the attach flow
+
+### Two screens and no form (SPEC §5)
+
+- **Screen 1 is a price nobody had to ask for** — computed from the plan, the
+  breed, the age and what has already been said. "Adjust" reveals tier and
+  rider; the default is chosen rather than requested.
+- **Screen 2 is the screen of truth, and is deliberately the less comfortable
+  one.** The commonest reason a pet claim is declined is a pre-existing
+  condition, and the commonest reason the owner is blindsided is that nobody
+  said it in words before they paid.
+- **Waiting periods are dates, not durations.** "14 days" needs arithmetic at
+  the exact moment somebody is deciding; "from 15 October 2026" does not. The
+  180-day orthopaedic wait is named, because it is the one that catches people.
+- **The pre-existing picture is generated per condition, in plain words** — and
+  when there is nothing to declare it says so, because a blank space reads as
+  "nothing is excluded", which is a promise about the future nobody can make.
+- **The buy button stays off until the disclosures have actually been scrolled
+  to the bottom**, and the attestation is disabled until then too.
+- **The rating adapter is the point.** `RatingAdapter` is the contract the
+  Accelerant integration will implement; `MockRatingAdapter` reads the
+  illustrative tables already in the repo. Every quote it returns carries
+  `illustrative: true`, and the amber label is driven by that flag — a real
+  adapter returning filed rates removes the label without anybody editing a
+  component.
+- **Binding refuses, and says why.** `canBind` is false until the carrier
+  programme is live, and the flow states that rather than failing silently.
+- Insurance and the wellness rider are two separate lines everywhere, and the
+  disclosures say membership points never reduce a premium (invariants 1 and 2).
+- The renewal disclosure repeats the Data Covenant's promise: the price never
+  moves on anything a tracker measured or the companion was told.
+- **The reverse bridge and its VAS free-months variant ship OFF.** Free months
+  as an inducement to buy insurance is a rebating question in several states,
+  not a marketing decision.
+- **LEGAL-REVIEW**: the disclosures, the fraud notice and the waiting periods
+  are placeholders with four questions logged for counsel.
+- 17 engine tests, 27 browser checks. SPEC's DoD asks for end-to-end attach in
+  under 90 seconds; the run does it in 4.6.
+
 ## P3 — Launch moments
 
 ### CloTag readiness — the fitness adapter (P3.9)

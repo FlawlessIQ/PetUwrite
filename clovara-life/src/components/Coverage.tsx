@@ -78,6 +78,17 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
             </div>
           </section>
 
+          {/* SPEC §5's second entry point: a quiet line, not a banner. Somebody
+              already on this tab is thinking about it without being pushed. */}
+          {!c.hasPolicy && (
+            <p className="text-[14px] leading-relaxed text-muted">
+              <a href="#/protect" className="text-forest underline underline-offset-2">
+                Take this cover for {pet.name}
+              </a>{' '}
+              — the price above, and exactly what it does and does not do, before anything is paid.
+            </p>
+          )}
+
           {/* ── Premium breakdown ─────────────────────────────────────── */}
           <section className="card overflow-hidden">
             <button

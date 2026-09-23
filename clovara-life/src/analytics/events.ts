@@ -15,6 +15,8 @@ export const EVENT_NAMES = [
   'accuracy_score',
   'records_connected',
   'attach_offer_viewed',
+  /** The screen of truth was reached (SPEC §5). */
+  'attach_truth_viewed',
   'attach_bound',
   'week4_active',
   // ── Churn ───────────────────────────────────────────────────────────────
