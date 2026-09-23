@@ -30,6 +30,8 @@ export interface PetsState {
   /** Null until signed in and the household is known. */
   householdId: string | null
   addPet: (pet: PetProfile) => Promise<void>
+  /** Tier-1 sharpening. Writes through immediately — there is no save button. */
+  updatePet: (petId: string, patch: Partial<PetProfile>) => Promise<void>
   runImport: () => Promise<void>
   dismissImport: () => void
   resetLocal: () => void
@@ -156,6 +158,41 @@ export function usePets(user: User | null): PetsState {
     [user, householdId, localPets],
   )
 
+  const updatePet = useCallback(
+    async (petId: string, patch: Partial<PetProfile>) => {
+      // Optimistic in both backends: the whole mechanic is that the projection
+      // moves as you answer, so waiting on a round trip would break it.
+      if (user && householdId) {
+        let next: PetProfile | undefined
+        setCloudPets((prev) => {
+          const updated = (prev ?? []).map((p) => {
+            if (p.id !== petId) return p
+            next = { ...p, ...patch }
+            return next
+          })
+          return updated
+        })
+        if (!next) return
+        try {
+          const store = await loadStore()
+          await store.savePet(
+            householdId,
+            storedFromProfile(next, { householdId, uid: user.uid, now: new Date() }),
+          )
+        } catch {
+          /* Stays on screen. A retry queue is later work, not this. */
+        }
+        return
+      }
+      setLocalPets((prev) => {
+        const updated = prev.map((p) => (p.id === petId ? { ...p, ...patch } : p))
+        saveLocalPets(updated)
+        return updated
+      })
+    },
+    [user, householdId],
+  )
+
   const resetLocal = useCallback(() => {
     clearLocalPets()
     setLocalPets([])
@@ -168,6 +205,7 @@ export function usePets(user: User | null): PetsState {
     importing,
     householdId,
     addPet,
+    updatePet,
     runImport,
     dismissImport: () => setDismissed(true),
     resetLocal,

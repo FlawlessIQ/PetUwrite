@@ -5,6 +5,45 @@ has the commits.
 
 ## P1 — Onboarding & capture (in progress)
 
+### Tier 0 — sixty seconds to the reveal (P1.2)
+
+- Species → breed → name → age → sex. Five questions, one typed, then the plan.
+  **No account wall** — the reveal is the hook, so it comes before any ask.
+- Age is an "about N" slider by default, with an exact-date toggle. `birthDateApprox`
+  records which it was: a rescue whose age was guessed at the shelter is not the
+  same claim as a puppy with papers.
+- Weight, conditions, neutering and the daily routine all left onboarding. They
+  are Tier 1 now, asked where answering visibly does something.
+
+### Tier 1 — sharpening, inline (P1.3)
+
+- Every Tier-1 question on the Life surface, ordered by the accuracy meter, so
+  the fastest route through is also the one that sharpens the plan most.
+- **No save button.** Each control writes straight through, the projection
+  recomputes, and the range above animates to its new value — SPEC §4.2's
+  "each answer visibly moves the projection" is the mechanic, not a flourish.
+  `useTween` respects `prefers-reduced-motion` and never animates a first paint.
+- A question answered in this visit **stays on screen**. Collapsing it instantly
+  means a mis-tapped silhouette cannot be corrected without hunting, and hides
+  the confirmation exactly when someone wants to see it. Tidying is for the next
+  visit.
+- Demo pets have no sharpen panel: they are a fixed exhibit, not someone's
+  record.
+
+### Body condition by silhouette (P1.4)
+
+- Five hand-drawn outlines per species, top-down, waist the only thing that
+  varies — no other cue is reliable from above. No icon library; the repo does
+  not have one and five shapes is not a reason to acquire one.
+- **The weight box comes after, and is optional.** SPEC §4.2: never ask for kg
+  first. A picked silhouette outranks the weight read in the engine, because it
+  is a direct observation of the animal rather than an inference from a number
+  against a breed-average range.
+- Five scores, three engine values. Salt 2019 and Teng 2018 compare thin and
+  overweight against a normal reference; they do not describe a five-band curve,
+  so `bodyConditionFromScore` maps 1–2 → lean, 3 → ideal, 4–5 → overweight and
+  the engine never behaves as though it knows more than that.
+
 ### Plan-accuracy meter (P1.1)
 
 - `planAccuracy(profile)` in the engine package: pure, deterministic, 27 tests.

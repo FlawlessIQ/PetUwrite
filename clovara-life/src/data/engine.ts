@@ -148,7 +148,16 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import type { Breed, EvidenceTier, NeuterAgeBand, Species, SizeClass, Citation } from './types'
+import type {
+  BodyCondition,
+  BodyConditionScore,
+  Breed,
+  EvidenceTier,
+  NeuterAgeBand,
+  Species,
+  SizeClass,
+  Citation,
+} from './types'
 import { DOG_BREEDS } from './breeds.dogs'
 import { CAT_BREEDS } from './breeds.cats'
 import {
@@ -234,6 +243,20 @@ export const WEIGHT_DELTAS: Record<Species, Partial<Record<SizeClass, { lean: nu
   cat: {
     default: { lean: -0.5, ideal: 0, overweight: -0.7 },
   },
+}
+
+/**
+ * Five silhouettes onto the three conditions the engine has evidence for.
+ *
+ * 1–2 lean, 3 ideal, 4–5 overweight. The evidence compares thin and overweight
+ * against a normal reference; it does not describe a five-band curve, so the
+ * engine must not behave as though it does.
+ */
+export function bodyConditionFromScore(score: BodyConditionScore | undefined): BodyCondition | undefined {
+  if (score === undefined) return undefined
+  if (score <= 2) return 'lean'
+  if (score === 3) return 'ideal'
+  return 'overweight'
 }
 
 export const DENTAL_DELTAS: Record<string, number> = {

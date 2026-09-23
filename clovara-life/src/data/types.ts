@@ -93,6 +93,19 @@ export interface KnownCondition {
 }
 
 export type BodyCondition = 'lean' | 'ideal' | 'overweight'
+
+/**
+ * A 5-point body-condition score, as picked from silhouettes (SPEC §4.2).
+ *
+ * Five because that is how body condition is actually assessed and how an owner
+ * can recognise their own animal. Three because that is all the engine has
+ * evidence for — Salt 2019 and Teng 2018 compare overweight/thin against a
+ * normal reference, not a five-band curve. So the picker collects five and
+ * `bodyConditionFromScore` maps them onto the three the engine can defend.
+ * Keeping the 5 means "a bit thin" and "very thin" stay distinguishable for the
+ * care copy without pretending the projection can tell them apart.
+ */
+export type BodyConditionScore = 1 | 2 | 3 | 4 | 5
 export type DentalRoutine = 'daily' | 'weekly' | 'rarely'
 export type ActivityLevel = 'low' | 'moderate' | 'high'
 export type DietQuality = 'measured' | 'free-fed' | 'unsure'
@@ -128,6 +141,14 @@ export interface PetProfile {
   breedId: string
   /** ISO date string. */
   birthDate: string
+  /**
+   * The birthday was estimated from an "about N years old" answer rather than
+   * known. SPEC §4.1 offers both, and they are different claims — a rescue
+   * whose age was guessed at the shelter is not the same as a puppy with
+   * papers. Nothing in the engine reads it yet; it exists so the distinction
+   * survives being written down.
+   */
+  birthDateApprox?: boolean
   sex: Sex
   /**
    * Optional since SPEC §4.1 moved this out of Tier 0 — the reveal happens
@@ -142,6 +163,13 @@ export interface PetProfile {
    */
   neuterAgeBand?: NeuterAgeBand
   weightLb: number
+  /**
+   * Set when the owner picked a silhouette. Takes precedence over the weight
+   * read, because it is a direct observation of the animal rather than an
+   * inference from a number against a breed-average range — which is exactly
+   * why SPEC §4.2 says never to ask for kg first.
+   */
+  bodyConditionScore?: BodyConditionScore
   conditionIds: string[]
   /**
    * Tier 1, so all optional (SPEC §4.1/§4.2). Absent means nobody has been

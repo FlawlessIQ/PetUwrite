@@ -177,8 +177,17 @@ function PetSwitcher({
 
 export default function App() {
   const { user } = useAuth()
-  const { pets: userPets, importable, importing, runImport, dismissImport, addPet: persistPet, resetLocal, householdId } =
-    usePets(user)
+  const {
+    pets: userPets,
+    importable,
+    importing,
+    runImport,
+    dismissImport,
+    addPet: persistPet,
+    updatePet,
+    resetLocal,
+    householdId,
+  } = usePets(user)
   const membership = useMembership(user, householdId)
   const [activeId, setActiveId] = useState<string>(() => parseHash()?.petId ?? DEMO_PETS[0].id)
   const [adding, setAdding] = useState(false)
@@ -405,7 +414,14 @@ export default function App() {
               />
             )}
             {surface === 'coverage' && <Coverage pet={active} projection={projection} />}
-            {surface === 'life' && <Journey pet={active} />}
+            {surface === 'life' && (
+              <Journey
+                pet={active}
+                onUpdate={
+                  active.demo ? undefined : (patch) => void updatePet(active.id, patch)
+                }
+              />
+            )}
           </div>
         ) : null}
       </main>

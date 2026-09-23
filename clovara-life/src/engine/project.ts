@@ -30,6 +30,7 @@ import {
   NEUTER_DELTA,
   OUTDOOR_DELTAS,
   WEIGHT_DELTAS,
+  bodyConditionFromScore,
   findBreed,
   outdoorAgeTaper,
 } from '../data/engine'
@@ -59,8 +60,27 @@ export function readBodyCondition(weightLb: number, breed: Breed): BodyCondition
   return 'ideal'
 }
 
-function weightNote(condition: BodyCondition, breed: Breed, weightLb: number): string {
+function weightNote(
+  condition: BodyCondition,
+  breed: Breed,
+  weightLb: number,
+  fromSilhouette: boolean,
+): string {
   const range = `${breed.weight.low}–${breed.weight.high} lb`
+  if (fromSilhouette) {
+    const said =
+      condition === 'overweight'
+        ? 'carrying extra weight'
+        : condition === 'lean'
+          ? 'on the lean side'
+          : 'in good shape'
+    return weightLb > 0
+      ? `You said ${said} — ${weightLb} lb, against a typical adult range of ${range}.`
+      : `You said ${said}. Typical adult range for the breed is ${range}.`
+  }
+  if (weightLb <= 0) {
+    return `No weight yet. Typical adult range for the breed is ${range}.`
+  }
   if (condition === 'overweight') {
     return `${weightLb} lb sits above the typical adult range for the breed (${range}).`
   }
@@ -401,8 +421,13 @@ export function project(profile: PetProfile, options: ProjectOptions = {}): Proj
   const age = ageInYears(profile.birthDate, now)
   const declared = new Set(profile.conditionIds)
 
+  // Precedence: an interactive lever override, then a silhouette the owner
+  // picked, then the read from their weight. The silhouette outranks the weight
+  // because it is a direct observation of this animal, where the weight is an
+  // inference from a breed-average range (SPEC §4.2).
   const measured = readBodyCondition(profile.weightLb, breed)
-  const bodyCondition = options.overrides?.weight ?? measured
+  const picked = bodyConditionFromScore(profile.bodyConditionScore)
+  const bodyCondition = options.overrides?.weight ?? picked ?? measured
   // Absent resolves to the engine's own zero-delta reference, so an unanswered
   // question costs nothing and claims nothing. The difference between "not
   // asked" and "answered as the middle" lives on the profile, not here.
@@ -526,7 +551,9 @@ export function project(profile: PetProfile, options: ProjectOptions = {}): Proj
     factors,
     widened,
     bodyCondition,
-    weightRead: weightNote(measured, breed, profile.weightLb),
+    weightRead: picked
+      ? weightNote(picked, breed, profile.weightLb, true)
+      : weightNote(measured, breed, profile.weightLb, false),
   }
 }
 

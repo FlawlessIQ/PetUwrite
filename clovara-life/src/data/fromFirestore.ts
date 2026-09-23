@@ -22,6 +22,7 @@ import {
   isDental,
   isDiet,
   isFiniteNumber,
+  isBodyScore,
   isNeuterBand,
   isOutdoor,
   isSex,
@@ -169,6 +170,10 @@ export function profileFromFirestore(stored: unknown): MappedPet | null {
 
   const reviewed = fieldValue(p.conditionsReviewed, isBoolean)
   if (reviewed !== undefined) profile.conditionsReviewed = reviewed
+  const approx = fieldValue(p.birthDateApprox, isBoolean)
+  if (approx !== undefined) profile.birthDateApprox = approx
+  const bcs = fieldValue(p.bodyConditionScore, isBodyScore)
+  if (bcs !== undefined) profile.bodyConditionScore = bcs
 
   // Optional engine fields: absent means absent. The engine already treats a
   // missing outdoorAccess as its reference and a missing neuterAgeBand as "not
@@ -227,6 +232,8 @@ export function storedFromProfile(
 
   if (ctx.importedFrom) out.importedFrom = ctx.importedFrom
   if (typeof profile.neutered === 'boolean') out.neutered = f(profile.neutered)
+  if (profile.birthDateApprox) out.birthDateApprox = f(profile.birthDateApprox)
+  if (profile.bodyConditionScore) out.bodyConditionScore = f(profile.bodyConditionScore)
   if (profile.conditionsReviewed) out.conditionsReviewed = f(profile.conditionsReviewed)
   // Only write what was actually answered. weightLb of 0 means "not given".
   if (Number.isFinite(profile.weightLb) && profile.weightLb > 0) {

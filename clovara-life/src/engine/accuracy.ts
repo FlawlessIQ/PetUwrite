@@ -135,7 +135,13 @@ const LABEL: Record<string, string> = {
 function isAnswered(profile: PetProfile, field: string): boolean {
   switch (field) {
     case 'weightLb':
-      return Number.isFinite(profile.weightLb) && profile.weightLb > 0
+      // A silhouette answers this as well as a number does — better, in fact,
+      // since it is a direct observation rather than an inference from a
+      // breed-average range.
+      return (
+        profile.bodyConditionScore !== undefined ||
+        (Number.isFinite(profile.weightLb) && profile.weightLb > 0)
+      )
     case 'conditionIds':
       return (
         (profile.conditionIds?.length ?? 0) > 0 || profile.conditionsReviewed === true

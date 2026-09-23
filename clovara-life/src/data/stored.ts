@@ -15,6 +15,7 @@
  */
 import type {
   ActivityLevel,
+  BodyConditionScore,
   DentalRoutine,
   DietQuality,
   NeuterAgeBand,
@@ -68,6 +69,7 @@ export interface StoredPet {
   species: Field<Species>
   breedId: Field<string>
   birthDate: Field<string>
+  birthDateApprox?: Field<boolean>
 
   // ── Tier 1 — every one optional ──────────────────────────────────────────
   sex?: Field<Sex>
@@ -75,6 +77,7 @@ export interface StoredPet {
   conditionsReviewed?: Field<boolean>
   neuterAgeBand?: Field<NeuterAgeBand>
   weightLb?: Field<number>
+  bodyConditionScore?: Field<BodyConditionScore>
   conditionIds?: Field<string[]>
   activity?: Field<ActivityLevel>
   dental?: Field<DentalRoutine>
@@ -151,6 +154,9 @@ export const isActivity = oneOf<ActivityLevel>('low', 'moderate', 'high')
 export const isDental = oneOf<DentalRoutine>('daily', 'weekly', 'rarely')
 export const isDiet = oneOf<DietQuality>('measured', 'free-fed', 'unsure')
 export const isOutdoor = oneOf<OutdoorAccess>('indoor', 'indoor-outdoor', 'outdoor')
+export const isBodyScore = (v: unknown): v is BodyConditionScore =>
+  v === 1 || v === 2 || v === 3 || v === 4 || v === 5
+
 export const isNeuterBand = oneOf<NeuterAgeBand>(
   'under-6m',
   '6-11m',

@@ -6,6 +6,8 @@ import { Levers, type LeverState } from './Levers'
 import { Methodology } from './Methodology'
 import { RiskCards } from './RiskCards'
 import { Timeline } from './Timeline'
+import { Sharpen } from './Sharpen'
+import { useTween } from './useTween'
 
 function ageLabel(years: number) {
   if (years < 1) {
@@ -16,7 +18,14 @@ function ageLabel(years: number) {
   return `${whole} year${whole === 1 ? '' : 's'} old`
 }
 
-export function Journey({ pet }: { pet: PetProfile }) {
+export function Journey({
+  pet,
+  onUpdate,
+}: {
+  pet: PetProfile
+  /** Absent for demo pets — they are a fixed exhibit, not someone's record. */
+  onUpdate?: (patch: Partial<PetProfile>) => void
+}) {
   const [levers, setLevers] = useState<LeverState>({})
 
   const baseline = useMemo(() => project(pet), [pet])
@@ -26,6 +35,9 @@ export function Journey({ pet }: { pet: PetProfile }) {
   )
 
   const { healthyYearsRange: range, breed } = projection
+  // The incentive mechanic: the number travels when an answer lands.
+  const lowShown = useTween(range.low)
+  const highShown = useTween(range.high)
   const beyond = projection.ageYears >= baseline.breed.baseline.low
 
   return (
@@ -55,7 +67,7 @@ export function Journey({ pet }: { pet: PetProfile }) {
             </p>
             <p className="mt-1 font-display text-[54px] font-semibold leading-none tracking-[-0.02em] sm:text-[62px]">
               <span className="gradient-text">
-                {range.low.toFixed(1)}–{range.high.toFixed(1)}
+                {lowShown.toFixed(1)}–{highShown.toFixed(1)}
               </span>
             </p>
             <p className="mt-1.5 font-display text-[21px] leading-none text-ink">healthy years</p>
@@ -80,6 +92,7 @@ export function Journey({ pet }: { pet: PetProfile }) {
       {/* ── Body ─────────────────────────────────────────────────────────── */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
         <div className="space-y-5">
+          {onUpdate && <Sharpen pet={pet} onUpdate={onUpdate} />}
           <Timeline projection={projection} name={pet.name} />
         </div>
         <div className="space-y-5">
