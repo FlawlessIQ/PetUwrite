@@ -11,7 +11,7 @@ Vite + React + TypeScript + Tailwind. No component libraries.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 140 engine, platform and data-integrity tests
+npm test           # 149 engine, platform and data-integrity tests
 npm run build      # → dist/
 npm run icons      # regenerate public/og.png and the apple-touch icon
 npm run typecheck      # tsc -b. NOT `tsc --noEmit` — tsconfig.json is a solution
@@ -23,6 +23,9 @@ npm run test:emulator  # 37 more against the real Firestore/Auth emulators and
 npm run verify:migration  # 11 checks driving localStorage → Firestore in a
                        # browser: pet made signed out, link sign-in, import,
                        # reload, and the pet comes back from the cloud
+npm run verify:stripe  # 25 checks on a real Stripe test clock: trial starts,
+                       # nothing is charged for 7 days, time advances, a real
+                       # $22.99 invoice is paid, cancel — entitlement following
 
 # End-to-end demo checks: crash recovery, routing, iOS zoom, overflow, share tags.
 # Point it at a preview server or the deployed URL.

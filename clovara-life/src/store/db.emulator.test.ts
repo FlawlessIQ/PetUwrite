@@ -197,6 +197,37 @@ describe.skipIf(!ENABLED)('firestore rules — household isolation (emulator)', 
     await expectDenied(store.ensureHousehold('anyone', NOW), 'signed-out household lookup')
   })
 
+  it('a member cannot grant themselves a membership', async () => {
+    // entitlement unlocks member-only surfaces and it lives on a document its
+    // own members can write, so without the rule denying it anyone could edit
+    // their own household and become a paying member for free. Only the Cloud
+    // Function behind Stripe's signed webhook writes it, via the Admin SDK.
+    const me = await signInFresh()
+    const hh = await store.ensureHousehold(me, NOW)
+    const [{ getApps, getApp, initializeApp }, fs] = await Promise.all([
+      import('firebase/app'),
+      import('firebase/firestore'),
+    ])
+    const { FIREBASE_CONFIG } = await import('../auth/config')
+    const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG)
+    const db = fs.getFirestore(app)
+    try {
+      fs.connectFirestoreEmulator(db, '127.0.0.1', 8080)
+    } catch {
+      /* already connected */
+    }
+    await expectDenied(
+      fs.updateDoc(fs.doc(db, 'households', hh.id), {
+        entitlement: { status: 'active', stripeCustomerId: 'cus_forged' },
+      }),
+      'member forging their own entitlement',
+    )
+    // And they can still do the ordinary thing the rule must not block.
+    await expect(
+      fs.updateDoc(fs.doc(db, 'households', hh.id), { displayName: 'The Pack' }),
+    ).resolves.toBeUndefined()
+  })
+
   it('each new user gets their own household, never a shared one', async () => {
     const a = await signInFresh()
     const ha = await store.ensureHousehold(a, NOW)

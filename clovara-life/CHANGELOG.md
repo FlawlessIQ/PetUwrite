@@ -5,6 +5,35 @@ has the commits.
 
 ## P0 — Foundations (in progress)
 
+### Membership: Stripe trial and subscription (P0.5)
+
+- Hosted **Checkout** and hosted **Customer Portal**. No client-side Stripe
+  dependency, no publishable key, and dunning, retries, cancellation and
+  payment-method changes are Stripe's flows rather than screens we maintain.
+- New Cloud Functions codebase `life` (`clovara-life/functions`), separate from
+  the underwriting functions so `--only functions:life` never has them in its
+  deploy set.
+- **Price is config, never a literal** (SPEC §1). `life_config/pricing` holds the
+  Stripe price id; clients cannot write it and the functions refuse to build a
+  session without it. Seeded by `scripts/seed-config.mjs`.
+- **Membership is its own Stripe Product with exactly one line item** — invariant
+  2 needs premium separate from membership in UI, Stripe and receipts, and that
+  is not a thing to retrofit. Asserted in the verification.
+- Entitlement (`trialing`/`active`/`past_due`/`canceled`) is written **only** by
+  the webhook through the Admin SDK. Clients are denied writes to that field —
+  it lives on a document its own members can edit, so without the rule anyone
+  could grant themselves a paid membership.
+- `past_due` still counts as a member. Someone whose card failed this morning has
+  not stopped being a customer; locking them out is how a recoverable payment
+  problem becomes a cancellation. Stripe's dunning gets its chance first.
+- CA/NY auto-renewal disclosure at checkout, marked `LEGAL-REVIEW` in
+  `functions/legal.js` with the four questions counsel needs to rule on.
+- `npm run verify:stripe` — 25 checks on a real **test clock**, which is the only
+  way to prove "charged in test mode" rather than assert it: trial starts, no
+  money moves for 7 days, the clock advances, a real $22.99 invoice is paid, the
+  subscription goes active, cancellation lands, and entitlement follows at every
+  step.
+
 ### Data model and the engine seam (P0.2)
 
 - `households/{id}` and `households/{id}/pets/{petId}` per SPEC §7. A household

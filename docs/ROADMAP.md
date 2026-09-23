@@ -8,7 +8,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 
 | Phase | Scope | Status |
 |---|---|---|
-| P0 Foundations | Auth · Firestore households/pets · Stripe trial+sub · analytics gates · email skeleton | in progress — auth, data model, migration and analytics `shipped`; Stripe and email next |
+| P0 Foundations | Auth · Firestore households/pets · Stripe trial+sub · analytics gates · email skeleton | in progress — auth, data model, migration, analytics and Stripe `shipped` (Stripe built + verified, not yet deployed); email skeleton next |
 | P1 Onboarding & capture | 60s Tier-0 · live-updating reveal · silhouette BCS · condition chips · accuracy meter · photo · vaccine-card extraction w/ confirm-chips · family circle · ask registry · Data Covenant page | planned |
 | P2 Protect attach | Pre-priced offer (smart default) · screen of truth · mock rating adapter · post-bind states | planned |
 | P3 Launch moments | Arrival certificate · first-night mode · socialization passport · vaccine autopilot · "ate a grape" · sitter mode · gotcha day · renewal-explained (flagged) · FitnessProvider adapter + simulated provider | planned |

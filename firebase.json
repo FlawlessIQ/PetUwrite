@@ -37,6 +37,17 @@
         "*.local"
       ],
       "predeploy": []
+    },
+    {
+      "source": "clovara-life/functions",
+      "codebase": "life",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "*.local",
+        ".env"
+      ],
+      "predeploy": []
     }
   ],
   "hosting": [
