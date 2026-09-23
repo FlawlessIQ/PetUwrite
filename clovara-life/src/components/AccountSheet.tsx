@@ -108,6 +108,15 @@ export function AccountSheet({
               </button>
             </div>
 
+            {/* Invariant 5: linked from settings. */}
+            <a
+              href="#/covenant"
+              onClick={onClose}
+              className="block text-[14px] text-forest underline underline-offset-4 transition hover:text-deep"
+            >
+              The Data Covenant
+            </a>
+
             <div className="flex items-center justify-between gap-3 border-t border-line pt-5">
               <button
                 type="button"

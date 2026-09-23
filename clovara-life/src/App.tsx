@@ -26,6 +26,11 @@ import { trialDaysLeft } from './store/membership'
 const MetricsDashboard = lazy(() =>
   import('./components/MetricsDashboard').then((m) => ({ default: m.MetricsDashboard })),
 )
+// Lazy for the same reason: a page most visitors never open should not be in
+// the bundle they all download.
+const DataCovenant = lazy(() =>
+  import('./components/DataCovenant').then((m) => ({ default: m.DataCovenant })),
+)
 
 const SURFACE_IDS = new Set<string>(SURFACES.map((s) => s.id))
 
@@ -50,6 +55,11 @@ function parseHash(): { petId: string; surface: Surface } | null {
 /** `#/admin/metrics` — internal only, and gated again by the Firestore rules. */
 function isAdminRoute(): boolean {
   return window.location.hash === '#/admin/metrics'
+}
+
+/** `#/covenant` — the Data Covenant (invariant 5). A real page, so it can be linked. */
+function isCovenantRoute(): boolean {
+  return window.location.hash.startsWith('#/covenant')
 }
 
 function PetSwitcher({
@@ -193,6 +203,7 @@ export default function App() {
   const [adding, setAdding] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const [adminRoute, setAdminRoute] = useState(isAdminRoute)
+  const [covenantRoute, setCovenantRoute] = useState(isCovenantRoute)
   const [surface, setSurface] = useState<Surface>(() => parseHash()?.surface ?? 'home')
 
   useEffect(() => {
@@ -246,10 +257,10 @@ export default function App() {
   // ── URL sync ─────────────────────────────────────────────────────────────
   // Write state → hash. Guarded so it never fights the hashchange listener.
   useEffect(() => {
-    if (!active || adminRoute) return
+    if (!active || adminRoute || covenantRoute) return
     const next = `#/pet/${encodeURIComponent(active.id)}/${surface}`
     if (window.location.hash !== next) window.history.replaceState(null, '', next)
-  }, [active, surface, adminRoute])
+  }, [active, surface, adminRoute, covenantRoute])
 
   // Read hash → state, for back/forward and pasted links.
   useEffect(() => {
@@ -259,7 +270,10 @@ export default function App() {
       setSurface(parsed.surface)
       setActiveId((cur) => (parsed.petId !== cur ? parsed.petId : cur))
     }
-    const onAdmin = () => setAdminRoute(isAdminRoute())
+    const onAdmin = () => {
+      setAdminRoute(isAdminRoute())
+      setCovenantRoute(isCovenantRoute())
+    }
     window.addEventListener('hashchange', onHash)
     window.addEventListener('hashchange', onAdmin)
     return () => {
@@ -380,7 +394,18 @@ export default function App() {
             onDismiss={dismissImport}
           />
         )}
-        {adminRoute ? (
+        {covenantRoute ? (
+          <Suspense
+            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
+          >
+            <DataCovenant
+              onClose={() => {
+                window.location.hash = `#/pet/${encodeURIComponent(active?.id ?? DEMO_PETS[0].id)}/home`
+                setCovenantRoute(false)
+              }}
+            />
+          </Suspense>
+        ) : adminRoute ? (
           <Suspense fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}>
             <MetricsDashboard
               onClose={() => {
@@ -433,11 +458,19 @@ export default function App() {
               <CloverMark size={22} id="footer" />
               <span className="font-display text-[16px] text-ink">Clovara Life</span>
             </div>
-            <p className="max-w-[62ch] text-[13.5px] leading-relaxed text-muted">
-              Clovara Life shares information to support care decisions. It is not veterinary advice;
-              your veterinarian decides care. Pricing, products and activity data in this preview are
-              illustrative.
-            </p>
+            <div className="max-w-[62ch] space-y-2">
+              <p className="text-[13.5px] leading-relaxed text-muted">
+                Clovara Life shares information to support care decisions. It is not veterinary
+                advice; your veterinarian decides care. Pricing, products and activity data in this
+                preview are illustrative.
+              </p>
+              <a
+                href="#/covenant"
+                className="inline-block text-[13.5px] text-forest underline underline-offset-4 transition hover:text-deep"
+              >
+                The Data Covenant — what we do and never do with what you tell us
+              </a>
+            </div>
           </div>
         </div>
       </footer>

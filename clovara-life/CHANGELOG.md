@@ -5,6 +5,28 @@ has the commits.
 
 ## P1 — Onboarding & capture (in progress)
 
+### The Data Covenant (P1.5)
+
+- Invariant 5, as a real page at `#/covenant` — linkable, not a modal. Linked
+  from onboarding (in a new tab, so it cannot cost anyone their answers), from
+  the account panel, and from the footer of every screen. The attach-flow link
+  lands with P2.
+- Content lives in `data/covenant.ts` rather than in JSX, so it can be read in
+  one place, diffed when it changes, and **tested**. Twenty tests assert the
+  promises invariants 4 and 5 require are actually present — this is exactly
+  the copy that drifts.
+- **It refuses the reward framing as explicitly as the penalty framing.** "A
+  discount for good behaviour" is the same mechanism wearing a smile, and it is
+  the one a product like this drifts into; the copy closes it by name, and a
+  test fails if that sentence ever goes missing.
+- **It names the filed-programme exception rather than hiding it.** Invariant 5
+  allows a filed, transparent, opt-in programme, so a covenant that did not
+  mention one would be a promise we already knew we might break.
+- Marked `LEGAL-REVIEW` in the source with the four questions counsel needs —
+  including whether "never used against an individual claim" as written should
+  be enforceable (it should) and whether it survives an MGU agreement that says
+  otherwise.
+
 ### Tier 0 — sixty seconds to the reveal (P1.2)
 
 - Species → breed → name → age → sex. Five questions, one typed, then the plan.

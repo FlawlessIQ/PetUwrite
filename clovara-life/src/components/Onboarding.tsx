@@ -214,6 +214,16 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                 { value: 'cat' as Species, label: 'A cat' },
               ]}
             />
+            {/* Invariant 5: linked from onboarding. Opens in a new tab so it
+                cannot cost anyone the answers they have already given. */}
+            <a
+              href="#/covenant"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block text-[13.5px] text-muted underline underline-offset-4 transition hover:text-ink"
+            >
+              Before you start: what we do and never do with what you tell us
+            </a>
           </div>
         )}
 
