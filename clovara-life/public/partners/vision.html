@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clovara — The Vision</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:#F6F3EB;--card:#fff;--ink:#1B1E1B;--ink2:#5C635C;--ink3:#8A918A;
+    --forest:#1A5C38;--deep:#0F3D26;--sage:#E4EAE0;--line:#E5E1D5;--orange:#D98A26;--amber:#B27117}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--cream);color:var(--ink);font-family:'Poppins',system-ui,sans-serif}
+  .serif{font-family:'Playfair Display',Georgia,serif}
+  .wrap{max-width:980px;margin:0 auto;padding:0 20px}
+  section{padding:72px 0}
+  .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--orange);font-weight:600}
+  h1,h2{font-family:'Playfair Display',serif;font-weight:600;line-height:1.12;text-wrap:balance}
+  .copy{font-size:14.5px;line-height:1.9;color:var(--ink2);font-weight:300}
+  .copy b{color:var(--ink);font-weight:600}
+
+  /* hero */
+  .hero{text-align:center;padding:90px 0 70px}
+  .hero .brand{display:flex;align-items:center;gap:12px;justify-content:center}
+  .hero .brand img{width:40px;height:41px}
+  .hero .brand span{font-family:'Playfair Display',serif;font-weight:700;font-size:26px}
+  .hero h1{font-size:clamp(38px,7vw,62px);margin-top:54px}
+  .hero h1 em{color:var(--forest)}
+  .hero .sub{font-size:15px;color:var(--ink2);margin-top:20px;font-weight:300}
+
+  /* manifesto */
+  .band{background:var(--deep);color:#fff}
+  .band .eyebrow{color:#E8B563}
+  .band h2{color:#fff;font-size:clamp(28px,4.5vw,38px)}
+  .band .copy{color:rgba(255,255,255,.82)}
+  .band .copy b{color:#fff}
+  .principle{border-left:3px solid #E8B563;padding:8px 0 8px 24px;margin-top:36px}
+  .principle div{font-family:'Playfair Display',serif;font-size:clamp(17px,3vw,21px);line-height:1.55;font-style:italic}
+
+  /* chapters */
+  .chapter{display:flex;gap:56px;align-items:center}
+  .chapter.rev{flex-direction:row-reverse}
+  .ch-copy{flex:1;min-width:0}
+  .ch-copy h2{font-size:clamp(26px,4vw,34px);margin-top:14px}
+  .ch-copy .copy{margin-top:20px}
+  .ch-phone{flex:0 0 auto;text-align:center}
+  .ch-phone img{width:min(280px,72vw);border-radius:34px;box-shadow:0 24px 55px rgba(27,30,27,.18);display:block;margin:0 auto}
+  .cap{display:inline-block;margin-top:16px;background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:8px 18px;font-size:11px;color:var(--ink2)}
+  .cap b{color:var(--ink);font-weight:600}
+  .kicks{margin-top:26px;display:flex;flex-direction:column;gap:15px}
+  .kick{display:flex;gap:13px;align-items:flex-start;font-size:13px;line-height:1.7;color:var(--ink2);font-weight:300}
+  .kick b{color:var(--ink);font-weight:600}
+  .kick img{width:17px;height:17px;flex-shrink:0;margin-top:4px}
+
+  /* pillars */
+  .pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-top:36px}
+  .pillar{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:26px 22px}
+  .pillar img{width:30px;height:31px}
+  .pillar h3{font-family:'Playfair Display',serif;font-size:22px;font-weight:600;margin-top:14px}
+  .pillar p{font-size:12.5px;color:var(--ink2);line-height:1.75;margin-top:9px;font-weight:300}
+  .member{margin-top:26px;background:var(--sage);border-radius:20px;padding:26px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .member img{width:40px;height:41px;flex-shrink:0}
+  .member h3{font-family:'Playfair Display',serif;font-size:19px;font-weight:600;color:var(--deep)}
+  .member p{font-size:12.5px;color:var(--deep);line-height:1.7;margin-top:6px;font-weight:300;max-width:560px}
+  .honesty{margin-top:40px;font-family:'Playfair Display',serif;font-style:italic;font-size:17px;line-height:1.7;max-width:640px}
+
+  /* close */
+  .close{text-align:center;padding:100px 0}
+  .close .tile{display:inline-block;background:rgba(255,255,255,.95);border-radius:28px;padding:20px}
+  .close .tile img{width:60px;height:62px;display:block}
+  .close h2{font-size:clamp(30px,5vw,42px);margin-top:32px}
+  .close p{font-size:13px;color:rgba(255,255,255,.7);margin-top:22px;font-weight:300;max-width:460px;margin-left:auto;margin-right:auto;line-height:1.8}
+  .fineprint{margin-top:60px;font-size:9.5px;color:rgba(255,255,255,.4);letter-spacing:.06em;line-height:1.8}
+  .pdf-link{display:inline-block;margin-top:30px;border:1px solid rgba(255,255,255,.35);color:#fff;
+    text-decoration:none;border-radius:999px;padding:10px 22px;font-size:11.5px;font-weight:500}
+
+  @media (max-width:820px){ .chapter,.chapter.rev{flex-direction:column;gap:36px} section{padding:54px 0} }
+
+  /* doc navigator */
+  .docnav{position:fixed;left:14px;bottom:14px;z-index:99;background:var(--deep);border-radius:999px;
+    padding:6px 8px;display:flex;gap:2px;box-shadow:0 10px 26px rgba(0,0,0,.28);flex-wrap:wrap;max-width:calc(100vw - 28px)}
+  .docnav a{color:rgba(255,255,255,.75);text-decoration:none;font-size:10.5px;font-weight:600;
+    padding:6px 11px;border-radius:999px;white-space:nowrap}
+  .docnav a.cur{background:rgba(255,255,255,.16);color:#fff}
+  .docnav a:hover{color:#fff}
+</style>
+</head>
+<body>
+
+<div class="hero wrap">
+  <div class="brand"><img src="mark.svg" alt=""><span>Clovara</span></div>
+  <h1 class="serif">More good years,<br><em>together.</em></h1>
+  <div class="sub">Your pet's plan for life — from the very first hello.</div>
+</div>
+
+<div class="band"><div class="wrap"><section>
+  <div class="eyebrow">Why we exist</div>
+  <h2 class="serif" style="margin-top:16px">We build for the pet.</h2>
+  <div class="copy" style="margin-top:26px;max-width:640px">
+    Great companies are customer-centric. Ours is <b>pet-centric</b> — because our customer can't read the label, compare the plans, or tell you where it hurts.
+    <br><br>
+    So every choice at Clovara starts with one question: <b>does this make his life easier, longer, or better?</b> If the answer is no, we don't build it. If a product doesn't earn its place in his routine, we don't sell it. If the science is only half-sure, we say so — out loud, on the screen.
+    <br><br>
+    His family gets the second promise: you'll always know where he is, what he needs, and what's coming next. No guessing at midnight. No panic at the vet's front desk. No fine print when it matters most.
+  </div>
+  <div class="principle"><div>"The pet can't speak for himself.<br>Everything we make speaks for him."</div></div>
+</section></div></div>
+
+<div class="wrap"><section class="chapter">
+  <div class="ch-copy">
+    <div class="eyebrow">There from the start</div>
+    <h2 class="serif">This is Max. Clovara has known him since day one.</h2>
+    <div class="copy">
+      In 2020, Max came home at nine weeks old — ears too big for his head, a family equal parts thrilled and terrified. That week, his plan began: <b>sixty seconds of questions, and a map of his whole life</b>, built from what veterinary science actually knows about golden retrievers like him.
+      <br><br>
+      His first vaccines, the socialization window that shaped his confidence, teething, the growth curve — each arrived in its moment, <b>not as a search result at midnight.</b>
+    </div>
+    <div class="kicks">
+      <div class="kick"><img src="mark.svg" alt=""><span><b>The journey starts the day they arrive.</b> A puppy's first sixteen weeks shape his whole life — so that's when the plan is at its busiest.</span></div>
+      <div class="kick"><img src="mark.svg" alt=""><span><b>Every stage, mapped ahead.</b> Foundations, prime years, senior screening — his family sees what's coming years before it comes.</span></div>
+      <div class="kick"><img src="mark.svg" alt=""><span><b>Every year, understood more.</b> Visits, weight, habits — his story compounds into care that keeps getting more <i>his</i>.</span></div>
+    </div>
+  </div>
+  <div class="ch-phone">
+    <img src="screens/life.png" alt="Max's life plan screen" loading="lazy">
+    <span class="cap"><b>2020 · Week 9</b> &nbsp;·&nbsp; Hello, Max — his plan begins</span>
+  </div>
+</section>
+
+<section class="chapter rev">
+  <div class="ch-copy">
+    <div class="eyebrow">Care that fits today</div>
+    <h2 class="serif">Made for the dog he is right now.</h2>
+    <div class="copy">
+      A dog doesn't need forty thousand products. He needs <b>the few right things for this exact chapter of his life</b> — and a family that isn't left guessing which ones.
+      <br><br>
+      When Max was a puppy, his shelf held teething chews and a crate sized to grow with him. Today it holds hip &amp; joint support — because he's six, because he's a golden, and because his vet flagged his hips two years ago. <b>Clovara's shelf is built from his plan, not from a warehouse.</b> Every product says <b>why it was chosen for him</b> — and when he outgrows something, it quietly leaves the shelf.
+    </div>
+    <div class="kicks">
+      <div class="kick"><img src="mark.svg" alt=""><span><b>Members pay less</b> on everything — and earn rewards on the products that keep him healthy.</span></div>
+      <div class="kick"><img src="mark.svg" alt=""><span><b>Honest labels.</b> Where the evidence for a supplement is mixed, the card says so. In this aisle, that's radical.</span></div>
+    </div>
+  </div>
+  <div class="ch-phone"><img src="screens/shop.png" alt="Shop screen picked for Max" loading="lazy"></div>
+</section>
+
+<section class="chapter">
+  <div class="ch-copy">
+    <div class="eyebrow">The daily rhythm</div>
+    <h2 class="serif">He'll tell us — before he can tell you.</h2>
+    <div class="copy">
+      Most of a dog's healthy years are won in the quiet part: weight held steady, teeth brushed, walks kept up. Small things, done consistently, for years. <b>Clovara makes the small things effortless</b> — a score his family can see, streaks that reward the habits that matter, one glance each morning.
+      <br><br>
+      And it watches for the things a family can't. This week Max's activity is down 18% — years of his own rhythm say that's unusual. His family hears about it <b>while it's still a question, not an emergency.</b> And every birthday, his plan is re-drawn from the year he actually lived: <b>"Max gained half a healthy year."</b> Families frame that.
+    </div>
+  </div>
+  <div class="ch-phone"><img src="screens/home.png" alt="Max's home screen with wellness score" loading="lazy"></div>
+</section>
+
+<section class="chapter rev">
+  <div class="ch-copy">
+    <div class="eyebrow">Someone who never forgets</div>
+    <h2 class="serif">Ask at 11pm. It remembers everything.</h2>
+    <div class="copy">
+      "Max has been limping after walks." Every pet parent knows this moment — the worry, the search results, the guessing.
+      <br><br>
+      Clovara answers differently, because it <b>knows him</b>: it recalls the hip note from his 2024 checkup, connects it to what's happening now, tells his family what to watch for — and books a video vet with <b>a one-page summary of his history already prepared.</b> It informs and connects; it never diagnoses. <b>Licensed vets decide his care.</b>
+    </div>
+    <div class="kicks">
+      <div class="kick"><img src="mark.svg" alt=""><span><b>Private by design.</b> These conversations exist to help Max — they're never used in underwriting or claims.</span></div>
+    </div>
+  </div>
+  <div class="ch-phone"><img src="screens/care.png" alt="Companion conversation about Max's limp" loading="lazy"></div>
+</section>
+
+<section class="chapter">
+  <div class="ch-copy">
+    <div class="eyebrow">When something goes wrong</div>
+    <h2 class="serif">Protected from day one — when it means the most.</h2>
+    <div class="copy">
+      Puppies eat socks. Seniors slow down. And the best time to protect a dog is <b>before he has a history</b> — covered young, nothing that comes later is a "pre-existing condition."
+      <br><br>
+      Because Clovara has known Max since his first week, protecting him took <b>one tap, not one afternoon</b> — his plan already held the answers. And when the sock happened, his family sent a photo of the vet bill and had their answer <b>in hours, not weeks.</b>
+    </div>
+    <div class="kicks">
+      <div class="kick"><img src="mark.svg" alt=""><span><b>Coverage that completes the plan</b> — not a separate thing to shop for, compare, and dread.</span></div>
+      <div class="kick"><img src="mark.svg" alt=""><span><b>Routine care, given back.</b> His wellness rider returns money for the visits and cleanings he should be having anyway.</span></div>
+      <div class="kick"><img src="mark.svg" alt=""><span><b>Prevention and protection, finally together.</b> The same plan that keeps him well is the one that pays when he isn't.</span></div>
+    </div>
+  </div>
+  <div class="ch-phone"><img src="screens/coverage.png" alt="Max's coverage screen with claim paid in hours" loading="lazy"></div>
+</section>
+
+<section>
+  <div class="eyebrow">One membership, whole life</div>
+  <h2 class="serif" style="font-size:clamp(28px,5vw,38px);margin-top:14px">Plan. Care. Protect.</h2>
+  <div class="copy" style="margin-top:18px;max-width:640px">
+    Everything Clovara does fits in three words a family can hold onto — and all three come from the same place: <b>a plan built around him, from the day he arrives.</b>
+  </div>
+  <div class="pillars">
+    <div class="pillar"><img src="mark.svg" alt=""><h3>Plan</h3><p>Know where he is and what's next — his healthy-years outlook, his stage of life, and what's coming, from first vaccines to his golden years.</p></div>
+    <div class="pillar"><img src="mark.svg" alt=""><h3>Care</h3><p>Do the right things, easily — answers that remember his history, habits that earn rewards, and a shelf picked for the dog he is today.</p></div>
+    <div class="pillar"><img src="mark.svg" alt=""><h3>Protect</h3><p>Covered when it counts — insurance that already knows him, claims answered in hours, and routine care given back.</p></div>
+  </div>
+  <div class="member">
+    <img src="mark.svg" alt="">
+    <div><h3>One simple membership.</h3><p>Everything above, for every pet in the family — try it free, cancel anytime. Because the promise isn't a feature list. It's the years.</p></div>
+  </div>
+  <div class="honesty">Honesty is part of the design: where the science is strong, we say so. Where it's still emerging, we say that too — on the screen, in plain words.</div>
+</section></div>
+
+<div class="band"><div class="wrap close">
+  <div class="tile"><img src="mark.svg" alt=""></div>
+  <h2 class="serif">More good years,<br><em style="color:#E8B563">together.</em></h2>
+  <p>Clovara gives your pet a plan for life — know what's ahead, do the right things daily, and be covered in hours when something goes wrong.</p>
+  <a class="pdf-link" href="Clovara_Vision.pdf" target="_blank" rel="noopener">Download as PDF ↓</a>
+  <div class="fineprint">CLOVARA · CONCEPT PREVIEW<br>Screens, products and pricing shown are illustrative. Coverage subject to policy terms.</div>
+</div></div>
+
+<nav class="docnav" aria-label="Preview documents">
+  <a href="index.html">Hub</a>
+  <a href="vision.html" class="cur">Vision</a>
+  <a href="walkthrough.html">Walkthrough</a>
+  <a href="journey.html">Map</a>
+  <a href="https://clovara-life.web.app" target="_blank" rel="noopener">Demo ↗</a>
+</nav>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Clovara Decisions — append-only log
+
+Format: date · decision · why. Never rewrite old entries; reversals get new entries.
+
+- **2026-08** · Pivot from insurance-first to wellness-led platform; insurance becomes the cross-sell. · Direct pet-insurance CAC (~$210, ~30-mo payback) doesn't work; membership CAC pays back in months and converts members to policies at ~zero incremental cost.
+- **2026-08** · Clovara operates as an MGU with delegated underwriting on carrier paper; modeled at 22% commission. · Delaware DOI exam evidence (Figo 27.65–30.05%, PetPartners 32.5–38.5%) puts 22% below the verified floor.
+- **2026-08** · No purchased vet triage; companion informs and routes, never diagnoses. · VCPR state rules; keeps Clovara out of the care-delivery chain; the margin doesn't need it.
+- **2026-08** · Rewards never redeem against premium. · Anti-rebating statutes in ~48 states; redemptions are products/services/rider-copays only (test-asserted).
+- **2026-09-22** · Positioning: vision "More good years, together"; product "your pet's plan for life"; pillars Plan · Care · Protect. Retire "lifecycle/platform/wellness" from customer copy. · Customer-centric language; pet-centric principle.
+- **2026-09-22** · Trial-only membership ($22.99/mo config, 7-day trial); first Plan reveal visible pre-trial as the hook. · Chosen over free tier; reveal is the ad.
+- **2026-09-22** · Insurance offered at the Plan reveal (primary attach moment), one smart default configuration, "adjust" secondary. · Peak emotional moment; tier mazes kill conversion.
+- **2026-09-22** · Branded wearable ("CloTag") via white-label partner, in the membership from day one; fitness score core data. Partner requirements: raw data rights + API depth. · The fitness-score↔claims dataset is the actuarial moat; device doubles as loss-control benefit in VAS states.
+- **2026-09-22** · Data Covenant: companion + tracker data never used against an individual claim or premium (outside a filed program). · Trust is the brand; decided pre-launch, not retrofitted.
+- **2026-09-22** · Web policyholder→membership bridge split by state: free-months offer in VAS states (counsel-gated), standard trial invite elsewhere. · Rebating exposure elsewhere.
+- **2026-09-23** · Production build contract SPEC.md adopted: P0 foundations → P1 onboarding/capture → P2 attach UX (mock adapter) → P3 launch moments. Onboarding principle: "onboarding never ends"; no field asked without visible benefit; owner-confirmed extraction with provenance. · Sequenced, testable path from demo to product.
+- **2026-09-23** · Living-documents protocol adopted (this file, ROADMAP.md, journey-data.js) maintained by Claude Code as part of definition of done. · Vision and roadmap must stay true as we pivot.
