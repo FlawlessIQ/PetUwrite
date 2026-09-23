@@ -111,6 +111,14 @@ function isDoseArray(v: unknown): v is { doseId: string; givenOn: string }[] {
   )
 }
 
+/** The sitter card's free-text fields. Anything non-string is dropped. */
+function isStringRecord(v: unknown): v is Record<string, string> {
+  return (
+    !!v && typeof v === 'object' && !Array.isArray(v) &&
+    Object.values(v as Record<string, unknown>).every((x) => typeof x === 'string')
+  )
+}
+
 export function profileFromFirestore(stored: unknown): MappedPet | null {
   if (!stored || typeof stored !== 'object') return null
   const p = stored as Partial<StoredPet> & { id?: unknown }
@@ -214,6 +222,8 @@ export function profileFromFirestore(stored: unknown): MappedPet | null {
   if (stamps !== undefined) profile.socialStamps = stamps
   const shots = fieldValue(p.vaccineRecords, isDoseArray)
   if (shots !== undefined) profile.vaccineRecords = shots
+  const notes = fieldValue(p.careNotes, isStringRecord)
+  if (notes !== undefined) profile.careNotes = notes
   const approx = fieldValue(p.birthDateApprox, isBoolean)
   if (approx !== undefined) profile.birthDateApprox = approx
   const bcs = fieldValue(p.bodyConditionScore, isBodyScore)
@@ -287,6 +297,7 @@ export function storedFromProfile(
   if (profile.lastReviewedRange) out.lastReviewedRange = f(profile.lastReviewedRange)
   if (profile.socialStamps?.length) out.socialStamps = f(profile.socialStamps)
   if (profile.vaccineRecords?.length) out.vaccineRecords = f(profile.vaccineRecords)
+  if (profile.careNotes && Object.keys(profile.careNotes).length) out.careNotes = f(profile.careNotes)
   // Only write what was actually answered. weightLb of 0 means "not given".
   if (Number.isFinite(profile.weightLb) && profile.weightLb > 0) {
     out.weightLb = f(profile.weightLb)

@@ -37,7 +37,7 @@ const STAGES=[
   ["The Annual Re-Projection","Every birthday her plan is re-drawn from the year she actually lived — what changed, what held, and what it moved. The product's heartbeat.","Plan","built","love"]
  ]},
  {name:"Life happens", age:"The in-between moments", job:"Real life keeps changing around the pet — sitters, travel, new babies, new houses, second dogs. Clovara flexes around the family.", moments:[
-  ["Sitter Mode","One expiring link with everything a sitter, boarder or groomer needs — meds, quirks, vet, emergency contacts.","Care","launch","love"],
+  ["Sitter Mode","One expiring link with everything a sitter, boarder or groomer needs — meds, quirks, vet, emergency contacts.","Care","built","love"],
   ["Lost-Pet Alert + CloTag Scan","Anyone who finds her scans her tag and reaches you instantly; every Clovara household within two miles gets the alert.","Care","next","love"],
   ["The DNA Reveal","A cheek swab: breed-mix reveal for the rescue (the most shareable moment in pet tech) and health markers that tune her plan for life.","Plan","next","data"],
   ["Pet Passport","Airline rules, country requirements and health certificates, handled — travel without the paperwork panic.","Care","sky","love"],

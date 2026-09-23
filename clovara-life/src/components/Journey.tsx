@@ -12,6 +12,7 @@ import { ShareCard } from './ShareCard'
 import { FirstNight } from './FirstNight'
 import { Passport } from './Passport'
 import { Vaccines } from './Vaccines'
+import { SitterMode } from './SitterMode'
 import { reviewDue } from '../engine/review'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
@@ -31,6 +32,7 @@ export function Journey({
   onUpdate,
   showArrival = false,
   onDismissArrival,
+  signedIn = false,
 }: {
   pet: PetProfile
   householdId?: string | null
@@ -39,6 +41,8 @@ export function Journey({
   /** The Arrival Certificate, offered once at creation (SPEC §6.1). */
   showArrival?: boolean
   onDismissArrival?: () => void
+  /** Sitter links need an account — they must outlive the tab that made them. */
+  signedIn?: boolean
 }) {
   const [levers, setLevers] = useState<LeverState>({})
   /**
@@ -156,6 +160,7 @@ export function Journey({
           <Timeline projection={projection} name={pet.name} />
         </div>
         <div className="space-y-5">
+          {onUpdate && <SitterMode pet={pet} signedIn={signedIn} onUpdate={onUpdate} />}
           <Levers projection={projection} state={levers} onChange={setLevers} baseline={baseline} />
           <RiskCards projection={projection} name={pet.name} />
           <Methodology projection={projection} />

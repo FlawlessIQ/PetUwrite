@@ -29,6 +29,8 @@ export type AskTrigger =
   | 'shop'
   /** Turning on the lost-pet card (P3). */
   | 'lost-pet-card'
+  /** Turning on Sitter Mode (SPEC §6.6). */
+  | 'sitter-mode'
   /** The insurance attach flow (P2). */
   | 'attach'
   /** Trial end, via Stripe's hosted Checkout. */
@@ -135,6 +137,12 @@ export const ASK_REGISTRY: Ask[] = [
     trigger: 'lost-pet-card',
     question: "What is their microchip number?",
     benefit: 'It goes on the lost-pet card, which is the one moment it matters.',
+  },
+  {
+    field: 'careNotes',
+    trigger: 'sitter-mode',
+    question: 'What would you write on a note for them?',
+    benefit: 'It is the whole of what the sitter sees — feeding, medication, the vet, and who to ring.',
   },
   {
     field: 'ownerAddress',

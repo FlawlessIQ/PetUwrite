@@ -650,6 +650,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Sitter links (SPEC §6.6). Deny-all in both directions, like invites and
+    // for a stronger reason: a token in here is an unauthenticated read key to
+    // a pet's care card. Created, listed, read and revoked only by Cloud
+    // Functions through the Admin SDK, which bypasses these rules — a client
+    // able to read this collection could enumerate every live link on the
+    // project.
+    match /life_sitter_links/{token} {
+      allow read, write: if false;
+    }
+
     match /ai_training_exports/{exportId} {
       allow read: if isAdmin();
       allow write: if false; // Only Cloud Functions can write

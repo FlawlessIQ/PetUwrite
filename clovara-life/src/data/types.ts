@@ -235,6 +235,23 @@ export interface PetProfile {
    */
   vaccineRecords?: { doseId: string; givenOn: string }[]
   /**
+   * What somebody minding them needs to know (SPEC §6.6).
+   *
+   * Deliberately free text and deliberately small. This is a fridge note, not
+   * a medical record: it is the only thing in the product that leaves the
+   * household on an unauthenticated link, so nothing that belongs in the
+   * Health File belongs here.
+   */
+  careNotes?: {
+    feeding?: string
+    meds?: string
+    quirks?: string
+    vetName?: string
+    vetPhone?: string
+    emergencyName?: string
+    emergencyPhone?: string
+  }
+  /**
    * The healthy-years range as it stood at the last review.
    *
    * Two numbers, stored so that next year's review can say what we said last

@@ -31,6 +31,9 @@ const MetricsDashboard = lazy(() =>
 )
 // Lazy for the same reason: a page most visitors never open should not be in
 // the bundle they all download.
+const SitterCardPage = lazy(() =>
+  import('./components/SitterCard').then((m) => ({ default: m.SitterCard })),
+)
 const AteSomething = lazy(() =>
   import('./components/AteSomething').then((m) => ({ default: m.AteSomething })),
 )
@@ -72,6 +75,12 @@ function isCovenantRoute(): boolean {
  *  bookmark, a shortcut, and one tap from anywhere. */
 function isAteRoute(): boolean {
   return window.location.hash.startsWith('#/ate')
+}
+
+/** `#/sitter/<token>` — the one page rendered for somebody with no account. */
+function sitterToken(): string | null {
+  const m = /^#\/sitter\/([^/?]+)/.exec(window.location.hash)
+  return m ? decodeURIComponent(m[1]) : null
 }
 
 function PetSwitcher({
@@ -222,6 +231,7 @@ export default function App() {
   const [adminRoute, setAdminRoute] = useState(isAdminRoute)
   const [covenantRoute, setCovenantRoute] = useState(isCovenantRoute)
   const [ateRoute, setAteRoute] = useState(isAteRoute)
+  const [sitter, setSitter] = useState<string | null>(sitterToken)
   const [surface, setSurface] = useState<Surface>(() => parseHash()?.surface ?? 'home')
 
   useEffect(() => {
@@ -292,6 +302,7 @@ export default function App() {
       setAdminRoute(isAdminRoute())
       setCovenantRoute(isCovenantRoute())
       setAteRoute(isAteRoute())
+      setSitter(sitterToken())
     }
     window.addEventListener('hashchange', onHash)
     window.addEventListener('hashchange', onAdmin)
@@ -371,6 +382,18 @@ export default function App() {
     setActiveId(DEMO_PETS[0].id)
     setSurface('home')
     window.scrollTo({ top: 0 })
+  }
+
+  // Before everything else, including the nav: a sitter has no account, no
+  // pets and no business seeing a tab bar for somebody else's household.
+  if (sitter) {
+    return (
+      <Suspense
+        fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">One moment…</div>}
+      >
+        <SitterCardPage token={sitter} />
+      </Suspense>
+    )
   }
 
   return (
@@ -516,6 +539,7 @@ export default function App() {
                 }
                 showArrival={arrivalFor === active.id}
                 onDismissArrival={() => setArrivalFor(null)}
+                signedIn={status === 'signedIn'}
               />
             )}
           </div>

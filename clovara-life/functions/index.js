@@ -29,6 +29,12 @@ const {
 const { autoRenewalDisclosure, membershipSeparationNotice } = require('./legal')
 const { sendTemplate } = require('./email')
 const { createInvite, redeemInvite } = require('./household')
+const {
+  createSitterLink,
+  revokeSitterLink,
+  listSitterLinks,
+  readSitterCard,
+} = require('./sitter')
 
 setGlobalOptions({ region: 'us-central1', maxInstances: 10 })
 
@@ -292,6 +298,41 @@ async function emailFor(customerId) {
 }
 
 /** Health probe, so a deploy can be confirmed without touching Stripe. */
+// ── Sitter Mode (SPEC §6.6) ────────────────────────────────────────────────
+exports.createSitterLink = onCall({ cors: true }, async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.')
+  return createSitterLink(req.auth.uid, req.data?.petId, req.data?.days)
+})
+
+exports.revokeSitterLink = onCall({ cors: true }, async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.')
+  return revokeSitterLink(req.auth.uid, req.data?.token)
+})
+
+exports.listSitterLinks = onCall({ cors: true }, async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.')
+  return { links: await listSitterLinks(req.auth.uid) }
+})
+
+/**
+ * The only unauthenticated read path in the product.
+ *
+ * Deliberately an onRequest rather than an onCall: the person opening it is a
+ * dog-sitter with a link, not a signed-in user, and the callable protocol
+ * expects an SDK. Expired, revoked and never-existed all return the same 404 so
+ * this cannot be used as an oracle for guessing tokens.
+ */
+exports.sitterCard = onRequest({ cors: true }, async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  const token = String(req.query.t || '')
+  const found = await readSitterCard(token)
+  if (!found) {
+    res.status(404).json({ error: 'not-found' })
+    return
+  }
+  res.json(found)
+})
+
 exports.lifeHealth = onRequest({ cors: true }, async (_req, res) => {
   const pricing = await readPricing().catch((e) => ({ error: e.message }))
   res.json({

@@ -30,6 +30,9 @@ npm run verify:onboarding # 17 checks driving Tier 0 → reveal → Tier 1: five
                        # questions with no account wall, then every answer
                        # moving the projection and persisting
 npm run verify:household # 16 checks on invite and join, 11 of them refusals
+npm run verify:sitter  # 26 emulator checks on the one unauthenticated read path:
+                       # what the card carries, what it must not, and that
+                       # expired, revoked and never-existed look identical
 npm run verify:share   # 12 checks on the Arrival Certificate, including reading the
                        # rendered pixels back — a blank card passes every pure test
 npm run verify:review  # 23 checks on the annual re-projection: when it is due,

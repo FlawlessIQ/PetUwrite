@@ -23,6 +23,7 @@
     "verify:passport": "node scripts/verify-passport.mjs",
     "verify:vaccines": "node scripts/verify-vaccines.mjs",
     "verify:toxins": "node scripts/verify-toxins.mjs",
+    "verify:sitter": "cd .. && npx firebase emulators:exec --only firestore,auth,functions --project pet-underwriter-ai 'cd clovara-life && sleep 6 && node scripts/verify-sitter.mjs'",
     "verify:household": "cd .. && npx firebase emulators:exec --only firestore,auth,functions --project pet-underwriter-ai 'cd clovara-life && sleep 6 && node scripts/verify-household.mjs'",
     "verify:photo": "cd .. && npx firebase emulators:exec --only firestore,auth,storage --project pet-underwriter-ai 'cd clovara-life && VITE_USE_EMULATORS=1 npx vite build >/dev/null && (npx vite preview --port 4174 --host 127.0.0.1 >/dev/null 2>&1 &) ; sleep 4; node scripts/verify-photo.mjs'"
   },

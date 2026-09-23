@@ -5,6 +5,35 @@ has the commits.
 
 ## P3 — Launch moments (in progress)
 
+### Sitter Mode (P3.6)
+
+- An expiring, revocable, read-only link for whoever is minding the animal —
+  feeding, medication, quirks, the vet and an emergency contact, all tap-to-call.
+- **The only unauthenticated read path in the product**, which is why almost all
+  of its 26 emulator checks are refusals or leak checks.
+- **The card is assembled server-side and is deliberately tiny.** No projection,
+  no conditions as a medical history, no owner email, no household id, nothing
+  about membership or billing. A link that leaks should leak a fridge note, not
+  a record — asserted by checks that plant an owner email and a diagnosis on the
+  pet and prove neither reaches the card.
+- **Clients never touch `life_sitter_links`.** Deny-all in both directions: a
+  client able to read it could enumerate every live link on the project. Create,
+  list, read and revoke all go through the Admin SDK.
+- The token is 32 bytes from a CSPRNG rather than the invite alphabet. An invite
+  code is short because somebody reads it across a kitchen table; this one is
+  pasted, so it can be long and unguessable instead.
+- **Expired, revoked and never-existed all return the same 404.** Different
+  answers would make the endpoint an oracle for guessing tokens. Verified by
+  comparing the responses.
+- Expiry and revocation are enforced on the server, seven days by default and
+  capped at thirty — proven by rewriting an expiry in Firestore and watching the
+  endpoint refuse it.
+- A stranger cannot list, read or revoke another household's link, and revoking
+  something that is not yours silently succeeds rather than confirming it exists.
+- The sitter page renders before the nav, loads no auth and no engine: a
+  neighbour with a URL has no account and no business seeing somebody else's
+  tab bar.
+
 ### "He ate a grape" — toxin lookup (P3.5)
 
 - The highest-stakes screen in the product: somebody opens it when an animal is
