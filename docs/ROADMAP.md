@@ -1,6 +1,6 @@
 # Clovara Roadmap — living document
 
-Last updated: 2026-09-23 (seeded by Cowork session; maintained by Claude Code per CLAUDE.md)
+Last updated: 2026-09-23 (maintained by Claude Code per CLAUDE.md)
 
 Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cut(<why>)`
 
@@ -21,7 +21,8 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 | Wearable partner signed (Tractive / Fi / PetPace diligence) | Conor + Matt | evaluating |
 | LEGAL-REVIEW items: disclosures, auto-renew (CA/NY), attestation, toxin copy, VAS state list | Counsel (to engage) | open |
 | Firestore security review before vet records ship | Conor (budget line exists) | open |
-| Breed data: McMillan 2024 supp. table (~20 gaps), Teng 2024 cats, AAHA Table 4 | Conor to obtain files | open |
+| Breed data: McMillan 2024 Supp. Table 3 | Conor (file supplied 2026-09-22) | `shipped` — all 23 dog gaps closed; no illustrative dogs remain |
+| Breed data: Teng 2024 cat table (5 gaps), Abyssinian figure, AAHA Table 4 | Conor to obtain files | open |
 | Vet review pass: condition onset windows; clinical content ownership | Vet advisor | open |
 | Real shop SKUs / affiliate agreements | Conor + Dan | open |
 | Telehealth partner for companion routing | Conor | unscoped |
