@@ -12,6 +12,7 @@ import {
   type RiderItem,
 } from '../data/coverage'
 import { POINT_RULES, REDEMPTIONS, type Redemption } from '../data/rewards'
+import { fitnessProvider } from '../fitness/provider'
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -540,15 +541,13 @@ export interface HomeView {
 
 export function buildHome(profile: PetProfile, projection: Projection): HomeView {
   const score = clovaraScore(profile, projection)
-  const isCat = profile.species === 'cat'
 
-  const baseSteps = isCat ? seeded(profile.id + 's', 900, 2600) : seeded(profile.id + 's', 4200, 11000)
-  const activityMul = profile.activity === 'high' ? 1.35 : profile.activity === 'low' ? 0.62 : 1
-  const steps = Math.round(baseSteps * activityMul)
-
-  // Max's story: activity down this week. Everyone else trends flat or up.
-  const trendDown = profile.id === 'demo-max' || profile.activity === 'low'
-  const trend = trendDown ? [10, 8, 13, 9, 15, 22, 26] : [18, 14, 16, 12, 14, 11, 12]
+  // Through the adapter (SPEC §6.9), not from a hash in here. When a partner
+  // SDK lands it implements FitnessProvider and this line does not change.
+  const reading = fitnessProvider().activity(profile, new Date())
+  const steps = reading.steps
+  const trend = reading.trend
+  const trendDown = reading.belowNormal
 
   const gap = score.biggestGap
   const nudge = trendDown

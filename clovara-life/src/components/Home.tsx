@@ -1,4 +1,5 @@
 import { accuracyLine, planAccuracy } from '../engine/accuracy'
+import { fitnessProvider, SIMULATED_DISCLOSURE } from '../fitness/provider'
 import type { PetProfile, Projection } from '../data/types'
 import { buildCoverage, buildHome, buildRewards } from '../engine/platform'
 import { useState } from 'react'
@@ -357,11 +358,11 @@ export function Home({
         </span>
       </a>
 
-      <p className="mt-6 text-[13px] leading-relaxed text-muted">
-        Activity and streak figures in this preview are simulated — there is no wearable connected.
-        They are derived from {pet.name}'s declared routine so they stay consistent with the rest of
-        the profile.
-      </p>
+      {/* Straight from the provider (SPEC §6.9). When a partner SDK lands,
+          `simulated` goes false and this disclosure disappears on its own. */}
+      {fitnessProvider().simulated && (
+        <p className="mt-6 text-[13px] leading-relaxed text-muted">{SIMULATED_DISCLOSURE}</p>
+      )}
     </div>
   )
 }

@@ -3,7 +3,29 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## P3 — Launch moments (in progress)
+## P3 — Launch moments
+
+### CloTag readiness — the fitness adapter (P3.9)
+
+- SPEC §6.9 is explicit: **do not build hardware integration, build the seam.**
+  A `FitnessProvider` interface — activity, sleep, vitals, device id — with a
+  `SimulatedProvider` behind it. Tractive, Fi or PetPace drops in by
+  implementing the interface, and no surface is touched.
+- **The seam is real, not decorative.** `buildHome` no longer computes steps
+  from a hash of its own; it reads the provider. A test swaps in a fake partner
+  SDK and watches the values change through the same call.
+- **The simulated values are deterministic, never random** — derived from the
+  pet's id and their declared routine. Two people looking at Max see the same
+  Max, and the number does not move while an investor is looking at it.
+- **The provider reports `simulated: true` and Home renders the disclosure from
+  that**, rather than from a hardcoded sentence. When a real device lands, the
+  "these are simulated" line disappears on its own instead of being left behind
+  as a lie.
+- **It reports no device id, rather than inventing one.** A fake id would make a
+  fabricated reading look sourced.
+- **Resting respiratory rate stays null.** It is the one home measurement with
+  real clinical value, which is exactly why it is not fabricated — an invented
+  one could be read as reassurance about a heart.
 
 ### Renewal, Explained (P3.8) — behind a flag
 

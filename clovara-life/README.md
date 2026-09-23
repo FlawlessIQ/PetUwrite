@@ -11,7 +11,7 @@ Vite + React + TypeScript + Tailwind. No component libraries.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 373 engine, platform and data-integrity tests
+npm test           # 384 engine, platform and data-integrity tests
 npm run build      # → dist/
 npm run icons      # regenerate public/og.png and the apple-touch icon
 npm run typecheck      # tsc -b. NOT `tsc --noEmit` — tsconfig.json is a solution
