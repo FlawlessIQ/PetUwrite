@@ -48,6 +48,10 @@ Companion AI architecture (the big one) · claims operations design · affinity/
   for the body-condition comparison the original was being kept for. The avatar is a
   separate 512px square, so the analysable copy is never the cropped one.
 - **The journey map marked "The Annual Re-Projection" as `built` before it was.** It is built
-  now (2026-09-23) and the map is true again. Worth a pass over the other `built` moments to
-  check none of them are making the same claim — flagged to Conor rather than assumed.
+  now (2026-09-23), and all 59 moments were then audited against the page's own definition of
+  built — "what's built in the demo today", confirmed by Conor. The other eight `built` claims
+  all held: Protect Her Now shows a real pre-filled quote with its breakdown, The Nudge is
+  produced by `buildHome` for Max, and Claim in Hours is the claim timeline on Coverage. Two
+  moments were behind rather than ahead — Family Circle and the Data Covenant shipped in P1 and
+  were still marked `launch`. 11 built, 10 launch, 24 next, 14 sky.
 

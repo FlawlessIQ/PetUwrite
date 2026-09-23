@@ -12,7 +12,7 @@ const STAGES=[
  {name:"The welcome", age:"Day one · week one", job:"Sixty seconds in, the family sees something no pet product has ever shown them — and the whole household joins her circle.", moments:[
   ["The Plan Reveal","Breed, birthday, weight — and her healthy-years outlook, breed risks, and life plan appear. The 'it knows my dog' moment.","Plan","built","growth"],
   ["Arrival Certificate","A beautiful shareable card: her photo, her name, 'her plan begins today.' A keepsake that's also organic acquisition.","Plan","launch","growth"],
-  ["The Family Circle","Everyone in the household joins her pack with roles — no more 'did anyone feed the dog?'","Care","launch","habit"],
+  ["The Family Circle","Everyone in the household joins her pack with one code — the same plan, the same record, whoever opens the app.","Care","built","habit"],
   ["First-Night Mode","2am, the puppy is crying, and the app is awake with you — calm, specific, hour by hour.","Care","launch","love"],
   ["Protect Her Now","Insurance offered at the emotional peak of the reveal — one tap, quote pre-filled from her plan, covered before she has any history.","Protect","built","revenue"]
  ]},
@@ -34,7 +34,7 @@ const STAGES=[
   ["The Fitness Score","Her daily score from the CloTag — the habit loop's engine and, in aggregate, the only dataset linking continuous activity to claims outcomes.","Plan","launch","data"],
   ["Walk Intelligence","Routes scored for her needs — shade for flat faces, soft ground for old hips, sniff-rich paths for enrichment.","Care","sky","habit"],
   ["Smart-Home Senses","Feeder, door camera and litter sensors — separation-anxiety patterns, and early kidney flags for cats from litter habits.","Plan","sky","data"],
-  ["The Annual Re-Projection","Every birthday her plan is re-drawn from the year she actually lived: 'half a healthy year gained.' The product's heartbeat.","Plan","built","love"]
+  ["The Annual Re-Projection","Every birthday her plan is re-drawn from the year she actually lived — what changed, what held, and what it moved. The product's heartbeat.","Plan","built","love"]
  ]},
  {name:"Life happens", age:"The in-between moments", job:"Real life keeps changing around the pet — sitters, travel, new babies, new houses, second dogs. Clovara flexes around the family.", moments:[
   ["Sitter Mode","One expiring link with everything a sitter, boarder or groomer needs — meds, quirks, vet, emergency contacts.","Care","launch","love"],
@@ -65,7 +65,7 @@ const STAGES=[
   ["Renewal, Explained","At renewal: why her premium is what it is — and what her care this year kept it from being. Radical transparency as retention.","Protect","launch","love"],
   ["Claims, Corroborated","Her CloTag timeline substantiates the claim automatically — the sudden change Tuesday, the vet Wednesday, approved in minutes. Data used for her, never against her.","Protect","next","love"],
   ["The Loss-Control Tag","In value-added-services states, policyholders get the CloTag free — a loss-prevention device by law, like a leak sensor from a home insurer.","Protect","next","revenue"],
-  ["The Data Covenant","A public promise, from day one: tracker and companion data work for your pet and aggregate science — never against an individual claim or premium.","Protect","launch","love"],
+  ["The Data Covenant","A public promise, from day one: tracker and companion data work for your pet and aggregate science — never against an individual claim or premium.","Protect","built","love"],
   ["Earned Rates","The endgame: years of fitness-score-to-claims data become a filed, state-approved rating program where healthy engagement genuinely earns the price.","Protect","sky","revenue"]
  ]},
  {name:"The senior years", age:"The last 25%", job:"Where pet-centric is proven. The app ages with her — comfort, dignity, and catching the small declines early.", moments:[
