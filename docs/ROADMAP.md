@@ -28,7 +28,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 | Telehealth partner for companion routing | Conor | unscoped |
 | Apple Sign-In: Developer Program membership, Services ID, signing key | Conor | `deferred` — needed only when a native iOS app ships; email link + Google cover web |
 | Clovara-entity Stripe account (replaces the FlawlessIQ sandbox before go-live) | Conor | open |
-| Firebase console: `clovara-life.web.app` on authorized domains; email-link provider enabled | Conor | `blocking` — email link and Google both fail on the live site until done; everything works on emulators |
+| Firebase auth config: `clovara-life.web.app` authorised; email-link provider enabled | Claude Code (2026-09-23) | `shipped` — done via the Identity Platform admin API, not the console; password sign-in for the underwriting app verified unaffected |
 
 ## Next horizon (needs spec before build — see docs gap register in project)
 
