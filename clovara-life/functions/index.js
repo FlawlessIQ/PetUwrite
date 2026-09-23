@@ -27,6 +27,7 @@ const {
   trackServer,
 } = require('./shared')
 const { autoRenewalDisclosure, membershipSeparationNotice } = require('./legal')
+const { sendTemplate } = require('./email')
 
 setGlobalOptions({ region: 'us-central1', maxInstances: 10 })
 
@@ -209,6 +210,7 @@ async function handleEvent(event) {
 
       if (event.type === 'customer.subscription.created' && ent.status === 'trialing') {
         await trackServer(uid, 'trial_started', { price_id: ent.priceId, trial_end: ent.trialEnd })
+        await sendTemplate('welcome', await emailFor(ent.stripeCustomerId), {})
       }
       if (event.type === 'customer.subscription.deleted') {
         await trackServer(uid, ent.trialEnd ? 'trial_cancelled' : 'subscription_cancelled', {
@@ -222,6 +224,22 @@ async function handleEvent(event) {
           at_period_end: true,
         })
       }
+      return
+    }
+
+    // Stripe's own three-days-out warning. Using it means the trial-ending email
+    // needs no scheduler of ours, and it fires from the same source of truth
+    // that decides when the trial actually ends.
+    case 'customer.subscription.trial_will_end': {
+      const ent = entitlementFromSubscription(obj)
+      const days = ent.trialEnd
+        ? Math.max(0, Math.ceil((new Date(ent.trialEnd).getTime() - Date.now()) / 86400000))
+        : null
+      const pricing = await readPricing().catch(() => ({ amountDisplay: null }))
+      await sendTemplate('trialEnding', await emailFor(ent.stripeCustomerId), {
+        daysLeft: days ?? 3,
+        amountDisplay: pricing.amountDisplay,
+      })
       return
     }
 
@@ -241,6 +259,18 @@ async function handleEvent(event) {
     default:
       // Everything else is deliberately ignored rather than logged as an error.
       return
+  }
+}
+
+/** The address Stripe holds for a customer. Email is never read from our side. */
+async function emailFor(customerId) {
+  if (!customerId) return null
+  try {
+    const stripe = stripeClient()
+    const c = await stripe.customers.retrieve(customerId)
+    return c?.deleted ? null : (c?.email ?? null)
+  } catch {
+    return null
   }
 }
 

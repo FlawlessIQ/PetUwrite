@@ -18,6 +18,9 @@ import { track } from './analytics/track'
 import { clearLocalPets } from './store/localPets'
 import { usePets } from './store/usePets'
 import { ImportPrompt } from './components/ImportPrompt'
+import { TrialBanner } from './components/MemberGate'
+import { useMembership } from './store/useMembership'
+import { trialDaysLeft } from './store/membership'
 
 // Lazy: an internal page must not cost the demo path a byte.
 const MetricsDashboard = lazy(() =>
@@ -174,8 +177,9 @@ function PetSwitcher({
 
 export default function App() {
   const { user } = useAuth()
-  const { pets: userPets, importable, importing, runImport, dismissImport, addPet: persistPet, resetLocal } =
+  const { pets: userPets, importable, importing, runImport, dismissImport, addPet: persistPet, resetLocal, householdId } =
     usePets(user)
+  const membership = useMembership(user, householdId)
   const [activeId, setActiveId] = useState<string>(() => parseHash()?.petId ?? DEMO_PETS[0].id)
   const [adding, setAdding] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
@@ -185,6 +189,29 @@ export default function App() {
   useEffect(() => {
     if (handleResetParam()) return
     track('session_start', {})
+
+    // Coming back from hosted Checkout. The entitlement listener refreshes the
+    // screen by itself when the webhook lands, so there is nothing to fetch —
+    // but the one-time parameter must not survive a reload, or every refresh
+    // would re-record the outcome.
+    const params = new URLSearchParams(window.location.search)
+    const checkout = params.get('checkout')
+    if (checkout === 'done' || checkout === 'cancelled') {
+      // trial_started is recorded server-side from Stripe's webhook, which is
+      // the only thing that actually knows a subscription exists. This is the
+      // client's view of the same moment, kept separate on purpose.
+      track(checkout === 'done' ? 'attach_offer_viewed' : 'trial_cancelled', {
+        surface: 'membership_checkout',
+        outcome: checkout,
+      })
+      params.delete('checkout')
+      const q = params.toString()
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.pathname}${q ? `?${q}` : ''}${window.location.hash}`,
+      )
+    }
   }, [])
 
   const pets = [...DEMO_PETS, ...userPets]
@@ -192,6 +219,20 @@ export default function App() {
 
   // One projection, shared by every surface. No screen holds its own truth.
   const projection = useMemo(() => project(active), [active])
+
+  /**
+   * Who sees the member view.
+   *
+   * A demo pet always does. Max, Winston and Luna are shown to investors and
+   * the demo has to be the whole product, not a paywalled slice of it — and
+   * they are labelled "Demo" in the switcher, so nobody mistakes them for
+   * someone's account. For a real pet, entitlement decides.
+   *
+   * Signed out there is no entitlement to read and no account to charge, so a
+   * pet made in the pre-account session sees list prices and the offer, which
+   * is exactly SPEC §1's "the reveal is visible, saving it starts the trial".
+   */
+  const memberView = !!active?.demo || membership.member
 
   // ── URL sync ─────────────────────────────────────────────────────────────
   // Write state → hash. Guarded so it never fights the hashchange listener.
@@ -228,6 +269,8 @@ export default function App() {
     revealed.current.add(active.id)
     track('reveal_viewed', { pet_is_demo: !!active.demo, species: active.species })
   }, [surface, active])
+
+  const trialDays = trialDaysLeft(membership.entitlement, new Date())
 
   const go = (s: Surface) => {
     setSurface(s)
@@ -305,9 +348,21 @@ export default function App() {
         </div>
       </header>
 
-      {accountOpen && <AccountSheet onClose={() => setAccountOpen(false)} />}
+      {accountOpen && (
+        <AccountSheet
+          onClose={() => setAccountOpen(false)}
+          entitlement={membership.entitlement}
+          onManage={() => void membership.manage()}
+          onStartTrial={() => void membership.beginTrial()}
+          membershipBusy={membership.busy}
+          membershipError={membership.error}
+        />
+      )}
 
       <main id="main" className="flex-1">
+        {!adminRoute && !adding && trialDays !== null && (
+          <TrialBanner daysLeft={trialDays} onManage={() => void membership.manage()} />
+        )}
         {!adminRoute && !adding && importable.length > 0 && (
           <ImportPrompt
             pets={importable}
@@ -331,8 +386,24 @@ export default function App() {
           <div key={`${active.id}-${surface}`} className="reveal">
             {surface === 'home' && <Home pet={active} projection={projection} onNavigate={go} />}
             {surface === 'care' && <Companion pet={active} projection={projection} />}
-            {surface === 'rewards' && <Rewards pet={active} projection={projection} />}
-            {surface === 'shop' && <Shop pet={active} projection={projection} />}
+            {surface === 'rewards' && (
+              <Rewards
+                pet={active}
+                projection={projection}
+                member={memberView}
+                busy={membership.busy}
+                onStartTrial={membership.beginTrial}
+              />
+            )}
+            {surface === 'shop' && (
+              <Shop
+                pet={active}
+                projection={projection}
+                member={memberView}
+                busy={membership.busy}
+                onStartTrial={membership.beginTrial}
+              />
+            )}
             {surface === 'coverage' && <Coverage pet={active} projection={projection} />}
             {surface === 'life' && <Journey pet={active} />}
           </div>

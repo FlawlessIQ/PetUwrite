@@ -8,7 +8,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 
 | Phase | Scope | Status |
 |---|---|---|
-| P0 Foundations | Auth · Firestore households/pets · Stripe trial+sub · analytics gates · email skeleton | in progress — auth, data model, migration, analytics and Stripe `shipped` (Stripe built + verified, not yet deployed); email skeleton next |
+| P0 Foundations | Auth · Firestore households/pets · Stripe trial+sub · analytics gates · email skeleton | `shipped` 2026-09-23 — all eight steps deployed and verified on the live project |
 | P1 Onboarding & capture | 60s Tier-0 · live-updating reveal · silhouette BCS · condition chips · accuracy meter · photo · vaccine-card extraction w/ confirm-chips · family circle · ask registry · Data Covenant page | planned |
 | P2 Protect attach | Pre-priced offer (smart default) · screen of truth · mock rating adapter · post-bind states | planned |
 | P3 Launch moments | Arrival certificate · first-night mode · socialization passport · vaccine autopilot · "ate a grape" · sitter mode · gotcha day · renewal-explained (flagged) · FitnessProvider adapter + simulated provider | planned |
@@ -36,4 +36,9 @@ Companion AI architecture (the big one) · claims operations design · affinity/
 
 ## Spec divergences
 
-(none yet — record here when reality and SPEC.md drift, and flag to Conor)
+- **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
+  opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
+- **SPEC §1 says "75+ tests".** It is 149 unit plus 47 emulator plus four end-to-end scripts.
+  Left alone at Conor's instruction; noted so nobody reads it as a target.
+- **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
+  Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.

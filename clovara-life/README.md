@@ -209,6 +209,30 @@ helpfully un-collapse it. A test asserts those four codes produce exactly one me
 
 ---
 
+## Membership
+
+$22.99/month with a 7-day trial, on hosted Stripe Checkout and the hosted Customer Portal — so
+there is **no client-side Stripe dependency and no publishable key**, and dunning, cancellation and
+card changes are Stripe's flows rather than screens we maintain.
+
+**Price is config, never a literal** (SPEC §1). `life_config/pricing` holds the Stripe price id;
+clients cannot write it and the function refuses to build a session without it rather than falling
+back to a number.
+
+**Membership is its own Stripe Product and the session carries exactly one line item.** Invariant 2
+wants premium separate from membership in UI, in Stripe and in receipts — that is not a thing to
+retrofit, so it is true from the first session.
+
+**Entitlement is written only by the webhook**, through the Admin SDK. Clients are denied writes to
+that field: it unlocks member-only surfaces and lives on a household document its own members can
+edit, so without the rule any member could grant themselves a paid membership. There is a test that
+tries exactly that and is refused.
+
+`past_due` still counts as a member. A card that failed this morning has not stopped being a
+customer, and locking them out is how a recoverable billing problem becomes a cancellation.
+
+**Demo pets are never gated.** The investor demo has to be the whole product, not a paywalled slice.
+
 ## Storage and analytics
 
 **Signed out reads the device; signed in reads Firestore.** Never both. The first is where the

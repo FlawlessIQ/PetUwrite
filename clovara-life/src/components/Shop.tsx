@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { PetProfile, Projection } from '../data/types'
 import { recommendProducts } from '../engine/platform'
 import { CLAIM_STRENGTH_LABELS, type ClaimStrength } from '../data/products'
+import { MemberGate } from './MemberGate'
 import { CloverMark } from './CloverMark'
 
 const STRENGTH_STYLE: Record<ClaimStrength, string> = {
@@ -10,7 +11,20 @@ const STRENGTH_STYLE: Record<ClaimStrength, string> = {
   comfort: 'bg-cream text-muted',
 }
 
-export function Shop({ pet, projection }: { pet: PetProfile; projection: Projection }) {
+export function Shop({
+  pet,
+  projection,
+  member,
+  busy,
+  onStartTrial,
+}: {
+  pet: PetProfile
+  projection: Projection
+  /** Demo pets are always true — the investor demo must show the whole product. */
+  member: boolean
+  busy: boolean
+  onStartTrial: () => void
+}) {
   const [open, setOpen] = useState<string | null>(null)
   const recs = recommendProducts(pet, projection)
   const picked = recs.filter((r) => r.matched.length > 0 || r.stages)
@@ -70,10 +84,18 @@ export function Shop({ pet, projection }: { pet: PetProfile; projection: Project
                       ) : (
                         <>
                           <span className="font-display text-[19px] font-semibold text-forest">
-                            ${p.memberPrice}
+                            ${member ? p.memberPrice : p.price}
                           </span>
-                          <span className="text-[13px] text-muted line-through">${p.price}</span>
-                          <span className="text-[12px] text-muted">member</span>
+                          {member ? (
+                            <>
+                              <span className="text-[13px] text-muted line-through">${p.price}</span>
+                              <span className="text-[12px] text-muted">member</span>
+                            </>
+                          ) : (
+                            <span className="text-[12px] text-muted">
+                              ${p.memberPrice} for members
+                            </span>
+                          )}
                         </>
                       )}
                     </div>
@@ -116,12 +138,22 @@ export function Shop({ pet, projection }: { pet: PetProfile; projection: Project
                   <p className="truncate text-[12.5px] text-muted">{p.subtitle}</p>
                 </div>
                 <span className="shrink-0 text-[14px] font-medium text-forest">
-                  {p.price === 0 ? 'Free' : `$${p.memberPrice}`}
+                  {p.price === 0 ? 'Free' : `$${member ? p.memberPrice : p.price}`}
                 </span>
               </li>
             ))}
           </ul>
         </section>
+      )}
+
+      {!member && (
+        <div className="mt-6">
+          <MemberGate
+            reason={`You're seeing list prices. Members pay less on every order and earn points back on the products that keep ${pet.name} healthy.`}
+            busy={busy}
+            onStart={onStartTrial}
+          />
+        </div>
       )}
 
       <section className="card mt-6 flex flex-wrap items-center gap-4 bg-sage/60 px-5 py-4">

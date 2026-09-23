@@ -3,7 +3,41 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## P0 — Foundations (in progress)
+## P0 — Foundations (complete)
+
+### Entitlement gating (P0.6)
+
+- Member-only surfaces per SPEC §3: member pricing in Shop, point redemption in
+  Rewards.
+- **A gate never hides what is behind it.** SPEC §1 makes the reveal the hook —
+  the product has to be visible to be wanted — so a gated surface shows the
+  thing and says what unlocks it. Points keep accruing; the redemption list
+  stays on screen.
+- **Demo pets are never gated.** Max, Winston and Luna are shown to investors
+  and the demo has to be the whole product, not a paywalled slice. They are
+  labelled "Demo" in the switcher, so nobody mistakes one for their own.
+- Entitlement is watched with a live listener rather than read once, because of
+  the return from Checkout: someone lands back seconds before the webhook
+  writes. With a read they would see "start your trial" having just started one.
+- Account panel says where the membership stands in plain words, and
+  deliberately does not tell a `past_due` member they have been cut off —
+  nothing has been lost, Stripe is still retrying.
+
+### Email skeleton (P0.8)
+
+- Pluggable sender, console provider, **no live sending** — there is no audience
+  yet and no key. The shape is what ships: swapping in SendGrid is a provider
+  and a key, not a rewrite.
+- Templates are pure functions, so the copy can be diffed and tested. Nine tests
+  assert the vocabulary rules from `docs/VISION.md` hold — no "lifecycle", no
+  "platform", and nothing that promises a longer life.
+- Trial-ending is triggered by Stripe's own `customer.subscription.trial_will_end`,
+  three days out. No scheduler of ours, and it fires from the same source of
+  truth that decides when the trial actually ends.
+- One bug the tests caught before it shipped: with no price in the payload the
+  trial email read "membership is undefined a month". It now omits the amount
+  rather than inventing one, because the price is config and may be under test.
+
 
 ### Membership: Stripe trial and subscription (P0.5)
 

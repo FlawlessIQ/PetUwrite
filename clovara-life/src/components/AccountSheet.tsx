@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { displayNameFor, looksLikeEmail } from '../auth/session'
 import { CloverMark } from './CloverMark'
+import { isMember, trialDaysLeft, type Entitlement } from '../store/membership'
 
 /**
  * The account panel. Deliberately a modal rather than a route: signing in is
@@ -11,7 +12,21 @@ import { CloverMark } from './CloverMark'
  * No passwords (SPEC §3). A one-time link or Google — nothing for anyone to
  * choose badly, forget, or reuse from another site.
  */
-export function AccountSheet({ onClose }: { onClose: () => void }) {
+export function AccountSheet({
+  onClose,
+  entitlement,
+  onManage,
+  onStartTrial,
+  membershipBusy,
+  membershipError,
+}: {
+  onClose: () => void
+  entitlement: Entitlement
+  onManage: () => void
+  onStartTrial: () => void
+  membershipBusy: boolean
+  membershipError: string | null
+}) {
   const {
     user,
     status,
@@ -70,6 +85,29 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
               <span className="font-medium text-deep">{displayNameFor(user)}</span>.
             </p>
             <p className="text-[13.5px] leading-relaxed text-muted">{user.email}</p>
+
+            <div className="rounded-soft border border-line bg-cream/60 p-4">
+              <p className="label mb-1.5">Membership</p>
+              <p className="text-[14.5px] leading-relaxed text-ink/85">{membershipLine(entitlement)}</p>
+              {membershipError && (
+                <p role="alert" className="mt-2 text-[13.5px] text-[#8A5510]">
+                  {membershipError}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={isMember(entitlement) ? onManage : onStartTrial}
+                disabled={membershipBusy}
+                className="mt-3 text-[14px] text-forest underline underline-offset-4 transition hover:text-deep disabled:opacity-40"
+              >
+                {membershipBusy
+                  ? 'One moment…'
+                  : isMember(entitlement)
+                    ? 'Manage, change card, or cancel'
+                    : 'Start your 7-day free trial'}
+              </button>
+            </div>
+
             <div className="flex items-center justify-between gap-3 border-t border-line pt-5">
               <button
                 type="button"
@@ -204,4 +242,36 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
       </div>
     </div>
   )
+}
+
+/**
+ * Says where the membership stands in plain words.
+ *
+ * `past_due` deliberately does not say "expired" or "cancelled" — nothing has
+ * been lost yet, Stripe is still retrying, and telling someone they have been
+ * cut off when they have not is how a card problem becomes a cancellation.
+ */
+function membershipLine(e: Entitlement): string {
+  const days = trialDaysLeft(e, new Date())
+  switch (e.status) {
+    case 'trialing':
+      return days === null
+        ? 'Free trial running.'
+        : days === 0
+          ? 'Your free trial ends today, then $22.99 a month.'
+          : `${days} day${days === 1 ? '' : 's'} left of your free trial, then $22.99 a month.`
+    case 'active':
+      return e.cancelAtPeriodEnd
+        ? 'Active, and set to end at the close of this billing period.'
+        : 'Active. $22.99 a month.'
+    case 'past_due':
+      return "Your last payment didn't go through. We're still trying — nothing has been lost, and updating your card fixes it."
+    case 'canceled':
+      return 'Cancelled. Start again whenever you like.'
+    case 'incomplete':
+    case 'unpaid':
+      return 'Your membership needs a payment method before it can start.'
+    default:
+      return 'No membership yet. The plan and the reveal are free to look at.'
+  }
 }

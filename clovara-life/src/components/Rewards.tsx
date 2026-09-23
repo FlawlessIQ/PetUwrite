@@ -1,8 +1,22 @@
 import type { PetProfile, Projection } from '../data/types'
+import { MemberGate } from './MemberGate'
 import { buildRewards } from '../engine/platform'
 import { REWARDS_DISCLAIMER } from '../data/rewards'
 
-export function Rewards({ pet, projection }: { pet: PetProfile; projection: Projection }) {
+export function Rewards({
+  pet,
+  projection,
+  member,
+  busy,
+  onStartTrial,
+}: {
+  pet: PetProfile
+  projection: Projection
+  /** Demo pets are always true — the investor demo must show the whole product. */
+  member: boolean
+  busy: boolean
+  onStartTrial: () => void
+}) {
   const r = buildRewards(pet, projection)
 
   return (
@@ -94,6 +108,16 @@ export function Rewards({ pet, projection }: { pet: PetProfile; projection: Proj
               choice.
             </p>
           </div>
+
+          {!member && (
+            <div className="border-b border-line px-5 py-4 sm:px-6">
+              <MemberGate
+                reason={`Redeeming points is part of membership. ${pet.name}'s points keep adding up either way — nothing expires while you decide.`}
+                busy={busy}
+                onStart={onStartTrial}
+              />
+            </div>
+          )}
 
           <ul className="divide-y divide-line">
             {r.redemptions.map((item) => (
