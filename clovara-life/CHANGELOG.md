@@ -42,7 +42,35 @@ has the commits.
   ingest endpoint closes it; until then the page says so rather than reporting a
   flattering conversion rate.
 
-### Auth (shipped before P0 opened; realigned in P0.1)
+### Auth — email link + Google (P0.1)
 
-- Email/password + Google, behind a dynamic import. Being realigned to email
-  link per SPEC §3.
+- Passwordless. A one-time link or Google; no password to choose badly, forget,
+  or reuse from another site. Password sign-in removed from the product.
+- Detecting a sign-in link normally means `isSignInWithEmailLink()`, which lives
+  in the SDK — so answering "no" for every ordinary visitor would cost the demo
+  ~46KB. A pure string test on `mode`+`oobCode` runs first; the SDK gets the
+  authoritative say only once a link actually brought someone here.
+- Handles opening the link on a different device (Firebase wants the address
+  back as proof, so the UI asks) and strips the one-time parameters after use,
+  so a reload cannot replay a spent code or retry a dud one forever.
+
+### localStorage → Firestore migration (P0.4)
+
+- Two sources, never both: signed out reads the device, signed in reads
+  Firestore. The investor demo lives in the first and never touches the SDK.
+- "Keep working with Max?" appears when you sign in on a device holding pets the
+  account has not seen. Matched on pet id, so importing twice is a no-op rather
+  than a duplicate.
+- The local copy is cleared **only after** the batch write lands. A failed
+  import leaves everything where it was and the offer still standing.
+- Dismissing costs nothing and deletes nothing.
+- `npm run verify:migration` drives the whole path in a browser against the
+  emulators — make a pet signed out, request a link, complete it, import,
+  reload — and asserts the pet comes back from Firestore rather than the device.
+
+### The typecheck was a no-op (found in P0.1)
+
+`tsconfig.json` is a solution file with `"files": []`, so the `tsc --noEmit` in
+the build script typechecked nothing. `tsc -b` respects the references and found
+14 errors, one of which (`JSX.Element` in `Nav.tsx`) had never compiled under a
+real check. Build is now `tsc -b && vite build`.

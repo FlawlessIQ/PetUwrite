@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { PetProfile } from './data/types'
 import { DEMO_PETS } from './data/demoPets'
-import { findBreed } from './data/engine'
 import { project } from './engine/project'
 import { Journey } from './components/Journey'
 import { Onboarding } from './components/Onboarding'
@@ -16,84 +15,22 @@ import { AccountSheet } from './components/AccountSheet'
 import { useAuth } from './auth/AuthProvider'
 import { displayNameFor } from './auth/session'
 import { track } from './analytics/track'
+import { clearLocalPets } from './store/localPets'
+import { usePets } from './store/usePets'
+import { ImportPrompt } from './components/ImportPrompt'
 
 // Lazy: an internal page must not cost the demo path a byte.
 const MetricsDashboard = lazy(() =>
   import('./components/MetricsDashboard').then((m) => ({ default: m.MetricsDashboard })),
 )
 
-const STORAGE_KEY = 'clovara-life.pets.v1'
 const SURFACE_IDS = new Set<string>(SURFACES.map((s) => s.id))
-
-/**
- * Anything coming out of localStorage is untrusted input. A pet saved by an
- * earlier build — or hand-edited, or half-written — must not be able to throw
- * during render, because `project()` throws on an unknown breed and there is no
- * way to recover from that mid-demo without devtools.
- */
-const OUTDOOR_VALUES = new Set(['indoor', 'indoor-outdoor', 'outdoor'])
-const NEUTER_BANDS = new Set(['under-6m', '6-11m', '12-23m', '24m-plus', 'unsure'])
-
-/** Optional field: absent is fine, present and wrong is not. */
-const optionalOneOf = (v: unknown, allowed: Set<string>) =>
-  v === undefined || (typeof v === 'string' && allowed.has(v))
-
-function isValidPet(p: unknown): p is PetProfile {
-  if (!p || typeof p !== 'object') return false
-  const x = p as Record<string, unknown>
-  return (
-    optionalOneOf(x.outdoorAccess, OUTDOOR_VALUES) &&
-    optionalOneOf(x.neuterAgeBand, NEUTER_BANDS) &&
-    typeof x.id === 'string' &&
-    typeof x.name === 'string' &&
-    x.name.trim().length > 0 &&
-    (x.species === 'dog' || x.species === 'cat') &&
-    typeof x.breedId === 'string' &&
-    !!findBreed(x.breedId) &&
-    typeof x.birthDate === 'string' &&
-    !Number.isNaN(new Date(x.birthDate).getTime()) &&
-    Array.isArray(x.conditionIds) &&
-    typeof x.weightLb === 'number' &&
-    Number.isFinite(x.weightLb) &&
-    (x.dental === 'daily' || x.dental === 'weekly' || x.dental === 'rarely') &&
-    (x.activity === 'low' || x.activity === 'moderate' || x.activity === 'high') &&
-    (x.diet === 'measured' || x.diet === 'free-fed' || x.diet === 'unsure')
-  )
-}
-
-function loadPets(): PetProfile[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    // Drop anything malformed rather than letting it reach the engine.
-    return Array.isArray(parsed) ? parsed.filter(isValidPet) : []
-  } catch {
-    return []
-  }
-}
-
-function savePets(pets: PetProfile[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pets))
-  } catch {
-    /* storage unavailable — the demo still works, it just won't persist */
-  }
-}
-
-function clearPets() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    /* nothing to do */
-  }
-}
 
 /** `?reset` wipes stored pets and bounces to a clean URL. Bookmark it. */
 function handleResetParam(): boolean {
   if (typeof window === 'undefined') return false
   if (!new URLSearchParams(window.location.search).has('reset')) return false
-  clearPets()
+  clearLocalPets()
   window.location.replace(window.location.pathname)
   return true
 }
@@ -236,18 +173,18 @@ function PetSwitcher({
 }
 
 export default function App() {
-  const [userPets, setUserPets] = useState<PetProfile[]>([])
+  const { user } = useAuth()
+  const { pets: userPets, importable, importing, runImport, dismissImport, addPet: persistPet, resetLocal } =
+    usePets(user)
   const [activeId, setActiveId] = useState<string>(() => parseHash()?.petId ?? DEMO_PETS[0].id)
   const [adding, setAdding] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const [adminRoute, setAdminRoute] = useState(isAdminRoute)
-  const { user } = useAuth()
   const [surface, setSurface] = useState<Surface>(() => parseHash()?.surface ?? 'home')
 
   useEffect(() => {
     if (handleResetParam()) return
-    setUserPets(loadPets())
-    track('session_start', { demo_only: true })
+    track('session_start', {})
   }, [])
 
   const pets = [...DEMO_PETS, ...userPets]
@@ -303,9 +240,7 @@ export default function App() {
   }
 
   const addPet = (pet: PetProfile) => {
-    const next = [...userPets, pet]
-    setUserPets(next)
-    savePets(next)
+    void persistPet(pet)
     setActiveId(pet.id)
     setAdding(false)
     setSurface('life')
@@ -314,8 +249,7 @@ export default function App() {
   }
 
   const resetDemo = () => {
-    clearPets()
-    setUserPets([])
+    resetLocal()
     setActiveId(DEMO_PETS[0].id)
     setSurface('home')
     window.scrollTo({ top: 0 })
@@ -374,6 +308,14 @@ export default function App() {
       {accountOpen && <AccountSheet onClose={() => setAccountOpen(false)} />}
 
       <main id="main" className="flex-1">
+        {!adminRoute && !adding && importable.length > 0 && (
+          <ImportPrompt
+            pets={importable}
+            busy={importing}
+            onImport={() => void runImport()}
+            onDismiss={dismissImport}
+          />
+        )}
         {adminRoute ? (
           <Suspense fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}>
             <MetricsDashboard

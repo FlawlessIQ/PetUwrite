@@ -11,13 +11,18 @@ Vite + React + TypeScript + Tailwind. No component libraries.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 135 engine, platform and data-integrity tests
+npm test           # 140 engine, platform and data-integrity tests
 npm run build      # → dist/
 npm run icons      # regenerate public/og.png and the apple-touch icon
+npm run typecheck      # tsc -b. NOT `tsc --noEmit` — tsconfig.json is a solution
+                       # file with "files": [], so that form checks nothing.
 npm run test:emulator  # 37 more against the real Firestore/Auth emulators and
                        # the real firestore.rules — repository round-trips plus
                        # the denials (a stranger reading your pets, editing the
                        # append-only event log, reading it without admin)
+npm run verify:migration  # 11 checks driving localStorage → Firestore in a
+                       # browser: pet made signed out, link sign-in, import,
+                       # reload, and the pet comes back from the cloud
 
 # End-to-end demo checks: crash recovery, routing, iOS zoom, overflow, share tags.
 # Point it at a preview server or the deployed URL.
@@ -159,7 +164,10 @@ The session hint (`clovara-life.session.v1`) is a breadcrumb, never an authority
 browser had a session, so load the SDK and ask; it says nothing about whether that session is still
 valid. The real answer always comes from `onAuthStateChanged`.
 
-**Providers:** email/password and Google are wired. Apple is not — it needs an Apple Developer
+**Providers:** email link (passwordless) and Google are wired — no passwords, per SPEC §3.
+Detecting a link is a pure string test on `mode`+`oobCode` before any SDK load, because
+`isSignInWithEmailLink()` would mean loading Firebase on every page just to say "no" to everyone
+who is not mid-sign-in. Apple is not — it needs an Apple Developer
 Program membership, a Services ID and a signing key configured in the Firebase console first. Once
 that exists it is a few lines in `firebase.ts` beside the Google provider.
 
@@ -171,7 +179,7 @@ in the same project and was not added**. The live authorised-domain list is `loc
 
 | | localhost | clovara-life.web.app |
 |---|---|---|
-| Email / password | works | **works** (not domain-restricted) |
+| Email link | works | **needs the domain added** — Firebase refuses to send otherwise |
 | Google | works | **fails** — `auth/unauthorized-domain` |
 
 Fix: Firebase Console → Authentication → Settings → Authorized domains → add `clovara-life.web.app`.
@@ -199,6 +207,11 @@ helpfully un-collapse it. A test asserts those four codes produce exactly one me
 ---
 
 ## Storage and analytics
+
+**Signed out reads the device; signed in reads Firestore.** Never both. The first is where the
+investor demo lives and it touches no SDK. On signing in with pets the account has not seen,
+"Keep working with Max?" offers a one-tap import — matched on pet id so importing twice is a no-op,
+and the local copy is cleared only after the write lands.
 
 **Pets live in `households/{id}/pets/{petId}`** (SPEC §7), not in the `users/{uid}`
 collection the underwriting product uses — that one carries `userRole`, admin claims and a large
