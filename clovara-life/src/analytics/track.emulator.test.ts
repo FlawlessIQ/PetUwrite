@@ -8,36 +8,19 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
  * testing nothing. So the shim goes in before any module that touches storage
  * is imported.
  */
-const ENABLED = process.env.RUN_EMULATOR_TESTS === '1'
+const ENABLED = import.meta.env.VITE_RUN_EMULATOR_TESTS === '1'
 
-if (ENABLED && typeof globalThis.localStorage === 'undefined') {
-  const mem = new Map<string, string>()
-  Object.defineProperty(globalThis, 'localStorage', {
-    configurable: true,
-    value: {
-      getItem: (k: string) => mem.get(k) ?? null,
-      setItem: (k: string, v: string) => void mem.set(k, String(v)),
-      removeItem: (k: string) => void mem.delete(k),
-      clear: () => mem.clear(),
-      key: (i: number) => [...mem.keys()][i] ?? null,
-      get length() {
-        return mem.size
-      },
-    },
-  })
-}
+const { installBrowserShims } = await import('../test-utils/emulatorAuth')
+if (ENABLED) installBrowserShims()
 
 const { track, flush, queuedCount } = await import('./track')
 const { loadAuth } = await import('../auth/firebase')
+const { signInFreshViaLink } = await import('../test-utils/emulatorAuth')
 
 describe.skipIf(!ENABLED)('analytics flush (emulator)', () => {
   let auth: Awaited<ReturnType<typeof loadAuth>>
 
-  const signInFresh = async (): Promise<string> => {
-    const email = `ev-${Math.random().toString(36).slice(2, 10)}@example.com`
-    const cred = await auth.createAccount(email, 'emulator-password')
-    return cred.user.uid
-  }
+  const signInFresh = async (): Promise<string> => (await signInFreshViaLink(auth, 'ev')).uid
 
   beforeAll(async () => {
     auth = await loadAuth()
@@ -121,10 +104,7 @@ describe.skipIf(!ENABLED)('analytics rules — append-only (emulator)', () => {
     }
   }
 
-  const signInFresh = async (): Promise<string> => {
-    const email = `rules-ev-${Math.random().toString(36).slice(2, 10)}@example.com`
-    return (await auth.createAccount(email, 'emulator-password')).user.uid
-  }
+  const signInFresh = async (): Promise<string> => (await signInFreshViaLink(auth, 'rules-ev')).uid
 
   it('refuses an event stamped with somebody else\'s uid', async () => {
     // Without this, any signed-in user could forge another account's funnel.

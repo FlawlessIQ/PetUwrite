@@ -44,8 +44,6 @@ import {
  * as NA for it, so neither variant can claim the figure. Their notes say so.
  */
 
-const SIZE_CLASS_NOTE =
-  'US size-class life expectancy at birth (Montoya 2023): toy 13.36, small 13.53, medium 12.70, large 11.51, giant 9.51.'
 
 export const DOG_BREEDS: Breed[] = [
   // ————————————————————————————————————————————————————————————————

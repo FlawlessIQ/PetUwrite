@@ -4,6 +4,7 @@ import { loadAuth } from '../auth/firebase'
 import { profileFromFirestore, storedFromProfile } from '../data/fromFirestore'
 import { project } from '../engine/project'
 import type { PetProfile } from '../data/types'
+import { installBrowserShims, signInFreshViaLink } from '../test-utils/emulatorAuth'
 
 /**
  * Round-trips the real repository against the real Firestore emulator, signed
@@ -14,11 +15,11 @@ import type { PetProfile } from '../data/types'
  * rules. Several assertions below are negative — they prove the rules DENY
  * something — and those are the reason this file exists at all.
  *
- * Skipped unless RUN_EMULATOR_TESTS=1, so `npm test` stays a fast pure-unit run
+ * Skipped unless VITE_RUN_EMULATOR_TESTS=1, so `npm test` stays a fast pure-unit run
  * needing nothing installed. Run with `npm run test:emulator`, which starts the
  * suite from the repo-root firebase.json and tears it down afterwards.
  */
-const ENABLED = process.env.RUN_EMULATOR_TESTS === '1'
+const ENABLED = import.meta.env.VITE_RUN_EMULATOR_TESTS === '1'
 
 const NOW = new Date('2026-09-23T12:00:00Z')
 
@@ -42,14 +43,11 @@ describe.skipIf(!ENABLED)('firestore repository (emulator)', () => {
   let store: Awaited<ReturnType<typeof loadStore>>
   let auth: Awaited<ReturnType<typeof loadAuth>>
 
-  /** Signs in a brand-new emulator user and returns their real uid. */
-  const asNewUser = async (): Promise<string> => {
-    const email = `p0-${Math.random().toString(36).slice(2, 10)}@example.com`
-    const cred = await auth.createAccount(email, 'emulator-password')
-    return cred.user.uid
-  }
+  /** A brand-new user, signed in through the real email-link flow. */
+  const asNewUser = async (): Promise<string> => (await signInFreshViaLink(auth, 'store')).uid
 
   beforeAll(async () => {
+    installBrowserShims()
     ;[store, auth] = await Promise.all([loadStore(), loadAuth()])
   })
 
@@ -138,6 +136,7 @@ describe.skipIf(!ENABLED)('firestore rules — household isolation (emulator)', 
   let auth: Awaited<ReturnType<typeof loadAuth>>
 
   beforeAll(async () => {
+    installBrowserShims()
     ;[store, auth] = await Promise.all([loadStore(), loadAuth()])
   })
 
@@ -160,11 +159,7 @@ describe.skipIf(!ENABLED)('firestore rules — household isolation (emulator)', 
     expect(code, what).toBe('permission-denied')
   }
 
-  const signInFresh = async (): Promise<string> => {
-    const email = `rules-${Math.random().toString(36).slice(2, 10)}@example.com`
-    const cred = await auth.createAccount(email, 'emulator-password')
-    return cred.user.uid
-  }
+  const signInFresh = async (): Promise<string> => (await signInFreshViaLink(auth, 'rules')).uid
 
   it("a stranger cannot read another household's pets", async () => {
     const a = await signInFresh()
@@ -174,7 +169,7 @@ describe.skipIf(!ENABLED)('firestore rules — household isolation (emulator)', 
       storedFromProfile(profile({ name: 'Private' }), { householdId: ha.id, uid: a, now: NOW }),
     )
 
-    // createAccount signs the SDK in as B, so every call below is now B's.
+    // Completing a link signs the SDK in as B, so every call below is B's.
     const b = await signInFresh()
     expect(b).not.toBe(a)
     await expectDenied(store.listPets(ha.id), "stranger listing another household's pets")

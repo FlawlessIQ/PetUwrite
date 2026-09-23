@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { afterFlush, dedupe, enqueue, MAX_QUEUED, parseQueue, prepareFlush } from './queue'
-import { EVENT_NAMES, makeEvent, sanitizeProps, type AnalyticsEvent } from './events'
+import { EVENT_NAMES, makeEvent, sanitizeProps, type AnalyticsEvent, type EventProps } from './events'
 
 const CTX = { visitorId: 'v1', sessionId: 's1', build: 'test', now: new Date('2026-09-23T12:00:00Z') }
 const ev = (over: Partial<AnalyticsEvent> = {}): AnalyticsEvent => ({
@@ -10,29 +10,28 @@ const ev = (over: Partial<AnalyticsEvent> = {}): AnalyticsEvent => ({
 
 describe('makeEvent / sanitizeProps', () => {
   it('keeps the four simple types and drops everything else', () => {
+    // Values that are the wrong shape at runtime — an index signature accepts
+    // them at compile time, which is exactly why sanitising matters.
     const out = sanitizeProps({
       a_string: 'ok',
       a_number: 42,
       a_bool: true,
       a_null: null,
-      // @ts-expect-error deliberately wrong at runtime
       an_object: { nested: 'no' },
-      // @ts-expect-error deliberately wrong at runtime
       an_array: [1, 2],
-      // @ts-expect-error deliberately wrong at runtime
       undef: undefined,
-    })
+      // The cast is the point: these shapes cannot reach sanitizeProps through
+      // typed code, but they absolutely can through JSON, a stale build, or a
+      // caller reaching for `any`. Sanitising is the runtime backstop.
+    } as unknown as EventProps)
     expect(out).toEqual({ a_string: 'ok', a_number: 42, a_bool: true, a_null: null })
   })
 
   it('refuses keys that are not plain snake_case identifiers', () => {
     const out = sanitizeProps({
       good_key: 1,
-      // @ts-expect-error runtime-only keys
       'bad-key': 1,
-      // @ts-expect-error runtime-only keys
       'Bad': 1,
-      // @ts-expect-error runtime-only keys
       '': 1,
     })
     expect(Object.keys(out)).toEqual(['good_key'])

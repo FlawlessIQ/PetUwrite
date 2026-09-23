@@ -3,40 +3,29 @@ import { useAuth } from '../auth/AuthProvider'
 import { displayNameFor, looksLikeEmail } from '../auth/session'
 import { CloverMark } from './CloverMark'
 
-type Mode = 'signIn' | 'signUp' | 'reset'
-
-const COPY: Record<Mode, { title: string; blurb: string; cta: string }> = {
-  signIn: {
-    title: 'Sign in to Clovara',
-    blurb: 'Your pets and their plans, on every device you use.',
-    cta: 'Sign in',
-  },
-  signUp: {
-    title: 'Create your Clovara account',
-    blurb: 'Free to create. Your pets stay yours.',
-    cta: 'Create account',
-  },
-  reset: {
-    title: 'Reset your password',
-    blurb: "We'll email you a link to set a new one.",
-    cta: 'Send the link',
-  },
-}
-
 /**
  * The account panel. Deliberately a modal rather than a route: signing in is
  * never a precondition for using Clovara Life, so it must never take over the
  * URL or interrupt a demo. Escape and the backdrop both close it.
+ *
+ * No passwords (SPEC §3). A one-time link or Google — nothing for anyone to
+ * choose badly, forget, or reuse from another site.
  */
 export function AccountSheet({ onClose }: { onClose: () => void }) {
-  const { user, status, error, clearError, signIn, signUp, signInWithGoogle, sendReset, signOut } =
-    useAuth()
-  const [mode, setMode] = useState<Mode>('signIn')
+  const {
+    user,
+    status,
+    error,
+    clearError,
+    sendLink,
+    signInWithGoogle,
+    signOut,
+    needsEmailForLink,
+    completeLinkWithEmail,
+  } = useAuth()
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [sent, setSent] = useState(false)
   const busy = status === 'working' || status === 'restoring'
-  const panel = useRef<HTMLDivElement>(null)
   const firstField = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -46,27 +35,15 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const switchTo = (m: Mode) => {
-    setMode(m)
-    setSent(false)
-    clearError()
-  }
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (busy) return
-    if (mode === 'reset') {
-      if (!looksLikeEmail(email)) return
-      if (await sendReset(email)) setSent(true)
+    if (busy || !looksLikeEmail(email)) return
+    if (needsEmailForLink) {
+      if (await completeLinkWithEmail(email)) onClose()
       return
     }
-    if (!looksLikeEmail(email) || password.length < 6) return
-    const ok = mode === 'signIn' ? await signIn(email, password) : await signUp(email, password)
-    if (ok) onClose()
+    if (await sendLink(email)) setSent(true)
   }
-
-  const canSubmit =
-    mode === 'reset' ? looksLikeEmail(email) : looksLikeEmail(email) && password.length >= 6
 
   return (
     <div
@@ -74,7 +51,6 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        ref={panel}
         role="dialog"
         aria-modal="true"
         aria-labelledby="account-title"
@@ -93,9 +69,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
               You are signed in as{' '}
               <span className="font-medium text-deep">{displayNameFor(user)}</span>.
             </p>
-            <p className="text-[13.5px] leading-relaxed text-muted">
-              {user.email}
-            </p>
+            <p className="text-[13.5px] leading-relaxed text-muted">{user.email}</p>
             <div className="flex items-center justify-between gap-3 border-t border-line pt-5">
               <button
                 type="button"
@@ -119,58 +93,52 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
               <div className="mb-2 flex items-center gap-2.5">
                 <CloverMark size={24} id="acct" />
                 <h2 id="account-title" className="font-display text-[22px] leading-tight text-ink">
-                  {COPY[mode].title}
+                  {needsEmailForLink ? 'Confirm your email' : 'Sign in to Clovara'}
                 </h2>
               </div>
-              <p className="text-[14.5px] leading-snug text-muted">{COPY[mode].blurb}</p>
+              <p className="text-[14.5px] leading-snug text-muted">
+                {needsEmailForLink
+                  ? 'You opened the link on a different device. Type the address you asked for it with and we can finish.'
+                  : 'Your pets and their plans, on every device you use. No password to remember.'}
+              </p>
             </div>
 
             {sent ? (
-              <div className="rounded-soft border border-line bg-sage/50 p-4 text-[14.5px] leading-relaxed text-deep">
-                If there is an account for {email.trim()}, a reset link is on its way. Check spam if
-                it has not arrived in a minute.
+              <div className="space-y-4">
+                <div className="rounded-soft border border-line bg-sage/50 p-4 text-[14.5px] leading-relaxed text-deep">
+                  Check <span className="font-medium">{email.trim()}</span> — there's a sign-in link
+                  waiting. Open it on this device and you'll land straight back here.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSent(false)
+                    clearError()
+                  }}
+                  className="text-[14px] text-forest underline underline-offset-4 hover:text-deep"
+                >
+                  Use a different address
+                </button>
               </div>
             ) : (
-              <>
-                <div>
-                  <label htmlFor="acct-email" className="label mb-2 block">
-                    Email
-                  </label>
-                  <input
-                    id="acct-email"
-                    ref={firstField}
-                    type="email"
-                    autoComplete="email"
-                    className="field"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value)
-                      clearError()
-                    }}
-                    placeholder="you@example.com"
-                  />
-                </div>
-
-                {mode !== 'reset' && (
-                  <div>
-                    <label htmlFor="acct-password" className="label mb-2 block">
-                      Password
-                    </label>
-                    <input
-                      id="acct-password"
-                      type="password"
-                      autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
-                      className="field"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value)
-                        clearError()
-                      }}
-                      placeholder={mode === 'signUp' ? 'At least 6 characters' : ''}
-                    />
-                  </div>
-                )}
-              </>
+              <div>
+                <label htmlFor="acct-email" className="label mb-2 block">
+                  Email
+                </label>
+                <input
+                  id="acct-email"
+                  ref={firstField}
+                  type="email"
+                  autoComplete="email"
+                  className="field"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    clearError()
+                  }}
+                  placeholder="you@example.com"
+                />
+              </div>
             )}
 
             {error && (
@@ -183,12 +151,20 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
             )}
 
             {!sent && (
-              <button type="submit" disabled={!canSubmit || busy} className="pill-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50">
-                {busy ? 'One moment…' : COPY[mode].cta}
+              <button
+                type="submit"
+                disabled={!looksLikeEmail(email) || busy}
+                className="pill-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busy
+                  ? 'One moment…'
+                  : needsEmailForLink
+                    ? 'Finish signing in'
+                    : 'Email me a sign-in link'}
               </button>
             )}
 
-            {mode !== 'reset' && (
+            {!needsEmailForLink && !sent && (
               <>
                 <div className="flex items-center gap-3" aria-hidden="true">
                   <span className="h-px flex-1 bg-line" />
@@ -214,23 +190,12 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
               </>
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line pt-4 text-[14px]">
-              {mode === 'signIn' && (
-                <>
-                  <button type="button" onClick={() => switchTo('signUp')} className="text-forest underline underline-offset-4 hover:text-deep">
-                    Create an account
-                  </button>
-                  <button type="button" onClick={() => switchTo('reset')} className="text-muted underline underline-offset-4 hover:text-ink">
-                    Forgot password
-                  </button>
-                </>
-              )}
-              {mode !== 'signIn' && (
-                <button type="button" onClick={() => switchTo('signIn')} className="text-forest underline underline-offset-4 hover:text-deep">
-                  Back to sign in
-                </button>
-              )}
-              <button type="button" onClick={onClose} className="ml-auto text-muted underline underline-offset-4 hover:text-ink">
+            <div className="flex items-center justify-end border-t border-line pt-4 text-[14px]">
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-muted underline underline-offset-4 hover:text-ink"
+              >
                 Not now
               </button>
             </div>

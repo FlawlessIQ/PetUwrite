@@ -38,6 +38,60 @@ export function writeSessionHint(signedIn: boolean): void {
 }
 
 /**
+ * Where we stash the address a sign-in link was sent to.
+ *
+ * Firebase requires the email back when completing the link, as proof the
+ * person holding the link is the person who asked for it — otherwise anyone who
+ * intercepted the URL could sign in as them. On the same device we have it; on
+ * a different one we have to ask.
+ */
+export const PENDING_EMAIL_KEY = 'clovara-life.pending-email.v1'
+
+export function readPendingEmail(): string | null {
+  try {
+    return localStorage.getItem(PENDING_EMAIL_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function writePendingEmail(email: string | null): void {
+  try {
+    if (email) localStorage.setItem(PENDING_EMAIL_KEY, email)
+    else localStorage.removeItem(PENDING_EMAIL_KEY)
+  } catch {
+    /* blocked storage — we will ask for the address instead */
+  }
+}
+
+/**
+ * Does this URL look like a Firebase sign-in link?
+ *
+ * Deliberately a string test rather than `isSignInWithEmailLink()`, which lives
+ * in the SDK. Calling the SDK version would mean loading ~46KB of Firebase on
+ * every page load just to answer "no" for every visitor who is not mid-sign-in
+ * — which is all of them, including the investor demo. This is the cheap gate
+ * in front of that; the SDK still gets the final say once it is loaded.
+ *
+ * Firebase's own link format is `?apiKey=…&mode=signIn&oobCode=…&lang=…`.
+ * Being wrong in the permissive direction costs one unnecessary SDK load;
+ * being wrong in the strict direction would strand someone outside their
+ * account, so the test is on mode+oobCode and nothing stricter.
+ */
+export function looksLikeSignInLink(href: string): boolean {
+  if (typeof href !== 'string' || !href) return false
+  const q = href.indexOf('?')
+  if (q === -1) return false
+  let params: URLSearchParams
+  try {
+    params = new URLSearchParams(href.slice(q + 1).split('#')[0])
+  } catch {
+    return false
+  }
+  return params.get('mode') === 'signIn' && !!params.get('oobCode')
+}
+
+/**
  * Firebase auth error codes → something a pet owner can act on.
  *
  * The SDK's own messages leak implementation detail ("auth/invalid-credential",
@@ -54,6 +108,8 @@ export function authErrorMessage(code: unknown): string {
       return 'Enter your password.'
     case 'auth/weak-password':
       return 'Passwords need to be at least six characters.'
+    case 'auth/missing-email':
+      return 'Enter the email address the link was sent to.'
     case 'auth/email-already-in-use':
       return 'There is already an account with that email. Try signing in instead.'
     // Firebase deliberately collapses "wrong password" and "no such user" into
@@ -64,8 +120,14 @@ export function authErrorMessage(code: unknown): string {
     case 'auth/wrong-password':
     case 'auth/user-not-found':
       return "That email and password don't match an account."
+    case 'auth/invalid-action-code':
+      return 'That sign-in link has already been used. Ask for a fresh one.'
+    case 'auth/expired-action-code':
+      return 'That sign-in link has expired. Ask for a fresh one and it will work.'
+    case 'auth/invalid-email-link':
+      return "That link doesn't look complete. Try opening it again from the email itself."
     case 'auth/too-many-requests':
-      return 'Too many attempts. Wait a minute and try again, or reset your password.'
+      return 'Too many attempts from this device. Wait a minute and ask for the link again.'
     case 'auth/network-request-failed':
       return 'Could not reach the server. Check your connection and try again.'
     case 'auth/popup-closed-by-user':

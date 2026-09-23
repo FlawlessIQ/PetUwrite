@@ -19,12 +19,27 @@ export type { User }
 
 interface AuthKit {
   auth: Auth
-  signInWithEmail: (email: string, password: string) => Promise<UserCredential>
-  createAccount: (email: string, password: string) => Promise<UserCredential>
+  /** Emails a one-time sign-in link. Creates the account if there isn't one. */
+  sendSignInLink: (email: string) => Promise<void>
+  /** Completes a link. `href` is the full URL the link landed on. */
+  completeSignInLink: (email: string, href: string) => Promise<UserCredential>
+  /** The SDK's own authoritative check, after `looksLikeSignInLink` got us here. */
+  isSignInLink: (href: string) => boolean
   signInWithGoogle: () => Promise<UserCredential>
-  sendReset: (email: string) => Promise<void>
   signOut: () => Promise<void>
   watch: (cb: (user: User | null) => void) => () => void
+}
+
+/**
+ * Where a sign-in link comes back to.
+ *
+ * Origin + path, with query and hash dropped: the link must land on the app,
+ * not on whatever deep link the person happened to be looking at when they
+ * asked for it, and Firebase appends its own query parameters. The domain has
+ * to be on the project's authorised-domain list or Firebase refuses to send.
+ */
+function linkReturnUrl(): string {
+  return `${window.location.origin}${window.location.pathname}`
 }
 
 let kit: Promise<AuthKit> | null = null
@@ -41,11 +56,11 @@ export function loadAuth(): Promise<AuthKit> {
       connectAuthEmulator,
       browserLocalPersistence,
       setPersistence,
-      signInWithEmailAndPassword,
-      createUserWithEmailAndPassword,
+      sendSignInLinkToEmail,
+      signInWithEmailLink,
+      isSignInWithEmailLink,
       signInWithPopup,
       GoogleAuthProvider,
-      sendPasswordResetEmail,
       signOut: fbSignOut,
       onAuthStateChanged,
     } = authMod
@@ -69,10 +84,15 @@ export function loadAuth(): Promise<AuthKit> {
 
     return {
       auth,
-      signInWithEmail: (email, password) =>
-        signInWithEmailAndPassword(auth, email.trim(), password),
-      createAccount: (email, password) =>
-        createUserWithEmailAndPassword(auth, email.trim(), password),
+      sendSignInLink: (email) =>
+        sendSignInLinkToEmail(auth, email.trim(), {
+          url: linkReturnUrl(),
+          // Required: it is what makes the link open in the app rather than
+          // bouncing through a Firebase-hosted page.
+          handleCodeInApp: true,
+        }),
+      completeSignInLink: (email, href) => signInWithEmailLink(auth, email.trim(), href),
+      isSignInLink: (href) => isSignInWithEmailLink(auth, href),
       signInWithGoogle: () => {
         const provider = new GoogleAuthProvider()
         // Always show the chooser. Silently reusing a signed-in Google account
@@ -80,7 +100,6 @@ export function loadAuth(): Promise<AuthKit> {
         provider.setCustomParameters({ prompt: 'select_account' })
         return signInWithPopup(auth, provider)
       },
-      sendReset: (email) => sendPasswordResetEmail(auth, email.trim()),
       signOut: () => fbSignOut(auth),
       watch: (cb) => onAuthStateChanged(auth, cb),
     }

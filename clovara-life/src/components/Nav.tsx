@@ -1,6 +1,7 @@
+import type { ReactElement } from 'react'
 export type Surface = 'home' | 'care' | 'rewards' | 'shop' | 'coverage' | 'life'
 
-export const SURFACES: { id: Surface; label: string; icon: JSX.Element }[] = [
+export const SURFACES: { id: Surface; label: string; icon: ReactElement }[] = [
   {
     id: 'home',
     label: 'Home',

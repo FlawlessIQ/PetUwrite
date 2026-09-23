@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { authErrorMessage, displayNameFor, errorCode, looksLikeEmail } from './session'
+import {
+  authErrorMessage,
+  displayNameFor,
+  errorCode,
+  looksLikeEmail,
+  looksLikeSignInLink,
+} from './session'
 
 describe('authErrorMessage', () => {
   it('keeps the wrong-password / no-such-account ambiguity Firebase deliberately creates', () => {
@@ -86,5 +92,56 @@ describe('displayNameFor', () => {
     expect(displayNameFor({}).length).toBeGreaterThan(0)
     expect(displayNameFor({ displayName: null, email: null }).length).toBeGreaterThan(0)
     expect(displayNameFor({ displayName: '', email: '' }).length).toBeGreaterThan(0)
+  })
+})
+
+describe('looksLikeSignInLink', () => {
+  const link = (extra = '') =>
+    `https://clovara-life.web.app/?apiKey=AIza123&mode=signIn&oobCode=ABC123&lang=en${extra}`
+
+  it('recognises a real Firebase sign-in link', () => {
+    expect(looksLikeSignInLink(link())).toBe(true)
+    expect(looksLikeSignInLink(link('#/pet/demo-max/life'))).toBe(true)
+    expect(looksLikeSignInLink('http://localhost:4173/?mode=signIn&oobCode=x')).toBe(true)
+  })
+
+  it('does not fire on the pages every other visitor lands on', () => {
+    // The whole reason this is a string test and not isSignInWithEmailLink():
+    // a false positive here loads ~46KB of Firebase on the demo path.
+    for (const url of [
+      'https://clovara-life.web.app/',
+      'https://clovara-life.web.app/#/pet/demo-max/life',
+      'https://clovara-life.web.app/?reset',
+      'https://clovara-life.web.app/?mode=signIn',
+      'https://clovara-life.web.app/?oobCode=ABC',
+      'https://clovara-life.web.app/?mode=resetPassword&oobCode=ABC',
+      'https://clovara-life.web.app/?mode=verifyEmail&oobCode=ABC',
+      '',
+    ]) {
+      expect(looksLikeSignInLink(url), url || '(empty)').toBe(false)
+    }
+  })
+
+  it('never throws, whatever it is handed', () => {
+    for (const v of [null, undefined, 42, {}, [], '?%%%broken', 'not a url at all?mode=signIn&oobCode=1']) {
+      expect(() => looksLikeSignInLink(v as string), String(v)).not.toThrow()
+    }
+    // The last one has the parameters, so it is deliberately a match — being
+    // permissive costs one wasted SDK load; being strict would strand someone
+    // outside their account.
+    expect(looksLikeSignInLink('not a url at all?mode=signIn&oobCode=1')).toBe(true)
+  })
+})
+
+describe('authErrorMessage — link era', () => {
+  it('tells someone what to do about a spent or expired link', () => {
+    expect(authErrorMessage('auth/invalid-action-code')).toMatch(/already been used|fresh/i)
+    expect(authErrorMessage('auth/expired-action-code')).toMatch(/expired/i)
+  })
+
+  it('no longer tells anyone to reset a password they do not have', () => {
+    for (const code of ['auth/too-many-requests', 'auth/invalid-action-code', 'auth/missing-email']) {
+      expect(authErrorMessage(code), code).not.toMatch(/reset your password/i)
+    }
   })
 })
