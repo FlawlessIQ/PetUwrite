@@ -12,6 +12,9 @@
 import { FIREBASE_CONFIG } from './config'
 import type { Auth, User, UserCredential } from 'firebase/auth'
 
+/** Set VITE_USE_EMULATORS=1 to point a dev build at the local emulator suite. */
+const USE_EMULATORS = import.meta.env.VITE_USE_EMULATORS === '1'
+
 export type { User }
 
 interface AuthKit {
@@ -35,6 +38,7 @@ export function loadAuth(): Promise<AuthKit> {
     ])
     const {
       getAuth,
+      connectAuthEmulator,
       browserLocalPersistence,
       setPersistence,
       signInWithEmailAndPassword,
@@ -49,6 +53,13 @@ export function loadAuth(): Promise<AuthKit> {
     // getApps() guard: a hot reload in dev would otherwise re-initialise and throw.
     const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG)
     const auth = getAuth(app)
+    if (USE_EMULATORS) {
+      try {
+        connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+      } catch {
+        /* already connected on a hot reload */
+      }
+    }
 
     // Survive a reload and a closed tab. This is what the session hint promises.
     await setPersistence(auth, browserLocalPersistence).catch(() => {
