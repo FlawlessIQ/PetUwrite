@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { PetProfile } from './data/types'
 import { DEMO_PETS } from './data/demoPets'
 import { findBreed } from './data/engine'
@@ -15,6 +15,12 @@ import { CloverMark, Wordmark } from './components/CloverMark'
 import { AccountSheet } from './components/AccountSheet'
 import { useAuth } from './auth/AuthProvider'
 import { displayNameFor } from './auth/session'
+import { track } from './analytics/track'
+
+// Lazy: an internal page must not cost the demo path a byte.
+const MetricsDashboard = lazy(() =>
+  import('./components/MetricsDashboard').then((m) => ({ default: m.MetricsDashboard })),
+)
 
 const STORAGE_KEY = 'clovara-life.pets.v1'
 const SURFACE_IDS = new Set<string>(SURFACES.map((s) => s.id))
@@ -99,6 +105,11 @@ function parseHash(): { petId: string; surface: Surface } | null {
   const surface = m[2]
   if (!SURFACE_IDS.has(surface)) return null
   return { petId: decodeURIComponent(m[1]), surface: surface as Surface }
+}
+
+/** `#/admin/metrics` — internal only, and gated again by the Firestore rules. */
+function isAdminRoute(): boolean {
+  return window.location.hash === '#/admin/metrics'
 }
 
 function PetSwitcher({
@@ -229,12 +240,14 @@ export default function App() {
   const [activeId, setActiveId] = useState<string>(() => parseHash()?.petId ?? DEMO_PETS[0].id)
   const [adding, setAdding] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [adminRoute, setAdminRoute] = useState(isAdminRoute)
   const { user } = useAuth()
   const [surface, setSurface] = useState<Surface>(() => parseHash()?.surface ?? 'home')
 
   useEffect(() => {
     if (handleResetParam()) return
     setUserPets(loadPets())
+    track('session_start', { demo_only: true })
   }, [])
 
   const pets = [...DEMO_PETS, ...userPets]
@@ -246,10 +259,10 @@ export default function App() {
   // ── URL sync ─────────────────────────────────────────────────────────────
   // Write state → hash. Guarded so it never fights the hashchange listener.
   useEffect(() => {
-    if (!active) return
+    if (!active || adminRoute) return
     const next = `#/pet/${encodeURIComponent(active.id)}/${surface}`
     if (window.location.hash !== next) window.history.replaceState(null, '', next)
-  }, [active, surface])
+  }, [active, surface, adminRoute])
 
   // Read hash → state, for back/forward and pasted links.
   useEffect(() => {
@@ -259,9 +272,25 @@ export default function App() {
       setSurface(parsed.surface)
       setActiveId((cur) => (parsed.petId !== cur ? parsed.petId : cur))
     }
+    const onAdmin = () => setAdminRoute(isAdminRoute())
     window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
+    window.addEventListener('hashchange', onAdmin)
+    return () => {
+      window.removeEventListener('hashchange', onHash)
+      window.removeEventListener('hashchange', onAdmin)
+    }
   }, [])
+
+  // The Life surface is the Plan reveal (SPEC §4.1). Fired once per pet per
+  // session so a user flicking between tabs does not inflate the top of the
+  // funnel — the dashboard's rates are computed against it.
+  const revealed = useRef(new Set<string>())
+  useEffect(() => {
+    if (surface !== 'life' || !active) return
+    if (revealed.current.has(active.id)) return
+    revealed.current.add(active.id)
+    track('reveal_viewed', { pet_is_demo: !!active.demo, species: active.species })
+  }, [surface, active])
 
   const go = (s: Surface) => {
     setSurface(s)
@@ -280,6 +309,7 @@ export default function App() {
     setActiveId(pet.id)
     setAdding(false)
     setSurface('life')
+    track('pet_created', { species: pet.species, has_weight: pet.weightLb > 0 })
     window.scrollTo({ top: 0 })
   }
 
@@ -344,7 +374,16 @@ export default function App() {
       {accountOpen && <AccountSheet onClose={() => setAccountOpen(false)} />}
 
       <main id="main" className="flex-1">
-        {adding ? (
+        {adminRoute ? (
+          <Suspense fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}>
+            <MetricsDashboard
+              onClose={() => {
+                window.location.hash = `#/pet/${encodeURIComponent(active?.id ?? DEMO_PETS[0].id)}/home`
+                setAdminRoute(false)
+              }}
+            />
+          </Suspense>
+        ) : adding ? (
           <Onboarding onComplete={addPet} onCancel={() => setAdding(false)} />
         ) : active ? (
           <div key={`${active.id}-${surface}`} className="reveal">

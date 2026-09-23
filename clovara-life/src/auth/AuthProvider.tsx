@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { loadAuth, type User } from './firebase'
 import { authErrorMessage, errorCode, readSessionHint, writeSessionHint } from './session'
+import { flush, track } from '../analytics/track'
 
 /**
  * `idle`      — the SDK has never been loaded. This is where a signed-out
@@ -58,6 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(u)
         setStatus(u ? 'signedIn' : 'signedOut')
         writeSessionHint(!!u)
+        // The moment there is an identity, everything buffered against this
+        // browser's visitorId can be written and attributed — including the
+        // pre-account reveal that is the top of the funnel.
+        if (u) void flush(u.uid)
       })
     }
     return kit
@@ -75,6 +80,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       writeSessionHint(false)
     })
   }, [ensureWatching])
+
+  /**
+   * Records an event that describes an auth action, then flushes it.
+   *
+   * The flush matters: the auth-state watcher fires DURING sign-in and flushes
+   * everything queued at that moment, which is before this event exists. Without
+   * a second flush, `signed_up` — the event the whole funnel is measured
+   * against — would sit in the queue until the next app load.
+   */
+  const trackAuth = useCallback(async (name: 'signed_in' | 'signed_up', method: string) => {
+    track(name, { method })
+    try {
+      const uid = (await loadAuth()).auth.currentUser?.uid
+      if (uid) await flush(uid)
+    } catch {
+      /* The event stays queued and goes out with the next flush. */
+    }
+  }, [])
 
   /** Every interactive auth call funnels through this: one place for errors. */
   const run = useCallback(
@@ -102,15 +125,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       error,
       clearError: () => setError(null),
-      signIn: (email, password) => run((k) => k.signInWithEmail(email, password)),
-      signUp: (email, password) => run((k) => k.createAccount(email, password)),
-      signInWithGoogle: () => run((k) => k.signInWithGoogle()),
+      signIn: async (email, password) => {
+        const ok = await run((k) => k.signInWithEmail(email, password))
+        if (ok) await trackAuth('signed_in', 'password')
+        return ok
+      },
+      signUp: async (email, password) => {
+        const ok = await run((k) => k.createAccount(email, password))
+        if (ok) await trackAuth('signed_up', 'password')
+        return ok
+      },
+      signInWithGoogle: async () => {
+        const ok = await run((k) => k.signInWithGoogle())
+        if (ok) await trackAuth('signed_in', 'google')
+        return ok
+      },
       sendReset: (email) => run((k) => k.sendReset(email)),
       signOut: async () => {
         await run((k) => k.signOut())
       },
     }),
-    [user, status, error, run],
+    [user, status, error, run, trackAuth],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

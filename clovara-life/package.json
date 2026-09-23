@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "shots": "node shots.mjs",
     "icons": "node scripts/make-icons.mjs",
-    "test:emulator": "cd .. && npx firebase emulators:exec --only firestore,auth --project pet-underwriter-ai 'cd clovara-life && RUN_EMULATOR_TESTS=1 VITE_USE_EMULATORS=1 npx vitest run src/store'"
+    "test:emulator": "cd .. && npx firebase emulators:exec --only firestore,auth --project pet-underwriter-ai 'cd clovara-life && RUN_EMULATOR_TESTS=1 VITE_USE_EMULATORS=1 npx vitest run src/store src/analytics'"
   },
   "dependencies": {
     "@fontsource/playfair-display": "^5.3.0",

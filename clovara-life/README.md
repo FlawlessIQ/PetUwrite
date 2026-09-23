@@ -11,9 +11,13 @@ Vite + React + TypeScript + Tailwind. No component libraries.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 102 engine, platform and data-integrity tests
+npm test           # 135 engine, platform and data-integrity tests
 npm run build      # → dist/
 npm run icons      # regenerate public/og.png and the apple-touch icon
+npm run test:emulator  # 37 more against the real Firestore/Auth emulators and
+                       # the real firestore.rules — repository round-trips plus
+                       # the denials (a stranger reading your pets, editing the
+                       # append-only event log, reading it without admin)
 
 # End-to-end demo checks: crash recovery, routing, iOS zoom, overflow, share tags.
 # Point it at a preview server or the deployed URL.
@@ -84,6 +88,18 @@ src/
     firebase.ts      The ONLY module that imports the SDK, and only dynamically.
     AuthProvider.tsx React context. One listener, one place that sets status.
     session.test.ts  8 tests.
+  store/
+    db.ts            Firestore repository. Dynamic imports only, like auth.
+    db.emulator.test.ts  10 tests — round trips + rule denials. Needs emulators.
+  data/
+    stored.ts        What Firestore holds: {value, provenance, updatedAt, updatedBy}.
+    fromFirestore.ts The seam. Pure both ways; the engine never learns about IO.
+    fromFirestore.test.ts  19 tests.
+  analytics/
+    events.ts        The closed union of gate names, and prop sanitising.
+    queue.ts         Pure queue maths — enqueue, cap, flush prep, dedupe.
+    track.ts         The impure glue. Firestore imported only inside flush().
+    queue.test.ts    19 tests. track.emulator.test.ts  8 tests.
   components/        UI. No logic lives here that isn't presentational.
 ```
 
@@ -179,6 +195,36 @@ separated, and nothing Life does can collide with or weaken those rules.
 act on, and deliberately preserves the ambiguity Firebase builds in: `wrong-password` and
 `user-not-found` collapse to one code so accounts cannot be enumerated, and our copy must not
 helpfully un-collapse it. A test asserts those four codes produce exactly one message.
+
+---
+
+## Storage and analytics
+
+**Pets live in `households/{id}/pets/{petId}`** (SPEC §7), not in the `users/{uid}`
+collection the underwriting product uses — that one carries `userRole`, admin claims and a large
+reviewed rules block. Shared auth pool, separate data.
+
+Every stored value is `{value, provenance, updatedAt, updatedBy}`. `profileFromFirestore()` is the
+seam between that and the flat `PetProfile` the engine takes, and it is pure in both directions.
+
+**The load-bearing rule:** every default used for a field nobody has answered is a **zero-delta
+reference** in the engine's adjustment model. An unanswered question never flatters a pet and never
+punishes one — "I don't know" widens the range, which is what the engine already does for a missing
+weight. A test asserts it: a Tier-0-only pet must project with an *empty* factor list, so changing a
+default to something with a delta breaks the build.
+
+**Analytics buffers before it can write.** `reveal_viewed` fires before any account exists, and
+loading Firestore to record it would break the signed-out demo. So events queue in `localStorage`
+against a `visitorId` and flush the moment there is an identity — which is also what makes
+reveal → trial a measurable conversion rather than two unrelated numbers.
+
+The honest limitation, which the dashboard prints on itself: a visitor who never signs in never
+flushes, so the top of the funnel is a floor rather than a total, and every rate below it is
+flattering. A public ingest endpoint closes it.
+
+`life_events` is append-only by construction — write your own, read none — with admin-only reads.
+The dashboard at `#/admin/metrics` is lazily loaded; its route guard is convenience and the
+Firestore rule is the control. Four emulator tests assert the denials.
 
 ---
 
