@@ -339,11 +339,28 @@ export function Home({
         </div>
       </div>
 
+      {/* Both one tap from home, deliberately. Somebody frightened should not
+          be navigating a menu. */}
+      <a
+        href="#/wrong"
+        className="mt-6 flex items-center justify-between gap-3 rounded-soft border border-line bg-white px-4 py-3.5 transition hover:border-forest/50"
+      >
+        <span className="min-w-0">
+          <span className="block text-[14.5px] font-medium text-ink">
+            Something is wrong with {pet.name}
+          </span>
+          <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">
+            Describe it, and we will tell you if it is a ring-now.
+          </span>
+        </span>
+        <span aria-hidden="true" className="shrink-0 text-[18px] leading-none text-muted">→</span>
+      </a>
+
       {/* One tap from the home screen, deliberately. Somebody whose dog has
           just eaten something should not be navigating a menu. */}
       <a
         href="#/ate"
-        className="mt-6 flex items-center justify-between gap-3 rounded-soft border border-line bg-white px-4 py-3.5 transition hover:border-forest/50"
+        className="mt-3 flex items-center justify-between gap-3 rounded-soft border border-line bg-white px-4 py-3.5 transition hover:border-forest/50"
       >
         <span className="min-w-0">
           <span className="block text-[14.5px] font-medium text-ink">

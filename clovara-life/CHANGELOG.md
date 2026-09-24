@@ -3,9 +3,45 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## Companion — C0
+## Companion — C0 and C1
 
-### The summary for a vet visit (SPEC-COMPANION §9)
+### C1 — the safety check
+
+- Describe what you are seeing; a deterministic classifier checks it against the
+  red-flag list and answers "ring now" or says honestly that our list did not
+  recognise anything. **No model.** SPEC-COMPANION §3.1: a model must never be
+  the thing standing between somebody and an escalation message.
+- **The second answer is the dangerous one, and most of the care went into it.**
+  "Nothing matched" is a fact about our list, not about the animal, and the page
+  says so in those words — *"a statement about our list, not about your pet…
+  plenty of serious things are not on it… ring your practice, you know them and
+  we do not."* An owner who reads it as "sounds fine" and goes to bed is the
+  failure this surface exists to prevent. It also shows the whole list, because
+  what we check for only means something next to what we do not.
+- **Negation is deliberately not suppressed — the opposite of the conversational
+  parser.** There, reading "no history of seizures" as a seizure history would
+  put a fabricated diagnosis on a record, so negation suppresses. Here,
+  suppressing would mean "he is not breathing right" fails to escalate. Both
+  bias towards the safe error; the safe error points the other way in each.
+- **Species distinctions that change the answer**, not decoration: a panting cat
+  escalates and a panting dog does not; straining in a litter tray is flagged as
+  the most time-critical thing on the list; not eating escalates for a cat,
+  where the fasting itself is the danger.
+- Signs an owner can observe, never diagnoses — "straining to urinate" is on the
+  list and "urethral obstruction" is not, because the owner cannot know that and
+  we must not tell them.
+- **The tests found three real gaps in my own list**, all the same kind: I wrote
+  the clinical phrasing and people type something else. "blue gums" missed
+  "his gums look blue"; "attacked by" missed "the dog next door attacked him";
+  "nothing coming out" missed "nothing **is** coming out" — which is the
+  most time-critical flag on the list.
+- **VET-REVIEW, and unreviewed.** It ships on the same footing as
+  `data/toxins.ts`, flagged on the page itself, and it is now the second item in
+  the open clinical-content dependency. SPEC-COMPANION §10 still asks who owns
+  it clinically.
+- 39 engine tests, 26 browser checks.
+
+### C0 — the summary for a vet visit (SPEC-COMPANION §9)
 
 - Everything an owner would be asked in the room and would not remember:
   conditions on file, vaccinations recorded, the shape picture, the daily

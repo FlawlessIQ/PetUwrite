@@ -34,6 +34,9 @@ const MetricsDashboard = lazy(() =>
 const HealthFilePage = lazy(() =>
   import('./components/HealthFile').then((m) => ({ default: m.HealthFile })),
 )
+const SomethingWrongPage = lazy(() =>
+  import('./components/SomethingWrong').then((m) => ({ default: m.SomethingWrong })),
+)
 const AttachFlow = lazy(() =>
   import('./components/Attach').then((m) => ({ default: m.Attach })),
 )
@@ -100,6 +103,11 @@ function healthRoutePet(): string | null {
   const m = /^#\/health(?:\/([^/?]+))?/.exec(window.location.hash)
   if (!m) return null
   return m[1] ? decodeURIComponent(m[1]) : ''
+}
+
+/** `#/wrong` — the safety check (SPEC-COMPANION C1). */
+function isWrongRoute(): boolean {
+  return window.location.hash.startsWith('#/wrong')
 }
 
 /** `#/protect` — the attach flow (SPEC §5). */
@@ -258,6 +266,7 @@ export default function App() {
   const [sitter, setSitter] = useState<string | null>(sitterToken)
   const [protectRoute, setProtectRoute] = useState(isProtectRoute)
   const [healthRoute, setHealthRoute] = useState<string | null>(healthRoutePet)
+  const [wrongRoute, setWrongRoute] = useState(isWrongRoute)
   const [surface, setSurface] = useState<Surface>(() => parseHash()?.surface ?? 'home')
 
   useEffect(() => {
@@ -311,10 +320,10 @@ export default function App() {
   // ── URL sync ─────────────────────────────────────────────────────────────
   // Write state → hash. Guarded so it never fights the hashchange listener.
   useEffect(() => {
-    if (!active || adminRoute || covenantRoute || ateRoute || protectRoute || healthRoute !== null) return
+    if (!active || adminRoute || covenantRoute || ateRoute || protectRoute || wrongRoute || healthRoute !== null) return
     const next = `#/pet/${encodeURIComponent(active.id)}/${surface}`
     if (window.location.hash !== next) window.history.replaceState(null, '', next)
-  }, [active, surface, adminRoute, covenantRoute, ateRoute, protectRoute, healthRoute])
+  }, [active, surface, adminRoute, covenantRoute, ateRoute, protectRoute, wrongRoute, healthRoute])
 
   // Read hash → state, for back/forward and pasted links.
   useEffect(() => {
@@ -331,6 +340,7 @@ export default function App() {
       setSitter(sitterToken())
       setProtectRoute(isProtectRoute())
       setHealthRoute(healthRoutePet())
+      setWrongRoute(isWrongRoute())
     }
     window.addEventListener('hashchange', onHash)
     window.addEventListener('hashchange', onAdmin)
@@ -515,7 +525,19 @@ export default function App() {
             onDismiss={dismissImport}
           />
         )}
-        {healthRoute !== null && healthPet ? (
+        {wrongRoute && active ? (
+          <Suspense
+            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
+          >
+            <SomethingWrongPage
+              pet={active}
+              onClose={() => {
+                window.location.hash = `#/pet/${encodeURIComponent(active.id)}/home`
+                setWrongRoute(false)
+              }}
+            />
+          </Suspense>
+        ) : healthRoute !== null && healthPet ? (
           <Suspense
             fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
           >

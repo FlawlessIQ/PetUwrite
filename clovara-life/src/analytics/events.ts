@@ -41,6 +41,7 @@ export const EVENT_NAMES = [
   /** The vet-visit summary was copied (SPEC-COMPANION C0). */
   'visit_summary_copied',
   /** Somebody looked up something their pet ate (SPEC §6.5). */
+  'safety_check',
   'toxin_lookup',
   'poison_line_tapped',
   'emergency_vets_found',
