@@ -3,6 +3,36 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Repair — the Life surface
+
+### The health file, and a length budget
+
+- **A problem I made.** Every P3 moment was built onto the Life page one at a
+  time and verified alone. Together they made it **15.6 phone screens for a new
+  puppy** — somebody reached the reveal in under sixty seconds and then hit a
+  wall. None of the fourteen verification scripts could see it, because each
+  checks a single card.
+- **Vaccinations, the passport and sitter links moved to a Health File**
+  (SPEC §4.3 names one). Nothing there is time-sensitive: a vaccination record,
+  a socialisation checklist and a sitter link are things you go and look at, not
+  things that should meet you. The Life surface keeps one line to it, carrying a
+  live summary so it is worth tapping.
+- **What stayed is what is only true for a few days**: First-Night Mode, the
+  Gotcha Day and arrival cards, the annual review, the sharpening that moves the
+  number, and the Protect offer.
+- **A length budget now exists, and it is a budget rather than a measurement.**
+  A ceiling of 12 screens in any state, and 9.5 once everything is answered —
+  the first stops a new surface being stacked on, the second stops the page
+  being permanently long. The floor is 7.5–8.0, measured on the demo pets, which
+  render none of this and predate all of it.
+- Measured honestly: length above the floor tracks what is **pending**. Six
+  unanswered questions are six questions, and the page shrinks as they are
+  answered. That is the incentive mechanic, not bloat.
+- **Found while fixing it:** `#/health` had no pet in the route, so a bookmark
+  or a cold load opened the Health File on the demo pet — somebody else's
+  animal. It is now `#/health/<petId>`.
+- Worst case went 15.6 → 11.9 screens; a settled adult 8.3.
+
 ## P2 — Protect: the attach flow
 
 ### Two screens and no form (SPEC §5)

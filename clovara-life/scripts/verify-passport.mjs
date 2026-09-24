@@ -32,7 +32,9 @@ const seed = async (over) => {
     (pet) => {
       localStorage.clear()
       localStorage.setItem('clovara-life.pets.v1', JSON.stringify([pet]))
-      window.location.hash = `#/pet/${pet.id}/life`
+      // Lives in the Health File since the Life surface was slimmed — it is a
+      // record you go and look at, not something that should meet you.
+      window.location.hash = `#/health/${pet.id}`
     },
     {
       id: 'pet-pp',

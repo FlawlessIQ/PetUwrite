@@ -10,13 +10,30 @@ import { Sharpen } from './Sharpen'
 import { AnnualReview } from './AnnualReview'
 import { ShareCard } from './ShareCard'
 import { FirstNight } from './FirstNight'
-import { Passport } from './Passport'
-import { Vaccines } from './Vaccines'
-import { SitterMode } from './SitterMode'
 import { reviewDue } from '../engine/review'
 import { gotchaState } from '../engine/gotchaDay'
+import { vaccineState } from '../engine/vaccines'
+import { passportState } from '../engine/passport'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
+
+/** What the one Health File line says, so it is worth tapping. */
+function fileSummary(pet: PetProfile): string {
+  const now = new Date()
+  const vax = vaccineState(pet, now)
+  const passport = passportState(pet, now)
+  const bits: string[] = []
+  if (vax.visible) {
+    bits.push(
+      vax.dueNow.length > 0
+        ? `${vax.dueNow.length} vaccination${vax.dueNow.length === 1 ? '' : 's'} usually due now`
+        : `${vax.recordedCount} vaccination${vax.recordedCount === 1 ? '' : 's'} recorded`,
+    )
+  }
+  if (passport.visible) bits.push(`${passport.collected.length} of ${passport.stamps.length} firsts`)
+  bits.push('sitter link')
+  return bits.join(' · ')
+}
 
 function ageLabel(years: number) {
   if (years < 1) {
@@ -33,7 +50,6 @@ export function Journey({
   onUpdate,
   showArrival = false,
   onDismissArrival,
-  signedIn = false,
 }: {
   pet: PetProfile
   householdId?: string | null
@@ -42,8 +58,6 @@ export function Journey({
   /** The Arrival Certificate, offered once at creation (SPEC §6.1). */
   showArrival?: boolean
   onDismissArrival?: () => void
-  /** Sitter links need an account — they must outlive the tab that made them. */
-  signedIn?: boolean
 }) {
   const [levers, setLevers] = useState<LeverState>({})
   /**
@@ -149,6 +163,24 @@ export function Journey({
               onClose={() => onDismissArrival?.()}
             />
           )}
+          {/* One line to the Health File, in place of three cards. SPEC §4.3
+              names the file; stacking its contents onto Life made this page
+              fifteen screens for a new puppy. */}
+          <a
+            href={`#/health/${encodeURIComponent(pet.id)}`}
+            className="flex items-center justify-between gap-3 rounded-card border border-line bg-white px-5 py-4 transition hover:border-forest/50"
+          >
+            <span className="min-w-0">
+              <span className="block text-[15px] font-medium text-ink">{pet.name}&rsquo;s health file</span>
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">
+                {fileSummary(pet)}
+              </span>
+            </span>
+            <span aria-hidden="true" className="shrink-0 text-[18px] leading-none text-muted">
+              →
+            </span>
+          </a>
+
           {/* SPEC §5's primary entry point: the offer at the emotional peak of
               the reveal. A link rather than a modal — nothing is interrupted. */}
           <a
@@ -167,8 +199,6 @@ export function Journey({
               →
             </span>
           </a>
-          <Vaccines pet={pet} onUpdate={onUpdate} />
-          <Passport pet={pet} onUpdate={onUpdate} />
           {showReview && onUpdate && (
             <AnnualReview
               pet={pet}
@@ -192,7 +222,6 @@ export function Journey({
           <Timeline projection={projection} name={pet.name} />
         </div>
         <div className="space-y-5">
-          {onUpdate && <SitterMode pet={pet} signedIn={signedIn} onUpdate={onUpdate} />}
           <Levers projection={projection} state={levers} onChange={setLevers} baseline={baseline} />
           <RiskCards projection={projection} name={pet.name} />
           <Methodology projection={projection} />

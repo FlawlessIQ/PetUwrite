@@ -31,6 +31,9 @@ const MetricsDashboard = lazy(() =>
 )
 // Lazy for the same reason: a page most visitors never open should not be in
 // the bundle they all download.
+const HealthFilePage = lazy(() =>
+  import('./components/HealthFile').then((m) => ({ default: m.HealthFile })),
+)
 const AttachFlow = lazy(() =>
   import('./components/Attach').then((m) => ({ default: m.Attach })),
 )
@@ -84,6 +87,19 @@ function isAteRoute(): boolean {
 function sitterToken(): string | null {
   const m = /^#\/sitter\/([^/?]+)/.exec(window.location.hash)
   return m ? decodeURIComponent(m[1]) : null
+}
+
+/**
+ * `#/health/<petId>` — the Health File (SPEC §4.3).
+ *
+ * The pet is in the route rather than taken from whatever happened to be
+ * active: a bookmarked or shared `#/health` would otherwise open on the demo
+ * pet after a cold load, which is somebody else's animal.
+ */
+function healthRoutePet(): string | null {
+  const m = /^#\/health(?:\/([^/?]+))?/.exec(window.location.hash)
+  if (!m) return null
+  return m[1] ? decodeURIComponent(m[1]) : ''
 }
 
 /** `#/protect` — the attach flow (SPEC §5). */
@@ -241,6 +257,7 @@ export default function App() {
   const [ateRoute, setAteRoute] = useState(isAteRoute)
   const [sitter, setSitter] = useState<string | null>(sitterToken)
   const [protectRoute, setProtectRoute] = useState(isProtectRoute)
+  const [healthRoute, setHealthRoute] = useState<string | null>(healthRoutePet)
   const [surface, setSurface] = useState<Surface>(() => parseHash()?.surface ?? 'home')
 
   useEffect(() => {
@@ -294,10 +311,10 @@ export default function App() {
   // ── URL sync ─────────────────────────────────────────────────────────────
   // Write state → hash. Guarded so it never fights the hashchange listener.
   useEffect(() => {
-    if (!active || adminRoute || covenantRoute || ateRoute || protectRoute) return
+    if (!active || adminRoute || covenantRoute || ateRoute || protectRoute || healthRoute !== null) return
     const next = `#/pet/${encodeURIComponent(active.id)}/${surface}`
     if (window.location.hash !== next) window.history.replaceState(null, '', next)
-  }, [active, surface, adminRoute, covenantRoute, ateRoute, protectRoute])
+  }, [active, surface, adminRoute, covenantRoute, ateRoute, protectRoute, healthRoute])
 
   // Read hash → state, for back/forward and pasted links.
   useEffect(() => {
@@ -313,6 +330,7 @@ export default function App() {
       setAteRoute(isAteRoute())
       setSitter(sitterToken())
       setProtectRoute(isProtectRoute())
+      setHealthRoute(healthRoutePet())
     }
     window.addEventListener('hashchange', onHash)
     window.addEventListener('hashchange', onAdmin)
@@ -376,6 +394,12 @@ export default function App() {
    * offered once, at creation, and not to everyone who opens the app.
    */
   const [arrivalFor, setArrivalFor] = useState<string | null>(null)
+
+  // The Health File names its pet in the route; adopt it so a bookmark opens
+  // the right animal rather than whoever was last active.
+  useEffect(() => {
+    if (healthRoute) setActiveId(healthRoute)
+  }, [healthRoute])
 
   const addPet = (pet: PetProfile) => {
     void persistPet(pet)
@@ -480,7 +504,21 @@ export default function App() {
             onDismiss={dismissImport}
           />
         )}
-        {protectRoute && active ? (
+        {healthRoute !== null && active ? (
+          <Suspense
+            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
+          >
+            <HealthFilePage
+              pet={active}
+              signedIn={status === 'signedIn'}
+              onUpdate={active.demo ? undefined : (patch) => void updatePet(active.id, patch)}
+              onClose={() => {
+                window.location.hash = `#/pet/${encodeURIComponent(active.id)}/life`
+                setHealthRoute(null)
+              }}
+            />
+          </Suspense>
+        ) : protectRoute && active ? (
           <Suspense
             fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
           >
@@ -562,7 +600,6 @@ export default function App() {
                 }
                 showArrival={arrivalFor === active.id}
                 onDismissArrival={() => setArrivalFor(null)}
-                signedIn={status === 'signedIn'}
               />
             )}
           </div>
