@@ -35,7 +35,13 @@ export interface ComposedSentence {
 
 export interface ComposedReply {
   sentences: ComposedSentence[]
-  routeTo?: 'vet-soon' | 'vet-now' | 'telehealth' | 'none'
+  /**
+   * 'telehealth' is deliberately absent. SPEC-COMPANION §6 lists it as a
+   * destination, and there is no partner — so nothing may produce a route we
+   * cannot honour. Asking for a vet is handled by `telehealth.ts`, which tells
+   * the truth instead. The value returns here when a partner does.
+   */
+  routeTo?: 'vet-soon' | 'vet-now' | 'none'
   iDoNotKnow?: boolean
 }
 

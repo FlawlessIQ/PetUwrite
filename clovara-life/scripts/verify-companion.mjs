@@ -111,6 +111,23 @@ ok('an emergency overrides recall entirely', /Stop and ring a vet now/i.test(t))
 ok('and it does NOT answer with hip dysplasia instead', !/already on Scout's record/i.test(t))
 ok('it offers the way through', (await panel().locator('a[href="#/wrong"]').count()) === 1)
 
+console.log('\nAsking for a vet gets an answer, not a recital of the record')
+t = await ask('Can I speak to a vet about this?')
+ok('it answers the ask', /cannot put you through to a vet/i.test(t))
+ok('and does not recite the record instead', !/already on Scout's record/i.test(t))
+ok('it is honest that there is no partner', /no video vet behind Clovara yet/i.test(t))
+ok(
+  'it does not promise the feature is coming',
+  !/\b(soon|coming|shortly|we are working on)\b/i.test(t),
+  t.slice(0, 200),
+)
+ok('it leads with the summary', /Copy Scout's summary/i.test(t))
+ok('it says how to reach somebody out of hours', /out of hours/i.test(t))
+ok(
+  'and links straight to the summary',
+  (await panel().locator('a[href^="#/health/"]').count()) === 1,
+)
+
 console.log('\nThe scripted preview is still there and still labelled')
 const body = await page.locator('body').innerText()
 ok('the demo thread survives', /scripted for the preview/i.test(body))

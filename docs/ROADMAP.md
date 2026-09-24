@@ -26,20 +26,20 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 | Vet review pass: condition onset windows; clinical content ownership | Vet advisor | open — **now includes `data/toxins.ts` AND `data/redFlags.ts` (the C1 safety list). Both are the highest-stakes content in the product, both are marked VET-REVIEW, both are biased towards the phone call, and neither has been read by a vet.** |
 | Google Places API key + billing (nearest open emergency vet, SPEC §6.5) | Claude Code (2026-09-24) | `shipped` — key created via gcloud, restricted to one API and the `clovara-life.web.app` referrer (403 without it, verified), capped at 60/min and 1,000/day against a 75,000 default. Live in production: five open emergency practices, nearest 2.2km. |
 | Real shop SKUs / affiliate agreements | Conor + Dan | open |
-| Telehealth partner for companion routing | Conor | unscoped |
+| Telehealth partner for companion routing | Conor | open — **requirements written** at `docs/TELEHEALTH-PARTNER-REQUIREMENTS.md`: five questions that decide the integration, and two things we must not agree to. No adapter built, on purpose. |
 | Apple Sign-In: Developer Program membership, Services ID, signing key | Conor | `deferred` — needed only when a native iOS app ships; email link + Google cover web |
 | Clovara-entity Stripe account (replaces the FlawlessIQ sandbox before go-live) | Conor | open |
 | Firebase auth config: `clovara-life.web.app` authorised; email-link provider enabled | Claude Code (2026-09-23) | `shipped` — done via the Identity Platform admin API, not the console; password sign-in for the underwriting app verified unaffected |
 
 ## Next horizon (needs spec before build — see docs gap register in project)
 
-**Companion AI architecture — spec at `clovara-life/SPEC-COMPANION.md`; six decisions still open for Conor. C0 (vet-visit summary), C1 (safety check) and C2 (grounded companion) all `shipped` 2026-09-24 — **none of them uses a model.** **C3 (model composition) is BUILT AND SWITCHED OFF** — `COMPANION_MODEL_ENABLED` is false pending the privacy decision; verification, the schema and 45 red-team checks including a jailbroken-model fixture are all in place; C4 awaits a telehealth partner** · claims operations design · affinity/B2B2C channel product · native apps + push · morning briefing · food scanner · lump diary · second opinion · meds autopilot · pack dashboard · DNA · lost-pet network · senior suite · Remember chapter · marketing-site realignment · final pricing architecture (annual, multi-pet).
+**Companion AI architecture — spec at `clovara-life/SPEC-COMPANION.md`; six decisions still open for Conor. C0 (vet-visit summary), C1 (safety check) and C2 (grounded companion) all `shipped` 2026-09-24 — **none of them uses a model.** **C3 (model composition) is BUILT AND SWITCHED OFF** — `COMPANION_MODEL_ENABLED` is false pending the privacy decision; verification, the schema and 45 red-team checks including a jailbroken-model fixture are all in place; **C4 done as far as it honestly can be** — asking for a vet now gets a true answer and a route; no provider interface was invented against an unknown API. `docs/TELEHEALTH-PARTNER-REQUIREMENTS.md` is what a partner conversation needs** · claims operations design · affinity/B2B2C channel product · native apps + push · morning briefing · food scanner · lump diary · second opinion · meds autopilot · pack dashboard · DNA · lost-pet network · senior suite · Remember chapter · marketing-site realignment · final pricing architecture (annual, multi-pet).
 
 ## Spec divergences
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 573 unit plus 107 emulator plus twenty end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
+- **SPEC §1 says "75+ tests".** It is 581 unit plus 107 emulator plus twenty end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.

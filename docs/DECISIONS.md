@@ -140,4 +140,7 @@ Format: date · decision · why. Never rewrite old entries; reversals get new en
 - **2026-09-24** · A correctly cited sentence is still dropped if it diagnoses, doses or promises longer life. · A true citation does not make "it is probably arthritis" safe to say, and the hardest jailbreak to catch is the one that cites real facts while complying with the attack.
 - **2026-09-24** · Routing survives verification even when every sentence is discarded. · The model's judgement that something needs a vet is not the part we distrust; the prose is.
 - **2026-09-24** · Discard the whole reply past a third dropped, rather than showing the remainder. · A paragraph with its middle removed reads as though something is being hidden, and a high drop rate is itself evidence the model was not doing what was asked.
+- **2026-09-24** · No telehealth provider interface was built, unlike the other four integration seams. · Those were built against known shapes; this would be a guess at an unknown partner's API that the first real integration deletes. Requirements were written instead, which is what actually shortens that integration.
+- **2026-09-24** · Asking the companion for a vet is answered as an ask, not with facts about the pet. · Somebody who has decided they want a professional is not helped by a recital of their own record.
+- **2026-09-24** · `routeTo: 'telehealth'` was removed from the composed-reply type. · Nothing produced it and nothing handled it; nothing may produce a route we cannot honour.
 

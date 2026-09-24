@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { PetProfile, Projection } from '../data/types'
 import { buildGroundingSet, composeRecall, type Recall } from '../engine/grounding'
 import { classify } from '../engine/safety'
+import { asksForAVet, routeToVet, type VetRouting } from '../engine/telehealth'
 import { RED_FLAG_BODY, RED_FLAG_HEADLINE } from '../data/redFlags'
 import { track } from '../analytics/track'
 
@@ -40,16 +41,30 @@ export function AskCompanion({
   const [text, setText] = useState('')
   const [recall, setRecall] = useState<Recall | null>(null)
   const [escalate, setEscalate] = useState<ReturnType<typeof classify> | null>(null)
+  const [vet, setVet] = useState<VetRouting | null>(null)
 
   const ask = () => {
     const safety = classify(text, pet.species)
     if (safety.escalate) {
       setEscalate(safety)
       setRecall(null)
+      setVet(null)
       track('companion_asked', { escalated: true, pet_is_demo: !!pet.demo })
       return
     }
     setEscalate(null)
+
+    // Asking for a vet is an ask, not a question about the record. Answering it
+    // with facts about their pet would be a non-answer to somebody who has
+    // decided they want a professional.
+    if (asksForAVet(text)) {
+      setVet(routeToVet(pet.name))
+      setRecall(null)
+      track('companion_asked', { escalated: false, wants_vet: true, pet_is_demo: !!pet.demo })
+      return
+    }
+    setVet(null)
+
     const set = buildGroundingSet(pet, projection, text, now)
     const r = composeRecall(pet, set, text)
     setRecall(r)
@@ -88,6 +103,7 @@ export function AskCompanion({
             setText(e.target.value)
             setRecall(null)
             setEscalate(null)
+            setVet(null)
           }}
         />
         <button
@@ -110,6 +126,29 @@ export function AskCompanion({
               className="mt-3 inline-block text-action text-[14px] font-medium text-[#8C1D18]"
             >
               What to do now
+            </a>
+          </div>
+        )}
+
+        {vet && (
+          <div className="mt-5 rounded-soft border border-line bg-cream/50 px-4 py-4">
+            <p className="font-display text-[18px] leading-tight text-ink">{vet.headline}</p>
+            <p className="mt-2 text-[14px] leading-relaxed text-ink">{vet.body}</p>
+            <ol className="mt-3 space-y-2">
+              {vet.steps.map((step, i) => (
+                <li key={step} className="flex gap-3 text-[14px] leading-relaxed text-ink">
+                  <span aria-hidden="true" className="shrink-0 font-medium text-forest">
+                    {i + 1}.
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+            <a
+              href={`#/health/${encodeURIComponent(pet.id)}`}
+              className="mt-3 inline-block text-action text-[14px] font-medium text-forest"
+            >
+              Open {pet.name}&rsquo;s summary
             </a>
           </div>
         )}

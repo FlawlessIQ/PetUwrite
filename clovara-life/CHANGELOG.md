@@ -3,7 +3,31 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## Companion — C0 to C3
+## Companion — C0 to C4
+
+### C4 — routing to a vet, without a partner to route to
+
+- **No `TelehealthProvider` interface was written, deliberately.** The other four
+  seams here were built against a known shape — a real API, an interface
+  specified in SPEC, a domain with one sensible model. There is no telehealth
+  partner and no candidate, so an interface invented now would be a guess at
+  somebody else's API that the first real integration deletes. It would look
+  like progress and make work for whoever does the real thing.
+- **What was real and got built:** the ask. "Can I speak to a vet?" previously
+  returned facts about the pet's record, which is a non-answer to somebody who
+  has already decided they want a professional. It now gets the truth — *"we
+  cannot put you through to a vet ourselves… there is no video vet behind
+  Clovara yet, and pretending otherwise would waste the time of somebody who
+  needs one"* — then the summary, their own practice, and out-of-hours.
+- **It does not promise the feature is coming.** A roadmap promise is worthless
+  to somebody who needs a vet tonight. Asserted by a test.
+- **A dead branch closed:** `routeTo: 'telehealth'` existed in the C3 type with
+  nothing producing it and nothing handling it. Nothing may produce a route we
+  cannot honour, so the value is gone until a partner exists.
+- `docs/TELEHEALTH-PARTNER-REQUIREMENTS.md` carries the five questions that
+  decide the integration, what we need technically, and the two things we must
+  not agree to — consultation data reaching underwriting, and a revenue share
+  that would make telehealth the answer to everything.
 
 ### C3 — model composition, built and switched off
 
