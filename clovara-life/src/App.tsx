@@ -395,11 +395,22 @@ export default function App() {
    */
   const [arrivalFor, setArrivalFor] = useState<string | null>(null)
 
-  // The Health File names its pet in the route; adopt it so a bookmark opens
-  // the right animal rather than whoever was last active.
+  /**
+   * The Health File resolves its pet FROM THE ROUTE, not from `activeId`.
+   *
+   * Syncing activeId off the route worked on a cold load and on the in-app
+   * link, and silently failed when the hash changed without a reload — paste
+   * the URL into an already-open tab and you got whoever was previously
+   * active, which for a fresh visitor is a demo pet. Somebody else's animal.
+   *
+   * Reading the route directly removes the ordering question rather than
+   * answering it. activeId is still nudged along so the rest of the app agrees
+   * once you leave the page.
+   */
+  const healthPet = healthRoute ? (pets.find((p) => p.id === healthRoute) ?? active) : active
   useEffect(() => {
-    if (healthRoute) setActiveId(healthRoute)
-  }, [healthRoute])
+    if (healthRoute && pets.some((p) => p.id === healthRoute)) setActiveId(healthRoute)
+  }, [healthRoute, pets])
 
   const addPet = (pet: PetProfile) => {
     void persistPet(pet)
@@ -504,16 +515,19 @@ export default function App() {
             onDismiss={dismissImport}
           />
         )}
-        {healthRoute !== null && active ? (
+        {healthRoute !== null && healthPet ? (
           <Suspense
             fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
           >
             <HealthFilePage
-              pet={active}
+              pet={healthPet}
+              projection={project(healthPet)}
               signedIn={status === 'signedIn'}
-              onUpdate={active.demo ? undefined : (patch) => void updatePet(active.id, patch)}
+              onUpdate={
+                healthPet.demo ? undefined : (patch) => void updatePet(healthPet.id, patch)
+              }
               onClose={() => {
-                window.location.hash = `#/pet/${encodeURIComponent(active.id)}/life`
+                window.location.hash = `#/pet/${encodeURIComponent(healthPet.id)}/life`
                 setHealthRoute(null)
               }}
             />

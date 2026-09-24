@@ -1,5 +1,6 @@
-import type { PetProfile } from '../data/types'
+import type { PetProfile, Projection } from '../data/types'
 import { Vaccines } from './Vaccines'
+import { VisitSummary } from './VisitSummary'
 import { Passport } from './Passport'
 import { SitterMode } from './SitterMode'
 import { ConfirmChips } from './ConfirmChips'
@@ -21,12 +22,14 @@ import { vaccineState } from '../engine/vaccines'
  */
 export function HealthFile({
   pet,
+  projection,
   signedIn,
   onUpdate,
   onClose,
   now = new Date(),
 }: {
   pet: PetProfile
+  projection: Projection
   signedIn: boolean
   onUpdate?: (patch: Partial<PetProfile>) => void
   onClose: () => void
@@ -55,6 +58,7 @@ export function HealthFile({
 
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
         <div className="space-y-5">
+          <VisitSummary pet={pet} projection={projection} now={now} />
           {vax.visible && <Vaccines pet={pet} onUpdate={onUpdate} now={now} />}
           <ConfirmChips candidates={[]} onConfirmed={() => {}} />
         </div>

@@ -38,6 +38,8 @@ export const EVENT_NAMES = [
   'passport_stamp',
   /** An owner recorded a vaccination date (SPEC §6.4). */
   'vaccine_recorded',
+  /** The vet-visit summary was copied (SPEC-COMPANION C0). */
+  'visit_summary_copied',
   /** Somebody looked up something their pet ate (SPEC §6.5). */
   'toxin_lookup',
   'poison_line_tapped',

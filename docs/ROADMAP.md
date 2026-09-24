@@ -33,13 +33,13 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 
 ## Next horizon (needs spec before build — see docs gap register in project)
 
-**Companion AI architecture — draft spec written 2026-09-24 at `clovara-life/SPEC-COMPANION.md`, awaiting Conor's corrections; six decisions marked for him, nothing built** · claims operations design · affinity/B2B2C channel product · native apps + push · morning briefing · food scanner · lump diary · second opinion · meds autopilot · pack dashboard · DNA · lost-pet network · senior suite · Remember chapter · marketing-site realignment · final pricing architecture (annual, multi-pet).
+**Companion AI architecture — spec at `clovara-life/SPEC-COMPANION.md`; six decisions still open for Conor. C0 (the vet-visit summary, no model) `shipped` 2026-09-24. C1–C4 await those decisions** · claims operations design · affinity/B2B2C channel product · native apps + push · morning briefing · food scanner · lump diary · second opinion · meds autopilot · pack dashboard · DNA · lost-pet network · senior suite · Remember chapter · marketing-site realignment · final pricing architecture (annual, multi-pet).
 
 ## Spec divergences
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 437 unit plus 94 emulator plus seventeen end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
+- **SPEC §1 says "75+ tests".** It is 454 unit plus 107 emulator plus eighteen end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.

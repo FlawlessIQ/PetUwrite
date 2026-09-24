@@ -3,6 +3,41 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Companion — C0
+
+### The summary for a vet visit (SPEC-COMPANION §9)
+
+- Everything an owner would be asked in the room and would not remember:
+  conditions on file, vaccinations recorded, the shape picture, the daily
+  routine, medication. **No model involved** — the whole of C0 is retrieval.
+- **Copy is the primary action.** A practice system takes pasted text; it does
+  not take a screenshot, and an owner reading aloud from a phone while holding a
+  frightened animal is what this exists to replace.
+- **The healthy-years projection is deliberately absent**, and the page says so.
+  It is a planning number built from breed medians; beside real clinical facts,
+  in front of a clinician, it would read as a prognosis for this animal — which
+  it is not and which we are in no position to give.
+- **It reports and never concludes.** No "consistent with", no severity, no
+  suggestion of what to look at first. Invariant 4 binds hardest in the one room
+  where somebody qualified is present. A test greps for the whole vocabulary.
+- **Unanswered is printed as "Not asked"**, never as normal or absent. A vet
+  reading "no conditions" would reasonably take it as a negative history; the
+  page distinguishes *asked and told nothing* from *never asked*, and says the
+  first is still not a clinical negative history.
+- An empty vaccination list says **"nobody typed it in — not that nothing was
+  given"**.
+- Provenance on every line (invariant 8), so a clinician can weigh what the
+  owner said against what came off a document.
+- 17 engine tests, 28 browser checks.
+
+**Found while building it:** `#/health/<petId>` opened the wrong animal when the
+hash changed without a reload — paste the URL into an already-open tab and you
+got whoever was previously active, which for a fresh visitor is a demo pet.
+Somebody else's animal. A cold load and the in-app link both worked, which is
+why the earlier fix looked complete. The page now resolves its pet from the
+route rather than waiting for state to catch up, which removes the ordering
+question instead of answering it, and all three paths are asserted.
+
 ## Keys — Places and Gemini, via gcloud
 
 ### Nearest open emergency vet is live (P3.5 completed)
