@@ -1,6 +1,6 @@
 # Clovara Life — execution plan
 
-**Written 2026-09-24.** Covers everything not yet done: what is blocked, on whom,
+**Written 2026-09-24. Last updated 2026-09-24 (C4 shipped).** Covers everything not yet done: what is blocked, on whom,
 in what order, and what happens if nothing changes.
 
 Sizes are relative (S/M/L) and mine are honest. **I cannot estimate calendar
@@ -12,9 +12,12 @@ their position in the chain.
 ## Where this actually stands
 
 Built, deployed and verified: P0 Foundations, P1 Onboarding & capture, P2
-Protect attach, P3 Launch moments (all ten), and the companion C0–C4. 614 unit
-tests, 107 emulator tests, 22 browser suites, 39 commits on
-`phase-0-foundations`. Nothing merged to `main`.
+Protect attach, P3 Launch moments (all ten), the companion C0–C4, and **every
+Tier 1 item in SPEC-HORIZON**. 678 unit tests, 107 emulator tests, 25 browser
+suites, 61 commits on `phase-0-foundations`. Nothing merged to `main`.
+
+**Track C is exhausted as of 2026-09-24.** Everything below is a reviewer, a
+decision, or a launch date.
 
 **No engineering work blocks a launch.** What blocks a launch is review.
 
