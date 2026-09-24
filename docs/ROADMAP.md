@@ -20,7 +20,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 | Carrier program live (Accelerant): agreement, filed rates, licensing | Conor | in diligence |
 | Wearable partner signed (Tractive / Fi / PetPace diligence) | Conor + Matt | evaluating |
 | LEGAL-REVIEW items: disclosures, auto-renew (CA/NY), attestation, toxin copy, VAS state list | Counsel (to engage) | open — **now also the P2 attach disclosures, fraud notice and waiting periods (`data/attach.ts`), with four questions logged** |
-| Firestore security review before vet records ship | Conor (budget line exists) | `blocks switching on P1.7, not building it` — the extraction pipeline, confirm-chips and provenance stamping are built and tested behind a flag. records/ stays denied in both rule sets until the review. |
+| Firestore security review before vet records ship | Conor (budget line exists) — **still needed; see note below** | `blocks switching on P1.7, not building it` — the extraction pipeline, confirm-chips and provenance stamping are built and tested behind a flag. records/ stays denied in both rule sets until the review. |
 | Breed data: McMillan 2024 Supp. Table 3 | Conor (file supplied 2026-09-22) | `shipped` — all 23 dog gaps closed; no illustrative dogs remain |
 | Breed data: Teng 2024 cat table (5 gaps), Abyssinian figure, AAHA Table 4 | Conor to obtain files | open |
 | Vet review pass: condition onset windows; clinical content ownership | Vet advisor | open — **now includes `data/toxins.ts`, which is the highest-stakes content in the product and is marked VET-REVIEW. It is bands-only and biased towards the phone call, but it has not been read by a vet.** |
@@ -74,6 +74,30 @@ Companion AI architecture (the big one) · claims operations design · affinity/
 | `GEMINI_API_KEY`, `OPENAI_API_KEY` | underwriting app | not touched — deliberately separate from the Life secrets |
 
 **Still to do:** rotate the Stripe test key after the earlier `.env` exposure.
+
+## The Firestore security review
+
+**Still required, and still Conor's to commission.** SPEC §7 budgets $15K for an independent
+review before vet records ship. That cannot be satisfied by the author of the rules reviewing
+their own work — the blind spots are shared.
+
+What has been done to make it cheaper and shorter (2026-09-24): an adversarial rules suite that
+attacks rather than confirms, kept at `src/store/attack.emulator.test.ts`. It found two real
+vulnerabilities in rules that a 94-test intent-based suite had passed:
+
+1. **A client could create a household carrying its own `entitlement: {status: "active"}`** and
+   take a paid membership for nothing. `update` forbade touching entitlement; `create` had never
+   been asked. Fixed with a field allowlist.
+2. **Any household member could remove the founder** from the household holding their own animals
+   and keep the pets. Fixed by freezing membership against all client writes.
+
+Both were in paths I had not thought to have an intention about, which is exactly the class of
+bug an author cannot find by checking their own intent. **That is the argument for the external
+review, not against it.**
+
+For the reviewer: the rules are `firestore.rules` (Life block) and `storage.rules`; the access
+model is one document — a household owns pets, users belong to households; the adversarial suite
+above is the starting point, not the finish.
 
 ## Known scars
 
