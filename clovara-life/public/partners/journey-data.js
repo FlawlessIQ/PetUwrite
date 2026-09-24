@@ -62,7 +62,7 @@ const STAGES=[
   ["Surgery Companion","Pre-op explained in plain words, then recovery mode: daily check-ins, incision photo checks, activity targets paused.","Care","next","love"],
   ["Meds Autopilot","Reminders, auto-refills, interaction warnings — adherence without the sticky notes.","Care","next","revenue"],
   ["The Re-Plan","After the event, her whole plan quietly reshapes — food, activity, screening — around who she is now.","Plan","next","love"],
-  ["Renewal, Explained","At renewal: why her premium is what it is — and what her care this year kept it from being. Radical transparency as retention.","Protect","launch","love"],
+  ["Renewal, Explained","At renewal: every line of why her premium is what it is — her age, her claims, the filed rate change. Then the list of what is not in it: not the companion, not the tracker, not her streaks. The second half is the one nobody else prints.","Protect","launch","love"],
   ["Claims, Corroborated","Her CloTag timeline substantiates the claim automatically — the sudden change Tuesday, the vet Wednesday, approved in minutes. Data used for her, never against her.","Protect","next","love"],
   ["The Loss-Control Tag","In value-added-services states, policyholders get the CloTag free — a loss-prevention device by law, like a leak sensor from a home insurer.","Protect","next","revenue"],
   ["The Data Covenant","A public promise, from day one: tracker and companion data work for your pet and aggregate science — never against an individual claim or premium.","Protect","built","love"],
