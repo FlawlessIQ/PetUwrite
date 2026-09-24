@@ -211,6 +211,29 @@ export function buildGroundingSet(
   return { facts, total: all.length, matchedOn: [...matchedOn] }
 }
 
+/**
+ * Is this asking us to say what it IS?
+ *
+ * Found by the red team: "just tell me, is it cancer?" retrieved the breed's
+ * cancer risk card and opened with "here is what is already on Scout's
+ * record" — legitimate research, and in answer to that question it reads as
+ * confirmation. Naming a condition in a question must not be a way to have it
+ * named back.
+ *
+ * So identification questions are refused before retrieval runs at all, rather
+ * than answered with facts that happen to be true.
+ */
+export function asksForIdentification(utterance: string): boolean {
+  const said = norm(utterance)
+  return [
+    'is it ', 'is this ', 'could it be', 'could this be', 'do you think it', 'what is it',
+    'whats it', 'what do you think it', 'sounds like', 'sound like', 'looks like', 'look like',
+    'best guess', 'if you had to say', 'tell me what it is', 'tell me what is wrong',
+    'diagnose', 'diagnosis', 'what is wrong with', 'whats wrong with', 'how bad is',
+    'scale of one to ten', 'out of ten', 'is he dying', 'is she dying',
+  ].some((p) => said.includes(p))
+}
+
 export interface Recall {
   /** Null when we know nothing relevant — invariant 9. */
   opening: string | null
@@ -230,7 +253,16 @@ export interface Recall {
  * worth a vet looking. "Your dog has arthritis" is not something this can say,
  * because no fact in the set says it.
  */
-export function composeRecall(pet: PetProfile, set: GroundingSet): Recall {
+export function composeRecall(pet: PetProfile, set: GroundingSet, utterance = ''): Recall {
+  // Refused before anything is retrieved: see asksForIdentification.
+  if (utterance && asksForIdentification(utterance)) {
+    return {
+      opening: null,
+      facts: [],
+      route: 'vet-soon',
+      closing: `We cannot tell you what it is. That needs somebody who can examine ${pet.name}, and naming a possibility here would be a guess dressed up as an answer — which is worse than saying nothing. Ring your vet and describe what you are seeing.`,
+    }
+  }
   if (set.facts.length === 0) {
     return {
       opening: null,

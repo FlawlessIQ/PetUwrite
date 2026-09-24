@@ -47,7 +47,7 @@ export const RED_FLAGS: RedFlag[] = [
   {
     id: 'collapse',
     label: 'Collapsed, or will not get up',
-    phrases: ['collapse', 'collapsed', 'passed out', 'fainted', 'unresponsive', 'wont get up', "won't get up", 'cannot stand', "can't stand", 'unconscious'],
+    phrases: ['collapse', 'collapsed', 'collaped', 'passed out', 'fainted', 'unresponsive', 'wont get up', "won't get up", 'cannot get up', 'get up', 'cannot stand', "can't stand", 'unconscious', 'went floppy', 'gone floppy', 'went limp', 'gone limp', 'all limp', 'funny turn', 'went stiff'],
     because: 'An animal that cannot stand needs to be seen now, whatever the cause.',
   },
   {
@@ -55,7 +55,7 @@ export const RED_FLAGS: RedFlag[] = [
     label: 'Struggling to breathe',
     // Owners write "breathing funny", not "dyspnoea". The list is written from
     // how people actually type at 2am, not from how it would be charted.
-    phrases: ['struggling to breathe', 'difficulty breathing', 'trouble breathing', 'laboured breathing', 'labored breathing', 'gasping', 'choking', 'cannot breathe', "can't breathe", 'not breathing', 'breathing funny', 'breathing fast', 'breathing heavy', 'breathing hard', 'breathing weird', 'wheezing', 'blue gums', 'grey gums', 'gray gums', 'blue tongue', 'gums look blue', 'gums are blue', 'gums look grey', 'gums look gray', 'tongue looks blue'],
+    phrases: ['struggling to breathe', 'strugling to breath', 'struggling to breath', 'difficulty breathing', 'trouble breathing', 'laboured breathing', 'labored breathing', 'gasping', 'choking', 'cannot breathe', "can't breathe", 'not breathing', 'breathing funny', 'breathing fast', 'breathing a bit fast', 'breathing quickly', 'breathing heavy', 'breathing hard', 'breathing weird', 'wheezing', 'blue gums', 'grey gums', 'gray gums', 'blue tongue', 'gums look blue', 'gums are blue', 'gums look grey', 'gums look gray', 'tongue looks blue'],
     because: 'Breathing trouble is the one thing that does not wait, and it can look mild minutes before it does not.',
   },
   {
@@ -68,7 +68,7 @@ export const RED_FLAGS: RedFlag[] = [
   {
     id: 'seizure',
     label: 'A seizure, or fitting',
-    phrases: ['seizure', 'seizing', 'fitting', 'convulsing', 'convulsion', 'twitching uncontrollably', 'paddling'],
+    phrases: ['seizure', 'siezure', 'seizeure', 'seazure', 'seizing', 'fitting', 'convulsing', 'convulsion', 'twitching uncontrollably', 'paddling'],
     because: 'A first seizure, a long one, or several close together all need a vet the same day.',
   },
   {
@@ -77,7 +77,7 @@ export const RED_FLAGS: RedFlag[] = [
     // Written from how somebody types it, not how it reads in a textbook. The
     // first version had "nothing coming out" and missed "nothing IS coming
     // out", which is what a person actually writes.
-    phrases: ['straining to pee', 'straining to urinate', 'cannot pee', "can't pee", 'cannot wee', 'trying to pee', 'nothing coming out', 'nothing is coming out', 'no urine', 'blocked', 'in and out of the litter', 'keeps going to the litter', 'going to the litter tray', 'keeps going in the litter', 'in and out of the tray', 'squatting', 'crying in the litter'],
+    phrases: ['straining to pee', 'straining to urinate', 'cannot pee', "can't pee", 'not peed', "hasn't peed", 'hasnt peed', 'not urinated', 'not weed', 'cannot wee', 'trying to pee', 'nothing coming out', 'nothing is coming out', 'no urine', 'blocked', 'in and out of the litter', 'keeps going to the litter', 'going to the litter tray', 'keeps going in the litter', 'in and out of the tray', 'squatting', 'crying in the litter'],
     species: 'cat',
     because: 'In a male cat this can be a blockage, and it becomes life-threatening in hours rather than days. It is the single most time-critical thing on this list.',
   },
@@ -91,7 +91,7 @@ export const RED_FLAGS: RedFlag[] = [
   {
     id: 'bleeding',
     label: 'Bleeding that will not stop',
-    phrases: ['bleeding', 'blood everywhere', 'wont stop bleeding', "won't stop bleeding", 'haemorrhage', 'hemorrhage'],
+    phrases: ['bleeding', 'blood', 'blood everywhere', 'wont stop bleeding', "won't stop bleeding", 'haemorrhage', 'hemorrhage'],
     because: 'Press on it with something clean and go. Judging how much blood is too much is not something to do at home.',
   },
   {
@@ -103,13 +103,13 @@ export const RED_FLAGS: RedFlag[] = [
   {
     id: 'gums',
     label: 'Pale, white or tacky gums',
-    phrases: ['pale gums', 'white gums', 'tacky gums', 'gums are pale', 'gums look white', 'gums look pale', 'gums are white'],
+    phrases: ['pale gums', 'white gums', 'tacky gums', 'gums are pale', 'gums look white', 'gums to look white', 'gums look pale', 'gums are white', 'funny colour', 'funny color', 'gums are a funny', 'gum colour', 'gums look'],
     because: 'Gum colour is one of the few things an owner can check that genuinely changes the urgency.',
   },
   {
     id: 'toxin',
     label: 'Ate something they should not have',
-    phrases: ['ate rat poison', 'ate poison', 'antifreeze', 'ate chocolate', 'ate grapes', 'ate raisins', 'xylitol', 'ate a lily', 'ate my tablets', 'ate ibuprofen', 'ate paracetamol', 'swallowed a battery'],
+    phrases: ['ate rat poison', 'ate poison', 'antifreeze', 'chocolate', 'grapes', 'raisins', 'ate raisins', 'xylitol', 'ate a lily', 'ate my tablets', 'ate ibuprofen', 'ate paracetamol', 'swallowed a battery'],
     because: 'For most of what is dangerous, treatment works best before an animal looks unwell.',
   },
   {

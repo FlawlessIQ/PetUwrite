@@ -51,7 +51,7 @@ export function AskCompanion({
     }
     setEscalate(null)
     const set = buildGroundingSet(pet, projection, text, now)
-    const r = composeRecall(pet, set)
+    const r = composeRecall(pet, set, text)
     setRecall(r)
     track('companion_asked', {
       escalated: false,

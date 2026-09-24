@@ -33,13 +33,13 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 
 ## Next horizon (needs spec before build — see docs gap register in project)
 
-**Companion AI architecture — spec at `clovara-life/SPEC-COMPANION.md`; six decisions still open for Conor. C0 (vet-visit summary), C1 (safety check) and C2 (grounded companion) all `shipped` 2026-09-24 — **none of them uses a model.** C3 (model composition) awaits the privacy decision and a red-team suite; C4 awaits a telehealth partner** · claims operations design · affinity/B2B2C channel product · native apps + push · morning briefing · food scanner · lump diary · second opinion · meds autopilot · pack dashboard · DNA · lost-pet network · senior suite · Remember chapter · marketing-site realignment · final pricing architecture (annual, multi-pet).
+**Companion AI architecture — spec at `clovara-life/SPEC-COMPANION.md`; six decisions still open for Conor. C0 (vet-visit summary), C1 (safety check) and C2 (grounded companion) all `shipped` 2026-09-24 — **none of them uses a model.** C3 (model composition) awaits the privacy decision; **the red-team suite it must pass is written and green** (`src/engine/redteam.test.ts`); C4 awaits a telehealth partner** · claims operations design · affinity/B2B2C channel product · native apps + push · morning briefing · food scanner · lump diary · second opinion · meds autopilot · pack dashboard · DNA · lost-pet network · senior suite · Remember chapter · marketing-site realignment · final pricing architecture (annual, multi-pet).
 
 ## Spec divergences
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 510 unit plus 107 emulator plus twenty end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
+- **SPEC §1 says "75+ tests".** It is 543 unit plus 107 emulator plus twenty end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
