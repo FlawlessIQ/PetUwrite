@@ -13,7 +13,7 @@ import { CORE_VACCINES, VACCINE_DOSES, type CoreVaccine, type VaccineDose } from
 import { isRemembered } from './remember'
 import type { PetProfile, Species } from '../data/types'
 import { ageInYears } from './project'
-import { WEEKS_PER_YEAR } from './passport'
+import { WEEKS_PER_YEAR } from './time'
 
 export type DoseStatus =
   /** Recorded as given. */

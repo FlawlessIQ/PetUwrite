@@ -13,9 +13,10 @@ import {
 } from '../data/socialization'
 import type { PetProfile } from '../data/types'
 import { ageInYears } from './project'
+import { WEEKS_PER_YEAR } from './time'
 import { isRemembered } from './remember'
 
-export const WEEKS_PER_YEAR = 52.1775
+export { WEEKS_PER_YEAR } from './time'
 
 export type WindowState =
   /** Inside the sensitive period. */
