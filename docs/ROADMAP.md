@@ -150,6 +150,13 @@ above is the starting point, not the finish.
   in the repo — against a problem that does not exist. Revisit only if a real user on a real
   connection complains.
 
+## The plan
+
+**`docs/EXECUTION-PLAN.md`** (2026-09-24) sequences everything remaining into four tracks: what
+must happen before a real person uses this (all of it review, none of it engineering), what unlocks
+code already written and switched off, what I build and in what order, and the review gap on five
+features whose defining behaviour is a refusal. The order to run it in is at the foot.
+
 ## What is left
 
 Every buildable item on this roadmap is built. What remains is not engineering:
