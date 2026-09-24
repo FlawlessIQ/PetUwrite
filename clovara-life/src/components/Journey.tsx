@@ -12,6 +12,8 @@ import { ShareCard } from './ShareCard'
 import { FirstNight } from './FirstNight'
 import { reviewDue } from '../engine/review'
 import { gotchaState } from '../engine/gotchaDay'
+import { isRemembered } from '../engine/remember'
+import { Remembering } from './Remembering'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
 
@@ -74,6 +76,7 @@ export function Journey({
   /** Gotcha Day (SPEC §6.7) — the same share pipeline as the certificate. */
   const [gotchaDismissed, setGotchaDismissed] = useState(false)
   const gotcha = gotchaState(pet, new Date())
+  const remembered = isRemembered(pet)
   const [revisit, setRevisit] = useState<string | null>(null)
   const showReview = !!onUpdate && !reviewDismissed && reviewDue(pet, new Date())
 
@@ -166,6 +169,9 @@ export function Journey({
               onClose={() => onDismissArrival?.()}
             />
           )}
+          {remembered && <Remembering pet={pet} onUpdate={onUpdate} />}
+          {!remembered && (
+          <>
           {/* One line to the Health File, in place of three cards. SPEC §4.3
               names the file; stacking its contents onto Life made this page
               fifteen screens for a new puppy. */}
@@ -222,10 +228,23 @@ export function Journey({
               revisitField={revisit}
             />
           )}
+          </>
+          )}
+          {remembered && (
+            <a
+              href={`#/health/${encodeURIComponent(pet.id)}`}
+              className="flex items-center justify-between gap-3 rounded-card border border-line bg-white px-5 py-4"
+            >
+              <span className="text-[15px] text-ink">{pet.name}&rsquo;s record</span>
+              <span aria-hidden="true" className="text-[18px] leading-none text-muted">→</span>
+            </a>
+          )}
           <Timeline projection={projection} name={pet.name} />
         </div>
         <div className="space-y-5">
-          <Levers projection={projection} state={levers} onChange={setLevers} baseline={baseline} />
+          {!remembered && (
+            <Levers projection={projection} state={levers} onChange={setLevers} baseline={baseline} />
+          )}
           <RiskCards projection={projection} name={pet.name} />
           <Methodology projection={projection} />
         </div>

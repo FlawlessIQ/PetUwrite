@@ -243,6 +243,13 @@ export interface PetProfile {
    * Health File belongs here.
    */
   /**
+   * When they died, if an owner has told us (SPEC-HORIZON §2.5).
+   *
+   * Setting it silences every prompt, reminder, offer and question in the
+   * product. It never deletes anything.
+   */
+  diedOn?: string
+  /**
    * The lump diary (SPEC-HORIZON §1.1).
    *
    * On the pet document rather than a subcollection: the rules deny every

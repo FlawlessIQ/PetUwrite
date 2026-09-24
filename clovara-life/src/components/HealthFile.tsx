@@ -2,6 +2,8 @@ import type { PetProfile, Projection } from '../data/types'
 import { Vaccines } from './Vaccines'
 import { VisitSummary } from './VisitSummary'
 import { LumpDiary } from './LumpDiary'
+import { Remembering } from './Remembering'
+import { isRemembered } from '../engine/remember'
 import { Passport } from './Passport'
 import { SitterMode } from './SitterMode'
 import { ConfirmChips } from './ConfirmChips'
@@ -68,7 +70,9 @@ export function HealthFile({
         <div className="space-y-5">
           <LumpDiary pet={pet} householdId={householdId} onUpdate={onUpdate} now={now} />
           {passport.visible && <Passport pet={pet} onUpdate={onUpdate} now={now} />}
-          {onUpdate && <SitterMode pet={pet} signedIn={signedIn} onUpdate={onUpdate} />}
+          {onUpdate && !isRemembered(pet) && (
+            <SitterMode pet={pet} signedIn={signedIn} onUpdate={onUpdate} />
+          )}
         </div>
       </div>
 
@@ -79,7 +83,11 @@ export function HealthFile({
         </p>
       )}
 
-      <p className="mt-6 text-[12.5px] leading-relaxed text-muted">
+      <div className="mt-6 border-t border-line pt-2">
+        <Remembering pet={pet} onUpdate={onUpdate} />
+      </div>
+
+      <p className="mt-4 text-[12.5px] leading-relaxed text-muted">
         Reading vet records into this file is built and switched off — it needs a security review of
         how those documents are stored before it can be turned on. The projection on {pet.name}
         &rsquo;s plan does not use anything from this page.

@@ -20,6 +20,7 @@
  * remote table cannot fail a build.
  */
 import type { PetProfile, Species } from './types'
+import { isRemembered } from '../engine/remember'
 
 /** Screens that may ask for something. */
 export type AskTrigger =
@@ -167,6 +168,8 @@ export const ASK_REGISTRY: Ask[] = [
  * enforces it is the reason this exists rather than a comment.
  */
 export function asksFor(trigger: AskTrigger, pet: PetProfile): Ask[] {
+  // Nothing is asked about a pet who has died (SPEC-HORIZON §2.5).
+  if (isRemembered(pet)) return []
   return ASK_REGISTRY.filter((a) => {
     if (a.trigger !== trigger) return false
     if (a.species && a.species !== pet.species) return false

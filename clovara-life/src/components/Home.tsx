@@ -1,5 +1,6 @@
 import { accuracyLine, planAccuracy } from '../engine/accuracy'
 import { fitnessProvider, SIMULATED_DISCLOSURE } from '../fitness/provider'
+import { isRemembered } from '../engine/remember'
 import type { PetProfile, Projection } from '../data/types'
 import { buildCoverage, buildHome, buildRewards } from '../engine/platform'
 import { useState } from 'react'
@@ -94,6 +95,8 @@ export function Home({
   const rewards = buildRewards(pet, projection)
   const coverage = buildCoverage(pet, projection)
   const isCat = pet.species === 'cat'
+  // Nothing about how they are doing, once they have died (SPEC-HORIZON §2.5).
+  const remembered = isRemembered(pet)
 
   return (
     <div className="mx-auto w-full max-w-shell px-5 pb-24 pt-8 sm:pt-10">
@@ -178,16 +181,18 @@ export function Home({
                   onClick={() => onNavigate('life')}
                   className="mt-2 text-[13.5px] text-forest hover:text-deep text-action"
                 >
-                  On track for {projection.healthyYearsRange.low.toFixed(1)}–
-                  {projection.healthyYearsRange.high.toFixed(1)} healthy years
+                  {remembered
+                    ? `${pet.name}'s record`
+                    : `On track for ${projection.healthyYearsRange.low.toFixed(1)}–${projection.healthyYearsRange.high.toFixed(1)} healthy years`}
                 </button>
               </div>
             </div>
 
+            {!remembered && (
             <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
               <div className="rounded-soft bg-cream px-4 py-3">
                 <p className="font-display text-[19px] font-semibold leading-none text-ink">
-                  {h.steps.toLocaleString()}
+                  {remembered ? '—' : h.steps.toLocaleString()}
                 </p>
                 <p className="mt-1 text-[12px] text-muted">
                   {isCat ? 'Active minutes' : 'Steps'} today · CloTag
@@ -200,6 +205,7 @@ export function Home({
                 <p className="mt-1 text-[12px] text-muted">Dental streak · {rewards.streaks[0].note}</p>
               </div>
             </div>
+            )}
 
             <div className="mt-4 border-t border-line pt-4">
               <button
@@ -250,7 +256,7 @@ export function Home({
               {h.nudge.title}
             </h2>
             <p className="mt-1.5 text-[14px] leading-relaxed text-ink/75">{h.nudge.body}</p>
-            <Sparkline points={h.stepsTrend} down={h.trendDown} />
+            {!remembered && <Sparkline points={h.stepsTrend} down={h.trendDown} />}
             <button
               type="button"
               onClick={() => onNavigate('care')}
@@ -294,7 +300,9 @@ export function Home({
 
           {/* ── This week's focus ─────────────────────────────────────── */}
           <section className="card px-5 py-5 sm:px-6">
-            <p className="label">This week</p>
+            {/* "This week" is present tense. For a pet who has died the same
+                card is a record of the stage they reached. */}
+            <p className="label">{remembered ? 'The stage they reached' : 'This week'}</p>
             <h2 className="mt-2 font-display text-[20px] leading-tight text-ink">
               {projection.currentStage.label} stage
             </h2>
@@ -319,6 +327,7 @@ export function Home({
           </section>
 
           {/* ── Points ────────────────────────────────────────────────── */}
+          {!remembered && (
           <section className="card flex items-center gap-4 px-5 py-4 sm:px-6">
             <div className="min-w-0 flex-1">
               <p className="font-display text-[22px] font-semibold leading-none text-ink">
@@ -336,11 +345,14 @@ export function Home({
               Redeem
             </button>
           </section>
+          )}
         </div>
       </div>
 
       {/* Both one tap from home, deliberately. Somebody frightened should not
           be navigating a menu. */}
+      {!remembered && (
+        <>
       <a
         href="#/wrong"
         className="mt-6 flex items-center justify-between gap-3 rounded-soft border border-line bg-white px-4 py-3.5 transition hover:border-forest/50"
@@ -374,10 +386,12 @@ export function Home({
           →
         </span>
       </a>
+        </>
+      )}
 
       {/* Straight from the provider (SPEC §6.9). When a partner SDK lands,
           `simulated` goes false and this disclosure disappears on its own. */}
-      {fitnessProvider().simulated && (
+      {fitnessProvider().simulated && !remembered && (
         <p className="mt-6 text-[13px] leading-relaxed text-muted">{SIMULATED_DISCLOSURE}</p>
       )}
     </div>

@@ -147,4 +147,8 @@ Format: date · decision · why. Never rewrite old entries; reversals get new en
 - **2026-09-24** · A size reference is required before the camera opens, not confirmed after. · Asked afterwards it is a question about a photograph already taken, and the honest answer is usually no.
 - **2026-09-24** · Photos without a size reference are kept and shown as "no scale" rather than rejected. · Somebody photographing a lump in a consulting room will not stop to find a coin, and the picture is still worth having.
 - **2026-09-24** · The comparison shows first against latest, not the two most recent. · A month-on-month pair understates a slow change; first-to-latest is the comparison worth putting in front of a vet.
+- **2026-09-24** · When a pet is marked as died, silence is enforced in the engines rather than in each component. · Gating fifteen surfaces by remembering to check in each guarantees the sixteenth is missed, and the sixteenth is the one that sends the email. A component that forgets now renders nothing.
+- **2026-09-24** · The form asks for a date and nothing else — no cause, no reflection, no rating. · Anything more is a product asking a grieving person to do emotional work for its database.
+- **2026-09-24** · Nothing is deleted when a pet is remembered, and the page says so. · Removing the record would be a fifth failure alongside the four this pass exists to prevent.
+- **2026-09-24** · `MUST_GO_QUIET` is exported purely so a test can enumerate it. · Adding a surface means adding it to the list and proving it is silent, rather than relying on somebody remembering.
 

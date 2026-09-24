@@ -33,7 +33,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 
 ## Next horizon
 
-**All fifteen are specced at `clovara-life/SPEC-HORIZON.md`; the lump diary (§1.1) is `shipped` 2026-09-24.** (2026-09-24, draft for Conor).
+**All fifteen are specced at `clovara-life/SPEC-HORIZON.md`; the lump diary (§1.1) and the defensive Remember pass (§2.5) are both `shipped` 2026-09-24. The Remember *chapter* itself is deliberately unwritten — it needs somebody who has thought about grief rather than features.** (2026-09-24, draft for Conor).
 Deliberately uneven: five have real specs because the machinery exists, five are framed with the
 decision that must come first, and five are not engineering specs at all. Eleven decisions are
 gathered in its §5. Nothing is built.
@@ -44,7 +44,7 @@ gathered in its §5. Nothing is built.
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 596 unit plus 107 emulator plus twenty-one end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
+- **SPEC §1 says "75+ tests".** It is 614 unit plus 107 emulator plus twenty-two end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.

@@ -3,6 +3,48 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Remembering — the defensive pass
+
+### When a pet has died, everything stops (SPEC-HORIZON §2.5)
+
+**This is not the Remember chapter.** That needs a document written slowly by
+somebody who has thought about grief. This is the defensive half: making certain
+that when an owner tells us, everything we built goes quiet.
+
+- **Four failures ship in real products today**, each from a system nobody told
+  to stop: a renewal notice, a reminder something is due, a suggestion to buy,
+  and a cheerful note about how they are doing. Each arrives weeks later and is
+  remembered for years. A test asserts all four are impossible.
+- **Enforcement is central, in the engines, not per-surface.** Gating fifteen
+  components by remembering to check in each one guarantees the sixteenth is
+  missed — and the sixteenth is the one that sends the email. A remembered pet
+  has no review due, no anniversary, no vaccination window, no passport, no
+  nudge, no products and no asks. **A surface that forgets to check gets nothing
+  to render**, which is the right failure.
+- `MUST_GO_QUIET` is exported so the test enumerates it rather than trusting
+  each was remembered. Every check has a **control** proving the surface would
+  otherwise have fired.
+- **The form asks for a date and nothing else.** No cause, no reflection, no
+  "tell us more" — a product asking somebody to do emotional work for its
+  database. It is not hidden behind a confirmation maze either, and it undoes in
+  one tap.
+- **Nothing is deleted, and the page says so.** The record, the photographs, the
+  vet summary and the lump diary all stay reachable. Taking them away would be
+  the fifth failure.
+
+**Five leaks the browser pass caught that the engine gating missed** — all
+places speaking in the present tense about an animal who has died:
+
+- the **Levers** panel still asking *"How much do they move on a normal day?"*
+- **"On track for 11.2–13.7 healthy years"** on Home — a projection, present
+  tense, for a dead animal, and the worst of the five
+- **Clovara points still accruing** "+175 this week"
+- the steps and dental-streak tiles, whose labels remained after the numbers
+  were blanked
+- a section headed **"This week"**, now "The stage they reached"
+
+**24 browser checks, 18 engine tests.**
+
 ## Horizon — the lump diary
 
 ### Photograph the thing, month after month (SPEC-HORIZON §1.1)

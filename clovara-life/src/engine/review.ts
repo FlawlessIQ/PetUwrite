@@ -14,6 +14,7 @@
  * the engine.
  */
 import type { PetProfile, Species } from '../data/types'
+import { isRemembered } from './remember'
 
 const YEAR = 365.25 * 86_400_000
 
@@ -59,11 +60,14 @@ export function lastBirthday(birthDate: string, now: Date): number | null {
  *  2. A birthday has passed since the last review.
  */
 export function reviewDue(
-  pet: { lastReviewedAt?: string; knownSince?: string; birthDate: string },
+  pet: { lastReviewedAt?: string; knownSince?: string; birthDate: string; diedOn?: string },
   now: Date,
 ): boolean {
   // Without knowing when we met them we cannot tell a long-standing pet from
   // one added this morning, and nothing is due. The safe direction.
+  // Silent once a pet has died (SPEC-HORIZON §2.5). Enforced here rather
+  // than in each surface, so a component that forgets to check renders nothing.
+  if (isRemembered(pet)) return false
   if (!pet.knownSince) return false
   const since = Date.parse(pet.knownSince)
   if (!Number.isFinite(since)) return false

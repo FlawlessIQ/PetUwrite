@@ -10,6 +10,7 @@
  * difference between a reminder and an accusation.
  */
 import { CORE_VACCINES, VACCINE_DOSES, type CoreVaccine, type VaccineDose } from '../data/vaccines'
+import { isRemembered } from './remember'
 import type { PetProfile, Species } from '../data/types'
 import { ageInYears } from './project'
 import { WEEKS_PER_YEAR } from './passport'
@@ -80,7 +81,10 @@ export function vaccineState(pet: PetProfile, now: Date): VaccineState {
   })
 
   return {
-    visible: ageWeeks < COURSE_VISIBLE_WEEKS || doses.some((d) => d.status === 'recorded'),
+    // Silent once a pet has died (SPEC-HORIZON §2.5).
+    visible:
+      !isRemembered(pet) &&
+      (ageWeeks < COURSE_VISIBLE_WEEKS || doses.some((d) => d.status === 'recorded')),
     ageWeeks,
     doses,
     dueNow: doses.filter((d) => d.status === 'due'),

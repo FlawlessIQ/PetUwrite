@@ -50,6 +50,7 @@ export function isValidPet(p: unknown): p is PetProfile {
     (x.vaccineRecords === undefined || Array.isArray(x.vaccineRecords)) &&
     (x.careNotes === undefined || (!!x.careNotes && typeof x.careNotes === 'object')) &&
     (x.lumps === undefined || Array.isArray(x.lumps)) &&
+    (x.diedOn === undefined || typeof x.diedOn === 'string') &&
     (x.lastReviewedRange === undefined ||
       (!!x.lastReviewedRange &&
         typeof x.lastReviewedRange === 'object' &&

@@ -6,6 +6,7 @@
  * apart and the homecoming is the one the family actually marks.
  */
 import type { PetProfile } from '../data/types'
+import { isRemembered } from './remember'
 
 const DAY = 86_400_000
 
@@ -29,6 +30,9 @@ export const GOTCHA_WINDOW_DAYS = 7
 
 export function gotchaState(pet: PetProfile, now: Date): GotchaState {
   const blank: GotchaState = { active: false, years: 0, daysSince: 0 }
+  // Silent once a pet has died (SPEC-HORIZON §2.5). Enforced here rather
+  // than in each surface, so a component that forgets to check renders nothing.
+  if (isRemembered(pet)) return blank
   if (!pet.knownSince) return blank
   const home = new Date(pet.knownSince)
   if (Number.isNaN(home.getTime())) return blank

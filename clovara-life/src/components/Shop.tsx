@@ -6,6 +6,7 @@ import { MemberGate } from './MemberGate'
 import { asksFor } from '../data/askRegistry'
 import { ContextualAsk } from './ContextualAsk'
 import { CloverMark } from './CloverMark'
+import { isRemembered } from '../engine/remember'
 
 const STRENGTH_STYLE: Record<ClaimStrength, string> = {
   behaviour: 'bg-sage text-deep',
@@ -38,6 +39,31 @@ export function Shop({
   const recs = recommendProducts(pet, projection)
   const picked = recs.filter((r) => r.matched.length > 0 || r.stages)
   const staples = recs.filter((r) => !picked.includes(r))
+
+  // Nothing is recommended for a pet who has died (SPEC-HORIZON §2.5).
+
+  if (isRemembered(pet)) {
+
+    return (
+
+      <div className="mx-auto w-full max-w-shell px-5 pb-24 pt-8">
+
+        <p className="label">Shop</p>
+
+        <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-muted">
+
+          There is nothing here for {pet.name}. Everything on this shelf was chosen from
+
+          their plan, and we are not going to keep selling to you.
+
+        </p>
+
+      </div>
+
+    )
+
+  }
+
 
   return (
     <div className="mx-auto w-full max-w-shell px-5 pb-24 pt-8 sm:pt-10">

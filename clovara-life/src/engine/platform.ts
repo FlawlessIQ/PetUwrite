@@ -13,6 +13,7 @@ import {
 } from '../data/coverage'
 import { POINT_RULES, REDEMPTIONS, type Redemption } from '../data/rewards'
 import { fitnessProvider } from '../fitness/provider'
+import { isRemembered } from './remember'
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -199,6 +200,8 @@ export interface ProductRec extends Product {
  * life stage. Anything that matches neither is a staple and sorts last.
  */
 export function recommendProducts(profile: PetProfile, projection: Projection): ProductRec[] {
+  // Nothing is sold for a pet who has died (SPEC-HORIZON §2.5).
+  if (isRemembered(profile)) return []
   const riskIds = new Set(projection.riskCards.map((r) => r.id))
   const declared = new Set(profile.conditionIds ?? [])
   const stage = projection.currentStage.id
@@ -550,7 +553,14 @@ export function buildHome(profile: PetProfile, projection: Projection): HomeView
   const trendDown = reading.belowNormal
 
   const gap = score.biggestGap
-  const nudge = trendDown
+  // No nudge, no activity story, nothing that speaks of them in the present.
+  const nudge = isRemembered(profile)
+    ? {
+        eyebrow: 'Remembering',
+        title: `${profile.name}'s record is still here`,
+        body: 'Everything you told us is kept. Nothing else is needed from you.',
+      }
+    : trendDown
     ? {
         eyebrow: 'Worth watching',
         title: `${profile.name}'s activity is down ${seeded(profile.id + 'n', 12, 24)}% this week`,

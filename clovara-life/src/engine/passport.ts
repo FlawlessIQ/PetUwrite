@@ -13,6 +13,7 @@ import {
 } from '../data/socialization'
 import type { PetProfile } from '../data/types'
 import { ageInYears } from './project'
+import { isRemembered } from './remember'
 
 export const WEEKS_PER_YEAR = 52.1775
 
@@ -59,7 +60,8 @@ export function passportState(pet: PetProfile, now: Date): PassportState {
   }
 
   return {
-    visible: window !== 'closed',
+    // Silent once a pet has died (SPEC-HORIZON §2.5).
+    visible: !isRemembered(pet) && window !== 'closed',
     ageWeeks,
     window,
     weeksLeft: Math.max(0, Math.ceil(win.closes - ageWeeks)),

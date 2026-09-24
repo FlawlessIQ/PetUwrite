@@ -11,6 +11,7 @@ import {
   type Lump,
 } from '../engine/lumps'
 import { uploadPetPhoto } from '../store/photos'
+import { isRemembered } from '../engine/remember'
 import { describeRejection } from '../store/imageMath'
 import { longDate } from '../share/cardLayout'
 import { track } from '../analytics/track'
@@ -55,6 +56,8 @@ export function LumpDiary({
   const fileInput = useRef<HTMLInputElement>(null)
   const pendingRef = useRef<{ lumpId: string; reference: string | null } | null>(null)
 
+  // The diary stays readable; it stops asking for more (SPEC-HORIZON §2.5).
+  const quiet = isRemembered(pet)
   const save = (next: Lump[]) => onUpdate?.({ lumps: next })
 
   const addLump = () => {
@@ -125,9 +128,11 @@ export function LumpDiary({
         <h2 id="lumps-heading" className="mt-1 font-display text-[20px] text-ink">
           The same thing, month after month
         </h2>
-        <p className="mt-2 rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-[13px] leading-relaxed text-[#8A5510]">
-          {NEW_LUMP_WARNING}
-        </p>
+        {!quiet && (
+          <p className="mt-2 rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-[13px] leading-relaxed text-[#8A5510]">
+            {NEW_LUMP_WARNING}
+          </p>
+        )}
       </div>
 
       <input
@@ -213,7 +218,7 @@ export function LumpDiary({
                   )}
 
                   {/* Capture: the reference is chosen BEFORE the camera opens. */}
-                  {onUpdate && (
+                  {onUpdate && !quiet && (
                     <div className="mt-5 rounded-soft border border-line bg-cream/40 px-4 py-4">
                       <p className="text-[14px] font-medium text-ink">Take the next one</p>
                       <p className="mt-1 text-[13px] leading-relaxed text-muted">
@@ -273,7 +278,7 @@ export function LumpDiary({
         })}
       </ul>
 
-      {onUpdate && (
+      {onUpdate && !quiet && (
         <div className="border-t border-line px-5 py-4">
           {adding ? (
             <div className="flex flex-wrap items-end gap-2">
