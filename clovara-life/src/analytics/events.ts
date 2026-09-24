@@ -43,6 +43,8 @@ export const EVENT_NAMES = [
   /** Somebody looked up something their pet ate (SPEC §6.5). */
   'safety_check',
   'companion_asked',
+  'lump_started',
+  'lump_photo_added',
   'toxin_lookup',
   'poison_line_tapped',
   'emergency_vets_found',

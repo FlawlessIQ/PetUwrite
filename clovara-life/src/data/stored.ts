@@ -83,6 +83,7 @@ export interface StoredPet {
   socialStamps?: Field<string[]>
   vaccineRecords?: Field<{ doseId: string; givenOn: string }[]>
   careNotes?: Field<Record<string, string>>
+  lumps?: Field<unknown[]>
   neuterAgeBand?: Field<NeuterAgeBand>
   weightLb?: Field<number>
   bodyConditionScore?: Field<BodyConditionScore>

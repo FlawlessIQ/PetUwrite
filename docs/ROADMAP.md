@@ -33,7 +33,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 
 ## Next horizon
 
-**All fifteen are now specced at `clovara-life/SPEC-HORIZON.md`** (2026-09-24, draft for Conor).
+**All fifteen are specced at `clovara-life/SPEC-HORIZON.md`; the lump diary (§1.1) is `shipped` 2026-09-24.** (2026-09-24, draft for Conor).
 Deliberately uneven: five have real specs because the machinery exists, five are framed with the
 decision that must come first, and five are not engineering specs at all. Eleven decisions are
 gathered in its §5. Nothing is built.
@@ -44,7 +44,7 @@ gathered in its §5. Nothing is built.
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 581 unit plus 107 emulator plus twenty end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
+- **SPEC §1 says "75+ tests".** It is 596 unit plus 107 emulator plus twenty-one end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
@@ -167,4 +167,11 @@ Every buildable item on this roadmap is built. What remains is not engineering:
 | Teng 2024 cat table, Abyssinian, AAHA Table 4 | the last five illustrative feline figures |
 | Wearable partner | a real `FitnessProvider`; the seam is built |
 | Stripe test key rotation | recommended after the earlier `.env` exposure |
+- **SPEC-HORIZON §1.1 asked for a faint overlay of the previous photo during capture.** Not
+  possible: capture hands off to the OS camera (`capture="environment"`), so there is no preview to
+  draw on. Shipped as the previous photo shown large immediately before the camera opens. A live
+  in-app camera would allow the real thing and is a native-app question.
+- **SPEC-HORIZON §1.1 put lumps in a subcollection.** Every `{sub=**}` under a pet is denied
+  pending the Firestore security review, so they are stored on the pet document instead. No rules
+  change was needed and the feature is clear of that gate.
 

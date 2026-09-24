@@ -544,6 +544,7 @@ export default function App() {
             <HealthFilePage
               pet={healthPet}
               projection={project(healthPet)}
+              householdId={householdId}
               signedIn={status === 'signedIn'}
               onUpdate={
                 healthPet.demo ? undefined : (patch) => void updatePet(healthPet.id, patch)

@@ -3,6 +3,42 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Horizon — the lump diary
+
+### Photograph the thing, month after month (SPEC-HORIZON §1.1)
+
+- **The defining feature is a refusal.** There is no function anywhere in
+  `engine/lumps.ts` that returns a change, a delta, a percentage or a trend —
+  and a test asserts no export is ever named for one, so the absence survives
+  somebody later thinking it would be helpful. Two handheld photographs a month
+  apart do not support that measurement, and **an owner told "no significant
+  change" will wait.** It shows both pictures and lets a person decide.
+- **A size reference is compulsory and is asked for BEFORE the camera opens.**
+  Asked afterwards it is a question about a photograph already taken, and the
+  honest answer is usually no. Without one, "it looks bigger" is a phone held
+  closer — the exact illusion the feature exists to prevent.
+- Photos without a reference are **kept and shown**, marked "no scale". Somebody
+  photographing a lump at the vet's is not going to stop to find a coin.
+- The comparison is **first against latest**, not the last two. A month-on-month
+  pair understates a slow change, and first-to-latest is what somebody actually
+  wants to put in front of a vet.
+- It leads with the warning: *"a lump you have just found is a reason to see a
+  vet, not a reason to start a diary."*
+- Never categorises — not benign, not suspicious, not "consistent with".
+- 15 engine tests, 24 browser checks, most of them about what it refuses.
+
+**Two divergences from my own spec, both forced:**
+
+1. The spec called for the previous photo as a **faint overlay during capture**.
+   Capture hands off to the operating system's camera, so there is no preview to
+   overlay onto. The achievable version shows the previous photo large,
+   immediately before the camera opens, to be matched from memory. Worse, and
+   honest about being worse.
+2. The spec put lumps in a `lumps/` **subcollection**. Every `{sub=**}` under a
+   pet is denied pending the Firestore security review, so they live on the pet
+   document — which needs no rules change and keeps the feature clear of that
+   gate entirely.
+
 ## Companion — C0 to C4
 
 ### C4 — routing to a vet, without a partner to route to

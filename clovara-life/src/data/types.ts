@@ -242,6 +242,26 @@ export interface PetProfile {
    * household on an unauthenticated link, so nothing that belongs in the
    * Health File belongs here.
    */
+  /**
+   * The lump diary (SPEC-HORIZON §1.1).
+   *
+   * On the pet document rather than a subcollection: the rules deny every
+   * `{sub=**}` under a pet pending the Firestore security review, and a diary
+   * of photographs an owner took of their own animal does not need to wait for
+   * that review the way vet records do.
+   */
+  lumps?: {
+    id: string
+    location: string
+    firstSeen: string
+    note?: string
+    photos: {
+      url: string
+      fullPath: string
+      takenAt: string
+      sizeReference: string | null
+    }[]
+  }[]
   careNotes?: {
     feeding?: string
     meds?: string

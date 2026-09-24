@@ -143,4 +143,8 @@ Format: date · decision · why. Never rewrite old entries; reversals get new en
 - **2026-09-24** · No telehealth provider interface was built, unlike the other four integration seams. · Those were built against known shapes; this would be a guess at an unknown partner's API that the first real integration deletes. Requirements were written instead, which is what actually shortens that integration.
 - **2026-09-24** · Asking the companion for a vet is answered as an ask, not with facts about the pet. · Somebody who has decided they want a professional is not helped by a recital of their own record.
 - **2026-09-24** · `routeTo: 'telehealth'` was removed from the composed-reply type. · Nothing produced it and nothing handled it; nothing may produce a route we cannot honour.
+- **2026-09-24** · The lump diary computes no change, delta or trend, and a test forbids any export named for one. · Two handheld photographs a month apart cannot support that measurement, and an owner told "no significant change" will wait. The refusal is the feature.
+- **2026-09-24** · A size reference is required before the camera opens, not confirmed after. · Asked afterwards it is a question about a photograph already taken, and the honest answer is usually no.
+- **2026-09-24** · Photos without a size reference are kept and shown as "no scale" rather than rejected. · Somebody photographing a lump in a consulting room will not stop to find a coin, and the picture is still worth having.
+- **2026-09-24** · The comparison shows first against latest, not the two most recent. · A month-on-month pair understates a slow change; first-to-latest is the comparison worth putting in front of a vet.
 
