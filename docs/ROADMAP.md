@@ -95,6 +95,12 @@ Both were in paths I had not thought to have an intention about, which is exactl
 bug an author cannot find by checking their own intent. **That is the argument for the external
 review, not against it.**
 
+Both fixes were deployed 2026-09-24 and verified by running the attacks against **production**,
+not the emulator — all three denied, legitimate household creation unaffected. A scan of every
+household on the project found **no forged entitlement**: one household carries one, `canceled`
+and backed by a real Stripe customer and subscription, which is the test-clock run from the P0
+verification. So the hole existed but was never used.
+
 For the reviewer: the rules are `firestore.rules` (Life block) and `storage.rules`; the access
 model is one document — a household owns pets, users belong to households; the adversarial suite
 above is the starting point, not the finish.
