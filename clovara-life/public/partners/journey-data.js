@@ -46,7 +46,7 @@ const STAGES=[
   ["The Second-Pet Matchmaker","Thinking about a friend for her? Matched to her temperament, age and the household she already runs.","Plan","sky","growth"],
   ["The Pack Dashboard","Every pet in the family on one screen — multi-pet households are the most valuable members.","Plan","next","revenue"],
   ["Points That Give Back","Redeem rewards as shelter donations in her name — loyalty that feels like love.","Care","next","love"],
-  ["The Research Pack","Opt-in, consented member data powering published longevity studies — her data adds healthy years for every dog.","Plan","sky","data"]
+  ["The Research Pack","Opt-in, consented member data powering published longevity studies — the dataset that turns illustrative breed figures into real ones.","Plan","sky","data"]
  ]},
  {name:"The worry moments", age:"Any Tuesday, 11pm", job:"Every owner knows the 11pm fear. Clovara answers with her history in hand — informing and routing to vets, never guessing, never diagnosing.", moments:[
   ["The Companion That Remembers","'She's limping after walks' → recalls the hip note from 2024, says what to watch, books a video vet with her history summary prepared.","Care","built","love"],
