@@ -82,7 +82,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
               already on this tab is thinking about it without being pushed. */}
           {!c.hasPolicy && (
             <p className="text-[14px] leading-relaxed text-muted">
-              <a href="#/protect" className="text-forest underline underline-offset-2">
+              <a href="#/protect" className="text-forest text-action">
                 Take this cover for {pet.name}
               </a>{' '}
               — the price above, and exactly what it does and does not do, before anything is paid.

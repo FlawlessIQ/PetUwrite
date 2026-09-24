@@ -191,7 +191,7 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
               <button
                 type="button"
                 onClick={() => setPicked(null)}
-                className="mt-4 text-[13.5px] text-forest underline underline-offset-2"
+                className="mt-4 text-[13.5px] text-forest text-action"
               >
                 Something else
               </button>

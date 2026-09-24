@@ -447,7 +447,7 @@ export default function App() {
               setAdding(false)
               go('home')
             }}
-            className="flex shrink-0 items-center"
+            className="flex min-h-[40px] shrink-0 items-center"
             aria-label="Clovara Life home"
           >
             <Wordmark size={28} />

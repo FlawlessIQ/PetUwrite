@@ -59,7 +59,7 @@ export function TrialBanner({
         <button
           type="button"
           onClick={onManage}
-          className="shrink-0 self-start text-[14px] text-forest underline underline-offset-4 hover:text-deep sm:self-auto"
+          className="shrink-0 self-start text-[14px] text-forest hover:text-deep sm:self-auto text-action"
         >
           Manage membership
         </button>

@@ -49,7 +49,7 @@ export function ImportPrompt({
               type="button"
               onClick={onDismiss}
               disabled={busy}
-              className="text-[14.5px] text-muted underline underline-offset-4 transition hover:text-ink disabled:opacity-40"
+              className="text-[14.5px] text-muted transition hover:text-ink disabled:opacity-40 text-action"
             >
               Not now
             </button>

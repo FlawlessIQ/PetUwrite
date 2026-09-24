@@ -33,7 +33,7 @@ export function ContextualAsk<T extends string>({
           <button
             type="button"
             onClick={onDismiss}
-            className="text-[13.5px] text-muted underline underline-offset-4 transition hover:text-ink"
+            className="text-[13.5px] text-muted transition hover:text-ink text-action"
           >
             Not now
           </button>

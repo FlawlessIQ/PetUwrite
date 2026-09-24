@@ -128,7 +128,7 @@ export function Shop({
                       type="button"
                       onClick={() => setOpen(expanded ? null : p.id)}
                       aria-expanded={expanded}
-                      className="mt-3 text-[13px] text-forest underline underline-offset-4 hover:text-deep"
+                      className="mt-3 text-[13px] text-forest hover:text-deep text-action"
                     >
                       {expanded ? 'Hide the evidence' : 'What the evidence says'}
                     </button>

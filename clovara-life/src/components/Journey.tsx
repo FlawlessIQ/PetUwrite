@@ -12,25 +12,28 @@ import { ShareCard } from './ShareCard'
 import { FirstNight } from './FirstNight'
 import { reviewDue } from '../engine/review'
 import { gotchaState } from '../engine/gotchaDay'
-import { vaccineState } from '../engine/vaccines'
-import { passportState } from '../engine/passport'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
 
-/** What the one Health File line says, so it is worth tapping. */
+/**
+ * What the one Health File line says.
+ *
+ * COMPUTED FROM THE PET ALONE, ON PURPOSE. The obvious version called
+ * `passportState` and `vaccineState` for "12 of 103 firsts" and "2 usually due
+ * now" — and pulled a hundred and three socialisation stamps and the whole
+ * vaccination schedule into the main bundle, which every signed-out visitor
+ * downloads to look at a demo pet. Moving those surfaces off the page and
+ * leaving their content in the download would have been half a job.
+ *
+ * So: counts of what this pet actually has, no denominators, no schedule.
+ */
 function fileSummary(pet: PetProfile): string {
-  const now = new Date()
-  const vax = vaccineState(pet, now)
-  const passport = passportState(pet, now)
   const bits: string[] = []
-  if (vax.visible) {
-    bits.push(
-      vax.dueNow.length > 0
-        ? `${vax.dueNow.length} vaccination${vax.dueNow.length === 1 ? '' : 's'} usually due now`
-        : `${vax.recordedCount} vaccination${vax.recordedCount === 1 ? '' : 's'} recorded`,
-    )
-  }
-  if (passport.visible) bits.push(`${passport.collected.length} of ${passport.stamps.length} firsts`)
+  const stamps = pet.socialStamps?.length ?? 0
+  const shots = pet.vaccineRecords?.length ?? 0
+  if (shots > 0) bits.push(`${shots} vaccination${shots === 1 ? '' : 's'} recorded`)
+  if (stamps > 0) bits.push(`${stamps} first${stamps === 1 ? '' : 's'}`)
+  if (bits.length === 0) return 'Vaccinations, socialisation, and a link for a sitter.'
   bits.push('sitter link')
   return bits.join(' · ')
 }

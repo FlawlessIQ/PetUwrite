@@ -108,7 +108,7 @@ export function Vaccines({
                         {onUpdate && (
                           <button
                             type="button"
-                            className="text-[12.5px] text-forest underline underline-offset-2"
+                            className="text-[12.5px] text-forest text-action"
                             onClick={() => {
                               setEditing(editing === d.dose.id ? null : d.dose.id)
                               setDate(d.givenOn ?? '')

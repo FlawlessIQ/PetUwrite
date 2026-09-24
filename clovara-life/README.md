@@ -30,6 +30,9 @@ npm run verify:onboarding # 17 checks driving Tier 0 → reveal → Tier 1: five
                        # questions with no account wall, then every answer
                        # moving the projection and persisting
 npm run verify:household # 16 checks on invite and join, 11 of them refusals
+npm run verify:all     # every browser suite, in one command
+npm run verify:a11y    # accessible names, labels, alt text, heading order, tap
+                       # targets and keyboard focus across eight surfaces
 npm run verify:length  # the Life surface page-length budget — a ceiling of 12 phone
                        # screens in any state, 9.5 once everything is answered
 npm run verify:sitter  # 26 emulator checks on the one unauthenticated read path:

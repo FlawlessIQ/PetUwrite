@@ -155,14 +155,14 @@ export function SitterMode({
                       </span>
                       <button
                         type="button"
-                        className="text-[13px] text-forest underline underline-offset-2"
+                        className="text-[13px] text-forest text-action"
                         onClick={() => copy(l.token)}
                       >
                         {copied === l.token ? 'Copied' : 'Copy'}
                       </button>
                       <button
                         type="button"
-                        className="text-[13px] text-[#8C1D18] underline underline-offset-2"
+                        className="text-[13px] text-[#8C1D18] text-action"
                         onClick={() => revoke(l.token)}
                       >
                         Cancel this link

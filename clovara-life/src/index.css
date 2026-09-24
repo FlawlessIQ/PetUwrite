@@ -67,6 +67,18 @@ textarea {
     @apply pill border border-line bg-white text-ink hover:border-forest hover:text-forest;
   }
 
+  /*
+   * A text button that is still a tap target.
+   *
+   * Underlined text controls were rendering about 22px tall — fine for a mouse
+   * and poor for a thumb, which is how this product is actually used, often
+   * one-handed while holding an animal. The negative margin means the hit area
+   * grows without anything moving on the page.
+   */
+  .text-action {
+    @apply inline-flex min-h-[36px] items-center py-2 -my-2 underline underline-offset-2;
+  }
+
   .label {
     @apply text-[11px] font-medium uppercase tracking-[0.14em] text-muted;
   }

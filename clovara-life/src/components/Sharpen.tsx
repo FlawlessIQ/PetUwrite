@@ -342,7 +342,7 @@ export function Sharpen({
         <button
           type="button"
           onClick={() => setShowAnswered((v) => !v)}
-          className="text-[13.5px] text-forest underline underline-offset-4 hover:text-deep"
+          className="text-[13.5px] text-forest hover:text-deep text-action"
         >
           {showAnswered ? 'Hide what you have answered' : 'Change something you already answered'}
         </button>

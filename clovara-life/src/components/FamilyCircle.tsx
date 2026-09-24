@@ -76,7 +76,7 @@ export function FamilyCircle({ memberCount }: { memberCount: number }) {
                   () => setCopied(false),
                 )
               }}
-              className="text-[13.5px] text-forest underline underline-offset-4 hover:text-deep"
+              className="text-[13.5px] text-forest hover:text-deep text-action"
             >
               {copied ? 'Copied' : 'Copy'}
             </button>
@@ -99,7 +99,7 @@ export function FamilyCircle({ memberCount }: { memberCount: number }) {
             type="button"
             onClick={invite}
             disabled={busy}
-            className="text-[14px] text-forest underline underline-offset-4 transition hover:text-deep disabled:opacity-40"
+            className="text-[14px] text-forest transition hover:text-deep disabled:opacity-40 text-action"
           >
             {busy ? 'One moment…' : code ? 'Make another code' : 'Invite someone'}
           </button>
@@ -109,7 +109,7 @@ export function FamilyCircle({ memberCount }: { memberCount: number }) {
               setJoining(true)
               setError(null)
             }}
-            className="text-[14px] text-muted underline underline-offset-4 transition hover:text-ink"
+            className="text-[14px] text-muted transition hover:text-ink text-action"
           >
             I have a code
           </button>

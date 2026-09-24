@@ -133,7 +133,7 @@ export function Attach({
                 type="button"
                 onClick={() => setAdjusting((a) => !a)}
                 aria-expanded={adjusting}
-                className="mt-4 text-[14px] text-forest underline underline-offset-2"
+                className="mt-4 text-[14px] text-forest text-action"
               >
                 {adjusting ? 'Hide options' : 'Adjust'}
               </button>
@@ -298,7 +298,7 @@ export function Attach({
 
           <button
             type="button"
-            className="mt-4 w-full text-[13.5px] text-forest underline underline-offset-2"
+            className="mt-4 w-full text-[13.5px] text-forest text-action"
             onClick={() => setStep(1)}
           >
             Back to the price

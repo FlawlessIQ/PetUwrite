@@ -82,6 +82,9 @@ export function PhotoPicker({
           <input
             ref={input}
             type="file"
+            // Named for a screen reader: the visible control is the button
+            // that clicks this, and without a name this announces as "file".
+            aria-label={`Add a photo of ${pet.name}`}
             accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
             capture="environment"
             className="sr-only"

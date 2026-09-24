@@ -179,7 +179,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
           <button
             type="button"
             onClick={onCancel}
-            className="text-[14px] text-muted underline underline-offset-4 hover:text-ink"
+            className="text-[14px] text-muted hover:text-ink text-action"
           >
             Cancel
           </button>
@@ -229,7 +229,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
               href="#/covenant"
               target="_blank"
               rel="noreferrer"
-              className="inline-block text-[13.5px] text-muted underline underline-offset-4 transition hover:text-ink"
+              className="inline-block text-[13.5px] text-muted transition hover:text-ink text-action"
             >
               Before you start: what we do and never do with what you tell us
             </a>
@@ -445,7 +445,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
             <button
               type="button"
               onClick={() => setUseExact((v) => !v)}
-              className="text-[14px] text-forest underline underline-offset-4 hover:text-deep"
+              className="text-[14px] text-forest hover:text-deep text-action"
             >
               {useExact ? 'I only know roughly' : 'I know the exact date'}
             </button>

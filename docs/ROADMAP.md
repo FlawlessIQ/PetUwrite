@@ -39,7 +39,7 @@ Companion AI architecture (the big one) · claims operations design · affinity/
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 425 unit plus 94 emulator plus sixteen end-to-end scripts.
+- **SPEC §1 says "75+ tests".** It is 425 unit plus 94 emulator plus seventeen end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
@@ -73,6 +73,14 @@ Companion AI architecture (the big one) · claims operations design · affinity/
   cards, levers — at 7.5–8.0 screens on the demo pets. Cutting further means collapsing the
   timeline or the risk cards, which are the "it knows my dog" payload in front of investors. That
   is a demo-impact decision for Conor, not an engineering one.
+
+## Measured, and deliberately not done
+
+- **Splitting the breed tables out of the main bundle.** They are 133kB of source and the bulk of
+  the 505kB main chunk. On throttled 4G (1.6Mbps, 150ms RTT) the plan is visible in 1.1s and first
+  paint is 452ms, so splitting them would mean refactoring `project()` — the most load-bearing code
+  in the repo — against a problem that does not exist. Revisit only if a real user on a real
+  connection complains.
 
 ## What is left
 

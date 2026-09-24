@@ -101,7 +101,7 @@ export function AccountSheet({
                 type="button"
                 onClick={isMember(entitlement) ? onManage : onStartTrial}
                 disabled={membershipBusy}
-                className="mt-3 text-[14px] text-forest underline underline-offset-4 transition hover:text-deep disabled:opacity-40"
+                className="mt-3 text-[14px] text-forest transition hover:text-deep disabled:opacity-40 text-action"
               >
                 {membershipBusy
                   ? 'One moment…'
@@ -117,7 +117,7 @@ export function AccountSheet({
             <a
               href="#/covenant"
               onClick={onClose}
-              className="block text-[14px] text-forest underline underline-offset-4 transition hover:text-deep"
+              className="block text-[14px] text-forest transition hover:text-deep text-action"
             >
               The Data Covenant
             </a>
@@ -130,7 +130,7 @@ export function AccountSheet({
                   onClose()
                 }}
                 disabled={busy}
-                className="text-[14.5px] text-muted underline underline-offset-4 transition hover:text-ink disabled:opacity-40"
+                className="text-[14.5px] text-muted transition hover:text-ink disabled:opacity-40 text-action"
               >
                 Sign out
               </button>
@@ -167,7 +167,7 @@ export function AccountSheet({
                     setSent(false)
                     clearError()
                   }}
-                  className="text-[14px] text-forest underline underline-offset-4 hover:text-deep"
+                  className="text-[14px] text-forest hover:text-deep text-action"
                 >
                   Use a different address
                 </button>
@@ -246,7 +246,7 @@ export function AccountSheet({
               <button
                 type="button"
                 onClick={onClose}
-                className="text-muted underline underline-offset-4 hover:text-ink"
+                className="text-muted hover:text-ink text-action"
               >
                 Not now
               </button>

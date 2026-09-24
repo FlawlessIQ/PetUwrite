@@ -148,7 +148,7 @@ export function Methodology({ projection }: { projection: Projection }) {
                       href={c.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-forest underline underline-offset-4 hover:text-deep"
+                      className="text-forest hover:text-deep text-action"
                     >
                       {c.label}
                     </a>

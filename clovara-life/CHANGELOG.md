@@ -5,6 +5,40 @@ has the commits.
 
 ## Repair — the Life surface
 
+### Accessibility, the demo payload, and one command (quality pass)
+
+- **Accessibility had never been checked**, on any of twenty-odd surfaces. Now
+  audited across eight of them, with no new dependency — hand-written checks for
+  the failures a sighted person clicking around never notices.
+- What already passed everywhere: every control has an accessible name, every
+  input has a label, every image has alt text, heading order never skips, tab
+  reaches the controls and focus is visible on all of them.
+- What did not, and is fixed:
+  - **The photo file input had no accessible name.** It announced as "file" — a
+    screen-reader user could not tell what it was for.
+  - Underlined text controls were ~22px tall. Fine for a mouse, poor for a
+    thumb, which is how this is actually used — often one-handed while holding
+    an animal. A `.text-action` utility grows the hit area to 36px with a
+    negative margin, so nothing on the page moved.
+  - The evidence-tier chips and the header wordmark were both under 36px.
+- **Two things I had just broken, found by measuring the bundle.** The Health
+  File summary line called `passportState` and `vaccineState`, which pulled a
+  hundred and three socialisation stamps and the whole vaccination schedule into
+  the main bundle — downloaded by every signed-out visitor to look at a demo
+  pet. Moving those surfaces off the page and leaving their content in the
+  download would have been half a job. The summary now counts what the pet
+  actually has: 516kB → 505kB, gzip 152 → 148.
+- **Measured rather than assumed, and then did nothing.** The breed tables are
+  133kB of source and splitting them would mean refactoring `project()`. On
+  throttled 4G the plan is visible in **1.1s** and first paint is 452ms, so the
+  refactor would be risk against load-bearing engine code for a problem that
+  does not exist. Not done, and recorded as not done.
+- Confirmed the Firebase SDK is still **not** fetched on the signed-out demo
+  path — the dynamic-import boundary survived everything built this session.
+- **`npm run verify:all`** runs all twelve browser suites in one command. Two of
+  them silently broke during the Health File move and were only caught because
+  someone ran them by hand; that is not a thing to rely on twice.
+
 ### The health file, and a length budget
 
 - **A problem I made.** Every P3 moment was built onto the Life page one at a

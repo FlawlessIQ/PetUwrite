@@ -25,7 +25,7 @@ function EvidenceBadge({ tier }: { tier: EvidenceTier }) {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label={`${EVIDENCE_LABELS[tier].label}. ${EVIDENCE_LABELS[tier].blurb}`}
-        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition ${TIER_STYLE[tier]}`}
+        className={`inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] font-medium transition ${TIER_STYLE[tier]}`}
       >
         {EVIDENCE_LABELS[tier].label}
         <span aria-hidden="true" className="opacity-60">
@@ -141,7 +141,7 @@ export function Levers({
           <button
             type="button"
             onClick={() => onChange({})}
-            className="mt-2 text-[13.5px] text-forest underline underline-offset-4 hover:text-deep"
+            className="mt-2 text-[13.5px] text-forest hover:text-deep text-action"
           >
             Reset to their real routine
           </button>

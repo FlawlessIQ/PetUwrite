@@ -176,7 +176,7 @@ export function Home({
                 <button
                   type="button"
                   onClick={() => onNavigate('life')}
-                  className="mt-2 text-[13.5px] text-forest underline underline-offset-4 hover:text-deep"
+                  className="mt-2 text-[13.5px] text-forest hover:text-deep text-action"
                 >
                   On track for {projection.healthyYearsRange.low.toFixed(1)}–
                   {projection.healthyYearsRange.high.toFixed(1)} healthy years
@@ -206,7 +206,7 @@ export function Home({
                 type="button"
                 onClick={() => setScoreOpen((o) => !o)}
                 aria-expanded={scoreOpen}
-                className="text-[13.5px] text-forest underline underline-offset-4 hover:text-deep"
+                className="text-[13.5px] text-forest hover:text-deep text-action"
               >
                 {scoreOpen ? 'Hide the breakdown' : 'What makes up the score'}
               </button>
@@ -254,7 +254,7 @@ export function Home({
             <button
               type="button"
               onClick={() => onNavigate('care')}
-              className="mt-2 text-[13.5px] font-medium text-forest underline underline-offset-4 hover:text-deep"
+              className="mt-2 text-[13.5px] font-medium text-forest hover:text-deep text-action"
             >
               Ask the companion about it
             </button>
@@ -283,7 +283,7 @@ export function Home({
                   <button
                     type="button"
                     onClick={() => onNavigate('coverage')}
-                    className="mt-1.5 text-[12.5px] font-medium text-forest underline underline-offset-4 hover:text-deep"
+                    className="mt-1.5 text-[12.5px] font-medium text-forest hover:text-deep text-action"
                   >
                     Covered by the wellness rider
                   </button>
@@ -312,7 +312,7 @@ export function Home({
             <button
               type="button"
               onClick={() => onNavigate('life')}
-              className="mt-3 text-[13.5px] font-medium text-forest underline underline-offset-4 hover:text-deep"
+              className="mt-3 text-[13.5px] font-medium text-forest hover:text-deep text-action"
             >
               See the full life plan
             </button>
