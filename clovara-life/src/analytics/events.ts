@@ -41,6 +41,8 @@ export const EVENT_NAMES = [
   /** Somebody looked up something their pet ate (SPEC §6.5). */
   'toxin_lookup',
   'poison_line_tapped',
+  'emergency_vets_found',
+  'emergency_vet_called',
   /** Sitter Mode (SPEC §6.6). */
   'sitter_link_created',
   'sitter_link_revoked',

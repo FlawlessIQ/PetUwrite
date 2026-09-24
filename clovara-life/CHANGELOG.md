@@ -3,6 +3,58 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Keys — Places and Gemini, via gcloud
+
+### Nearest open emergency vet is live (P3.5 completed)
+
+- A Places key created and **restricted at both layers**: one API
+  (`places.googleapis.com`) and one referrer (`clovara-life.web.app`). Proven:
+  the same call is **403 without the referrer and 200 with it**.
+- **Rate-capped before it was reachable** — 60/min and 1,000/day. The default
+  daily limit was 75,000, which at Nearby Search rates is roughly $2,400 a day
+  for a key that ships in a public bundle.
+- **The first implementation was wrong and the live call showed it.**
+  `includedTypes: ['veterinary_care']` nearest-first returned a cattery, a
+  telemedicine office and two closed daytime practices — that type covers
+  groomers and boarding, and `openNow` is a field you read, not a filter you
+  apply. `textQuery: 'emergency vet'` with `openNow: true` returns 24-hour
+  animal hospitals with phone numbers. **In production: five open practices,
+  nearest 2.2km.**
+- Sorted open-first then nearest, because a closed practice two streets away is
+  worse than an open one twenty minutes out. Unknown hours sort between the
+  two — "we do not know" is not "yes".
+- **It runs in the browser deliberately.** Routing it through our server would
+  put a frightened owner's coordinates in our logs for no benefit; the request
+  reaches Google either way and one fewer party holding it is better.
+- Location is asked for **only on a tap**, never on load, and the results carry
+  "opening hours come from Google and can be wrong at three in the morning —
+  ring before you drive".
+- Only five fields are requested. Reviews, photos and editorial summaries are
+  each a billing SKU and none of them help at 2am; a test asserts they are not
+  in the field mask.
+
+### The model key (wired, switched off)
+
+- Stored as **`LIFE_GEMINI_API_KEY`** in Secret Manager. A `GEMINI_API_KEY`
+  already existed from January — the underwriting app's — and `create` refused
+  rather than overwriting it. Separate secrets mean neither app's rotation can
+  break the other.
+- Verified absent from the client bundle and the repo, and mounted into the
+  function as a **`secretKeyRef`, not plaintext** — the lesson from the earlier
+  `.env` exposure, checked rather than assumed.
+- **The model was chosen by testing, not reputation.** `gemini-2.0-flash` does
+  not exist on this endpoint and `gemini-2.5-flash` 404s. `gemini-3.5-flash` was
+  tested on the case that matters: "no history of seizures", "the vet ruled out
+  hip dysplasia" and "he does not have diabetes" all correctly returned
+  **nothing**, while a positive sentence gave weight and neuter status. Pinned,
+  not `-latest`, and a model swap must repeat that test.
+- The prompt puts negation first because it is the damaging failure, and the
+  server drops any candidate whose quoted words are not actually in what the
+  owner wrote — a model that quotes something never said invented it.
+- **The user-facing flag stays OFF.** Turning it on means text an owner writes
+  about their pet goes to Google, which is a processor question for counsel and
+  a Data Covenant question, not an engineering one.
+
 ## Repair — the Life surface
 
 ### Accessibility, the demo payload, and one command (quality pass)

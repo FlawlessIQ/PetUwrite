@@ -74,10 +74,19 @@ console.log('\nThe phone numbers')
 const tels = page.locator('a[href^="tel:"]')
 ok(`poison lines are tap-to-call (${await tels.count()} of them)`, (await tels.count()) >= 3)
 ok('each says a fee applies, rather than surprising somebody', (body.match(/fee/gi) || []).length >= 3)
+// The lookup is live when a Places key is in the build, and a seam with an
+// honest message when it is not. Both are correct; neither may pretend.
+const hasLookup = /Find the nearest vet open now/i.test(body)
 ok(
-  'the emergency-vet lookup is honest that it cannot search',
-  /cannot look up/i.test(body) && !/no results|nothing nearby/i.test(body),
+  hasLookup
+    ? 'the emergency-vet lookup is offered as a tap, not on load'
+    : 'without a key it says plainly that it cannot search',
+  hasLookup || (/cannot look up/i.test(body) && !/no results|nothing nearby/i.test(body)),
 )
+if (hasLookup) {
+  const auto = await page.evaluate(() => 'geolocation' in navigator && !!window.__geoAsked)
+  ok('it does not ask for location until asked', !auto)
+}
 
 console.log('\nWhat it must never say')
 ok('never tells anybody to induce vomiting', !/induce vomiting|hydrogen peroxide|salt water/i.test(body))

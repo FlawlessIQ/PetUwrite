@@ -35,11 +35,15 @@ const {
   listSitterLinks,
   readSitterCard,
 } = require('./sitter')
+const { parseWithGemini } = require('./gemini')
 
 setGlobalOptions({ region: 'us-central1', maxInstances: 10 })
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY')
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET')
+// Life-scoped, so the underwriting app's GEMINI_API_KEY can rotate
+// independently and neither app can break the other.
+const LIFE_GEMINI_API_KEY = defineSecret('LIFE_GEMINI_API_KEY')
 
 /**
  * In the emulator, secrets fall through to the shell environment so the whole
@@ -298,6 +302,21 @@ async function emailFor(customerId) {
 }
 
 /** Health probe, so a deploy can be confirmed without touching Stripe. */
+/**
+ * "Tell me about him" (SPEC §4.3), server-side so the key never reaches a
+ * browser.
+ *
+ * Returns CANDIDATES for confirm-chips, never stored data (invariant 8). The
+ * client cannot write any of it to a pet without going through `confirm()`.
+ */
+exports.parseAboutPet = onCall(
+  { secrets: [LIFE_GEMINI_API_KEY], cors: true },
+  async (req) => {
+    if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.')
+    return parseWithGemini(req.data?.text, LIFE_GEMINI_API_KEY.value())
+  },
+)
+
 // ── Sitter Mode (SPEC §6.6) ────────────────────────────────────────────────
 exports.createSitterLink = onCall({ cors: true }, async (req) => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.')

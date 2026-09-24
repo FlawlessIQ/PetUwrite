@@ -24,7 +24,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 | Breed data: McMillan 2024 Supp. Table 3 | Conor (file supplied 2026-09-22) | `shipped` — all 23 dog gaps closed; no illustrative dogs remain |
 | Breed data: Teng 2024 cat table (5 gaps), Abyssinian figure, AAHA Table 4 | Conor to obtain files | open |
 | Vet review pass: condition onset windows; clinical content ownership | Vet advisor | open — **now includes `data/toxins.ts`, which is the highest-stakes content in the product and is marked VET-REVIEW. It is bands-only and biased towards the phone call, but it has not been read by a vet.** |
-| Google Places API key + billing (nearest open emergency vet, SPEC §6.5) | Conor | open — the `PlacesProvider` seam and a null implementation are built; the null one says plainly it cannot search rather than returning "no results", which at 2am reads as "nowhere is open" |
+| Google Places API key + billing (nearest open emergency vet, SPEC §6.5) | Claude Code (2026-09-24) | `shipped` — key created via gcloud, restricted to one API and the `clovara-life.web.app` referrer (403 without it, verified), capped at 60/min and 1,000/day against a 75,000 default. Live in production: five open emergency practices, nearest 2.2km. |
 | Real shop SKUs / affiliate agreements | Conor + Dan | open |
 | Telehealth partner for companion routing | Conor | unscoped |
 | Apple Sign-In: Developer Program membership, Services ID, signing key | Conor | `deferred` — needed only when a native iOS app ships; email link + Google cover web |
@@ -39,7 +39,7 @@ Companion AI architecture (the big one) · claims operations design · affinity/
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 425 unit plus 94 emulator plus seventeen end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
+- **SPEC §1 says "75+ tests".** It is 437 unit plus 94 emulator plus seventeen end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
@@ -88,9 +88,10 @@ Every buildable item on this roadmap is built. What remains is not engineering:
 
 | | Needed for |
 |---|---|
-| Firestore security review | switching on vet-record extraction |
-| An LLM key | extraction, and conversational onboarding |
-| Google Places key | nearest-open-ER in "ate a grape" |
+| Firestore security review | switching on vet-record extraction — the model key now exists, so this is the only remaining gate |
+| A privacy/processor decision | switching on conversational onboarding: the key and the function are live and tested, but turning it on sends owner-written text to Google |
+
+
 | Counsel | attach disclosures, fraud notice, CA/NY auto-renewal, Data Covenant, toxin copy, VAS state list |
 | A vet | `data/toxins.ts` above all, plus condition onset windows |
 | Carrier programme | real binding; `canBind` is false and the flow says so |
