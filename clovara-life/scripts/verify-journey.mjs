@@ -135,16 +135,80 @@ ok(
 )
 
 console.log('\nWhat the map claims is finished')
+// "will not tell you whether it grew" is a refusal, not a hedge. A promise about
+// the future hedges; a promise never to do something is the opposite.
+const HEDGE = /\b(will|would)\b(?! not\b)|\b(one day|eventually|the endgame|blue-sky)\b/i
 const built = moments.filter((m) => m.horizon === 'built')
 ok(`${built.length} moments claim "built"`, built.length > 0)
 ok(
   'and none of them is hedged — a hedge means it is not built',
-  built.every((m) => !/\b(will|would|one day|eventually|the endgame|blue-sky)\b/i.test(m.desc)),
+  built.every((m) => !HEDGE.test(m.desc)),
   built
-    .filter((m) => /\b(will|would|one day|eventually|the endgame|blue-sky)\b/i.test(m.desc))
+    .filter((m) => HEDGE.test(m.desc))
     .map((m) => m.name)
     .join(', '),
 )
+
+console.log('\nWhat the map claims is finished, against the flags in the code')
+/**
+ * The map said "built" for four features the week they shipped and described
+ * three of them by capabilities we had deliberately declined — a cost range, an
+ * auto-refill, drug interaction warnings — while a fifth claimed a video vet
+ * that `TELEHEALTH_AVAILABLE` says does not exist.
+ *
+ * So the flags are read out of the engines rather than trusted from memory. A
+ * claim gated on a flag may sit at `next` or `sky` forever; it may not sit at
+ * `built` while its flag is false.
+ */
+const flag = (file, name) => {
+  const src = readFileSync(resolve(here, `../src/engine/${file}`), 'utf8')
+  const m = src.match(new RegExp(`export const ${name}\\s*=\\s*(true|false)`))
+  if (!m) throw new Error(`${name} not found in ${file} — the guard is stale, not the map`)
+  return m[1] === 'true'
+}
+const GATED = [
+  ['telehealth.ts', 'TELEHEALTH_AVAILABLE', /video vet|telehealth|books? a vet|vet on screen/i],
+  ['renewal.ts', 'RENEWAL_EXPLAINED_ENABLED', /at renewal[:,]/i],
+  ['briefing.ts', 'BRIEFING_EMAIL_ENABLED', /\binbox\b|\be-?mail(ed|s)?\b|in your mail/i],
+]
+for (const [file, name, re] of GATED) {
+  const on = flag(file, name)
+  const claimed = built.filter((m) => re.test(m.desc)).map((m) => m.name)
+  ok(
+    `${name} is ${on} — ${on ? 'anything may claim it' : 'nothing may claim it as built'}`,
+    on || claimed.length === 0,
+    claimed.join(', '),
+  )
+}
+
+console.log('\nThings the product refuses permanently, which no horizon makes true')
+// These are not unbuilt. They are refusals: each one would have the product
+// advising on drugs, measuring what two handheld photos cannot measure, or
+// naming what something is. A "sky" horizon does not make them roadmap items.
+/**
+ * Checked clause by clause, because the map is allowed — encouraged — to name a
+ * refusal: "it will not tell you whether it grew" contains the forbidden claim
+ * and is the opposite of making it. A clause carrying a refusal marker passes;
+ * the same words asserted plainly do not.
+ */
+const REFUSES = /\b(never|not|no|without|cannot|can't|won't|refus)/i
+const asserting = (re) =>
+  moments
+    .filter((m) =>
+      m.desc
+        .split(/[.;—:]/)
+        .some((clause) => re.test(clause) && !REFUSES.test(clause)),
+    )
+    .map((m) => m.name)
+
+for (const [rule, re] of [
+  ['no interaction or dosing advice', /interaction warning|dosing advice|adjusts? (her |the )?dose|when to (skip|stop) a dose/i],
+  ['never says whether a lump grew', /\b(whether|if) it (grew|has grown)\b|measures? the lump|growth rate/i],
+  ['never names what something is', /tells you what (it|she) has|identifies the condition|diagnoses her/i],
+  ['never estimates remaining time', /how long (she|he|they) (has|have) left|time she has left|remaining time/i],
+]) {
+  ok(rule, asserting(re).length === 0, asserting(re).join(', '))
+}
 
 console.log(
   `\n${failures === 0 ? `journey map verified — ${moments.length} moments across ${STAGES.length} stages` : `${failures} failed`}\n`,

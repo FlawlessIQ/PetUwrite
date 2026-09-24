@@ -26,7 +26,7 @@ const STAGES=[
  {name:"The daily rhythm", age:"The adult years", job:"Most healthy years are won in the quiet part: small things, done consistently, made effortless — while Clovara watches for what a family can't see.", moments:[
   ["Clovara Score & Streaks","Her Clovara Score and care streaks — the daily open, the habit loop, and points that follow the evidence rather than the engagement: the behaviours worth the most are the ones that move her healthy-years projection.","Care","built","habit"],
   ["The Nudge","'Activity down 18% this week — unusual for her.' Passive data becomes an act-now moment while it's still a question.","Plan","built","love"],
-  ["Morning Briefing","'Slept well. 84° today — walk before 10, pollen high for her allergies.' Her day, not a generic tip.","Care","next","habit"],
+  ["Morning Briefing","'Nothing needs doing for her today' — said as plainly as a busy morning. Doses first, then whatever is genuinely due. No padding, and nothing invented to fill the space.","Care","built","habit"],
   ["Food Scanner","Point the camera at any kibble or treat in any store: 'good for her?' — judged against her weight, allergies and conditions.","Care","next","habit"],
   ["Environmental Guardian","Breed-aware heat alerts, toxic-algae and mushroom-season warnings by location.","Plan","next","love"],
   ["The Shelf That Grows","Products picked from her plan with a plain-words 'why' — teething chews then, joint support now, nothing that doesn't serve her today.","Care","built","revenue"],
@@ -49,18 +49,19 @@ const STAGES=[
   ["The Research Pack","Opt-in, consented member data powering published longevity studies — the dataset that turns illustrative breed figures into real ones.","Plan","sky","data"]
  ]},
  {name:"The worry moments", age:"Any Tuesday, 11pm", job:"Every owner knows the 11pm fear. Clovara answers with her history in hand — informing and routing to vets, never guessing, never diagnosing.", moments:[
-  ["The Companion That Remembers","'She's limping after walks' → recalls the hip note from 2024, says what to watch, books a video vet with her history summary prepared.","Care","built","love"],
+  ["The Companion That Remembers","'She's limping after walks' → recalls the hip note from 2024, says what to watch, and hands you the one-page history a vet actually needs.","Care","built","love"],
   ["'She Ate a Grape'","Instant risk banding by her weight, one tap to the poison line, and the plain instruction not to wait for signs.","Care","built","love"],
-  ["The Lump Diary","Photograph the weird thing; compare it against last month's photo of the same thing. Watch or go — with receipts.","Care","next","data"],
+  ["The Lump Diary","Photograph the weird thing with something of known size in frame, then against the first photo of the same thing. It will not tell you whether it grew — it shows you both pictures and goes to the vet with you.","Care","built","data"],
   ["Gait Check","Slow-motion video of her walk, compared to her own baseline from years ago — catching the limp before the limp.","Plan","sky","data"],
-  ["Second Opinion","Upload a diagnosis or a $6,000 estimate: plain-language explanation, questions to ask, fair local cost range.","Care","next","love"],
+  ["Video Vet, With Her History","A vet on screen in minutes, opened with her conditions, weights and vaccinations already summarised — so the consult starts where it should. Waiting on a telehealth partner.","Care","next","love"],
+  ["Second Opinion","Tell it what you were told about a diagnosis or a $6,000 estimate: plain language, and the questions worth asking the vet who recommended it. Never a second view on the clinical call.","Care","built","love"],
   ["Vet Visit Recorder","Record the consult (with consent) — a plain-words recap, the care tasks extracted, nothing forgotten in the car park.","Care","sky","love"]
  ]},
  {name:"When it's serious", age:"The bad day", job:"The moment the whole promise exists for. The family's job is to be with her — Clovara's job is everything else.", moments:[
   ["Claim in Hours","Photo of the invoice. Approved in hours, paid same day. The anti-horror-story.","Protect","built","love"],
   ["Direct-Pay Network","The blue-sky version: no claim at all. The vet bills Clovara; the family just takes her home.","Protect","sky","love"],
   ["Surgery Companion","Pre-op explained in plain words, then recovery mode: daily check-ins, incision photo checks, activity targets paused.","Care","next","love"],
-  ["Meds Autopilot","Reminders, auto-refills, interaction warnings — adherence without the sticky notes.","Care","next","revenue"],
+  ["Meds Autopilot","What she takes, when it runs out, and whether today's dose happened — shared across the household, so nobody doses her twice. It records what the vet said and never advises a dose.","Care","built","revenue"],
   ["The Re-Plan","After the event, her whole plan quietly reshapes — food, activity, screening — around who she is now.","Plan","next","love"],
   ["Renewal, Explained","At renewal: every line of why her premium is what it is — her age, her claims, the filed rate change. Then the list of what is not in it: not the companion, not the tracker, not her streaks. The second half is the one nobody else prints.","Protect","launch","love"],
   ["Claims, Corroborated","Her CloTag timeline substantiates the claim automatically — the sudden change Tuesday, the vet Wednesday, approved in minutes. Data used for her, never against her.","Protect","next","love"],

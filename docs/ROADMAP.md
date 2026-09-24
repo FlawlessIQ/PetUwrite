@@ -33,7 +33,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 
 ## Next horizon
 
-**All fifteen are specced at `clovara-life/SPEC-HORIZON.md`; the lump diary (§1.1), the morning briefing (§1.2), second opinion (§1.3), meds autopilot (§1.4), the senior suite (§1.5) and the defensive Remember pass (§2.5) are all `shipped` 2026-09-24 — **every Tier 1 item is now built.** The senior suite ships with **no quality-of-life scale**, which answers §5.5 by declining it: that is a clinical decision for the reviewer who owns `toxins.ts` and `redFlags.ts`, and the surface says so in plain words. The Remember *chapter* itself is deliberately unwritten — it needs somebody who has thought about grief rather than features.** (2026-09-24, draft for Conor).
+**All fifteen are specced at `clovara-life/SPEC-HORIZON.md`; the lump diary (§1.1), the morning briefing (§1.2), second opinion (§1.3), meds autopilot (§1.4), the senior suite (§1.5) and the defensive Remember pass (§2.5) are all `shipped` 2026-09-24 — **every Tier 1 item is now built**, and all four are flipped to `built` on the journey map. The senior suite ships with **no quality-of-life scale**, which answers §5.5 by declining it: that is a clinical decision for the reviewer who owns `toxins.ts` and `redFlags.ts`, and the surface says so in plain words. The Remember *chapter* itself is deliberately unwritten — it needs somebody who has thought about grief rather than features.** (2026-09-24, draft for Conor).
 Deliberately uneven: five have real specs because the machinery exists, five are framed with the
 decision that must come first, and five are not engineering specs at all. Eleven decisions are
 gathered in its §5. Nothing is built.
