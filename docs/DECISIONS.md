@@ -151,4 +151,8 @@ Format: date · decision · why. Never rewrite old entries; reversals get new en
 - **2026-09-24** · The form asks for a date and nothing else — no cause, no reflection, no rating. · Anything more is a product asking a grieving person to do emotional work for its database.
 - **2026-09-24** · Nothing is deleted when a pet is remembered, and the page says so. · Removing the record would be a fifth failure alongside the four this pass exists to prevent.
 - **2026-09-24** · `MUST_GO_QUIET` is exported purely so a test can enumerate it. · Adding a surface means adding it to the list and proving it is silent, rather than relying on somebody remembering.
+- **2026-09-24** · Second opinion ships without a cost range, and says on the page that it will not judge the price. · The plausible data source is our own claims, which is close to a Data Covenant line, and a range implies a verdict when a practice at the top of one may be the better practice.
+- **2026-09-24** · Second opinion takes typed text rather than an uploaded document. · Upload sits behind the Firestore security review; typing needs no storage and no model, and the questions were always where the value was.
+- **2026-09-24** · Meds records the amount as free text exactly as the label reads, and never checks it. · We do not look a drug up or check a dose against a weight; a plausible-looking correction to somebody's prescription is the worst thing the feature could produce.
+- **2026-09-24** · Who logged a dose is not recorded — answering SPEC-HORIZON §1.4's open question. · That it was given prevents the double dose, which is the entire safety value; who gave it adds nothing clinical and turns a shared record into a ledger of who forgot.
 

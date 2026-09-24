@@ -243,6 +243,20 @@ export interface PetProfile {
    * Health File belongs here.
    */
   /**
+   * What they take (SPEC-HORIZON §1.4). The owner's note of what they were
+   * told; never checked, never interpreted, and carrying no record of who
+   * logged a dose.
+   */
+  medications?: {
+    id: string
+    name: string
+    amount: string
+    frequency: string
+    startedOn: string
+    quantity?: number
+    given: string[]
+  }[]
+  /**
    * When they died, if an owner has told us (SPEC-HORIZON §2.5).
    *
    * Setting it silences every prompt, reminder, offer and question in the

@@ -85,6 +85,7 @@ export interface StoredPet {
   careNotes?: Field<Record<string, string>>
   lumps?: Field<unknown[]>
   diedOn?: Field<string>
+  medications?: Field<unknown[]>
   neuterAgeBand?: Field<NeuterAgeBand>
   weightLb?: Field<number>
   bodyConditionScore?: Field<BodyConditionScore>

@@ -33,7 +33,7 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 
 ## Next horizon
 
-**All fifteen are specced at `clovara-life/SPEC-HORIZON.md`; the lump diary (§1.1) and the defensive Remember pass (§2.5) are both `shipped` 2026-09-24. The Remember *chapter* itself is deliberately unwritten — it needs somebody who has thought about grief rather than features.** (2026-09-24, draft for Conor).
+**All fifteen are specced at `clovara-life/SPEC-HORIZON.md`; the lump diary (§1.1), second opinion (§1.3), meds autopilot (§1.4) and the defensive Remember pass (§2.5) are all `shipped` 2026-09-24. The Remember *chapter* itself is deliberately unwritten — it needs somebody who has thought about grief rather than features.** (2026-09-24, draft for Conor).
 Deliberately uneven: five have real specs because the machinery exists, five are framed with the
 decision that must come first, and five are not engineering specs at all. Eleven decisions are
 gathered in its §5. Nothing is built.
@@ -44,7 +44,7 @@ gathered in its §5. Nothing is built.
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 614 unit plus 107 emulator plus twenty-two end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
+- **SPEC §1 says "75+ tests".** It is 645 unit plus 107 emulator plus twenty-three end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
@@ -181,4 +181,8 @@ Every buildable item on this roadmap is built. What remains is not engineering:
 - **SPEC-HORIZON §1.1 put lumps in a subcollection.** Every `{sub=**}` under a pet is denied
   pending the Firestore security review, so they are stored on the pet document instead. No rules
   change was needed and the feature is clear of that gate.
+- **SPEC-HORIZON §1.3 assumed second opinion would extract from an uploaded estimate.** That sits
+  behind the Firestore security review. Shipped as typed text instead — no storage, no model, no
+  review needed, and the questions were always the value. Upload can be added later through the
+  extraction pipeline that already exists.
 

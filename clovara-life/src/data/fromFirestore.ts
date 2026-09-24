@@ -224,6 +224,8 @@ export function profileFromFirestore(stored: unknown): MappedPet | null {
   if (shots !== undefined) profile.vaccineRecords = shots
   const notes = fieldValue(p.careNotes, isStringRecord)
   if (notes !== undefined) profile.careNotes = notes
+  const medications = fieldValue(p.medications, Array.isArray)
+  if (medications !== undefined) profile.medications = medications as PetProfile['medications']
   const died = fieldValue(p.diedOn, isString)
   if (died !== undefined) profile.diedOn = died
   const lumps = fieldValue(p.lumps, Array.isArray)
@@ -304,6 +306,7 @@ export function storedFromProfile(
   if (profile.careNotes && Object.keys(profile.careNotes).length) out.careNotes = f(profile.careNotes)
   if (profile.lumps?.length) out.lumps = f(profile.lumps)
   if (profile.diedOn) out.diedOn = f(profile.diedOn)
+  if (profile.medications?.length) out.medications = f(profile.medications)
   // Only write what was actually answered. weightLb of 0 means "not given".
   if (Number.isFinite(profile.weightLb) && profile.weightLb > 0) {
     out.weightLb = f(profile.weightLb)

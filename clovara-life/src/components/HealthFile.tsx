@@ -3,6 +3,8 @@ import { Vaccines } from './Vaccines'
 import { VisitSummary } from './VisitSummary'
 import { LumpDiary } from './LumpDiary'
 import { Remembering } from './Remembering'
+import { Meds } from './Meds'
+import { SecondOpinion } from './SecondOpinion'
 import { isRemembered } from '../engine/remember'
 import { Passport } from './Passport'
 import { SitterMode } from './SitterMode'
@@ -64,6 +66,8 @@ export function HealthFile({
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
         <div className="space-y-5">
           <VisitSummary pet={pet} projection={projection} now={now} />
+          {!isRemembered(pet) && <Meds pet={pet} onUpdate={onUpdate} now={now} />}
+          {!isRemembered(pet) && <SecondOpinion pet={pet} projection={projection} />}
           {vax.visible && <Vaccines pet={pet} onUpdate={onUpdate} now={now} />}
           <ConfirmChips candidates={[]} onConfirmed={() => {}} />
         </div>

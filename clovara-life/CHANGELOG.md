@@ -3,6 +3,49 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Horizon — second opinion, and meds
+
+### Second opinion (SPEC-HORIZON §1.3)
+
+- Tell it what you were told; get the questions worth asking **the vet who
+  recommended it**. Never an alternative view, never a likelihood, never a
+  suggestion the recommendation is wrong.
+- **Every question passes one test: a good vet would be pleased to be asked it.**
+  Including *"would you mind if I got a second opinion?"* — asked openly on
+  purpose, because going behind their back makes the next conversation harder.
+- Triggered questions join the universal ones: the anaesthetic when surgery is
+  mentioned, pre-authorisation when insurance is, age for an older animal.
+- It raises what is already on the record — the declared condition, current
+  medication, their age — **without judging its relevance.** "Worth making sure
+  they know", never "this is relevant to your surgery".
+- **No cost range**, as SPEC-HORIZON recommended. The plausible source is our
+  own claims, which sits close to a Data Covenant line, and a range implies a
+  verdict when a practice at the top of one may be the better practice. The page
+  says so rather than staying silent about the omission.
+- **No document upload.** The spec assumed extraction over an estimate, which
+  sits behind the Firestore security review. Typing what you were told needs no
+  storage, no model and no review — and the questions were always the value.
+  Upload can arrive later through the pipeline that already exists.
+
+### Meds autopilot (SPEC-HORIZON §1.4)
+
+- Structured medication replacing the free-text sitter field: what it is, what
+  you were told to give, how often, how many were dispensed.
+- **A "running out" count** — the reason people run out on a Friday. Attributed
+  to the owner throughout ("by your count"), and it refuses to count an
+  irregular course rather than guessing a schedule.
+- **It records and never advises.** Not what to give, not what to do about a
+  missed dose. The amount is free text exactly as the label reads — we do not
+  look a drug up, do not know a standard dose, and do not check one against a
+  weight. *A plausible-looking correction to somebody's prescription is the worst
+  thing this could produce.*
+- **Who logged a dose is deliberately not recorded** — SPEC-HORIZON §1.4 left it
+  open. That it was given prevents the double dose, which is the whole safety
+  value; who gave it adds nothing clinical and turns a shared household record
+  into a ledger of who forgot.
+- Both surfaces go silent when a pet has died, through the engine gating.
+- 31 engine tests, 33 browser checks.
+
 ## Remembering — the defensive pass
 
 ### When a pet has died, everything stops (SPEC-HORIZON §2.5)
