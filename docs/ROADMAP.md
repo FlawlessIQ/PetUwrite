@@ -31,7 +31,12 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 | Clovara-entity Stripe account (replaces the FlawlessIQ sandbox before go-live) | Conor | open |
 | Firebase auth config: `clovara-life.web.app` authorised; email-link provider enabled | Claude Code (2026-09-23) | `shipped` — done via the Identity Platform admin API, not the console; password sign-in for the underwriting app verified unaffected |
 
-## Next horizon (needs spec before build — see docs gap register in project)
+## Next horizon
+
+**All fifteen are now specced at `clovara-life/SPEC-HORIZON.md`** (2026-09-24, draft for Conor).
+Deliberately uneven: five have real specs because the machinery exists, five are framed with the
+decision that must come first, and five are not engineering specs at all. Eleven decisions are
+gathered in its §5. Nothing is built.
 
 **Companion AI architecture — spec at `clovara-life/SPEC-COMPANION.md`; six decisions still open for Conor. C0 (vet-visit summary), C1 (safety check) and C2 (grounded companion) all `shipped` 2026-09-24 — **none of them uses a model.** **C3 (model composition) is BUILT AND SWITCHED OFF** — `COMPANION_MODEL_ENABLED` is false pending the privacy decision; verification, the schema and 45 red-team checks including a jailbroken-model fixture are all in place; **C4 done as far as it honestly can be** — asking for a vet now gets a true answer and a route; no provider interface was invented against an unknown API. `docs/TELEHEALTH-PARTNER-REQUIREMENTS.md` is what a partner conversation needs** · claims operations design · affinity/B2B2C channel product · native apps + push · morning briefing · food scanner · lump diary · second opinion · meds autopilot · pack dashboard · DNA · lost-pet network · senior suite · Remember chapter · marketing-site realignment · final pricing architecture (annual, multi-pet).
 
