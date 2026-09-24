@@ -1,6 +1,6 @@
 # Clovara Roadmap — living document
 
-Last updated: 2026-09-23 (maintained by Claude Code per CLAUDE.md)
+Last updated: 2026-09-24 (maintained by Claude Code per CLAUDE.md)
 
 Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cut(<why>)`
 
@@ -33,18 +33,24 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 
 ## Next horizon
 
-**All fifteen are specced at `clovara-life/SPEC-HORIZON.md`; the lump diary (§1.1), the morning briefing (§1.2), second opinion (§1.3), meds autopilot (§1.4) and the defensive Remember pass (§2.5) are all `shipped` 2026-09-24. The Remember *chapter* itself is deliberately unwritten — it needs somebody who has thought about grief rather than features.** (2026-09-24, draft for Conor).
+**All fifteen are specced at `clovara-life/SPEC-HORIZON.md`; the lump diary (§1.1), the morning briefing (§1.2), second opinion (§1.3), meds autopilot (§1.4), the senior suite (§1.5) and the defensive Remember pass (§2.5) are all `shipped` 2026-09-24 — **every Tier 1 item is now built.** The senior suite ships with **no quality-of-life scale**, which answers §5.5 by declining it: that is a clinical decision for the reviewer who owns `toxins.ts` and `redFlags.ts`, and the surface says so in plain words. The Remember *chapter* itself is deliberately unwritten — it needs somebody who has thought about grief rather than features.** (2026-09-24, draft for Conor).
 Deliberately uneven: five have real specs because the machinery exists, five are framed with the
 decision that must come first, and five are not engineering specs at all. Eleven decisions are
 gathered in its §5. Nothing is built.
 
-**Companion AI architecture — spec at `clovara-life/SPEC-COMPANION.md`; six decisions still open for Conor. C0 (vet-visit summary), C1 (safety check) and C2 (grounded companion) all `shipped` 2026-09-24 — **none of them uses a model.** **C3 (model composition) is BUILT AND SWITCHED OFF** — `COMPANION_MODEL_ENABLED` is false pending the privacy decision; verification, the schema and 45 red-team checks including a jailbroken-model fixture are all in place; **C4 done as far as it honestly can be** — asking for a vet now gets a true answer and a route; no provider interface was invented against an unknown API. `docs/TELEHEALTH-PARTNER-REQUIREMENTS.md` is what a partner conversation needs** · claims operations design · affinity/B2B2C channel product · native apps + push · morning briefing · food scanner · lump diary · second opinion · meds autopilot · pack dashboard · DNA · lost-pet network · senior suite · Remember chapter · marketing-site realignment · final pricing architecture (annual, multi-pet).
+**Companion AI architecture — spec at `clovara-life/SPEC-COMPANION.md`; six decisions still open for Conor. C0 (vet-visit summary), C1 (safety check) and C2 (grounded companion) all `shipped` 2026-09-24 — **none of them uses a model.** **C3 (model composition) is BUILT AND SWITCHED OFF** — `COMPANION_MODEL_ENABLED` is false pending the privacy decision; verification, the schema and 45 red-team checks including a jailbroken-model fixture are all in place; **C4 done as far as it honestly can be** — asking for a vet now gets a true answer and a route; no provider interface was invented against an unknown API. `docs/TELEHEALTH-PARTNER-REQUIREMENTS.md` is what a partner conversation needs** · claims operations design · affinity/B2B2C channel product · native apps + push · morning briefing · food scanner · lump diary · second opinion · meds autopilot · pack dashboard · DNA · lost-pet network · Remember chapter · marketing-site realignment · final pricing architecture (annual, multi-pet).
 
 ## Spec divergences
 
+- **SPEC-HORIZON §1.5 says the senior suite includes "quality-of-life tracking".**
+  It ships without it, deliberately. Every validated scale is clinical content,
+  and an unreviewed score of how good an animal's life is would be the most
+  consequential number in the product. The surface says we do not score a life
+  and where that belongs instead. Flagged for Conor: this is the same reviewer
+  as `toxins.ts` and `redFlags.ts`, not a separate decision.
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 664 unit plus 107 emulator plus twenty-four end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
+- **SPEC §1 says "75+ tests".** It is 678 unit plus 107 emulator plus twenty-five end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.

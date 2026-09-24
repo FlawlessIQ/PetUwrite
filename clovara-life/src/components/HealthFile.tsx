@@ -5,6 +5,7 @@ import { LumpDiary } from './LumpDiary'
 import { Remembering } from './Remembering'
 import { Meds } from './Meds'
 import { SecondOpinion } from './SecondOpinion'
+import { SeniorSuite } from './SeniorSuite'
 import { isRemembered } from '../engine/remember'
 import { Passport } from './Passport'
 import { SitterMode } from './SitterMode'
@@ -72,6 +73,7 @@ export function HealthFile({
           <ConfirmChips candidates={[]} onConfirmed={() => {}} />
         </div>
         <div className="space-y-5">
+          <SeniorSuite pet={pet} projection={projection} />
           <LumpDiary pet={pet} householdId={householdId} onUpdate={onUpdate} now={now} />
           {passport.visible && <Passport pet={pet} onUpdate={onUpdate} now={now} />}
           {onUpdate && !isRemembered(pet) && (

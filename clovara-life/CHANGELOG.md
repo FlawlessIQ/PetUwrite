@@ -3,6 +3,37 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Horizon — the senior suite
+
+### Senior suite (SPEC-HORIZON §1.5)
+
+- **It is about the house, not the animal.** Ten adaptations — rugs on hard
+  floors, a ramp, a thicker lower bed, water in more than one place, a night
+  light on the route to the door — each with the reason it helps *this* animal.
+  Species-correct: a cat gets a litter tray with one low side, not a car ramp.
+- **It never estimates remaining time.** No range, no countdown, no "healthy
+  years" anywhere on the surface. That rule is the same one the vet summary and
+  the share cards carry, and it matters most in front of the owner of a
+  thirteen-year-old.
+- **It never frames ageing as decline to be fought.** No "still young at heart",
+  no slowing anything down. "Slowing down" is treated as a question rather than
+  an answer — which is also what the existing stage advice says.
+- **There is no quality-of-life score, and the page says why.** Validated scales
+  exist and adopting one is a clinical decision; it belongs with the vet who
+  reviews `toxins.ts` and `redFlags.ts`, not with an app "making a number out of
+  six tick boxes". SPEC-HORIZON §5.5 is answered by declining to answer it here.
+- **"Worth mentioning at the next visit"** lists what a vet cannot see in ten
+  minutes — slower to get up, hesitating at stairs, drinking more, restless in
+  the evenings — and then refuses to say what any of it might mean. A test
+  asserts no condition is named among the observations.
+- Assembly, not new truth: the stage label, the stage summary and the care
+  actions all come from the existing AAHA life stages in `data/engine.ts`, and
+  the open risk cards come from the same projection every other surface reads.
+- Silent for anything younger than mature, and silent once a pet has died.
+- 14 engine tests, 24 browser checks, and no growth in the main bundle — it
+  lives entirely in the lazy Health File chunk.
+
+
 ## Horizon — briefing, second opinion, meds
 
 ### Morning briefing (SPEC-HORIZON §1.2)

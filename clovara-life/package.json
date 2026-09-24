@@ -34,9 +34,10 @@
     "verify:remember": "node scripts/verify-remember.mjs",
     "verify:c1c2": "node scripts/verify-c1c2.mjs",
     "verify:briefing": "node scripts/verify-briefing.mjs",
+    "verify:senior": "node scripts/verify-senior.mjs",
     "verify:household": "cd .. && npx firebase emulators:exec --only firestore,auth,functions --project pet-underwriter-ai 'cd clovara-life && sleep 6 && node scripts/verify-household.mjs'",
     "verify:photo": "cd .. && npx firebase emulators:exec --only firestore,auth,storage --project pet-underwriter-ai 'cd clovara-life && VITE_USE_EMULATORS=1 npx vite build >/dev/null && (npx vite preview --port 4174 --host 127.0.0.1 >/dev/null 2>&1 &) ; sleep 4; node scripts/verify-photo.mjs'",
-    "verify:all": "npm run build && (npx vite preview --port 4173 --host 127.0.0.1 >/dev/null 2>&1 &) && sleep 4 && for s in verify-demo verify-onboarding verify-metrics verify-review verify-share verify-firstnight verify-passport verify-vaccines verify-toxins verify-attach verify-length verify-a11y verify-visitsummary verify-safety verify-companion verify-lumps verify-remember verify-c1c2 verify-briefing; do echo \"\u2014 $s\"; node scripts/$s.mjs || exit 1; done"
+    "verify:all": "npm run build && (npx vite preview --port 4173 --host 127.0.0.1 >/dev/null 2>&1 &) && sleep 4 && for s in verify-demo verify-onboarding verify-metrics verify-review verify-share verify-firstnight verify-passport verify-vaccines verify-toxins verify-attach verify-length verify-a11y verify-visitsummary verify-safety verify-companion verify-lumps verify-remember verify-c1c2 verify-briefing verify-senior; do echo \"\u2014 $s\"; node scripts/$s.mjs || exit 1; done"
   },
   "dependencies": {
     "@fontsource/playfair-display": "^5.3.0",
