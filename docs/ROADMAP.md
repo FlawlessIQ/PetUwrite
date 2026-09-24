@@ -73,7 +73,28 @@ Companion AI architecture (the big one) · claims operations design · affinity/
 | Firebase browser / iOS keys | public by design | identify the project, authorise nothing; access control is the rules |
 | `GEMINI_API_KEY`, `OPENAI_API_KEY` | underwriting app | not touched — deliberately separate from the Life secrets |
 
-**Still to do:** rotate the Stripe test key after the earlier `.env` exposure.
+### Where the Stripe key actually is
+
+There is **one** Stripe key, not several. `sk_test_51SI…kyQC`, test mode, on `acct_1SI7vTPzjq9wJkU5`
+(the FlawlessIQ sandbox). It appears in three places and they are all the same value:
+
+| Where | Used by |
+|---|---|
+| Secret Manager `STRIPE_SECRET_KEY` | the deployed Life functions — this is the one that matters |
+| `clovara-life/functions/.secret.local` | the local emulator; gitignored |
+| `.env` at the repo root | the underwriting app in local dev; gitignored |
+
+`STRIPE_WEBHOOK_SECRET` (`whsec_C50VCE…8lbG`) lives in Secret Manager and `.secret.local`.
+
+**No live Stripe key is configured anywhere in this repo or this project.** Nothing here was using
+one, so rolling a live key in the dashboard breaks nothing on this side.
+
+**Rotation is deferred** (2026-09-24, Conor's call) — it is a test key on a sandbox with no real
+money behind it, so it is hygiene rather than an incident. `clovara-life/scripts/rotate-stripe-key.sh`
+does it in one command when the Clovara-entity account exists. Both the key and the webhook secret
+were exposed by the same `.env` leak and both should roll together at that point.
+
+**Deferred:** rotating the Stripe test key — see below.
 
 ## The Firestore security review
 
