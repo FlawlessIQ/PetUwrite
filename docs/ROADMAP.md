@@ -63,6 +63,18 @@ Companion AI architecture (the big one) · claims operations design · affinity/
   behaviour score. **The journey copy still says the old thing and needs Conor's call** — it is the
   vision text, not mine to rewrite.
 
+## Credentials
+
+| Key / secret | Scope | Restriction |
+|---|---|---|
+| `Clovara Life — Places` | browser, in the Life bundle | one API (`places.googleapis.com`), referrer `clovara-life.web.app`; 60/min, 1,000/day |
+| `LIFE_GEMINI_API_KEY` | Secret Manager, functions only | one API (`generativelanguage`); mounted as a secretKeyRef, absent from bundle and repo |
+| `API key 1` | legacy, unused | **restricted 2026-09-24** — was unrestricted across 31 Maps APIs; now three Clovara referrers and five Maps APIs. No traffic in 30 days and the string is in no local code, so nothing depended on it. Backup of the prior config was taken before the change. |
+| Firebase browser / iOS keys | public by design | identify the project, authorise nothing; access control is the rules |
+| `GEMINI_API_KEY`, `OPENAI_API_KEY` | underwriting app | not touched — deliberately separate from the Life secrets |
+
+**Still to do:** rotate the Stripe test key after the earlier `.env` exposure.
+
 ## Known scars
 
 - **The Life surface was allowed to reach 15.6 phone screens** by building every P3 moment onto
