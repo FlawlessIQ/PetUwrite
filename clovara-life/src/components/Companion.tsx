@@ -1,5 +1,6 @@
 import type { PetProfile, Projection } from '../data/types'
 import { buildCompanion } from '../engine/platform'
+import { AskCompanion } from './AskCompanion'
 
 export function Companion({ pet, projection }: { pet: PetProfile; projection: Projection }) {
   const thread = buildCompanion(pet, projection)
@@ -20,7 +21,10 @@ export function Companion({ pet, projection }: { pet: PetProfile; projection: Pr
         </p>
       </header>
 
-      <div className="card px-4 py-5 sm:px-6 sm:py-6">
+      <AskCompanion pet={pet} projection={projection} />
+
+
+      <div className="card mt-5 px-4 py-5 sm:px-6 sm:py-6">
         <ol className="flex flex-col gap-3.5">
           {thread.map((m, i) => (
             <li

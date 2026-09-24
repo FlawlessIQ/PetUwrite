@@ -3,7 +3,37 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## Companion — C0 and C1
+## Companion — C0, C1 and C2
+
+### C2 — the grounded companion
+
+- Ask about your pet; retrieval finds what is already on the record; the reply
+  is assembled from those facts **and nothing else**, with every line showing
+  where it came from. **Still no model** — composition is templates over the
+  same grounded set the model will get in C3, so the rule is in place before the
+  thing that would break it.
+- **The owner's word and a research table are shown as different kinds of
+  claim.** "Hip dysplasia is on Scout's record" is marked *from what you told
+  us*; "for a Labrador, we watch for it from two" is *from the breed research*,
+  with its evidence strength. That difference is what makes recall trustworthy
+  rather than merely fluent.
+- **The safety classifier runs first, always.** A grounded recall about hip
+  dysplasia is the wrong answer to "he has collapsed", and the ordering is what
+  guarantees it is never given. Asserted.
+- **When it knows nothing it says so, and the copy is not softened** (invariant
+  9): *"We hold eleven things about Scout, and none of them speak to what you
+  have described. That is a gap in what we know, not a judgement about Scout."*
+  A sentence that merely sounds like an answer would be worse than silence.
+- It never concludes. "Your dog has arthritis" is unsayable because no fact in
+  the set says it — a test greps every generated reply for the whole
+  speculative vocabulary.
+- **A bug the tests caught:** the word filter required four letters, silently
+  dropping **hip, eye, ear, paw, leg, gum and jaw** — most of what somebody
+  points at when something is wrong. "Is her hip getting worse?" retrieved
+  nothing at all.
+- The scripted demo thread stays, still labelled as a preview, beneath the real
+  one.
+- 17 engine tests, 25 browser checks.
 
 ### C1 — the safety check
 
