@@ -155,4 +155,8 @@ Format: date · decision · why. Never rewrite old entries; reversals get new en
 - **2026-09-24** · Second opinion takes typed text rather than an uploaded document. · Upload sits behind the Firestore security review; typing needs no storage and no model, and the questions were always where the value was.
 - **2026-09-24** · Meds records the amount as free text exactly as the label reads, and never checks it. · We do not look a drug up or check a dose against a weight; a plausible-looking correction to somebody's prescription is the worst thing the feature could produce.
 - **2026-09-24** · Who logged a dose is not recorded — answering SPEC-HORIZON §1.4's open question. · That it was given prevents the double dose, which is the entire safety value; who gave it adds nothing clinical and turns a shared record into a ledger of who forgot.
+- **2026-09-24** · The morning briefing's empty state is shown as plainly as a busy one, and it never pads. · A briefing that finds something to say every day is one people stop reading, and they stop before the day it matters.
+- **2026-09-24** · The briefing computes nothing of its own; every line comes from an existing engine. · A briefing that forked its own truth would drift from the surfaces it summarises, and the owner would have two different accounts of the same pet.
+- **2026-09-24** · A lump nobody has photographed is never mentioned in the briefing. · That is not a reminder, it is nagging about something the owner may have decided not to track.
+- **2026-09-24** · Briefing email delivery ships off. · A daily email is a different consent from a monthly one and is Conor's call rather than an engineering default; the pluggable sender from P0 is already in place.
 

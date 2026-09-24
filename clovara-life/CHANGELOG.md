@@ -3,7 +3,34 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## Horizon — second opinion, and meds
+## Horizon — briefing, second opinion, meds
+
+### Morning briefing (SPEC-HORIZON §1.2)
+
+- **The empty state is the feature, not a fallback.** "Nothing needs doing for
+  Scout today" is the most common true answer and is shown as plainly as a busy
+  morning. A briefing that finds something to say every day is one people stop
+  reading — **and they stop before the day it matters.**
+- **It never invents a reason.** No generic tips, no "remember to", no "did you
+  know". A test greps every generated line for the whole vocabulary of padding.
+- One more consumer of the same `Projection` (invariant 7). The vaccination
+  window comes from `vaccines.ts`, the review from `review.ts`, the doses from
+  `meds.ts`, the stale lump from `lumps.ts`. **It computes nothing of its own**,
+  so it cannot drift from the surfaces it summarises.
+- Medication leads, because it is the only thing that is genuinely *today*. It
+  counts down as doses are logged and goes silent once the day is done.
+- **A lump nobody has photographed is never mentioned.** That is not a reminder,
+  it is nagging about something they may have decided not to track.
+- **The weather seam has nothing behind it, and that is not an error.** Heat and
+  pollen both need a provider nobody has chosen; the briefing simply has one
+  fewer line, and the page says so — *"we would rather say one fewer thing than
+  guess at it."*
+- Silent entirely when a pet has died — not even "nothing to do today".
+- **Email delivery ships off.** A daily email is a different consent from a
+  monthly one and is not an engineering default. The P0 pluggable sender already
+  exists, so it is a flag when Conor decides.
+- 19 engine tests, 20 browser checks.
+
 
 ### Second opinion (SPEC-HORIZON §1.3)
 

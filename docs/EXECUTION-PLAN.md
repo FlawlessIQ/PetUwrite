@@ -63,9 +63,9 @@ risk in the product.
 
 | # | What | Size | Notes |
 |---|---|---|---|
-| **C1** | **Second opinion** | M | Same rails as extraction. **Ship without the cost range** — the questions are most of the value and none of the risk, and the obvious data source is our own claims, which sits close to a Data Covenant line |
-| **C2** | **Meds autopilot** | M | Structured medication replacing the free-text field, plus a "running out" estimate. Records; never advises. Needs a decision on whether a household sees *who* logged a dose |
-| **C3** | Morning briefing | M | `buildHome` already does the work. Blocked on **where it lands** — daily email is possible today, and daily is a different consent from monthly |
+| ~~C1~~ | ~~Second opinion~~ — **shipped 2026-09-24** | M | Same rails as extraction. **Ship without the cost range** — the questions are most of the value and none of the risk, and the obvious data source is our own claims, which sits close to a Data Covenant line |
+| ~~C2~~ | ~~Meds autopilot~~ — **shipped 2026-09-24** | M | Structured medication replacing the free-text field, plus a "running out" estimate. Records; never advises. Needs a decision on whether a household sees *who* logged a dose |
+| ~~C3~~ | ~~Morning briefing~~ — **shipped 2026-09-24**, email delivery still off pending the consent decision | M | `buildHome` already does the work. Blocked on **where it lands** — daily email is possible today, and daily is a different consent from monthly |
 | **C4** | Senior suite | S–M | Mostly assembly over the life stages. The quality-of-life scale is clinical and belongs with A1's reviewer |
 | **C5** | Pack dashboard · lost-pet network · food scanner · DNA | — | **Not specced, and cannot be.** Each needs a product decision first — see `SPEC-HORIZON.md` §2 |
 | **C6** | The Remember chapter | — | Deliberately unwritten. The defensive pass is shipped; the chapter needs somebody who has thought about grief |
@@ -95,8 +95,8 @@ Two concrete things would close most of it:
    are independent, and everything else is cheaper afterwards.
 2. **A4 while waiting** — ten minutes, and it clears the last credential debt.
 3. **Decide B2.** It costs nothing to decide and unlocks two finished features.
-4. **Build C1 and C2** in the gap. Both are self-contained and neither touches
-   the clinical content under review.
+4. ~~Build C1 and C2 in the gap.~~ **Done, along with C3.** Only C4 (senior suite)
+   remains buildable, and its quality-of-life scale belongs with A1's reviewer.
 5. **A2 and A3 when a launch date is real.** Neither is useful early; both are
    blocking at the end.
 6. **Everything in C5 stays shut** until its product decision exists. Building

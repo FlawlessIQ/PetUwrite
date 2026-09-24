@@ -1,6 +1,7 @@
 import { accuracyLine, planAccuracy } from '../engine/accuracy'
 import { fitnessProvider, SIMULATED_DISCLOSURE } from '../fitness/provider'
 import { isRemembered } from '../engine/remember'
+import { Briefing } from './Briefing'
 import type { PetProfile, Projection } from '../data/types'
 import { buildCoverage, buildHome, buildRewards } from '../engine/platform'
 import { useState } from 'react'
@@ -162,6 +163,8 @@ export function Home({
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-start">
         <div className="space-y-5">
+          <Briefing pet={pet} projection={projection} />
+
           {/* ── Score ─────────────────────────────────────────────────── */}
           <section className="card px-5 py-6 sm:px-6" aria-labelledby="score-heading">
             <div className="flex flex-wrap items-center gap-5 sm:flex-nowrap">
