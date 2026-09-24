@@ -267,7 +267,7 @@ export const PRODUCTS: Product[] = [
     emoji: '🧻',
     claimStrength: 'behaviour',
     evidenceNote:
-      'Keeping folds clean and dry is routine care for flat-faced breeds rather than an occasional treatment. Cheap habit, prevents a chronic problem.',
+      'Keeping folds clean and dry is routine care for flat-faced breeds rather than an occasional treatment. Cheap, and quick enough that it actually gets done.',
     points: 50,
     subscription: true,
     confidence: 'illustrative',
