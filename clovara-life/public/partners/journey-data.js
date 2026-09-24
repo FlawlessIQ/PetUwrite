@@ -24,7 +24,7 @@ const STAGES=[
   ["Gotcha Day","Her homecoming anniversary, celebrated every year with a shareable card.","Care","built","growth"]
  ]},
  {name:"The daily rhythm", age:"The adult years", job:"Most healthy years are won in the quiet part: small things, done consistently, made effortless — while Clovara watches for what a family can't see.", moments:[
-  ["Clovara Score & Streaks","Her wellness score and care streaks — the daily open, the habit loop, the rewards that map to what actually adds healthy years.","Care","built","habit"],
+  ["Clovara Score & Streaks","Her Clovara Score and care streaks — the daily open, the habit loop, and points that follow the evidence rather than the engagement: the behaviours worth the most are the ones that move her healthy-years projection.","Care","built","habit"],
   ["The Nudge","'Activity down 18% this week — unusual for her.' Passive data becomes an act-now moment while it's still a question.","Plan","built","love"],
   ["Morning Briefing","'Slept well. 84° today — walk before 10, pollen high for her allergies.' Her day, not a generic tip.","Care","next","habit"],
   ["Food Scanner","Point the camera at any kibble or treat in any store: 'good for her?' — judged against her weight, allergies and conditions.","Care","next","habit"],
