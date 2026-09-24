@@ -33,13 +33,13 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 
 ## Next horizon (needs spec before build — see docs gap register in project)
 
-**Companion AI architecture — spec at `clovara-life/SPEC-COMPANION.md`; six decisions still open for Conor. C0 (vet-visit summary), C1 (safety check) and C2 (grounded companion) all `shipped` 2026-09-24 — **none of them uses a model.** C3 (model composition) awaits the privacy decision; **the red-team suite it must pass is written and green** (`src/engine/redteam.test.ts`); C4 awaits a telehealth partner** · claims operations design · affinity/B2B2C channel product · native apps + push · morning briefing · food scanner · lump diary · second opinion · meds autopilot · pack dashboard · DNA · lost-pet network · senior suite · Remember chapter · marketing-site realignment · final pricing architecture (annual, multi-pet).
+**Companion AI architecture — spec at `clovara-life/SPEC-COMPANION.md`; six decisions still open for Conor. C0 (vet-visit summary), C1 (safety check) and C2 (grounded companion) all `shipped` 2026-09-24 — **none of them uses a model.** **C3 (model composition) is BUILT AND SWITCHED OFF** — `COMPANION_MODEL_ENABLED` is false pending the privacy decision; verification, the schema and 45 red-team checks including a jailbroken-model fixture are all in place; C4 awaits a telehealth partner** · claims operations design · affinity/B2B2C channel product · native apps + push · morning briefing · food scanner · lump diary · second opinion · meds autopilot · pack dashboard · DNA · lost-pet network · senior suite · Remember chapter · marketing-site realignment · final pricing architecture (annual, multi-pet).
 
 ## Spec divergences
 
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 543 unit plus 107 emulator plus twenty end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
+- **SPEC §1 says "75+ tests".** It is 573 unit plus 107 emulator plus twenty end-to-end scripts, and `npm run verify:all` runs every browser suite in one command.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.
@@ -152,7 +152,7 @@ Every buildable item on this roadmap is built. What remains is not engineering:
 | | Needed for |
 |---|---|
 | Firestore security review | switching on vet-record extraction — the model key now exists, so this is the only remaining gate |
-| A privacy/processor decision | switching on conversational onboarding: the key and the function are live and tested, but turning it on sends owner-written text to Google |
+| A privacy/processor decision | switching on **both** conversational onboarding and companion C3. Both are built, tested and off; both send owner-written text to Google when enabled. This is now the single gate on the most product surface. |
 
 
 | Counsel | attach disclosures, fraud notice, CA/NY auto-renewal, Data Covenant, toxin copy, VAS state list |

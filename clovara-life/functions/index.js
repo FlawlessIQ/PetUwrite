@@ -36,6 +36,7 @@ const {
   readSitterCard,
 } = require('./sitter')
 const { parseWithGemini } = require('./gemini')
+const { composeReply } = require('./compose')
 
 setGlobalOptions({ region: 'us-central1', maxInstances: 10 })
 
@@ -314,6 +315,27 @@ exports.parseAboutPet = onCall(
   async (req) => {
     if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.')
     return parseWithGemini(req.data?.text, LIFE_GEMINI_API_KEY.value())
+  },
+)
+
+/**
+ * C3 — model composition (SPEC-COMPANION §3.3). Refuses while the flag is off.
+ *
+ * The client still runs verification over whatever comes back: the gate is not
+ * the prompt and not the schema, it is the pure function on the other side.
+ */
+exports.composeCompanionReply = onCall(
+  { secrets: [LIFE_GEMINI_API_KEY], cors: true },
+  async (req) => {
+    if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.')
+    return composeReply(
+      {
+        utterance: req.data?.utterance,
+        facts: req.data?.facts,
+        petName: req.data?.petName,
+      },
+      LIFE_GEMINI_API_KEY.value(),
+    )
   },
 )
 

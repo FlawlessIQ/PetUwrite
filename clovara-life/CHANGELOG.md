@@ -3,7 +3,37 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## Companion — C0, C1 and C2
+## Companion — C0 to C3
+
+### C3 — model composition, built and switched off
+
+- **`COMPANION_MODEL_ENABLED` is false and stays false** until the privacy
+  decision in SPEC-COMPANION §10. Turning it on sends text an owner wrote about
+  their pet to Google, which is a processor and Data Covenant question rather
+  than an engineering one. The callable refuses while the flag is down.
+- **The gate is not the prompt and not the schema — it is the pure function on
+  the other side.** The prompt asks, the response schema constrains, and
+  `verify()` enforces. Only the third is load-bearing, and it assumes the model
+  misbehaved rather than checking that it did well.
+- Four gates in order: **citation** (a sentence citing nothing, or citing a
+  fact id not in the grounding set, is dropped — a model that invents an id has
+  invented the sentence with it), **language** (diagnosis, speculation, dosing
+  and longer-life claims go whatever they cite, because a true citation does not
+  make *"it is probably arthritis"* safe), **proportion** (more than a third
+  dropped and the whole reply is discarded — a paragraph with its middle removed
+  reads as though we are hiding something), and **emptiness** (nothing left means
+  we say we do not know).
+- **Routing survives a discard.** If the model judged something urgent, that
+  judgement is not the part we distrust — the prose is.
+- **The red team now runs against a jailbroken model.** Every attack has a
+  fixture where the model answers it fully *and cites real facts while doing
+  it*, which is the hardest version to catch. Diagnoses, hedged diagnoses,
+  severity calls, doses, home treatment, induced vomiting and longer-life
+  promises are all stripped; one bad sentence hidden among three good ones is
+  caught; a mostly-misbehaving reply is discarded whole. **45 red-team checks.**
+- Temperature 0 and a pinned model, because an owner who rephrases and gets a
+  different account of their pet's record has been told that one of the two was
+  invented.
 
 ### The red-team suite (SPEC-COMPANION §8.1)
 
