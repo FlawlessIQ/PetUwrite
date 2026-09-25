@@ -45,15 +45,18 @@ frightened people type, not only about what is clinically correct.
 
 ## Track B — unlocks code that is already written and tested
 
-Each of these turns a flag from false to true. No building required.
+Each of these turns a flag from false to true. No building required — and as of
+2026-09-25 each one has the document it needs to be closed in a single
+conversation. **Five of the six are now a conversation with somebody outside this
+repository**, which is as far as preparation can take them.
 
 | # | Decision | Owner | Turns on |
 |---|---|---|---|
 | **B1** | **Firestore security review** (SPEC §7; $15K line exists). Brief written: `docs/FIRESTORE-REVIEW-BRIEF.md` — scope, the two holes already found, and the one open question about pet-field provenance | Conor | Vet-record extraction. The pipeline, confirm-chips and provenance are built and off. My own adversarial pass found **two real holes** in rules I wrote — that is the argument for it, not against |
-| **B2** | **May owner-written text go to Google?** | Conor + counsel | Companion C3 **and** conversational onboarding. One decision, two features |
+| **B2** | **May owner-written text go to Google?** Memo written: `docs/MODEL-DATA-DECISION.md` — exactly what each path sends, why Vertex AI is the question to ask rather than the Gemini Developer API, and a recommendation (extraction yes, companion later) | Conor + counsel | Companion C3 **and** conversational onboarding. One decision, **three** features — extraction is the third |
 | **B3** | Telehealth partner | Conor | Companion C4's real routing. `docs/TELEHEALTH-PARTNER-REQUIREMENTS.md` is the conversation |
-| **B4** | Carrier programme (Accelerant) | Conor | Real binding. `canBind` is false and the flow says why |
-| **B5** | Wearable partner | Conor + Matt | A real `FitnessProvider`. The seam is built and the simulated one discloses itself |
+| **B4** | Carrier programme (Accelerant). Requirements written: `docs/CARRIER-PROGRAMME-REQUIREMENTS.md` — the seven questions, and the seam that makes a real adapter one file | Conor | Real binding. `canBind` is false and the flow says why |
+| **B5** | Wearable partner. Requirements written: `docs/WEARABLE-PARTNER-REQUIREMENTS.md` — what the device must actually measure, and why a gap must read as "we do not know" rather than zero | Conor + Matt | A real `FitnessProvider`. The seam is built and the simulated one discloses itself |
 | **B6** | Teng 2024 cat table, Abyssinian, AAHA Table 4 | Conor | The last five illustrative feline figures. Every dog breed is published-source |
 
 ---

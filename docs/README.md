@@ -35,6 +35,9 @@ enforced by `clovara-life/scripts/verify-journey.mjs`.
 | [DEPLOYMENT.md](DEPLOYMENT.md) | The two hosting targets and how to deploy each without hitting the other. **Read before your first deploy.** |
 | [FIRESTORE-REVIEW-BRIEF.md](FIRESTORE-REVIEW-BRIEF.md) | What to hand the security reviewer: scope, the two holes already found, and the open question about pet-field provenance. |
 | [TELEHEALTH-PARTNER-REQUIREMENTS.md](TELEHEALTH-PARTNER-REQUIREMENTS.md) | The five questions a telehealth partner conversation needs to answer, and two things not to agree to. |
+| [CARRIER-PROGRAMME-REQUIREMENTS.md](CARRIER-PROGRAMME-REQUIREMENTS.md) | What a carrier or MGA has to be able to do before `canBind` can go true, and four things not to agree to. |
+| [WEARABLE-PARTNER-REQUIREMENTS.md](WEARABLE-PARTNER-REQUIREMENTS.md) | What a tracker has to measure, report and delete before it can back the fitness seam. |
+| [MODEL-DATA-DECISION.md](MODEL-DATA-DECISION.md) | Whether owner-written text may go to Google: what each path actually sends, the five options, and a recommendation. |
 
 The Clovara Life build contract lives with its code, not here:
 `clovara-life/SPEC.md` and its nine invariants, plus `SPEC-COMPANION.md` and

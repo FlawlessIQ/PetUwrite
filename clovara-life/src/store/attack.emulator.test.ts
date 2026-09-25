@@ -257,6 +257,43 @@ describe.skipIf(!ENABLED)('attacking the Life rules', () => {
     ).toBe(false)
   })
 
+  it('ATTACK: reach every pet on the project with a collection-group query', async () => {
+    /**
+     * `docs/FIRESTORE-REVIEW-BRIEF.md` lists this as a question for the
+     * reviewer. It is answerable here, so it is answered here rather than
+     * bought: a collection-group query matches a collection id at any depth, so
+     * `collectionGroup('pets')` asks for every pet document in the database
+     * regardless of which household it sits under. Rules are evaluated against
+     * the query, and `lifeIsMember()` cannot be satisfied for all of them at
+     * once, so it must fail — including when I own one of the households it
+     * would return, which is the version of this attack most likely to slip
+     * through.
+     */
+    const me = await signInFreshViaLink(auth, 'atk-cgroup')
+    const mine = `hh-cg-mine-${Date.now()}`
+    const theirs = `hh-cg-theirs-${Date.now()}`
+    await seedAsAdmin(`households/${mine}`, {
+      createdBy: { stringValue: me.uid },
+      memberIds: strArr([me.uid]),
+      members: { mapValue: { fields: {} } },
+    })
+    await seedAsAdmin(`households/${mine}/pets/p1`, { name: { stringValue: 'Mine' } })
+    await seedAsAdmin(`households/${theirs}`, {
+      createdBy: { stringValue: 'somebody-else' },
+      memberIds: strArr(['somebody-else']),
+      members: { mapValue: { fields: {} } },
+    })
+    await seedAsAdmin(`households/${theirs}/pets/p1`, { name: { stringValue: 'Theirs' } })
+
+    expect(await denied(fs.getDocs(fs.collectionGroup(db, 'pets')))).toBe(true)
+    // And the same for the subtrees the review has not cleared.
+    for (const group of ['records', 'events', 'lumps']) {
+      expect(await denied(fs.getDocs(fs.collectionGroup(db, group))), group).toBe(true)
+    }
+    // The household collection itself is only queryable as my own membership.
+    expect(await denied(fs.getDocs(fs.collection(db, 'households')))).toBe(true)
+  })
+
   it('ATTACK: forge analytics as another user', async () => {
     const me = await signInFreshViaLink(auth, 'atk-analytics')
     expect(

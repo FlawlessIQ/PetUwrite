@@ -9,6 +9,10 @@ worry — each claim is backed by a test in
 `clovara-life/src/store/attack.emulator.test.ts`, which is written to break the
 rules rather than to confirm them.
 
+Where a question in §5 could be answered by a test rather than by a reviewer, it
+has been, and it is struck out with the answer. Paying for an answer I can get in
+twenty minutes is not what the budget is for.
+
 **Why an outside reviewer at all, given those tests exist:** I wrote both the
 rules and the tests, so they share a blind spot by construction. That is not
 theoretical — the adversarial suite found two real holes in rules I had written
@@ -96,8 +100,14 @@ question is live rather than hypothetical:
   happens to a legitimate member when that `get()` fails.
 - **The `{sub=**}` deny.** It is meant to be total. Confirm no path reaches a
   subcollection under a pet, including through a collection-group query.
-- **Collection-group queries generally.** Nothing in the app issues one; the
-  rules do not mention them.
+- ~~**Collection-group queries.**~~ **Answered here, 2026-09-25, so it need not
+  be bought.** `collectionGroup('pets')` asks for every pet on the project at any
+  depth, and it is denied — including when the caller legitimately owns one of the
+  households the query would return, which is the version most likely to slip
+  through. Same for `records`, `events` and `lumps`, and for querying
+  `households` other than as one's own membership. See `ATTACK: reach every pet on
+  the project with a collection-group query`. Worth confirming rather than
+  re-deriving.
 - **The storage rules against the Firestore rules.** A photograph's path encodes
   a household and a pet; the two rule sets have to agree about membership and
   they are written in different files by different mechanisms.
@@ -122,6 +132,6 @@ store does not exist yet; its firewall is specified in
 cd clovara-life && npm run test:emulator
 ```
 
-110 tests against the Firestore, Auth and Storage emulators, of which 16 are
+111 tests against the Firestore, Auth and Storage emulators, of which 17 are
 adversarial. `src/store/attack.emulator.test.ts` is the file to read first: each
 test is named for the attack rather than the feature.
