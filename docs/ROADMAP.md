@@ -20,7 +20,7 @@ when, and where the code and the spec diverge on purpose.
 | Type scale (BACKLOG D-UI2) | 35 hand-set font sizes → 19 named §3 tokens; arbitrary sizes rejected by `verify:brand` | `shipped` 2026-09-25 — deployed to hosting:life from branch `type-scale` and verified against production (demo, routing, length, companion, onboarding, accessibility). 400 of 604 uses unchanged, every measured page shorter |
 
 
-## UI pass: open questions — resolved in D-UI7 (2026-09-25)
+## UI pass: open questions — resolved in D-UI7 (2026-09-25, deployed the same day)
 
 Seventeen places where DESIGN.md and the product disagreed. Fourteen are resolved: four by Conor's decision, the rest because the answer was forced by the product's own rules (WCAG AA, invariant 4) or defaulted as recommended. DESIGN.md and styleguide.html were updated together wherever the spec changed.
 

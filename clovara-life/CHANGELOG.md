@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## Design decisions (BACKLOG D-UI7, branch `d-ui7`, not deployed)
+## Design decisions (BACKLOG D-UI7, deployed 2026-09-25 from branch `d-ui7`)
 
 - **The design system's own colours now pass AA.** amber → #935E13, ink-3 →
   #656B65, same hues; eyebrows use amber or ink-3, never accent. DESIGN.md and
