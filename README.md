@@ -26,8 +26,11 @@ Clovara Life has its own README, spec, changelog and test suites in
 - **[`docs/ROADMAP.md`](docs/ROADMAP.md)** — the living build state. Not the `ROADMAP.md` in this directory, which is a January 2026 snapshot.
 - **`clovara-life/SPEC.md`** — the build contract for Clovara Life and its nine invariants.
 
-Other `.md` files in this directory are older notes on the underwriting product
-and the Flutter app. They were true when written; nothing keeps them true.
+`CLAUDE.md` and this file are the only markdown at the repository root. Eleven
+older notes on the underwriting product and the Flutter app moved into `docs/` on
+2026-09-25 — Stripe and simulator setup into `docs/setup/`, the payment and policy
+implementation notes into `docs/implementation/`, and a duplicate `ROADMAP.md`
+into `docs/archive/`.
 
 ## Quick Start
 

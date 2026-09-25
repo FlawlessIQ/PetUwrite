@@ -1,14 +1,14 @@
 > **Applies to the underwriting functions (`functions/`), not to Clovara Life.**
 > Life's functions (`clovara-life/functions/`) take their Stripe keys from Secret
 > Manager via `defineSecret`, never from `firebase functions:config:set` and never
-> from a `.env` — see `clovara-life/README.md`. The `functions.config()` approach
+> from a `.env` — see `../../clovara-life/README.md`. The `functions.config()` approach
 > below is still what `functions/policyEmails.js` uses, which is why this file is
 > here rather than archived.
 >
 > **Life's Stripe is deliberately in test mode** and stays there until Conor says
 > otherwise. The `sk_live_` instruction below is not a step to follow on your own
 > initiative, and a Clovara-entity Stripe account has to replace the current one
-> first — `docs/DECISIONS.md` and `docs/EXECUTION-PLAN.md` A3.
+> first — `../DECISIONS.md` and `../EXECUTION-PLAN.md` A3.
 
 # Stripe Test Key Setup - Complete Instructions
 

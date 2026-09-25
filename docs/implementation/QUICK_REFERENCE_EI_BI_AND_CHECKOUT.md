@@ -1,3 +1,12 @@
+> **Two documents in one file.** Its first line is the run-together heading of
+> two separate quick references — "Emotional Intelligence + BI Panel Integration"
+> and "Checkout Flow" — which were concatenated at some point before
+> 2025-10-10. Both halves are still readable and neither is maintained; the
+> systems themselves are documented in
+> [`EMOTIONAL_INTELLIGENCE_SYSTEM.md`](EMOTIONAL_INTELLIGENCE_SYSTEM.md) and
+> [`BI_PANEL_SYSTEM.md`](BI_PANEL_SYSTEM.md). Renamed and moved here from the
+> repository root on 2026-09-25.
+
 # Quick Reference: Emotional Intelligence + BI Panel Integration# Quick Reference - Checkout Flow
 
 

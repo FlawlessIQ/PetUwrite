@@ -193,8 +193,8 @@ Based on current implementation status:
 
 ### Root-Level Docs
 - [../../README.md](../../README.md) - Project overview
-- [../../ROADMAP.md](../../ROADMAP.md) - Product roadmap
-- [../../QUICK_REFERENCE.md](../../QUICK_REFERENCE.md) - Quick reference guide
+- [The living roadmap](../ROADMAP.md) — build state, maintained
+- [Quick reference: EI, BI panel and checkout](QUICK_REFERENCE_EI_BI_AND_CHECKOUT.md) — two run-together documents, unmaintained
 
 ### Legal & Compliance
 - [../../docs/legal/TERMS_OF_SERVICE.md](../../docs/legal/TERMS_OF_SERVICE.md) - 7,000 words
@@ -263,7 +263,7 @@ Based on current implementation status:
 - **Technical questions**: Check relevant PHASE doc or PLATFORM_COMPLETE_OVERVIEW.md
 - **Architecture questions**: See [../../docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)
 - **Setup issues**: See [../../docs/setup/](../../docs/setup/)
-- **Feature requests**: See [../../ROADMAP.md](../../ROADMAP.md)
+- **Feature requests**: See [the living roadmap](../ROADMAP.md)
 
 ---
 

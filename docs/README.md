@@ -48,7 +48,8 @@ documents are checked. Treat a claim in here as a lead, not a fact.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — system diagram for Pet Underwriter AI
 - [ADMIN_CONSOLE_ARCHITECTURE.md](ADMIN_CONSOLE_ARCHITECTURE.md)
 - [UNDERWRITING_RULES.md](UNDERWRITING_RULES.md) — canonical rules
-- [underwriting_flow.md](underwriting_flow.md) — the deterministic flow
+- [underwriting_flow.md](underwriting_flow.md) — the deterministic flow, as designed
+- [UNDERWRITING_FLOW_IMPLEMENTATION.md](UNDERWRITING_FLOW_IMPLEMENTATION.md) — the same flow as built, in far more detail. It arrived from the repository root as `UNDERWRITING_FLOW.md`, which differed from the file above only by case
 - [PRODUCT_CATALOG_AND_PRICING.md](PRODUCT_CATALOG_AND_PRICING.md)
 - [PDF_EXTRACTION_FAILURE_ALERTS_RUNBOOK.md](PDF_EXTRACTION_FAILURE_ALERTS_RUNBOOK.md) — an actual runbook
 - [RECONCILIATION_QUICK_REFERENCE.md](RECONCILIATION_QUICK_REFERENCE.md)
@@ -87,6 +88,21 @@ report. Start there rather than with a filename.
 | [`admin/`](admin/README.md) | The underwriter console: five features, documented three times each. |
 | [`implementation/`](implementation/README.md) | Implementation notes and completion reports. |
 | `archive/` | Finished work, kept for history. **Nothing in here should be read as current.** 80 files. |
+
+## Eleven documents arrived from the repository root on 2026-09-25
+
+The root held eleven underwriting and Flutter notes alongside the two files that
+belong there. Three were renamed on the way in, and each rename removed a trap:
+
+| From the root | Now | Why renamed |
+|---|---|---|
+| `ROADMAP.md` | `archive/ROADMAP_VISUAL_SNAPSHOT_2026-01.md` | A second file called ROADMAP.md, unmaintained since January, one directory away from the living one |
+| `UNDERWRITING_FLOW.md` | `UNDERWRITING_FLOW_IMPLEMENTATION.md` | Collided with `underwriting_flow.md` by case alone, and macOS would not hold both |
+| `QUICK_REFERENCE.md` | `implementation/QUICK_REFERENCE_EI_BI_AND_CHECKOUT.md` | Two quick references concatenated into one file, headings and all; the name now says so |
+
+The rest went to `setup/` (Stripe keys, the Gemini key, iOS simulator),
+`implementation/` (Stripe payments, policy management, claim decision
+requirements) and `admin/` (the dashboard visual guide).
 
 ## Three things to know before trusting anything in here
 

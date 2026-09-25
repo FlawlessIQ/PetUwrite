@@ -14,6 +14,14 @@ them is a deployment guide: **deploying is `../DEPLOYMENT.md`.**
 | [VET_RECORD_IMAGE_OCR_SETUP.md](VET_RECORD_IMAGE_OCR_SETUP.md) · [google_vision_setup.md](google_vision_setup.md) | Google Cloud Vision, for vet-record OCR |
 | [SEED_UNDERWRITING_RULES_QUICK_START.md](SEED_UNDERWRITING_RULES_QUICK_START.md) · [_SETUP](SEED_UNDERWRITING_RULES_SETUP.md) · [_README](SEED_UNDERWRITING_RULES_README.md) | Seeding the rules collection, three times over |
 
+**Arrived from the repository root, 2026-09-25**
+
+| | |
+|---|---|
+| [SET_GEMINI_KEY.md](SET_GEMINI_KEY.md) | Setting the server-side Gemini key. Clovara Life uses `LIFE_GEMINI_API_KEY` in Secret Manager instead — see `../../clovara-life/README.md` |
+| [STRIPE_SETUP_INSTRUCTIONS.md](STRIPE_SETUP_INSTRUCTIONS.md) | Stripe test keys for the underwriting functions. Read its banner first: it does **not** apply to Clovara Life |
+| [IOS_SIMULATOR_SETUP.md](IOS_SIMULATOR_SETUP.md) | Running the Flutter app in the iOS simulator |
+
 **Two traps in here.**
 
 - `DEPLOYMENT_CHECKLIST.md` is a **checkout-flow** checklist despite the name. It

@@ -1,8 +1,8 @@
-> **This is not the living roadmap.** The maintained one is
-> [`docs/ROADMAP.md`](docs/ROADMAP.md), which `CLAUDE.md` requires updating with
-> any change to behaviour or scope. This file is a visual status snapshot of the
-> underwriting product from January 2026 and nothing keeps it true. Two files with
-> the same name, one of them stale, is a trap — read the other one.
+> **Archived snapshot, January 2026.** The living roadmap is
+> [`docs/ROADMAP.md`](../ROADMAP.md). This file used to sit at the repository root
+> as a second `ROADMAP.md`, which made it easy to read or edit by mistake; it was
+> renamed and archived on 2026-09-25. It is a visual status view of the
+> underwriting product and nothing keeps it true.
 
 # Clovara - Visual Development Roadmap
 

@@ -23,6 +23,10 @@ Two sections of `ADMIN_OVERRIDE_ELIGIBILITY_GUIDE.md` link to an audit-trail
 document and a risk-scoring document that were **never written**; the links are
 marked as such rather than left pointing nowhere.
 
+[DASHBOARD_VISUAL_GUIDE.md](DASHBOARD_VISUAL_GUIDE.md) is a before-and-after of a
+dashboard redesign; it arrived from the repository root on 2026-09-25 and is a
+visual snapshot rather than a guide to anything current.
+
 ## Completion reports — history, not documentation
 
 `ADMIN_DASHBOARD_SUMMARY.md` · `ADMIN_DASHBOARD_FEATURES_SUMMARY.md` ·
