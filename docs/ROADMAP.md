@@ -45,9 +45,9 @@ Each is somewhere DESIGN.md and the product disagree (17 now — two added by th
 **Things the spec cannot be held to as written.**
 13. `tabular-nums` does nothing: the shipped Poppins files have no OpenType substitutions and Playfair has no `tnum`. Declared once globally so it becomes true when the fonts do; a font-build decision.
 14. §5b has no block for a cited fact, so the live grounded companion (C2) is not on the kit — `history_ref` would call a breed-table fact the pet's history, and `text` would drop the citation.
+15. The companion disclaimer is 11px ink-2, not 9.5px ink-3: it is the sentence carrying the firewall promise, and at the spec's size and colour it would be the least legible text on the screen.
 16. **§3 has no role between title (≤16px) and display (≥26px)**, yet the app sets 84 Playfair card headings there. The type scale names three steps for them (`heading-sm` 18, `heading` 20, `heading-lg` 22) rather than forcing them into a role; styleguide.html uses Poppins 600 titles for in-card headings instead. (Added with D-UI2.)
 17. **15px prose ledes sit above §3's 14.5px body maximum.** The scale gives them a `lead` step rather than shrinking them. (Added with D-UI2.)
-15. The companion disclaimer is 11px ink-2, not 9.5px ink-3: it is the sentence carrying the firewall promise, and at the spec's size and colour it would be the least legible text on the screen.
 
 **Judgement calls made, not flagged.** Buttons stay 15px (inside §3's 13–16px title range; ~48px targets) where the styleguide sheet draws 12.5px; chips and bubbles follow the same app-to-styleguide ratio. Accent caveat boxes ("illustrative", missed-dose notes) are not converted to nudges, which §5 limits to one per screen. Poison-line tap-to-call rows, navigation tabs, the forest-card tier switcher, evidence badges and the journey's tappable cards are outside §5's patterns and left as they were.
 
