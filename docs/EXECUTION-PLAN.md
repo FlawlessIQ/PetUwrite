@@ -1,7 +1,11 @@
 # Clovara Life — execution plan
 
-**Written 2026-09-24. Last updated 2026-09-24 (C4 shipped).** Covers everything not yet done: what is blocked, on whom,
-in what order, and what happens if nothing changes.
+**Written 2026-09-24. Last updated 2026-09-25.** Covers everything not yet done:
+what is blocked, on whom, in what order, and what happens if nothing changes.
+
+> **`BACKLOG.md` is the list; this is the argument.** Every item here also appears
+> there with a stable id, alongside the product-validation and design work this
+> document predates. If the two disagree, the backlog is newer.
 
 Sizes are relative (S/M/L) and mine are honest. **I cannot estimate calendar
 time for anything owned by somebody else**, so those carry no duration — only

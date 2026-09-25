@@ -4,6 +4,10 @@ Last updated: 2026-09-25 (maintained by Claude Code per CLAUDE.md)
 
 Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cut(<why>)`
 
+**Everything not yet done now lives in `BACKLOG.md`** with a stable id and a
+record of who has judged it. This document remains the build state: what shipped,
+when, and where the code and the spec diverge on purpose.
+
 ## Build phases (contract: clovara-life/SPEC.md)
 
 | Phase | Scope | Status |

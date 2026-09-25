@@ -31,7 +31,9 @@ enforced by `clovara-life/scripts/verify-journey.mjs`.
 
 | | What it is |
 |---|---|
-| [EXECUTION-PLAN.md](EXECUTION-PLAN.md) | Everything not yet done, in four tracks: the reviews that gate a launch, the decisions that unlock finished code, what is left to build, and the review gap. |
+| [BACKLOG.md](BACKLOG.md) | **Everything outstanding, with stable ids and a `Judged` column.** 97 items: product validation, design, the pre-launch reviews, the unlock decisions, 17 open questions, the 38 unbuilt journey moments, known technical debt, and what has been declined so it is not re-litigated. Start here for "what is left". |
+| [STRATEGIC-REVIEW-2026-09.md](STRATEGIC-REVIEW-2026-09.md) | Why the backlog is ordered the way it is: the roadmap tracked build state and never tracked who had judged the work, and that is the binding constraint. Contains the 30-minute walkthrough. |
+| [EXECUTION-PLAN.md](EXECUTION-PLAN.md) | The same blockers as four tracks, with the reasoning for each. The backlog is the list; this is the argument. |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | The two hosting targets and how to deploy each without hitting the other. **Read before your first deploy.** |
 | [FIRESTORE-REVIEW-BRIEF.md](FIRESTORE-REVIEW-BRIEF.md) | What to hand the security reviewer: scope, the two holes already found, and the open question about pet-field provenance. |
 | [TELEHEALTH-PARTNER-REQUIREMENTS.md](TELEHEALTH-PARTNER-REQUIREMENTS.md) | The five questions a telehealth partner conversation needs to answer, and two things not to agree to. |

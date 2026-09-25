@@ -4,17 +4,18 @@ Read `clovara-life/SPEC.md` (the build contract and its 9 invariants) and `clova
 
 ## Living documents protocol — not optional
 
-The roadmap, journey, and decision history are **living documents in this repo**. Keeping them true is part of every task's definition of done. A PR that changes product behavior or scope without the matching doc update is incomplete.
+The roadmap, journey, backlog, and decision history are **living documents in this repo**. Keeping them true is part of every task's definition of done. A PR that changes product behavior or scope without the matching doc update is incomplete.
 
-The three documents and when to touch them:
+The four documents and when to touch them:
 
 1. **`docs/ROADMAP.md`** — the build state. Update whenever: a phase or feature starts, ships, or is descoped; an external dependency changes state (carrier, wearable partner, legal reviews, data sources); dates or gates move. Set its `Last updated` line and keep entries honest — "blocked" and "cut" are valid statuses.
 2. **`clovara-life/public/partners/journey-data.js`** — the **single source of truth for the product journey**, rendering the live partner map at clovara-life.web.app/partners/journey.html. When something ships, flip its horizon to `built`. When scope changes, edit/add/remove moments here (keep the `[name, desc, pillar, horizon, value]` shape and the customer-voice tone). It goes live on the next `hosting:life` deploy — so the vision partners see is always current.
-3. **`docs/DECISIONS.md`** — append-only decision log. Add a dated entry whenever a product, pricing, scope, or architecture decision is made or reversed — one line of decision, one line of why. Never rewrite old entries; a reversal is a new entry.
+3. **`docs/BACKLOG.md`** — everything outstanding, with stable ids. Update whenever an item is closed, added, blocked, unblocked, or judged by somebody. Ids are never reused; a closed item keeps its row and gains its outcome. Its `Judged` column exists because build state was tracked and review state was not — fill it in rather than leaving a dash when somebody has actually formed a view.
+4. **`docs/DECISIONS.md`** — append-only decision log. Add a dated entry whenever a product, pricing, scope, or architecture decision is made or reversed — one line of decision, one line of why. Never rewrite old entries; a reversal is a new entry.
 
 Rules:
 - Doc updates ship **in the same commit/PR** as the change they describe.
-- On completing a spec phase: update all three, tag the commit `phase-N-complete`.
+- On completing a spec phase: update all four, tag the commit `phase-N-complete`.
 - If work reveals the SPEC and reality have diverged, don't silently drift: note it in ROADMAP under "Spec divergences" and flag to Conor.
 - `docs/VISION.md` changes only when Conor says the vision changed.
 - These files are read by humans and future agents; write them plainly, no filler.
