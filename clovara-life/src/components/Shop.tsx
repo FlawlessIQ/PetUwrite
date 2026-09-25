@@ -10,7 +10,7 @@ import { isRemembered } from '../engine/remember'
 
 const STRENGTH_STYLE: Record<ClaimStrength, string> = {
   behaviour: 'bg-sage text-deep',
-  supportive: 'bg-accent/12 text-[#8A5510]',
+  supportive: 'bg-[#F6E8D2] text-[#8A5510]',
   comfort: 'bg-cream text-ink-2',
 }
 
@@ -120,7 +120,7 @@ export function Shop({
                       {CLAIM_STRENGTH_LABELS[p.claimStrength].label}
                     </span>
                     {p.subscription && (
-                      <span className="rounded-full border border-line px-2.5 py-0.5 text-[11px] text-ink-2">
+                      <span className="chip-neutral">
                         Refill monthly
                       </span>
                     )}

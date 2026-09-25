@@ -50,15 +50,15 @@ export function ContextualAsk<T extends string>({
               role="radio"
               aria-checked={on}
               onClick={() => onAnswer(o.value)}
-              className={`rounded-soft border px-3 py-2.5 text-left transition ${
+              className={`rounded-inner border-2 px-3 py-2.5 text-left transition ${
                 on
-                  ? 'border-forest bg-forest text-white shadow-soft'
-                  : 'border-line bg-white text-ink hover:border-forest/50'
+                  ? 'border-forest bg-sage text-deep'
+                  : 'border-line bg-cream text-ink hover:border-forest/50'
               }`}
             >
               <span className="block text-[14.5px] font-medium leading-tight">{o.label}</span>
               {o.hint && (
-                <span className={`mt-0.5 block text-[12px] ${on ? 'text-white/70' : 'text-ink-2'}`}>
+                <span className={`mt-0.5 block text-[12px] ${on ? 'text-deep/80' : 'text-ink-2'}`}>
                   {o.hint}
                 </span>
               )}

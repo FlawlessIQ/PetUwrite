@@ -75,7 +75,7 @@ export function PhotoPicker({
             type="button"
             onClick={() => input.current?.click()}
             disabled={busy}
-            className="rounded-full border border-line bg-white px-4 py-2 text-[14.5px] font-medium text-ink transition hover:border-forest/50 disabled:opacity-50"
+            className="pill-ghost pill-sm disabled:opacity-50"
           >
             {busy ? 'Uploading…' : pet.photo ? 'Replace photo' : 'Add a photo'}
           </button>

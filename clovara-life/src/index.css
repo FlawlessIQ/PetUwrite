@@ -35,9 +35,10 @@ textarea {
   color: inherit;
 }
 
+/* DESIGN.md §4: 2.5px forest outline, 2px offset, on every interactive element. */
 :focus-visible {
-  outline: 2px solid #1a5c38;
-  outline-offset: 3px;
+  outline: 2.5px solid #1a5c38;
+  outline-offset: 2px;
   border-radius: 6px;
 }
 
@@ -47,12 +48,18 @@ textarea {
 }
 
 @layer components {
+  /* DESIGN.md §4–5: white card, 1px line border, soft shadow, 22px. */
   .card {
-    @apply rounded-card border border-line bg-white shadow-soft;
+    @apply rounded-card border border-line bg-card shadow-soft;
   }
 
+  /*
+   * DESIGN.md §5 buttons: pills only, Poppins 600, verb labels. The styleguide
+   * draws them at 12.5px because it is a reference sheet; the app keeps 15px and
+   * a ~48px target — inside §3's 13–16px title range, and a thumb's width.
+   */
   .pill {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[15px] font-medium transition;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[15px] font-semibold transition;
   }
 
   .pill-primary {
@@ -63,8 +70,15 @@ textarea {
     @apply pill bg-ink text-cream hover:bg-black;
   }
 
+  /* §5 secondary: ghost, 1.5px line border, no fill. */
   .pill-ghost {
-    @apply pill border border-line bg-white text-ink hover:border-forest hover:text-forest;
+    @apply pill border-[1.5px] border-line bg-transparent text-ink hover:border-forest hover:text-forest;
+  }
+
+  /* §5 "one primary (forest, small)" and compact ghosts: the same pill, smaller.
+     Still at least 36px tall, which is what the a11y suite holds tap targets to. */
+  .pill-sm {
+    @apply min-h-[36px] px-4 py-2 text-[13.5px];
   }
 
   /*
@@ -85,9 +99,45 @@ textarea {
 
   /* 16px minimum: below this iOS Safari force-zooms on focus and never
      zooms back out, leaving the rest of the demo scrolled sideways. */
+  /* The only element that suppressed the focus ring: `focus:outline-none` beat
+     the global :focus-visible on specificity, leaving a 1px border change as the
+     only keyboard cue. §4 says the ring goes on every interactive element. */
   .field {
-    @apply w-full rounded-soft border border-line bg-white px-4 py-3 text-[16px] text-ink
-      placeholder:text-ink-2/60 focus:border-forest focus:outline-none;
+    @apply w-full rounded-inner border border-line bg-card px-4 py-3 text-[16px] text-ink
+      placeholder:text-ink-3 focus:border-forest;
+  }
+
+  /*
+   * DESIGN.md §5 chips. Status is always word-or-icon plus colour, never colour
+   * alone, and red is not a chip colour. Sized at the app's scale (12.5px), which
+   * is the styleguide's 10.5px by the same ratio as the buttons.
+   *
+   * `chip-attention` and `chip-speculative` use #8A5510 rather than §2's `amber`:
+   * amber measures 3.30:1 on the attention fill and 3.99:1 on white, both below
+   * AA for text this size. Flagged in DECISIONS for Conor.
+   */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-semibold leading-tight;
+  }
+  .chip-good {
+    @apply chip bg-sage text-deep;
+  }
+  .chip-attention {
+    @apply chip bg-[#F6E8D2] text-[#8A5510];
+  }
+  .chip-neutral {
+    @apply chip border border-line text-ink-2;
+  }
+  .chip-speculative {
+    @apply chip border border-dashed border-accent text-[#8A5510];
+  }
+  .chip-done {
+    @apply chip bg-forest text-white;
+  }
+
+  /* §5 nudge: nudge-fill, 3px accent left border, 12px radius. One visible at a time. */
+  .nudge {
+    @apply rounded-inner border-l-[3px] border-accent bg-nudge-fill px-3.5 py-3;
   }
 }
 

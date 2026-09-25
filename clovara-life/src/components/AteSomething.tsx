@@ -252,9 +252,9 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
                         type="button"
                         aria-pressed={formId === f.id}
                         onClick={() => setFormId(f.id)}
-                        className={`rounded-full border px-3.5 py-2 text-[13.5px] transition ${
+                        className={`rounded-full border-[1.5px] px-3.5 py-2 text-[13.5px] transition ${
                           formId === f.id
-                            ? 'border-forest bg-forest text-white'
+                            ? 'border-forest bg-sage text-deep'
                             : 'border-line bg-white text-ink'
                         }`}
                       >

@@ -15,11 +15,26 @@ function greeting() {
 const R = 47
 const CIRC = 2 * Math.PI * R
 
+/**
+ * The score ring (DESIGN.md §5): track #EDEAE0, a 9px gradient stroke with round
+ * caps — one of the few places the gradient is allowed — and a Playfair number.
+ *
+ * The micro-label sits INSIDE the ring on two centred lines. It used to sit on
+ * one line underneath; §5 is explicit that a single line clips against the
+ * stroke at any ring size, so the two-line form is the only one that holds.
+ * Its max width is the inner diameter less 10px.
+ *
+ * "/ 100" is kept, though styleguide.html omits it: it is the only thing on the
+ * page that says what the number is out of. Flagged for Conor rather than
+ * removed. The label is ink-2 rather than §5's ink-3, because ink-3 measures
+ * 3.2:1 on white and this is 8px text — see DECISIONS.
+ */
+const STROKE = 9
 function ScoreRing({ value }: { value: number }) {
+  const inner = 2 * (R - STROKE / 2)
   return (
-    <div className="shrink-0 text-center">
-    <div className="relative mx-auto h-[118px] w-[118px]">
-      <svg viewBox="0 0 118 118" className="h-full w-full -rotate-90">
+    <div className="relative h-[118px] w-[118px] shrink-0">
+      <svg viewBox="0 0 118 118" className="h-full w-full -rotate-90" aria-hidden="true">
         <defs>
           <linearGradient id="score-grad" x1="10%" y1="0%" x2="90%" y2="100%">
             <stop offset="0%" stopColor="#D98A26" />
@@ -27,27 +42,31 @@ function ScoreRing({ value }: { value: number }) {
             <stop offset="100%" stopColor="#1E7A46" />
           </linearGradient>
         </defs>
-        <circle cx="59" cy="59" r={R} fill="none" stroke="#EDEAE0" strokeWidth={10} />
+        <circle cx="59" cy="59" r={R} fill="none" stroke="#EDEAE0" strokeWidth={STROKE} />
         <circle
           cx="59"
           cy="59"
           r={R}
           fill="none"
           stroke="url(#score-grad)"
-          strokeWidth={10}
+          strokeWidth={STROKE}
           strokeLinecap="round"
           strokeDasharray={CIRC}
           strokeDashoffset={CIRC * (1 - value / 100)}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-display text-[36px] font-semibold leading-none text-ink">{value}</span>
-        <span className="mt-0.5 text-[11px] leading-none text-ink-2">/ 100</span>
+        <span className="font-display text-[34px] font-bold leading-none tabular-nums text-ink">{value}</span>
+        <span className="mt-0.5 text-[10px] leading-none tabular-nums text-ink-2">/ 100</span>
+        <span
+          className="mt-1.5 text-center text-[8px] font-semibold uppercase leading-[1.35] tracking-[0.1em] text-ink-2"
+          style={{ maxWidth: inner - 10 }}
+        >
+          Clovara
+          <br />
+          Score
+        </span>
       </div>
-    </div>
-    <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.12em] text-ink-2">
-      Clovara Score
-    </p>
     </div>
   )
 }
@@ -173,7 +192,7 @@ export function Home({
                 <h2 id="score-heading" className="sr-only">
                   Clovara Score
                 </h2>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-sage px-3 py-1 text-[12.5px] font-medium text-deep">
+                <span className={coverage.hasPolicy ? 'chip-good' : 'chip-neutral'}>
                   {coverage.hasPolicy ? '✓ Coverage active' : 'No policy yet'}
                 </span>
                 <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink/80">
@@ -251,14 +270,14 @@ export function Home({
           </section>
 
           {/* ── Nudge ─────────────────────────────────────────────────── */}
-          <section className="card border-l-[3px] border-l-accent bg-[#FBF4E7] px-5 py-5 sm:px-6">
+          <section className="card border-l-[3px] border-l-accent bg-nudge-fill px-5 py-5 sm:px-6">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8A5510]">
               {h.nudge.eyebrow}
             </p>
-            <h2 className="mt-1.5 text-[15.5px] font-medium leading-snug text-ink">
+            <h2 className="mt-1.5 text-[15.5px] font-semibold leading-snug text-ink">
               {h.nudge.title}
             </h2>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-ink/75">{h.nudge.body}</p>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-ink-2">{h.nudge.body}</p>
             {!remembered && <Sparkline points={h.stepsTrend} down={h.trendDown} />}
             <button
               type="button"
@@ -343,7 +362,7 @@ export function Home({
             <button
               type="button"
               onClick={() => onNavigate('rewards')}
-              className="shrink-0 rounded-full border border-line px-4 py-2 text-[13.5px] font-medium text-ink transition hover:border-forest hover:text-forest"
+              className="pill-ghost pill-sm shrink-0"
             >
               Redeem
             </button>

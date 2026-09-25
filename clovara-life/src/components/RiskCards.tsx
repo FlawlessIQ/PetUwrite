@@ -2,7 +2,7 @@ import type { Projection, RiskCard } from '../data/types'
 
 const MODE_COPY: Record<RiskCard['mode'], { label: string; className: string }> = {
   manage: { label: 'Managing', className: 'bg-forest text-white' },
-  active: { label: 'In the window', className: 'bg-accent/15 text-[#8A5510]' },
+  active: { label: 'In the window', className: 'bg-[#F6E8D2] text-[#8A5510]' },
   watch: { label: 'Watching', className: 'bg-sage text-deep' },
 }
 

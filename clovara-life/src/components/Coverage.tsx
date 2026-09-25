@@ -157,7 +157,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
                 {c.claim ? `Latest claim · ${c.claim.title.toLowerCase()}` : 'How a claim works'}
               </h2>
               {c.claim && (
-                <span className="shrink-0 rounded-full bg-sage px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.07em] text-deep">
+                <span className="chip-good shrink-0">
                   Paid
                 </span>
               )}

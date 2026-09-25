@@ -12,7 +12,7 @@ export interface LeverState {
 
 const TIER_STYLE: Record<EvidenceTier, string> = {
   strong: 'border-forest/30 bg-sage text-deep',
-  associational: 'border-accent/30 bg-accent/10 text-[#8A5510]',
+  associational: 'border-accent/30 bg-[#F6E8D2] text-[#8A5510]',
   directional: 'border-line bg-cream text-ink-2',
 }
 
@@ -97,10 +97,10 @@ export function Levers({
                       role="radio"
                       aria-checked={on}
                       onClick={() => set(lever, o.value)}
-                      className={`rounded-full border px-2 py-2 text-[13.5px] font-medium transition ${
+                      className={`rounded-full border-[1.5px] px-2 py-2 text-[13.5px] font-medium transition ${
                         on
-                          ? 'border-forest bg-forest text-white shadow-soft'
-                          : 'border-line bg-white text-ink hover:border-forest/50'
+                          ? 'border-forest bg-sage text-deep'
+                          : 'border-line bg-cream text-ink hover:border-forest/50'
                       }`}
                     >
                       {o.label}
@@ -123,7 +123,7 @@ export function Levers({
           <p className="text-[14.5px] text-ink">
             <span
               className={`mr-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[13px] font-semibold ${
-                diff > 0 ? 'bg-sage text-deep' : 'bg-accent/15 text-[#8A5510]'
+                diff > 0 ? 'bg-sage text-deep' : 'bg-[#F6E8D2] text-[#8A5510]'
               }`}
             >
               {diff > 0 ? '+' : ''}

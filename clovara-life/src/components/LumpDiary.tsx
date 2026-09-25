@@ -231,9 +231,9 @@ export function LumpDiary({
                             type="button"
                             aria-pressed={reference === r}
                             onClick={() => setReference(r)}
-                            className={`rounded-full border px-3.5 py-2 text-[13.5px] transition ${
+                            className={`rounded-full border-[1.5px] px-3.5 py-2 text-[13.5px] transition ${
                               reference === r
-                                ? 'border-forest bg-forest text-white'
+                                ? 'border-forest bg-sage text-deep'
                                 : 'border-line bg-white text-ink'
                             }`}
                           >

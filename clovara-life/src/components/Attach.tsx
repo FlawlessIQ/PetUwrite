@@ -147,8 +147,8 @@ export function Attach({
                         type="button"
                         aria-pressed={opts.tierId === t.id}
                         onClick={() => setOpts((o) => ({ ...o, tierId: t.id }))}
-                        className={`rounded-soft border px-4 py-3 text-left transition ${
-                          opts.tierId === t.id ? 'border-forest bg-sage/50' : 'border-line bg-white'
+                        className={`rounded-inner border-2 px-4 py-3 text-left transition ${
+                          opts.tierId === t.id ? 'border-forest bg-sage' : 'border-line bg-cream'
                         }`}
                       >
                         <span className="block text-[14.5px] font-medium text-ink">{t.name}</span>

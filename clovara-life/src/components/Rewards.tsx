@@ -85,7 +85,7 @@ export function Rewards({
                       <p className="mt-0.5 text-[12.5px] capitalize text-ink-2">{rule.cadence}</p>
                     </div>
                     {rule.movesProjection && (
-                      <span className="shrink-0 rounded-full bg-sage px-2.5 py-0.5 text-[11px] font-medium text-deep">
+                      <span className="chip-good shrink-0">
                         Moves the projection
                       </span>
                     )}

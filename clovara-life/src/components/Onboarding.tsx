@@ -50,16 +50,16 @@ function Segmented<T extends string>({
             role="radio"
             aria-checked={active}
             onClick={() => onChange(o.value)}
-            className={`rounded-soft border px-4 py-3 text-left transition ${
+            className={`rounded-inner border-2 px-4 py-3 text-left transition ${
               active
-                ? 'border-forest bg-forest text-white shadow-soft'
-                : 'border-line bg-white text-ink hover:border-forest/50'
+                ? 'border-forest bg-sage text-deep'
+                : 'border-line bg-cream text-ink hover:border-forest/50'
             }`}
           >
             <span className="block text-[15px] font-medium leading-tight">{o.label}</span>
             {o.hint && (
               <span
-                className={`mt-0.5 block text-[12.5px] leading-snug ${active ? 'text-white/70' : 'text-ink-2'}`}
+                className={`mt-0.5 block text-[12.5px] leading-snug ${active ? 'text-deep/80' : 'text-ink-2'}`}
               >
                 {o.hint}
               </span>
@@ -294,10 +294,10 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                 setBreedQuery('')
                 setMixedSize(null)
               }}
-              className={`w-full rounded-soft border px-4 py-3 text-left text-[15px] transition ${
+              className={`w-full rounded-inner border-2 px-4 py-3 text-left text-[15px] transition ${
                 showSizePicker
                   ? 'border-forest bg-sage text-deep'
-                  : 'border-line bg-white hover:border-forest/50'
+                  : 'border-line bg-cream hover:border-forest/50'
               }`}
             >
               Mixed / not sure
@@ -318,15 +318,15 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                         setMixedSize(s.value)
                         setBreedId(MIXED_BY_SIZE[s.value])
                       }}
-                      className={`rounded-soft border px-3 py-2.5 text-left transition ${
+                      className={`rounded-inner border-2 px-3 py-2.5 text-left transition ${
                         mixedSize === s.value
-                          ? 'border-forest bg-forest text-white'
-                          : 'border-line bg-white hover:border-forest/50'
+                          ? 'border-forest bg-sage text-deep'
+                          : 'border-line bg-cream hover:border-forest/50'
                       }`}
                     >
                       <span className="block text-[14.5px] font-medium">{s.label}</span>
                       <span
-                        className={`block text-[12px] ${mixedSize === s.value ? 'text-white/70' : 'text-ink-2'}`}
+                        className={`block text-[12px] ${mixedSize === s.value ? 'text-deep/80' : 'text-ink-2'}`}
                       >
                         {s.hint}
                       </span>
@@ -345,10 +345,10 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                       key={id}
                       type="button"
                       onClick={() => setBreedId(id)}
-                      className={`rounded-soft border px-4 py-3 text-left text-[15px] transition ${
+                      className={`rounded-inner border-2 px-4 py-3 text-left text-[15px] transition ${
                         breedId === id
-                          ? 'border-forest bg-forest text-white'
-                          : 'border-line bg-white hover:border-forest/50'
+                          ? 'border-forest bg-sage text-deep'
+                          : 'border-line bg-cream hover:border-forest/50'
                       }`}
                     >
                       {b.name}

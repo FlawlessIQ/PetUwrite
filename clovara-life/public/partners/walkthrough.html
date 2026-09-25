@@ -128,8 +128,10 @@
   .ring-wrap{position:relative;width:108px;height:108px;flex-shrink:0}
   .ring-wrap svg{transform:rotate(-90deg)}
   .ring-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .ring-num .n{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;line-height:1}
-  .ring-num .l{font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-top:3px;font-weight:600}
+  .ring-num .n{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+  .ring-num .l{font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-top:3px;font-weight:600;line-height:1.35;text-align:center;max-width:75px}
+  /* DESIGN.md §5: the micro-label is two centred lines — one line clips the stroke.
+     75px = inner diameter (2 × (47 − 4.5)) − 10. */
   .mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
   .mini{background:var(--cream);border-radius:14px;padding:10px 12px}
   .mini .v{font-family:'Playfair Display',serif;font-weight:700;font-size:17px}
@@ -388,7 +390,7 @@ home:`
           <circle cx="54" cy="54" r="47" fill="none" stroke="url(#cloverGrad)" stroke-width="9"
             stroke-linecap="round" stroke-dasharray="295.3" stroke-dashoffset="53.2"/>
         </svg>
-        <div class="ring-num"><span class="n serif">82</span><span class="l">Clovara Score</span></div>
+        <div class="ring-num"><span class="n serif">82</span><span class="l">Clovara<br>Score</span></div>
       </div>
       <div class="grow">
         <span class="chip green">✓ Coverage active</span>

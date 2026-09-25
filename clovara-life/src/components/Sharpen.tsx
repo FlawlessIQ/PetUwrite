@@ -95,7 +95,7 @@ export function Sharpen({
         <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <h3 className="text-[15.5px] font-medium text-ink">{title}</h3>
           {meta.answered ? (
-            <span className="rounded-full bg-sage px-2.5 py-0.5 text-[11px] font-medium text-deep">
+            <span className="chip-good">
               Answered
             </span>
           ) : (
@@ -129,15 +129,15 @@ export function Sharpen({
             role="radio"
             aria-checked={on}
             onClick={() => onPick(o.value)}
-            className={`rounded-soft border px-3 py-2.5 text-left transition ${
+            className={`rounded-inner border-2 px-3 py-2.5 text-left transition ${
               on
-                ? 'border-forest bg-forest text-white shadow-soft'
-                : 'border-line bg-white text-ink hover:border-forest/50'
+                ? 'border-forest bg-sage text-deep'
+                : 'border-line bg-cream text-ink hover:border-forest/50'
             }`}
           >
             <span className="block text-[14.5px] font-medium leading-tight">{o.label}</span>
             {o.hint && (
-              <span className={`mt-0.5 block text-[12px] ${on ? 'text-white/70' : 'text-ink-2'}`}>
+              <span className={`mt-0.5 block text-[12px] ${on ? 'text-deep/80' : 'text-ink-2'}`}>
                 {o.hint}
               </span>
             )}
@@ -174,8 +174,8 @@ export function Sharpen({
                 aria-pressed={on}
                 aria-label={`${BCS_LABELS[score].label} — ${BCS_LABELS[score].detail}`}
                 onClick={() => answer('weightLb', { bodyConditionScore: score })}
-                className={`rounded-soft border p-1 transition sm:p-2 ${
-                  on ? 'border-forest bg-sage shadow-soft' : 'border-line bg-white hover:border-forest/50'
+                className={`rounded-inner border-2 p-1 transition sm:p-2 ${
+                  on ? 'border-forest bg-sage shadow-soft' : 'border-line bg-cream hover:border-forest/50'
                 }`}
               >
                 <span className="mx-auto block h-[58px] w-full max-w-[44px] sm:h-[68px]">
@@ -234,8 +234,8 @@ export function Sharpen({
             onClick={() => answer('conditionIds', { conditionIds: [], conditionsReviewed: true })}
             className={`rounded-full border px-3.5 py-1.5 text-[14px] transition ${
               pet.conditionsReviewed && pet.conditionIds.length === 0
-                ? 'border-forest bg-forest text-white'
-                : 'border-line bg-white text-ink hover:border-forest/50'
+                ? 'border-forest bg-sage text-deep'
+                : 'border-line bg-cream text-ink hover:border-forest/50'
             }`}
           >
             None that I know of
@@ -257,8 +257,8 @@ export function Sharpen({
                 }
                 className={`rounded-full border px-3.5 py-1.5 text-[14px] transition ${
                   on
-                    ? 'border-forest bg-forest text-white'
-                    : 'border-line bg-white text-ink hover:border-forest/50'
+                    ? 'border-forest bg-sage text-deep'
+                    : 'border-line bg-cream text-ink hover:border-forest/50'
                 }`}
               >
                 {c.name}
