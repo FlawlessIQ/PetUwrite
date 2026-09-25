@@ -16,6 +16,7 @@ import { isRemembered } from '../engine/remember'
 import { Remembering } from './Remembering'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
+import { Icon } from './Icon'
 
 /**
  * What the one Health File line says.
@@ -185,9 +186,7 @@ export function Journey({
                 {fileSummary(pet)}
               </span>
             </span>
-            <span aria-hidden="true" className="shrink-0 text-[18px] leading-none text-ink-2">
-              →
-            </span>
+            <Icon name="arrow-right" size={18} className="text-ink-2" />
           </a>
 
           {/* SPEC §5's primary entry point: the offer at the emotional peak of
@@ -204,9 +203,7 @@ export function Journey({
                 A price worked out from this plan — no form, and nothing you have already told us.
               </span>
             </span>
-            <span aria-hidden="true" className="shrink-0 text-[18px] leading-none text-forest">
-              →
-            </span>
+            <Icon name="arrow-right" size={18} className="text-forest" />
           </a>
           {showReview && onUpdate && (
             <AnnualReview
@@ -236,7 +233,7 @@ export function Journey({
               className="flex items-center justify-between gap-3 rounded-card border border-line bg-white px-5 py-4"
             >
               <span className="text-[15px] text-ink">{pet.name}&rsquo;s record</span>
-              <span aria-hidden="true" className="text-[18px] leading-none text-ink-2">→</span>
+              <Icon name="arrow-right" size={18} className="text-ink-2" />
             </a>
           )}
           <Timeline projection={projection} name={pet.name} />

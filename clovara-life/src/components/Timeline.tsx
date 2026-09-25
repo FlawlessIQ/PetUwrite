@@ -64,7 +64,7 @@ export function Timeline({ projection, name }: { projection: Projection; name: s
                 </h3>
                 <span className="text-[12.5px] text-ink-2">{stageRange(stage)}</span>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.08em] ${
+                  className={`rounded-full px-2 py-0.5 text-[12px] font-semibold ${
                     isCurrent ? 'bg-sage text-deep' : 'text-ink-2'
                   }`}
                 >

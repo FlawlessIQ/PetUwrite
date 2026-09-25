@@ -16,12 +16,24 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/*
+ * DESIGN.md §3. Body is Poppins Light 300 — "body warmth" — and anything that
+ * sets its own weight (titles, labels, buttons) keeps it.
+ *
+ * tabular-nums is declared once, here, for every numeral in the product. It is
+ * currently a NO-OP: the shipped Poppins files carry no OpenType substitutions
+ * at all, and Playfair Display has lnum, frac and liga but no tnum. Measured:
+ * "1111" and "0000" set different widths with or without it. It stays because
+ * it costs nothing and becomes true the day the fonts carry the feature — which
+ * is a font-build decision for Conor, not something CSS can supply.
+ */
 body {
   margin: 0;
   background: #f6f3eb;
   color: #1b1e1b;
   font-family: Poppins, system-ui, -apple-system, sans-serif;
-  font-weight: 400;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -93,8 +105,16 @@ textarea {
     @apply inline-flex min-h-[36px] items-center py-2 -my-2 underline underline-offset-2;
   }
 
+  /* §3 eyebrow: Poppins 600, 10–11px, caps, .18em as styleguide.html's specimen. */
   .label {
-    @apply text-[11px] font-medium uppercase tracking-[0.14em] text-ink-2;
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-2;
+  }
+
+  /* §3 display: Playfair 600 unless a heading asks for something else. Without
+     this, every display heading inherited the body weight and resolved to the
+     nearest loaded Playfair — 500 — rather than the one the spec names. */
+  .font-display {
+    font-weight: 600;
   }
 
   /* 16px minimum: below this iOS Safari force-zooms on focus and never

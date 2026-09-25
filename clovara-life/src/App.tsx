@@ -24,6 +24,7 @@ import { ImportPrompt } from './components/ImportPrompt'
 import { TrialBanner } from './components/MemberGate'
 import { useMembership } from './store/useMembership'
 import { trialDaysLeft } from './store/membership'
+import { Icon } from './components/Icon'
 
 // Lazy: an internal page must not cost the demo path a byte.
 const MetricsDashboard = lazy(() =>
@@ -164,9 +165,7 @@ function PetSwitcher({
       >
         {active && <PetAvatar pet={active} size={22} className="-ml-1" />}
         <span className="max-w-[8rem] truncate">{active ? active.name : 'Choose a pet'}</span>
-        <span aria-hidden="true" className="text-[11px] text-ink-2">
-          ▾
-        </span>
+        <Icon name="chevron-down" size={14} className="text-ink-2" />
       </button>
 
       {open && (

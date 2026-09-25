@@ -26,7 +26,7 @@ export function RiskCards({ projection, name }: { projection: Projection; name: 
               <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
                 <h3 className="text-[15.5px] font-medium leading-snug text-ink">{card.name}</h3>
                 <span
-                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.07em] ${mode.className}`}
+                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${mode.className}`}
                 >
                   {mode.label}
                 </span>
@@ -45,7 +45,7 @@ export function RiskCards({ projection, name }: { projection: Projection; name: 
 
               {card.context && (
                 <p className="mt-2.5 rounded-soft border border-line bg-cream/60 px-3 py-2.5 text-[13.5px] leading-relaxed text-ink/80">
-                  <span className="mb-1 block text-[11px] uppercase tracking-[0.09em] text-ink-2">
+                  <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-2">
                     About {name} specifically
                   </span>
                   {card.context.text}
@@ -56,7 +56,7 @@ export function RiskCards({ projection, name }: { projection: Projection; name: 
               )}
 
               {card.tier === 'high' && (
-                <p className="mt-2 text-[12px] uppercase tracking-[0.09em] text-accent">
+                <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
                   {projection.breed.isMixed
                     ? 'Common, and worth staying ahead of'
                     : 'Higher relative risk in this breed'}

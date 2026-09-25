@@ -3,6 +3,7 @@ import type { PetProfile, Projection } from '../data/types'
 import { buildCoverage } from '../engine/platform'
 import { COVERAGE_DISCLAIMER, PLAN_TIERS } from '../data/coverage'
 import { CloverMark } from './CloverMark'
+import { Icon } from './Icon'
 
 export function Coverage({ pet, projection }: { pet: PetProfile; projection: Projection }) {
   const [tierId, setTierId] = useState('complete')
@@ -31,7 +32,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
               <CloverMark size={140} label="" watermark />
             </div>
             <div className="relative px-6 py-6">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/70">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
                 Accident &amp; illness
               </p>
               <h2 className="mt-1 font-display text-[26px] leading-tight">{c.tier.name}</h2>
@@ -259,7 +260,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
                       r.covered ? 'bg-sage text-deep' : 'bg-accent/15 text-[#8A5510]'
                     }`}
                   >
-                    {r.covered ? '✓' : '!'}
+                    {r.covered ? <Icon name="check" size={12} active /> : '!'}
                   </span>
                   <div>
                     <p className="text-[14.5px] font-medium text-ink">{r.name}</p>

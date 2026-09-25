@@ -1,5 +1,6 @@
 import { COVENANT, COVENANT_INTRO, COVENANT_TITLE } from '../data/covenant'
 import { CloverMark } from './CloverMark'
+import { Icon } from './Icon'
 
 /**
  * The Data Covenant page (invariant 5). Reached at `#/covenant`.
@@ -54,9 +55,7 @@ export function DataCovenant({ onClose }: { onClose: () => void }) {
                     key={i}
                     className="flex gap-3 rounded-soft border border-forest/25 bg-sage/30 px-4 py-3"
                   >
-                    <span aria-hidden="true" className="mt-0.5 shrink-0 text-[15px] text-forest">
-                      ✓
-                    </span>
+                    <Icon name="check" size={17} className="mt-1 text-forest" active />
                     <span className="text-[15.5px] leading-relaxed text-ink/85">{p}</span>
                   </li>
                 ))}

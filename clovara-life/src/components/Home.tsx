@@ -6,6 +6,7 @@ import type { PetProfile, Projection } from '../data/types'
 import { buildCoverage, buildHome, buildRewards } from '../engine/platform'
 import { useState } from 'react'
 import type { Surface } from './Nav'
+import { Icon } from './Icon'
 
 function greeting() {
   const h = new Date().getHours()
@@ -193,7 +194,14 @@ export function Home({
                   Clovara Score
                 </h2>
                 <span className={coverage.hasPolicy ? 'chip-good' : 'chip-neutral'}>
-                  {coverage.hasPolicy ? '✓ Coverage active' : 'No policy yet'}
+                  {coverage.hasPolicy ? (
+                    <>
+                      <Icon name="check" size={14} active />
+                      Coverage active
+                    </>
+                  ) : (
+                    'No policy yet'
+                  )}
                 </span>
                 <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink/80">
                   {h.score.headline}
@@ -271,7 +279,7 @@ export function Home({
 
           {/* ── Nudge ─────────────────────────────────────────────────── */}
           <section className="card border-l-[3px] border-l-accent bg-nudge-fill px-5 py-5 sm:px-6">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8A5510]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8A5510]">
               {h.nudge.eyebrow}
             </p>
             <h2 className="mt-1.5 text-[15.5px] font-semibold leading-snug text-ink">
@@ -387,7 +395,7 @@ export function Home({
             Describe it, and we will tell you if it is a ring-now.
           </span>
         </span>
-        <span aria-hidden="true" className="shrink-0 text-[18px] leading-none text-ink-2">→</span>
+        <Icon name="arrow-right" size={18} className="text-ink-2" />
       </a>
 
       {/* One tap from the home screen, deliberately. Somebody whose dog has
@@ -404,9 +412,7 @@ export function Home({
             How urgent it is, and who to ring.
           </span>
         </span>
-        <span aria-hidden="true" className="shrink-0 text-[18px] leading-none text-ink-2">
-          →
-        </span>
+        <Icon name="arrow-right" size={18} className="text-ink-2" />
       </a>
         </>
       )}

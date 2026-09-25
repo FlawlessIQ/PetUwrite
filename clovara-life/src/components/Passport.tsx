@@ -3,6 +3,7 @@ import type { PetProfile } from '../data/types'
 import { passportState, windowCopy } from '../engine/passport'
 import { PASSPORT_PRINCIPLE, PASSPORT_VET_LINE } from '../data/socialization'
 import { track } from '../analytics/track'
+import { Icon } from './Icon'
 
 /**
  * The Socialization Passport (SPEC §6.3).
@@ -114,7 +115,7 @@ export function Passport({
                                   : 'border-line bg-white text-transparent'
                               }`}
                             >
-                              ✓
+                              <Icon name="check" size={13} active />
                             </span>
                             <span className={`text-[14.5px] ${has ? 'text-ink-2 line-through' : 'text-ink'}`}>
                               {st.label}

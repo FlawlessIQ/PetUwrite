@@ -42,7 +42,7 @@ export function Rewards({
               style={{ background: 'radial-gradient(circle, rgba(217,138,38,.38), transparent 70%)' }}
             />
             <div className="relative px-6 py-6">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/70">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
                 Clovara points
               </p>
               <p className="mt-1.5 font-display text-[46px] font-semibold leading-none">
@@ -132,7 +132,7 @@ export function Rewards({
                   <p className="text-[14.5px] font-medium leading-snug text-ink">{item.label}</p>
                   <p className="mt-0.5 text-[12.5px] leading-snug text-ink-2">{item.detail}</p>
                   {item.recommended && (
-                    <p className="mt-1 text-[11.5px] font-medium uppercase tracking-[0.07em] text-accent">
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
                       Suggested for {pet.name}
                     </p>
                   )}

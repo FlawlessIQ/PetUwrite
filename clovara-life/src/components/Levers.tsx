@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { BodyCondition, EvidenceTier, Lever, OutdoorAccess, Projection } from '../data/types'
 import { EVIDENCE_LABELS } from '../data/engine'
+import { Icon } from './Icon'
 
 export interface LeverState {
   weight?: BodyCondition
@@ -28,9 +29,7 @@ function EvidenceBadge({ tier }: { tier: EvidenceTier }) {
         className={`inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] font-medium transition ${TIER_STYLE[tier]}`}
       >
         {EVIDENCE_LABELS[tier].label}
-        <span aria-hidden="true" className="opacity-60">
-          ⓘ
-        </span>
+        <Icon name="info" size={13} className="opacity-60" />
       </button>
       {open && (
         <span className="reveal absolute right-0 top-[calc(100%+6px)] z-10 block w-[220px] rounded-soft border border-line bg-white px-3 py-2 text-[12.5px] font-normal leading-relaxed text-ink shadow-lift">
