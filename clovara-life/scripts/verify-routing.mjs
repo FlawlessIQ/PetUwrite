@@ -98,6 +98,27 @@ ok(
   /Luna/.test(await page.evaluate(() => document.body.innerText)),
 )
 
+console.log('\nThe switcher names the pet on the screen')
+// Found in the UI-pass screenshots: after the Health File stopped pushing its pet
+// into shared state, a cold link to Luna's file showed Luna's record under a
+// switcher that said Max.
+const switcherLabel = () =>
+  page.locator('button[aria-haspopup="menu"]').first().innerText().then((t) => t.trim())
+await ctx.clearCookies()
+await go('#/health/demo-luna')
+ok("a cold link to Luna's Health File says Luna in the switcher", /Luna/.test(await switcherLabel()), await switcherLabel())
+await page.locator('button[aria-haspopup="menu"]').first().click()
+await page.waitForTimeout(300)
+await page.locator('[role="menuitem"]', { hasText: 'Winston' }).first().click()
+await page.waitForTimeout(900)
+ok(
+  "choosing Winston there opens Winston's Health File",
+  (await page.evaluate(() => location.hash)) === '#/health/demo-winston' &&
+    /Winston/.test(await page.evaluate(() => document.body.innerText)),
+  await page.evaluate(() => location.hash),
+)
+ok('  …and the switcher follows', /Winston/.test(await switcherLabel()), await switcherLabel())
+
 console.log('\nThe pet switcher still owns the URL')
 await go('#/pet/demo-max/home')
 await page.locator('button[aria-haspopup="menu"]').first().click()

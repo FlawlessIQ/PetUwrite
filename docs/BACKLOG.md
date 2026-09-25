@@ -1,6 +1,6 @@
 # Clovara backlog — everything outstanding, in one place
 
-**Created 2026-09-25. Last updated 2026-09-25.** Consolidated from
+**Created 2026-09-25. Last updated 2026-09-25 (UI pass).** Consolidated from
 `EXECUTION-PLAN.md`, `STRATEGIC-REVIEW-2026-09.md`, `ROADMAP.md`,
 `clovara-life/SPEC-COMPANION.md` §10, `clovara-life/SPEC-HORIZON.md` §5 and the
 journey map. Nothing here is new work invented for the list.
@@ -45,11 +45,12 @@ unreviewed pile.
 
 | id | Item | Owner | Size | Judged |
 |---|---|---|---|---|
-| **D-UI1** | **Visual direction.** What exists — cream/forest/accent, Playfair Display over Poppins, 22px cards — came from the demo and from Claude Code. Coherent, never chosen against a brief | Conor | — | — |
-| **D-UI2** | **Type and spacing scale, before any design is applied.** There is no scale today: 34 distinct hard-coded font sizes across 663 arbitrary bracket values in 47 components. Applying a designer's ramp onto that means doing the work twice. **Blocks D-UI3** | Claude Code | M | — |
-| **D-UI3** | Apply the visual direction across all surfaces | Claude Code | M–L | — |
+| **D-UI1** | ~~Visual direction~~ — **closed 2026-09-25**: Conor issued `docs/DESIGN.md` and `docs/styleguide.html` | Conor | — | **C** |
+| **D-UI2** | **Type and spacing scale.** The UI pass converged weights, tracking and roles to §3 but did **not** consolidate the 34 hard-coded font sizes into role tokens — §8 did not ask for it and it touches every component. Still the thing that makes the next visual change cheap | Claude Code | M | — |
+| **D-UI3** | Apply the visual direction across all surfaces — **built on branch `ui-pass` 2026-09-25, not deployed**, awaiting Conor's review of the before/after gallery. Fifteen spec/product disagreements flagged in ROADMAP "UI pass: open questions" | Claude Code → Conor | done | — |
 | **D-UI4** | Palette swap, if the brand itself changes. Cheap and independent of the above: 8 values in one config file, 907 token references follow | Claude Code | S | — |
-| **D-UI5** | Dark mode. Not attempted. Every colour is a token, so it is a second palette rather than a rewrite — but nothing has been designed for it | — | M | — |
+| **D-UI5** | Dark mode. DESIGN.md §2 reserves a palette and says do not build until instructed | Conor | M | **C** |
+| **D-UI7** | **Resolve the fifteen UI-pass open questions** (ROADMAP). Three are contrast failures in the design system's own colours — amber, ink-3 and accent eyebrows — which want deciding before anything else is built on them | Conor | — | — |
 | **D-UI6** | Empty, loading and error states as a designed set. They exist and are individually considered; they have never been looked at together | Conor + Claude Code | M | — |
 
 ## A · Before any real person uses this

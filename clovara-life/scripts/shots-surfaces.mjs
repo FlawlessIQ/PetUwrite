@@ -40,9 +40,16 @@ const SURFACES = [
     'onboarding',
     '#/pet/demo-max/home',
     async (p) => {
-      const b = p.getByRole('button', { name: 'Add a pet', exact: true })
+      // "Add a pet" is a header button on wide screens and a switcher menu item
+      // on narrow ones; the first version of this only tried the button.
+      const b = p.locator('header button:visible', { hasText: /^Add a pet$/ })
       if (await b.count()) await b.first().click()
-      await p.waitForTimeout(400)
+      else {
+        await p.locator('button[aria-haspopup="menu"]').first().click()
+        await p.waitForTimeout(250)
+        await p.locator('[role="menuitem"]', { hasText: /Add a pet/ }).first().click()
+      }
+      await p.waitForTimeout(500)
     },
   ],
   ['partners-walkthrough', 'partners/walkthrough.html', null, true],

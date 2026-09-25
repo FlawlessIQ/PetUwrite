@@ -3,6 +3,40 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## UI pass — convergence to docs/DESIGN.md (branch `ui-pass`, not deployed)
+
+Convergence, not redesign: the app brought in line with DESIGN.md and
+styleguide.html, in §8's order, with everything that looked deliberate but
+disagreed flagged rather than "fixed" — fifteen of them, listed in
+docs/ROADMAP.md under "UI pass: open questions".
+
+- **Tokens (§2).** `muted` → `ink-2` across 264 usages; `line` unified; seven
+  tokens and the 12px `inner` radius added. Secondary text moves from 4.51:1 to
+  5.58:1 contrast on cream as a side effect.
+- **One mark file (§1).** Four redrawn clovers replaced by the canonical file —
+  the app's own component, the favicon, the partner walkthrough and the share
+  card — plus the icon generator that drew a fifth. og.png had always rendered
+  in Times; it no longer can.
+- **Components (§5).** Buttons at 600 with a 1.5px ghost; option pickers select
+  in sage rather than as a row of forest primaries; ten choice sites become §5
+  wells; one chip family, which fixed "No policy yet" showing in success green;
+  the score ring's label inside the ring on two lines; and the focus ring back
+  on every text input, where `focus:outline-none` had quietly removed it.
+- **The companion conversation kit (§5b).** Typed blocks, a registry of seven
+  components and no eighth — there is no diagnosis component to render into.
+  The scripted thread streams in, waits for a tap, and continues with the
+  owner's choice as their own bubble. The disclaimer is chrome, not content.
+- **Type (§3).** Poppins Light body, Playfair 600 display, 600 eyebrows at
+  .18em, and eleven UI glyphs the fonts do not contain (✓ → ▾ ⓘ) replaced by
+  outline icons. Tabular figures are declared and, measured, do nothing: the
+  shipped fonts have no `tnum`.
+- **Found by the screenshots:** the pet switcher said "Max" on Luna's Health
+  File (a regression from the morning's routing fix, now in verify:routing), a
+  metadata eyebrow stranding a word at 390px, and the companion kit pulling the
+  whole toxin table into the entry chunk (caught by verify:bundle).
+- **New guard:** `verify:brand` — mark copies byte-identical to the canonical, no
+  redrawn clover anywhere, §2 token names and values pinned.
+
 ## Horizon — the senior suite
 
 ### Senior suite (SPEC-HORIZON §1.5)

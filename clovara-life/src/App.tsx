@@ -394,7 +394,13 @@ export default function App() {
   }
 
   const selectPet = (id: string) => {
-    setActiveId(id)
+    // On a Health File the route owns the pet, so switching means following a
+    // link to the other pet's file — not changing state the page ignores.
+    if (healthRoute !== null) {
+      window.location.hash = `#/health/${encodeURIComponent(id)}`
+    } else {
+      setActiveId(id)
+    }
     window.scrollTo({ top: 0 })
   }
 
@@ -484,7 +490,9 @@ export default function App() {
               <div className="flex shrink-0 items-center gap-2">
                 <PetSwitcher
                   pets={pets}
-                  activeId={active?.id ?? null}
+                  // On the Health File the pet on screen comes from the route, not
+                  // from activeId, so the switcher has to say the same thing.
+                  activeId={(healthRoute !== null ? healthPet?.id : active?.id) ?? null}
                   onSelect={selectPet}
                   onAdd={() => setAdding(true)}
                   onReset={resetDemo}
@@ -495,7 +503,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setAdding(true)}
-                  className="hidden rounded-full bg-forest px-4 py-2 text-[14.5px] font-medium text-white transition hover:bg-deep lg:inline-flex"
+                  className="pill-primary pill-sm hidden lg:inline-flex"
                 >
                   Add a pet
                 </button>

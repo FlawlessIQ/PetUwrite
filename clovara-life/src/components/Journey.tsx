@@ -97,9 +97,16 @@ export function Journey({
     <div className="mx-auto w-full max-w-shell px-5 pb-20 pt-8 sm:pt-10">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <header className="mb-6">
+        {/* Each segment is kept whole, so a wrap at 390px falls at a "·" rather
+            than splitting "6 / years old" across two lines. */}
         <p className="label">
-          {breed.name} · {ageLabel(projection.ageYears)} ·{' '}
-          {pet.neutered ? (pet.sex === 'female' ? 'Spayed female' : 'Neutered male') : pet.sex === 'female' ? 'Female' : 'Male'}
+          {[
+            breed.name,
+            ageLabel(projection.ageYears),
+            pet.neutered ? (pet.sex === 'female' ? 'Spayed female' : 'Neutered male') : pet.sex === 'female' ? 'Female' : 'Male',
+          ]
+            .map((seg) => seg.replace(/ /g, '\u00a0'))
+            .join(' · ')}
         </p>
         <div className="mt-1.5 flex items-center gap-3.5">
           <PetAvatar pet={pet} size={56} />

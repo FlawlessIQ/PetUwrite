@@ -108,6 +108,10 @@ textarea {
   /* §3 eyebrow: Poppins 600, 10–11px, caps, .18em as styleguide.html's specimen. */
   .label {
     @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-2;
+    /* A long metadata eyebrow ("Golden Retriever · 6 years old · neutered male")
+       wraps at 390px with the wider tracking; balance it rather than strand a
+       word on its own line. */
+    text-wrap: balance;
   }
 
   /* §3 display: Playfair 600 unless a heading asks for something else. Without

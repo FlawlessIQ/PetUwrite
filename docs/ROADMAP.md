@@ -16,6 +16,37 @@ when, and where the code and the spec diverge on purpose.
 | P1 Onboarding & capture | 60s Tier-0 · live-updating reveal · silhouette BCS · condition chips · accuracy meter · photo · family circle · ask registry · Data Covenant page · annual re-projection · phase metrics · vaccine-card extraction w/ confirm-chips | `shipped except two blocked items` 2026-09-23 — Tier-0, Tier-1 sharpening, silhouette BCS, accuracy meter, Data Covenant, ask registry, family circle, photo, the annual re-projection and the four SPEC §4.3 metrics are all deployed and verified. **Both previously-blocked items are now BUILT AND SWITCHED OFF** (2026-09-23): vet-record extraction ships behind `EXTRACTION_ENABLED` with a `StubExtractor` that returns nothing and says why, and conversational onboarding behind `CONVERSATIONAL_ONBOARDING_ENABLED` with a deterministic fallback. The Firestore security review and an LLM key are now switches, not builds. `records/` stays denied in both rule sets until the review. |
 | P2 Protect attach | Pre-priced offer (smart default) · screen of truth · mock rating adapter · post-bind states | `shipped` 2026-09-23 — built against `MockRatingAdapter`; `canBind` is false and binding says so. Post-bind states land with the carrier programme, which is the only thing missing. LEGAL-REVIEW on disclosures, fraud notice and waiting periods. |
 | P3 Launch moments | **Arrival certificate `shipped` 2026-09-23** · **first-night mode `shipped` 2026-09-23** · **socialization passport `shipped` 2026-09-23** · **vaccine autopilot `shipped` 2026-09-23** · **"ate a grape" `shipped` 2026-09-23 (ER lookup behind a seam, needs a Places key)** · **sitter mode `shipped` 2026-09-23** · **gotcha day `shipped` 2026-09-23** · **renewal-explained `shipped dark` 2026-09-23 (flag off until real policies)** · **FitnessProvider adapter + simulated provider `shipped` 2026-09-23** | `shipped` 2026-09-23 — all ten P3 items built — building in SPEC §6 order; everything here is buildable without an external dependency except the nearest-open-ER lookup in "ate a grape", which needs a Places API key |
+| UI pass (convergence to `docs/DESIGN.md`) | §8 checklist: tokens · logo drift · components · companion conversation kit · type · 390/1280 screenshots | `built on branch ui-pass, NOT deployed` 2026-09-25 — awaiting Conor's review of the before/after gallery. Six commits off `phase-0-foundations` at `ab0e581`. All 28 browser and static suites green, 701 unit tests. New guard: `verify:brand`. **Fifteen places where the spec and the codebase disagree are flagged rather than changed** — see "UI pass: open questions" below |
+
+
+## UI pass: open questions for Conor (2026-09-25)
+
+Each is somewhere DESIGN.md and the product disagree and the product's version looked deliberate, so it was flagged rather than "fixed". None becomes a DECISIONS entry until Conor rules on it (DESIGN.md §8.6).
+
+**Contrast — the design system's own colours fail WCAG AA for the sizes it uses them at.**
+1. `amber` #B27117 is described as "contrast-safe on cream". It measures 3.60:1 on cream, 3.99 on white, 3.30 on the attention-chip fill — below the 4.5:1 AA needs for small text. The app's #8A5510 (5.59:1) is kept for 25 small-text uses, including both attention chips.
+2. `ink-3` #8A918A (captions, eyebrows, the ring micro-label, the companion disclaimer) measures 2.91:1 on cream. `ink-2` is used for text instead; `ink-3` only for placeholders.
+3. Accent-orange eyebrows — the styleguide's own — measure 2.49:1 on cream, failing even the large-text threshold. Left as the spec has them.
+
+**Deliberate product choices the spec contradicts.**
+4. The emergency surfaces (collapse, seizure, "call the poison line now") are red; §5b says escalation is amber, not red. Unchanged. The new kit's `escalate` component is amber, per spec.
+5. The wordmark is "Clovara *Life*"; §1 specifies "Clovara" alone.
+6. Gradient text on the projection range (in-app, `Journey.tsx`) and on og.png's headline; §2 says the gradient never goes on text.
+7. "/ 100" under the score; the styleguide ring omits it.
+8. The header's "Add a pet" is a forest primary on every desktop screen, against §5's one primary per screen.
+9. The vaccine emoji used as the "Coming up" icon on Home; §5 allows emoji only as content-image placeholders. Replacing it means choosing new imagery.
+
+**Copy in the scripted companion thread.**
+10. "What you are describing fits that picture" — diagnosis-shaped under §6.
+11. The thread books a telehealth slot with "Dr. Chen" while `TELEHEALTH_AVAILABLE` is false. DESIGN.md's own mock uses "Book telehealth vet", so the spec agrees with the script here; it is flagged against the journey-map decision of 2026-09-24.
+12. The kit's `monitor` closing line is new copy and has not been through BACKLOG P2.
+
+**Things the spec cannot be held to as written.**
+13. `tabular-nums` does nothing: the shipped Poppins files have no OpenType substitutions and Playfair has no `tnum`. Declared once globally so it becomes true when the fonts do; a font-build decision.
+14. §5b has no block for a cited fact, so the live grounded companion (C2) is not on the kit — `history_ref` would call a breed-table fact the pet's history, and `text` would drop the citation.
+15. The companion disclaimer is 11px ink-2, not 9.5px ink-3: it is the sentence carrying the firewall promise, and at the spec's size and colour it would be the least legible text on the screen.
+
+**Judgement calls made, not flagged.** Buttons stay 15px (inside §3's 13–16px title range; ~48px targets) where the styleguide sheet draws 12.5px; chips and bubbles follow the same app-to-styleguide ratio. Accent caveat boxes ("illustrative", missed-dose notes) are not converted to nudges, which §5 limits to one per screen. Poison-line tap-to-call rows, navigation tabs, the forest-card tier switcher, evidence badges and the journey's tappable cards are outside §5's patterns and left as they were.
 
 ## External dependencies (not engineering; engineering must not fake them)
 

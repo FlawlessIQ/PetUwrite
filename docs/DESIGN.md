@@ -11,6 +11,19 @@ Visual rendering of everything below: `docs/styleguide.html` (open in a browser)
 2. `clovara-life/public/partners/walkthrough.html` — inline `#cloverMark` defs (rounded-rect approximation). Replace all `<use href="#cloverMark">` instances with the canonical file (copy it into `public/partners/` as the existing `mark.svg` — verify that file is the canonical one, then dedupe).
 3. Audit any other inline clover paths in `src/` and `public/` — replace with the canonical asset import.
 
+**Eliminated in the UI pass (2026-09-25, branch `ui-pass`).** All three items above, plus three the audit found:
+
+| Drift | Was | Now |
+|---|---|---|
+| 1. `public/favicon.svg` | circle-built approximation | byte-for-byte copy of the canonical, written by `scripts/make-icons.mjs` |
+| `public/apple-touch-icon.png`, `public/og.png` | rendered from a redrawn clover in `make-icons.mjs` | rendered from the canonical file. og.png also turned out to have always rendered in Times and the system sans (fonts loaded from `file://` into a `setContent` page); fonts are now inlined and the script refuses to write an image that fell through |
+| 2. `public/partners/walkthrough.html` | inline `#cloverMark` rounded-rect defs, used 6× (once inside a JS string) | `<img src="mark.svg">`; `mark.svg` verified byte-identical to the canonical before use. Its mockup score ring also gets the §5 two-line label |
+| 3a. `src/components/CloverMark.tsx` — found by the audit | four circles and four holes; the mark every in-app surface (9 call sites) rendered | imports the canonical; Vite fingerprints it into one immutable asset. `<img>`, so it cannot be recoloured or stretched; nothing below 20px |
+| 3b. `src/share/renderCard.ts` — found by the audit | four circles painted on the canvas "so there was no asset to fetch" | draws the canonical file, and no mark rather than a guess if loading fails |
+| 3c. `scripts/make-icons.mjs` — found by the audit | drew its own clover, and pointed at a Linux-only Chromium | places the canonical only; runs on Playwright's own browser |
+
+`scripts/verify-brand.mjs` now fails if any copy stops matching the canonical byte for byte, or if any redrawn-clover signature reappears in `src/`, `public/` or `scripts/`.
+
 **Usage rules:** clear space = ½ mark width; minimum render 20px (below that, omit); wordmark = "Clovara" in Playfair Display Bold, ink, letter-spacing −0.02em, mark at cap-height × 1.25, gap 10–14px; on photography use a white rounded tile (28px radius, 20px padding). Never: flat recolor, redraw, stretch, effects, gradient-mark on accent orange. Watermark exception: 12° rotation at 14% opacity on forest surfaces only.
 
 ## 2. Color tokens (canonical names → tailwind)

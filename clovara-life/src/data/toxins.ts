@@ -238,38 +238,10 @@ export const TOXINS: Toxin[] = [
   },
 ]
 
-/**
- * Poison lines. Numbers are rendered as tap-to-call links.
- *
- * The US services charge a consultation fee, which is stated rather than
- * discovered at the worst possible moment.
- */
-export const POISON_LINES = [
-  {
-    id: 'aspca',
-    region: 'United States',
-    name: 'ASPCA Animal Poison Control',
-    tel: '+18884264435',
-    display: '(888) 426-4435',
-    note: 'Open all hours. A consultation fee applies.',
-  },
-  {
-    id: 'pph',
-    region: 'United States & Canada',
-    name: 'Pet Poison Helpline',
-    tel: '+18557647661',
-    display: '(855) 764-7661',
-    note: 'Open all hours. A consultation fee applies.',
-  },
-  {
-    id: 'apl',
-    region: 'United Kingdom',
-    name: 'Animal PoisonLine',
-    tel: '+441202509000',
-    display: '01202 509000',
-    note: 'Open all hours. A fee applies; it is cheaper than an unnecessary out-of-hours visit.',
-  },
-]
+// Poison lines live in ./poisonLines, so that a surface needing three phone
+// numbers does not have to import this whole table. Re-exported for the
+// existing importers.
+export { POISON_LINES } from './poisonLines'
 
 export const TOXIN_PRIMARY_INSTRUCTION =
   'Ring your vet or a poison line now. Do not wait for signs — for most of what is on this list, treatment works best before an animal looks unwell.'

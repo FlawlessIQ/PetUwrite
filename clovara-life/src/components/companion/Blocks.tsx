@@ -9,7 +9,7 @@
 import type { ReactElement } from 'react'
 import { inlineSegments, URGENCY_CLOSING, type BlockKind, type CompanionBlock } from '../../companion/blocks'
 import { PRODUCTS } from '../../data/products'
-import { POISON_LINES } from '../../data/toxins'
+import { POISON_LINES } from '../../data/poisonLines'
 
 export interface BlockContext {
   petName: string
