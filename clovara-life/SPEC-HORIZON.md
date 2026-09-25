@@ -299,16 +299,38 @@ The `main` hosting target, which this engagement has deliberately never touched.
 
 # 5. Decisions, gathered
 
-1. **Lump diary:** does it prompt on a schedule?
-2. **Morning briefing:** where does it land before native apps — daily email?
-3. **Second opinion:** ship without a cost range? (Recommended: yes.)
-4. **Meds autopilot:** does a household see *who* logged a dose?
-5. **Senior suite:** which quality-of-life scale, if any — a clinical decision.
+Four of the eleven were settled by building, and the answer is recorded where the
+code can be checked against it. The seven still open are all Conor's.
+
+**Settled**
+
+3. ~~**Second opinion:** ship without a cost range?~~ **Yes** — shipped without
+   one, and the page says it will not judge a price. The plausible data source was
+   our own claims, which sits close to a Data Covenant line.
+4. ~~**Meds autopilot:** does a household see *who* logged a dose?~~ **No.** That
+   it was given prevents the double dose, which is the whole safety value; who
+   gave it adds nothing clinical and turns a shared record into a ledger of who
+   forgot.
+5. ~~**Senior suite:** which quality-of-life scale?~~ **None**, and the page says
+   we do not score a life and why. Adopting a validated scale is clinical content
+   and belongs with whoever reviews `clovara-life/src/data/toxins.ts` — so this
+   folds into A1 of `../docs/EXECUTION-PLAN.md` rather than standing alone.
+10. ~~**Remember:** can we do the defensive pass now?~~ **Done.** Every surface
+    goes quiet when a pet is marked as died, enforced in the engines rather than
+    per component. **Who writes the chapter is still open.**
+
+**Still open**
+
+1. **Lump diary:** does it prompt on a schedule? A monthly reminder is the feature
+   working; it is also a monthly reminder about a lump on your dog. Shipped
+   without one.
+2. **Morning briefing:** where does it land before native apps? Email is built and
+   switched off — a daily email is a different consent from a monthly one.
 6. **Pack dashboard:** what is it for?
 7. **Lost-pet network:** our network, a registry integration, or a poster?
 8. **Food scanner:** license a composition database, or drop it?
 9. **DNA:** which partner?
-10. **Remember:** who writes it — and can we do the defensive pass now?
+10. **Remember:** who writes the chapter?
 11. **Native apps:** which build target, and when?
 
 # 6. What I built first, and in what order
