@@ -39,7 +39,7 @@ Seventeen places where DESIGN.md and the product disagreed. Fourteen are resolve
 | 11 | The demo booked a telehealth slot that cannot exist | **Conor: make it honest.** The thread now offers only "Send Max's history to your vet" — the one-page summary is real — and no booking, no Dr. Chen |
 | 12 | The kit's `monitor` closing line is unreviewed copy | **Moved to BACKLOG P2** (the judgement-copy read) — not something to decide here |
 | 13 | `tabular-nums` does nothing with these fonts | **Accepted and documented** in DESIGN §3; takes effect only if the font files change |
-| 14 | §5b has no block for a cited fact, so C2 is not on the kit | **Resolved in D-UI8** (Conor): `fact` added to §5b; C2, C1's escalation and C4's vet route now render through the kit |
+| 14 | §5b has no block for a cited fact, so C2 is not on the kit | **Resolved in D-UI8** (Conor): `fact` added to §5b; C2, C1's escalation and C4's vet route now render through the kit — shipped 2026-09-25 |
 | 15 | Companion disclaimer at 11px ink-2 | **Resolved by #2**: 11px ink-3, inside §3's caption range |
 | 16 | No §3 role between title and display | **Conor: keep Playfair, add a role.** DESIGN §3 gains `heading` — Playfair 600, 18–22px |
 | 17 | 15px ledes above body's maximum | **Accepted and documented** in DESIGN §3 as the `lead` step |

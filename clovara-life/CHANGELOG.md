@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## The companion on the kit (BACKLOG D-UI8, branch `d-ui8`, not deployed)
+## The companion on the kit (BACKLOG D-UI8, deployed 2026-09-25 from branch `d-ui8`)
 
 - **Every companion reply is blocks now.** The grounded answers, the red-flag
   escalation and "can I talk to a vet" used to render their own markup; they are
