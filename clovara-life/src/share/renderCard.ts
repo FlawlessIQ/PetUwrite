@@ -8,6 +8,7 @@ import {
   wrapText,
   type Measure,
 } from './cardLayout'
+import markUrl from '../../../assets/images/clovara_mark_refined.svg'
 
 /**
  * Draws a shareable card (SPEC §6.1, §6.7) and hands back a PNG.
@@ -29,7 +30,6 @@ const FOREST = '#1A5C38'
 const DEEP = '#0F3D26'
 const INK_2 = '#5C635C'
 const LINE = '#E5E1D5'
-const ACCENT = '#D98A26'
 
 const DISPLAY = '"Playfair Display", Georgia, serif'
 const SANS = 'Poppins, system-ui, -apple-system, sans-serif'
@@ -75,21 +75,15 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath()
 }
 
-/** The clover, drawn rather than loaded — four leaves, no asset to fetch. */
-function drawClover(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
-  const leaf = r * 0.52
-  const offsets: [number, number, string][] = [
-    [-leaf * 0.62, -leaf * 0.62, ACCENT],
-    [leaf * 0.62, -leaf * 0.62, '#8FA83E'],
-    [-leaf * 0.62, leaf * 0.62, '#8FA83E'],
-    [leaf * 0.62, leaf * 0.62, FOREST],
-  ]
-  for (const [dx, dy, colour] of offsets) {
-    ctx.beginPath()
-    ctx.fillStyle = colour
-    ctx.arc(cx + dx, cy + dy, leaf, 0, Math.PI * 2)
-    ctx.fill()
-  }
+/**
+ * The canonical mark (DESIGN.md §1), loaded rather than drawn. This used to paint
+ * four circles "so there was no asset to fetch" — a third redrawn clover. The
+ * file is fingerprinted and almost always already cached from the header, and a
+ * card whose mark fails to load is drawn without one rather than with a guess.
+ */
+function drawMark(ctx: CanvasRenderingContext2D, mark: HTMLImageElement | null, x: number, y: number, size: number) {
+  if (!mark) return
+  ctx.drawImage(mark, x, y, size, size)
 }
 
 /**
@@ -127,16 +121,22 @@ async function drawCard(content: CardContent): Promise<Blob | null> {
   ctx.stroke()
 
   // ── Wordmark ─────────────────────────────────────────────────────────────
-  drawClover(ctx, CARD_PADDING + 22, CARD_PADDING + 14, 26)
+  // §1: Playfair Bold, −0.02em, mark at cap-height × 1.25 (34px → 30px), gap 12.
+  const mark = await loadImage(markUrl)
+  drawMark(ctx, mark, CARD_PADDING, CARD_PADDING - 1, 30)
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
   ctx.fillStyle = INK
-  ctx.font = `600 34px ${DISPLAY}`
-  ctx.fillText('Clovara', CARD_PADDING + 62, CARD_PADDING + 14)
+  ctx.font = `700 34px ${DISPLAY}`
+  if ('letterSpacing' in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '-0.68px'
+  const WORD_X = CARD_PADDING + 42
+  ctx.fillText('Clovara', WORD_X, CARD_PADDING + 14)
+  // Measured with the tracking still applied, so "Life" sits where the word ends.
   const clovaraWidth = ctx.measureText('Clovara').width
+  if ('letterSpacing' in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0px'
   ctx.fillStyle = FOREST
   ctx.font = `italic 500 34px ${DISPLAY}`
-  ctx.fillText('Life', CARD_PADDING + 62 + clovaraWidth + 12, CARD_PADDING + 14)
+  ctx.fillText('Life', WORD_X + clovaraWidth + 9, CARD_PADDING + 14)
 
   // ── Portrait ─────────────────────────────────────────────────────────────
   const { cx, cy, r } = portraitCircle()

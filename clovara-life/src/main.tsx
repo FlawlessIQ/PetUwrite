@@ -8,6 +8,9 @@ import { AuthProvider } from './auth/AuthProvider'
 // fetch — they were 1.5MB of deploy weight for nothing.
 import '@fontsource/playfair-display/latin-500.css'
 import '@fontsource/playfair-display/latin-600.css'
+// DESIGN.md §3: `stat` and the wordmark are Playfair 700. Already in the
+// installed package — a file, not a dependency.
+import '@fontsource/playfair-display/latin-700.css'
 import '@fontsource/playfair-display/latin-500-italic.css'
 import '@fontsource/poppins/latin-300.css'
 import '@fontsource/poppins/latin-400.css'

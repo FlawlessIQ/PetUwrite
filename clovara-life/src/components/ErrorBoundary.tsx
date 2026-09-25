@@ -51,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
       <div className="flex min-h-screen items-center justify-center bg-cream px-5 py-10">
         <div className="card w-full max-w-[440px] px-6 py-8 text-center">
           <div className="mx-auto mb-5 w-fit">
-            <CloverMark size={36} id="err" />
+            <CloverMark size={36} />
           </div>
           <h1 className="font-display text-[26px] leading-tight text-ink">
             Something went wrong

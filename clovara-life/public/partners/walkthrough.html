@@ -188,7 +188,7 @@
 
   /* ---------- screen 5 coverage ---------- */
   .plan-card{background:var(--forest);color:#fff;border:none;position:relative;overflow:hidden}
-  .plan-card .cl{position:absolute;right:-24px;bottom:-34px;opacity:.14;transform:rotate(12deg)}
+  .plan-card .cl{position:absolute;right:-24px;bottom:-34px;opacity:.14;transform:rotate(12deg);filter:brightness(3)}
   .plan-card .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.75;font-weight:600}
   .plan-card .t{font-family:'Playfair Display',serif;font-size:21px;font-weight:600;margin-top:4px}
   .plan-card .meta{display:flex;gap:18px;margin-top:14px}
@@ -257,7 +257,8 @@
 </style>
 </head>
 <body>
-<!-- Clover mark, reused via <use> -->
+<!-- The clover gradient, for the score ring only. The mark itself is mark.svg,
+     a byte-for-byte copy of assets/images/clovara_mark_refined.svg (DESIGN.md §1). -->
 <svg width="0" height="0" style="position:absolute">
   <defs>
     <linearGradient id="cloverGrad" x1="0.15" y1="0" x2="0.85" y2="1">
@@ -265,28 +266,13 @@
       <stop offset="0.5" stop-color="#8FA83E"/>
       <stop offset="1" stop-color="#1E7A46"/>
     </linearGradient>
-    <mask id="cloverHoles">
-      <rect x="-100" y="-100" width="200" height="200" fill="white"/>
-      <circle cx="0" cy="-42" r="13" fill="black"/>
-      <circle cx="42" cy="0" r="13" fill="black"/>
-      <circle cx="0" cy="42" r="13" fill="black"/>
-      <circle cx="-42" cy="0" r="13" fill="black"/>
-    </mask>
-    <g id="cloverMark">
-      <g mask="url(#cloverHoles)" fill="url(#cloverGrad)">
-        <rect x="-27" y="-70" width="54" height="60" rx="26"/>
-        <rect x="10" y="-27" width="60" height="54" rx="26"/>
-        <rect x="-27" y="10" width="54" height="60" rx="26"/>
-        <rect x="-70" y="-27" width="60" height="54" rx="26"/>
-      </g>
-    </g>
   </defs>
 </svg>
 
 <div class="shell">
   <header class="top">
     <div class="brand">
-      <svg width="34" height="34" viewBox="-75 -75 150 150" aria-hidden="true"><use href="#cloverMark"/></svg>
+      <img src="mark.svg" alt="" width="34" height="34">
       <span class="word">Clovara</span>
     </div>
     <div class="preview-tag">Platform concept · Investor preview</div>
@@ -543,7 +529,7 @@ shop:`
     </div>
   </div>
   <div class="card member-strip" style="margin-top:12px">
-    <svg width="26" height="26" viewBox="-75 -75 150 150"><use href="#cloverMark"/></svg>
+    <img src="mark.svg" alt="" width="26" height="26">
     <div class="t">Total Care members save on every order — and earn points back on the products that keep Max healthy.</div>
   </div>`,
 
@@ -554,7 +540,7 @@ offer:`
     <div class="app-sub">Priced from his plan — nothing to fill in</div>
   </div>
   <div class="card plan-card">
-    <svg class="cl" width="120" height="120" viewBox="-75 -75 150 150"><use href="#cloverMark"/></svg>
+    <img src="mark.svg" alt="" class="cl" width="120" height="120">
     <div class="k">Recommended for Max</div>
     <div class="t serif">Clovara Complete</div>
     <div style="font-family:'Playfair Display',serif;font-size:34px;font-weight:700;margin-top:10px">$46.20<span style="font-size:13px;font-weight:500;opacity:.8"> /month</span></div>
@@ -566,7 +552,7 @@ offer:`
   </div>
   <div class="card" style="background:var(--sage);border:none">
     <div style="display:flex;gap:10px;align-items:flex-start">
-      <svg width="20" height="20" viewBox="-75 -75 150 150" style="flex-shrink:0;margin-top:2px"><use href="#cloverMark"/></svg>
+      <img src="mark.svg" alt="" width="20" height="20" style="flex-shrink:0;margin-top:2px">
       <div style="font-size:11px;color:var(--forest-deep);line-height:1.6"><b>Why this plan:</b> a 6-year-old Golden with a hip watch does best with high reimbursement before senior years. Priced by the same engine that built his plan.</div>
     </div>
   </div>
@@ -616,7 +602,7 @@ coverage:`
     <div class="app-sub">Max · policy CLV-208114</div>
   </div>
   <div class="card plan-card">
-    <svg class="cl" width="120" height="120" viewBox="-75 -75 150 150"><use href="#cloverMark"/></svg>
+    <img src="mark.svg" alt="" class="cl" width="120" height="120">
     <div class="k">Accident &amp; Illness</div>
     <div class="t serif">Clovara Complete</div>
     <div class="meta">
@@ -736,7 +722,7 @@ const nEyebrow = document.getElementById('nEyebrow');
 const nTitle   = document.getElementById('nTitle');
 const nDesc    = document.getElementById('nDesc');
 const nPoints  = document.getElementById('nPoints');
-const CHECK = '<svg class="mark" viewBox="-75 -75 150 150"><use href="#cloverMark"/></svg>';
+const CHECK = '<img src="mark.svg" alt="" class="mark">';
 
 let cur = 0;
 function go(i){

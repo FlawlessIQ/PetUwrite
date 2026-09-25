@@ -28,7 +28,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
           {/* ── Plan card ─────────────────────────────────────────────── */}
           <section className="card relative overflow-hidden bg-forest p-0 text-white">
             <div aria-hidden="true" className="pointer-events-none absolute -bottom-8 -right-6 rotate-12 opacity-[0.14]">
-              <CloverMark size={140} id="cov" />
+              <CloverMark size={140} label="" watermark />
             </div>
             <div className="relative px-6 py-6">
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/70">

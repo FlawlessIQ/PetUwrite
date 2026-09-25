@@ -1,67 +1,73 @@
 /**
- * The Clovara mark: four rounded lobes with circular holes, arranged in a plus
- * formation, filled with the signature orange-to-green gradient.
+ * The Clovara mark — and the only place the app renders it.
  *
- * Drawn as a single evenodd path so the holes are genuinely transparent rather
- * than punched with a matching background colour — it sits correctly on cream,
- * on white and on green.
+ * docs/DESIGN.md §1: every rendering of the clover derives from
+ * `assets/images/clovara_mark_refined.svg`, and redrawing it is prohibited.
+ * This component used to draw its own: four circles and four holes in a plus,
+ * which the design system lists as drift. It now imports the canonical file,
+ * so Vite fingerprints it into one immutable, cacheable asset and every surface
+ * that shows the mark shows the same one.
+ *
+ * Rendered as an <img>, so it cannot be recoloured, stretched or given effects —
+ * which are three of the things §1 forbids. The SVG's own viewBox keeps its
+ * aspect ratio inside a square box.
  */
+import markUrl from '../../../assets/images/clovara_mark_refined.svg'
 
-const circle = (cx: number, cy: number, r: number) =>
-  `M${cx - r},${cy}a${r},${r} 0 1,0 ${r * 2},0a${r},${r} 0 1,0 ${-r * 2},0`
+/** §1: "minimum render 20px (below that, omit)". */
+export const MARK_MIN_PX = 20
 
-const LOBE_R = 8.6
-const HOLE_R = 2.5
-const OFFSET = 8.4
-const C = 24
-
-const lobes = [
-  [C, C - OFFSET],
-  [C + OFFSET, C],
-  [C, C + OFFSET],
-  [C - OFFSET, C],
-] as const
-
-// Holes sit slightly toward the centre of each lobe's outer half.
-const holes = [
-  [C, C - OFFSET - 1.6],
-  [C + OFFSET + 1.6, C],
-  [C, C + OFFSET + 1.6],
-  [C - OFFSET - 1.6, C],
-] as const
-
-const path = [
-  ...lobes.map(([x, y]) => circle(x, y, LOBE_R)),
-  ...holes.map(([x, y]) => circle(x, y, HOLE_R)),
-].join(' ')
-
-export function CloverMark({ size = 30, id = 'clover' }: { size?: number; id?: string }) {
+export function CloverMark({
+  size = 30,
+  label = 'Clovara',
+  watermark = false,
+}: {
+  size?: number
+  /** Empty string when the mark is decorative next to the word "Clovara". */
+  label?: string
+  /**
+   * §1 watermark exception: forest surfaces only. The caller supplies the 12°
+   * rotation and 14% opacity on its wrapper; this brightens the gradient so it
+   * reads against forest rather than disappearing into it, as styleguide.html
+   * does.
+   */
+  watermark?: boolean
+}) {
+  if (size < MARK_MIN_PX) return null
   return (
-    <svg
+    <img
+      src={markUrl}
       width={size}
       height={size}
-      viewBox="0 0 48 48"
-      role="img"
-      aria-label="Clovara"
-      className="shrink-0"
-    >
-      <defs>
-        <linearGradient id={`${id}-grad`} x1="8%" y1="0%" x2="82%" y2="100%">
-          <stop offset="0%" stopColor="#D98A26" />
-          <stop offset="48%" stopColor="#8FA83E" />
-          <stop offset="100%" stopColor="#1E7A46" />
-        </linearGradient>
-      </defs>
-      <path d={path} fill={`url(#${id}-grad)`} fillRule="evenodd" clipRule="evenodd" />
-    </svg>
+      alt={label}
+      aria-hidden={label === '' ? true : undefined}
+      draggable={false}
+      className="shrink-0 select-none"
+      style={watermark ? { filter: 'brightness(3)' } : undefined}
+    />
   )
 }
 
-export function Wordmark({ size = 30 }: { size?: number }) {
+/**
+ * The wordmark: "Clovara" in Playfair Display Bold, ink, −0.02em, with the mark
+ * at cap-height × 1.25 and a 10–14px gap (§1).
+ *
+ * Playfair's cap height is about 0.708em, so the mark is 0.885 × the font size —
+ * floored at the 20px minimum, which at the header's size is the binding rule.
+ *
+ * "Life" is kept, in italic forest: it is the product's sub-brand and is on
+ * every surface that says which product you are in. §1 specifies the wordmark as
+ * "Clovara" alone; the lockup is flagged for Conor rather than removed.
+ */
+export function Wordmark({ fontSize = 22 }: { fontSize?: number }) {
+  const mark = Math.max(MARK_MIN_PX, Math.round(fontSize * 0.708 * 1.25))
   return (
-    <span className="inline-flex items-center gap-2.5">
-      <CloverMark size={size} />
-      <span className="font-display text-[21px] font-semibold leading-none tracking-[-0.015em] text-ink">
+    <span className="inline-flex items-center gap-3">
+      <CloverMark size={mark} label="" />
+      <span
+        className="font-display font-bold leading-none tracking-[-0.02em] text-ink"
+        style={{ fontSize }}
+      >
         Clovara <span className="font-medium italic text-forest">Life</span>
       </span>
     </span>

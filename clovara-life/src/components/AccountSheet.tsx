@@ -78,7 +78,7 @@ export function AccountSheet({
         {user ? (
           <div className="space-y-5">
             <div className="flex items-center gap-2.5">
-              <CloverMark size={24} id="acct" />
+              <CloverMark size={24} />
               <h2 id="account-title" className="font-display text-[22px] leading-tight text-ink">
                 Signed in
               </h2>
@@ -143,7 +143,7 @@ export function AccountSheet({
           <form className="space-y-5" onSubmit={submit}>
             <div>
               <div className="mb-2 flex items-center gap-2.5">
-                <CloverMark size={24} id="acct" />
+                <CloverMark size={24} />
                 <h2 id="account-title" className="font-display text-[22px] leading-tight text-ink">
                   {needsEmailForLink ? 'Confirm your email' : 'Sign in to Clovara'}
                 </h2>

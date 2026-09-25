@@ -16,7 +16,7 @@ export function DataCovenant({ onClose }: { onClose: () => void }) {
     <div className="mx-auto w-full max-w-[680px] px-5 pb-24 pt-8 sm:pt-12">
       <div className="mb-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
-          <CloverMark size={26} id="cov" />
+          <CloverMark size={26} />
           <span className="label">Clovara</span>
         </div>
         <button

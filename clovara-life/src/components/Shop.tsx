@@ -206,7 +206,7 @@ export function Shop({
       )}
 
       <section className="card mt-6 flex flex-wrap items-center gap-4 bg-sage/60 px-5 py-4">
-        <CloverMark size={26} id="shop" />
+        <CloverMark size={26} />
         <p className="min-w-[12rem] flex-1 text-[14px] leading-relaxed text-deep">
           Total Care members save on every order and earn points back on the products that keep
           {' '}{pet.name} healthy. Membership is priced separately from insurance.

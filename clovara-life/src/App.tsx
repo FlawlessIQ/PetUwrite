@@ -476,7 +476,7 @@ export default function App() {
             className="flex min-h-[40px] shrink-0 items-center"
             aria-label="Clovara Life home"
           >
-            <Wordmark size={28} />
+            <Wordmark />
           </button>
 
           {!adding && (
@@ -652,7 +652,7 @@ export default function App() {
         <div className="mx-auto max-w-shell px-5 py-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2.5">
-              <CloverMark size={22} id="footer" />
+              <CloverMark size={22} />
               <span className="font-display text-[16px] text-ink">Clovara Life</span>
             </div>
             <div className="max-w-[62ch] space-y-2">

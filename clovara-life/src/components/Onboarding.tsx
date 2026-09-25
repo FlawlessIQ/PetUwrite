@@ -170,7 +170,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
     <div className="mx-auto w-full max-w-[620px] px-5 py-10 sm:py-16">
       <div className="mb-7 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
-          <CloverMark size={26} id="onb" />
+          <CloverMark size={26} />
           <span className="label">
             Step {step + 1} of {STEPS.length} · {STEPS[step]}
           </span>
