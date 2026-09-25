@@ -60,7 +60,7 @@ export $(grep -v '^#' .env | xargs)
 flutter build web --release --dart-define=OPENAI_API_KEY=$OPENAI_API_KEY
 
 # Deploy
-firebase deploy --only hosting
+firebase deploy --only hosting:main   # `hosting` alone deploys both sites — see docs/DEPLOYMENT.md
 ```
 
 ## Security Considerations

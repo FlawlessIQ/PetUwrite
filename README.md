@@ -45,7 +45,12 @@ The project is configured for Firebase Hosting. `next.config.mjs` uses static ex
 
 ```bash
 npm run build
-firebase deploy --only hosting
+firebase deploy --only hosting:main
 ```
+
+**Name the target.** There are two hosting sites on this project — `main`
+(this site) and `life` (clovara-life.web.app) — so plain
+`firebase deploy --only hosting` pushes both, including whichever one you have
+not built. `docs/DEPLOYMENT.md` has the full picture.
 
 Live Firebase Hosting URL: `https://pet-underwriter-ai.web.app`.

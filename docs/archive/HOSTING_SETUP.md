@@ -1,3 +1,11 @@
+> **Superseded 2026-09-25 — see `docs/DEPLOYMENT.md`.**
+>
+> This describes a single unnamed hosting target serving a Flutter web build from
+> `build/web`. The project now has two named targets (`main` and `life`), and the
+> Flutter app is served at `/app` under `main` rather than being the site. The
+> commands below — `firebase deploy` and `firebase deploy --only hosting` — would
+> today push **both live sites**. Kept for history only.
+
 # Firebase Hosting Setup - Clovara
 
 **Date:** October 11, 2025  

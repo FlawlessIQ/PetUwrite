@@ -530,7 +530,7 @@ firebase functions:config:set \
 # deploy_web.sh (verified)
 #!/bin/bash
 flutter build web --release
-firebase deploy --only hosting
+firebase deploy --only hosting:main   # `hosting` alone deploys both sites — see docs/DEPLOYMENT.md
 ```
 
 **Status:** ✅ Ready for deployment

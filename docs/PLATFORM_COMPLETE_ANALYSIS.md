@@ -846,7 +846,7 @@ caption: 14px, Regular
 - **Platform:** Firebase Hosting
 - **URL:** (your-project).web.app
 - **Build:** `flutter build web`
-- **Deploy:** `firebase deploy --only hosting`
+- **Deploy:** `firebase deploy --only hosting:main` (see `docs/DEPLOYMENT.md`)
 
 **Backend:**
 - **Platform:** Firebase (Firestore + Functions)
@@ -1001,7 +1001,7 @@ test/
 ```bash
 # Web
 flutter build web
-firebase deploy --only hosting
+firebase deploy --only hosting:main   # `hosting` alone deploys both sites — see docs/DEPLOYMENT.md
 
 # iOS (requires macOS)
 flutter build ios

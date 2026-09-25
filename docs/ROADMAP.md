@@ -1,6 +1,6 @@
 # Clovara Roadmap — living document
 
-Last updated: 2026-09-24 (maintained by Claude Code per CLAUDE.md)
+Last updated: 2026-09-25 (maintained by Claude Code per CLAUDE.md)
 
 Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cut(<why>)`
 

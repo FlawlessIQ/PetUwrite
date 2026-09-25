@@ -442,7 +442,7 @@ artillery run artillery-config.yml
 2. **Deploy Flutter App**
    ```bash
    flutter build web --release
-   firebase deploy --only hosting
+   firebase deploy --only hosting:main   # see docs/DEPLOYMENT.md
    ```
 
 3. **Monitor for 24 hours**

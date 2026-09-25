@@ -380,7 +380,7 @@ firebase deploy --only firestore:indexes
 flutter build web  # or flutter build ios/android
 
 # Deploy to hosting
-firebase deploy
+firebase deploy --only hosting:main   # plain `firebase deploy` pushes both sites
 ```
 
 ### 4. Post-Deployment Testing
