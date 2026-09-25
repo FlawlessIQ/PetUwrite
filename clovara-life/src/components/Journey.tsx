@@ -129,7 +129,10 @@ export function Journey({
               {pet.name} is on track for
             </p>
             <p className="mt-1 font-display text-hero font-semibold leading-none tracking-[-0.02em] sm:text-hero-xl">
-              <span className="gradient-text">
+              {/* Solid forest, not gradient text: §2 keeps the gradient off text, and
+                  its orange end measured 2.49:1 on the product's hero number (D-UI7).
+                  The ring and the life-arc keep the gradient. */}
+              <span className="text-forest">
                 {lowShown.toFixed(1)}–{highShown.toFixed(1)}
               </span>
             </p>

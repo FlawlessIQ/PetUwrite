@@ -26,8 +26,8 @@ import { track } from '../analytics/track'
  * "watch closely, and ring if anything changes".
  */
 const BAND_STYLE: Record<RiskBand, string> = {
-  'call-now': 'border-[#B3261E]/35 bg-[#B3261E]/10 text-[#8C1D18]',
-  'vet-today': 'border-accent/40 bg-accent/12 text-[#8A5510]',
+  'call-now': 'border-accent/40 bg-[#F6E8D2] text-amber',
+  'vet-today': 'border-accent/40 bg-accent/12 text-amber',
   monitor: 'border-line bg-sage/50 text-deep',
 }
 
@@ -97,11 +97,11 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
       </div>
 
       {/* ── Before anything else ──────────────────────────────────────────── */}
-      <section className="card border-[#B3261E]/30 bg-[#B3261E]/[0.06] p-5">
-        <p className="text-lead font-medium leading-relaxed text-[#8C1D18]">
+      <section className="card border-l-[3px] border-l-accent bg-nudge-fill p-5">
+        <p className="text-lead font-semibold leading-relaxed text-amber">
           {TOXIN_PRIMARY_INSTRUCTION}
         </p>
-        <p className="mt-2.5 text-body-lg leading-relaxed text-[#8C1D18]">{TOXIN_NEVER_DIY}</p>
+        <p className="mt-2.5 text-body-lg leading-relaxed text-ink">{TOXIN_NEVER_DIY}</p>
         <p className="mt-2.5 text-body-lg leading-relaxed text-ink">{TOXIN_TAKE_WITH_YOU}</p>
 
         <ul className="mt-4 space-y-2">

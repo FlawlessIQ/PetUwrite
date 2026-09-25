@@ -94,7 +94,7 @@ export function PhotoPicker({
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 text-body leading-relaxed text-[#8A5510]">
+        <p role="alert" className="mt-3 text-body leading-relaxed text-amber">
           {error}
         </p>
       )}

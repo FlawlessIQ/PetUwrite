@@ -81,8 +81,8 @@ ok('no retired hex values (#6B716C muted, #E6E1D6 old line)', grep([...styled, r
 const tw = readFileSync(resolve(ROOT, 'tailwind.config.js'), 'utf8')
 const want = {
   cream: '#F6F3EB', 'cream-2': '#EFEBE0', card: '#FFFFFF', line: '#E5E1D5', ink: '#1B1E1B',
-  'ink-2': '#5C635C', 'ink-3': '#8A918A', forest: '#1A5C38', deep: '#0F3D26', sage: '#E4EAE0',
-  'sage-2': '#D5DFD0', accent: '#D98A26', amber: '#B27117', 'nudge-fill': '#FBF4E7', track: '#EDEAE0',
+  'ink-2': '#5C635C', 'ink-3': '#656B65', forest: '#1A5C38', deep: '#0F3D26', sage: '#E4EAE0',
+  'sage-2': '#D5DFD0', accent: '#D98A26', amber: '#935E13', 'nudge-fill': '#FBF4E7', track: '#EDEAE0',
 }
 ok(
   'tailwind.config.js carries exactly the §2 values',

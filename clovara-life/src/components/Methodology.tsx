@@ -63,7 +63,7 @@ export function Methodology({ projection }: { projection: Projection }) {
                     ? 'bg-sage text-deep'
                     : breed.confidence === 'derived'
                       ? 'bg-cream text-ink-2'
-                      : 'bg-[#F6E8D2] text-[#8A5510]'
+                      : 'bg-[#F6E8D2] text-amber'
                 }`}
               >
                 {breed.confidence}
@@ -87,7 +87,7 @@ export function Methodology({ projection }: { projection: Projection }) {
                   <li key={f.label} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                     <span
                       className={`inline-flex w-[62px] justify-center rounded-full px-2 py-0.5 text-body-sm font-semibold ${
-                        f.delta > 0 ? 'bg-sage text-deep' : 'bg-[#F6E8D2] text-[#8A5510]'
+                        f.delta > 0 ? 'bg-sage text-deep' : 'bg-[#F6E8D2] text-amber'
                       }`}
                     >
                       {f.delta > 0 ? '+' : ''}

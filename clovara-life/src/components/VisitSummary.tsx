@@ -60,7 +60,7 @@ export function VisitSummary({
       </div>
 
       <div className="px-5 py-5">
-        <p className="rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-body-sm leading-relaxed text-[#8A5510]">
+        <p className="rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-body-sm leading-relaxed text-amber">
           Everything below was reported by you through this app. None of it has been examined or
           verified by a vet, and a blank means the question was never asked — not that the answer is
           no.

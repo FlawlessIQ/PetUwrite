@@ -12,13 +12,13 @@ export default {
         line: '#E5E1D5', // borders, dividers (was #E6E1D6)
         ink: '#1B1E1B', // primary text, dark buttons
         'ink-2': '#5C635C', // secondary text (was `muted` #6B716C)
-        'ink-3': '#8A918A', // captions, placeholders — see DECISIONS: fails AA for small text
+        'ink-3': '#656B65', // captions, placeholders, eyebrows — darkened from #8A918A to pass AA (D-UI7)
         forest: '#1A5C38', // primary actions, links, data marks, focus rings
         deep: '#0F3D26', // hero bands, text on sage
         sage: '#E4EAE0', // positive chips, soft fills, icon wells
         'sage-2': '#D5DFD0', // borders on sage, inactive timeline dots
         accent: '#D98A26', // attention only
-        amber: '#B27117', // accent-toned text — see DECISIONS: fails AA for small text
+        amber: '#935E13', // accent-toned text — darkened from #B27117 to pass AA (D-UI7)
         'nudge-fill': '#FBF4E7', // "worth watching" card fill
         track: '#EDEAE0', // ring and chart tracks, grids
       },

@@ -14,7 +14,7 @@ import { track } from '../analytics/track'
  */
 const STATUS_STYLE: Record<DoseState['status'], string> = {
   recorded: 'bg-sage text-deep',
-  due: 'bg-[#F6E8D2] text-[#8A5510]',
+  due: 'bg-[#F6E8D2] text-amber',
   'past-window': 'bg-cream text-ink-2',
   upcoming: 'bg-white text-ink-2',
 }

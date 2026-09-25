@@ -10,7 +10,7 @@ import { isRemembered } from '../engine/remember'
 
 const STRENGTH_STYLE: Record<ClaimStrength, string> = {
   behaviour: 'bg-sage text-deep',
-  supportive: 'bg-[#F6E8D2] text-[#8A5510]',
+  supportive: 'bg-[#F6E8D2] text-amber',
   comfort: 'bg-cream text-ink-2',
 }
 

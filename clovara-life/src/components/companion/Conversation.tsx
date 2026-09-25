@@ -112,7 +112,7 @@ export function ChromeTypebar({ petName, target = 'ask' }: { petName: string; ta
 }
 
 export function ChromeDisclaimer() {
-  return <p className="mt-3 text-center text-caption leading-relaxed text-ink-2">{DISCLAIMER}</p>
+  return <p className="mt-3 text-center text-caption leading-relaxed text-ink-3">{DISCLAIMER}</p>
 }
 
 // ── The scripted player ─────────────────────────────────────────────────────

@@ -158,7 +158,10 @@ const conversational = COPY.filter(
   (c) =>
     /(companion|grounding|safety|verification|secondOpinion|SomethingWrong|AskCompanion)\.tsx?$/i.test(c.file) ||
     // The conversation kit (DESIGN.md §5b) renders every companion reply.
-    /\/companion\//.test(c.file),
+    /\/companion\//.test(c.file) ||
+    // …and the scripted thread it renders is written here. It was outside this
+    // rule's scope, which is how "fits that picture" survived until D-UI7.
+    /engine\/platform\.ts$/.test(c.file),
 )
 ok(
   'the conversational surfaces are still being read',
@@ -167,6 +170,8 @@ ok(
 ok('no "it sounds like" / "most likely"', asserting(/\bit (sounds|looks) like\b|\bmost likely\b/i, conversational))
 ok('no "we think she has"', asserting(/\bwe (think|believe) (she|he|they|it) (has|have)\b/i, conversational))
 ok('no "probably a …"', asserting(/\b(probably|likely) (a|an|the) [a-z]/i, conversational))
+// Linking what an owner describes to a condition, without naming it as such.
+ok('no "fits that picture" / "consistent with"', asserting(/\bfits (that|this|the) picture\b|\bconsistent with (a|an|the|that|this)\b|\bpoints to (a|an)\b/i, conversational))
 
 console.log(`\n${failures === 0 ? 'copy verified' : `${failures} failed`}\n`)
 process.exit(failures === 0 ? 0 : 1)

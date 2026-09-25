@@ -1,9 +1,9 @@
 <title>Clovara Design System</title>
 <style>
 :root{
-  --cream:#F6F3EB; --cream2:#EFEBE0; --card:#FFFFFF; --ink:#1B1E1B; --ink2:#5C635C; --ink3:#8A918A;
+  --cream:#F6F3EB; --cream2:#EFEBE0; --card:#FFFFFF; --ink:#1B1E1B; --ink2:#5C635C; --ink3:#656B65;
   --forest:#1A5C38; --deep:#0F3D26; --sage:#E4EAE0; --sage2:#D5DFD0; --line:#E5E1D5;
-  --accent:#D98A26; --amber:#B27117; --bad:#B4472E;
+  --accent:#D98A26; --amber:#935E13; --bad:#B4472E;
   --grad:linear-gradient(140deg,#D98A26 0%,#8FA83E 48%,#1E7A46 100%);
   --r-card:22px; --r-soft:18px; --r-inner:12px;
   --sh-soft:0 1px 2px rgba(27,30,27,.04),0 12px 32px -18px rgba(27,30,27,.22);
@@ -24,7 +24,7 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;backgroun
 section{padding:46px 0 8px}
 h1{font-family:'Playfair Display',serif;font-size:clamp(30px,5vw,42px);font-weight:600;line-height:1.12;text-wrap:balance}
 h2{font-family:'Playfair Display',serif;font-size:26px;font-weight:600;text-wrap:balance}
-.eyebrow{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.eyebrow{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-weight:600}
 .lede{font-size:13.5px;line-height:1.8;color:var(--ink2);font-weight:300;max-width:620px;margin-top:12px}
 .lede b{color:var(--ink);font-weight:600}
 .grid{display:grid;gap:12px;margin-top:20px}
@@ -154,12 +154,12 @@ footer{padding:36px 0 44px;font-size:10px;color:var(--ink3);border-top:1px solid
     <div class="sw"><div class="chipc" style="background:#E5E1D5"></div><div class="m"><div class="n">line</div><div class="h">#E5E1D5</div><div class="u">Borders, dividers. (Unifies the #E6E1D6 variant.)</div></div></div>
     <div class="sw"><div class="chipc" style="background:#1B1E1B"></div><div class="m"><div class="n">ink</div><div class="h">#1B1E1B</div><div class="u">Primary text, dark buttons.</div></div></div>
     <div class="sw"><div class="chipc" style="background:#5C635C"></div><div class="m"><div class="n">ink-2</div><div class="h">#5C635C</div><div class="u">Secondary text. (Replaces "muted".)</div></div></div>
-    <div class="sw"><div class="chipc" style="background:#8A918A"></div><div class="m"><div class="n">ink-3</div><div class="h">#8A918A</div><div class="u">Captions, placeholders, footers.</div></div></div>
+    <div class="sw"><div class="chipc" style="background:#656B65"></div><div class="m"><div class="n">ink-3</div><div class="h">#656B65</div><div class="u">Captions, placeholders, eyebrows. 4.9:1 on cream (was #8A918A, which failed AA).</div></div></div>
     <div class="sw"><div class="chipc" style="background:#1A5C38"></div><div class="m"><div class="n">forest</div><div class="h">#1A5C38</div><div class="u">Primary actions, links, data marks, focus.</div></div></div>
     <div class="sw"><div class="chipc" style="background:#0F3D26"></div><div class="m"><div class="n">deep</div><div class="h">#0F3D26</div><div class="u">Hero/manifesto bands, text on sage.</div></div></div>
     <div class="sw"><div class="chipc" style="background:#E4EAE0"></div><div class="m"><div class="n">sage</div><div class="h">#E4EAE0</div><div class="u">Positive chips, soft fills, icon wells.</div></div></div>
     <div class="sw"><div class="chipc" style="background:#D98A26"></div><div class="m"><div class="n">accent</div><div class="h">#D98A26</div><div class="u">Attention only: eyebrows, nudges, "watch" states.</div></div></div>
-    <div class="sw"><div class="chipc" style="background:#B27117"></div><div class="m"><div class="n">amber</div><div class="h">#B27117</div><div class="u">Accent-toned text (contrast-safe on cream).</div></div></div>
+    <div class="sw"><div class="chipc" style="background:#935E13"></div><div class="m"><div class="n">amber</div><div class="h">#935E13</div><div class="u">Accent-toned text. 4.9:1 on cream, 4.5:1 on the attention chip (was #B27117, which failed AA).</div></div></div>
     <div class="sw"><div class="chipc" style="background:linear-gradient(140deg,#D98A26 0%,#8FA83E 48%,#1E7A46 100%)"></div><div class="m"><div class="n">clover gradient</div><div class="h">140° D98A26 → 8FA83E 48% → 1E7A46</div><div class="u">Brand moments only. Never UI chrome, never data series.</div></div></div>
     <div class="sw"><div class="chipc" style="background:#FBF4E7;border-left:3px solid #D98A26"></div><div class="m"><div class="n">nudge fill</div><div class="h">#FBF4E7</div><div class="u">"Worth watching" cards, with 3px accent left border.</div></div></div>
   </div>
@@ -184,6 +184,7 @@ footer{padding:36px 0 44px;font-size:10px;color:var(--ink3);border-top:1px solid
     <div class="row"><span class="lab">display-xl · Playfair 600 · 40–62px · 1.1</span><span class="serif" style="font-size:40px;font-weight:600">More good years, <em>together.</em></span></div>
     <div class="row"><span class="lab">display · Playfair 600 · 26–38px</span><span class="serif" style="font-size:28px;font-weight:600">This is Max.</span></div>
     <div class="row"><span class="lab">stat · Playfair 700 · 24–38px + tabular</span><span class="serif" style="font-size:30px;font-weight:700;font-variant-numeric:tabular-nums">12–14 <span style="font-size:14px;font-weight:500">healthy years</span></span></div>
+    <div class="row"><span class="lab">heading · Playfair 600 · 18–22px</span><span class="serif" style="font-size:20px;font-weight:600">Why this price</span></div>
     <div class="row"><span class="lab">title · Poppins 600 · 13–16px</span><span style="font-weight:600;font-size:14px">Hip &amp; Joint Chews</span></div>
     <div class="row"><span class="lab">body · Poppins 300 · 12.5–14.5px · 1.7–1.9</span><span style="font-weight:300;font-size:13.5px;color:var(--ink2)">Every product says why it was chosen for him, in plain words.</span></div>
     <div class="row"><span class="lab">eyebrow · Poppins 600 · 10–11px · caps · .18em</span><span class="eyebrow">One membership, whole life</span></div>

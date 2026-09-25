@@ -2,7 +2,7 @@ import type { Projection, RiskCard } from '../data/types'
 
 const MODE_COPY: Record<RiskCard['mode'], { label: string; className: string }> = {
   manage: { label: 'Managing', className: 'bg-forest text-white' },
-  active: { label: 'In the window', className: 'bg-[#F6E8D2] text-[#8A5510]' },
+  active: { label: 'In the window', className: 'bg-[#F6E8D2] text-amber' },
   watch: { label: 'Watching', className: 'bg-sage text-deep' },
 }
 
@@ -56,7 +56,7 @@ export function RiskCards({ projection, name }: { projection: Projection; name: 
               )}
 
               {card.tier === 'high' && (
-                <p className="mt-2 text-caption font-semibold uppercase tracking-[0.18em] text-accent">
+                <p className="mt-2 text-caption font-semibold uppercase tracking-[0.18em] text-amber">
                   {projection.breed.isMixed
                     ? 'Common, and worth staying ahead of'
                     : 'Higher relative risk in this breed'}

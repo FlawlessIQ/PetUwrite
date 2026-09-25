@@ -15,6 +15,7 @@ const PATHS = {
   'arrow-right': 'M5 12h14M13 6l6 6-6 6',
   'chevron-down': 'M6.5 9.5L12 15l5.5-5.5',
   info: 'M12 11v5.5M12 7.75v.01',
+  calendar: 'M4.5 9.5h15M8 3.5v3M16 3.5v3',
 } as const
 
 export type IconName = keyof typeof PATHS
@@ -50,6 +51,7 @@ export function Icon({
       aria-hidden={label ? undefined : true}
     >
       {name === 'info' && <circle cx="12" cy="12" r="9" />}
+      {name === 'calendar' && <rect x="4.5" y="5.5" width="15" height="14" rx="2.5" />}
       <path d={PATHS[name]} />
     </svg>
   )

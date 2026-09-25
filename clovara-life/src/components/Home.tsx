@@ -26,9 +26,8 @@ const CIRC = 2 * Math.PI * R
  * Its max width is the inner diameter less 10px.
  *
  * "/ 100" is kept, though styleguide.html omits it: it is the only thing on the
- * page that says what the number is out of. Flagged for Conor rather than
- * removed. The label is ink-2 rather than §5's ink-3, because ink-3 measures
- * 3.2:1 on white and this is 8px text — see DECISIONS.
+ * page that says what the number is out of. The label is §5's ink-3, which
+ * D-UI7 darkened to pass AA.
  */
 const STROKE = 9
 function ScoreRing({ value }: { value: number }) {
@@ -60,7 +59,7 @@ function ScoreRing({ value }: { value: number }) {
         <span className="font-display text-display-lg font-bold leading-none tabular-nums text-ink">{value}</span>
         <span className="mt-0.5 text-caption-sm leading-none tabular-nums text-ink-2">/ 100</span>
         <span
-          className="mt-1.5 text-center text-micro font-semibold uppercase leading-[1.35] tracking-[0.1em] text-ink-2"
+          className="mt-1.5 text-center text-micro font-semibold uppercase leading-[1.35] tracking-[0.1em] text-ink-3"
           style={{ maxWidth: inner - 10 }}
         >
           Clovara
@@ -279,7 +278,7 @@ export function Home({
 
           {/* ── Nudge ─────────────────────────────────────────────────── */}
           <section className="card border-l-[3px] border-l-accent bg-nudge-fill px-5 py-5 sm:px-6">
-            <p className="text-caption font-semibold uppercase tracking-[0.18em] text-[#8A5510]">
+            <p className="text-caption font-semibold uppercase tracking-[0.18em] text-amber">
               {h.nudge.eyebrow}
             </p>
             <h2 className="mt-1.5 text-lead font-semibold leading-snug text-ink">
@@ -303,11 +302,10 @@ export function Home({
             <section className="card px-5 py-5 sm:px-6">
               <p className="label">Coming up</p>
               <div className="mt-3 flex items-start gap-3.5">
-                <span
-                  aria-hidden="true"
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-soft bg-sage text-heading-sm"
-                >
-                  💉
+                {/* An outline calendar, not a syringe emoji: §5 allows emoji only as
+                    content-image placeholders, and an event row's icon is UI (D-UI7). */}
+                <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-soft bg-sage text-deep">
+                  <Icon name="calendar" size={22} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-body-lg font-medium leading-snug text-ink">

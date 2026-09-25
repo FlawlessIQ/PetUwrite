@@ -3,6 +3,22 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Design decisions (BACKLOG D-UI7, branch `d-ui7`, not deployed)
+
+- **The design system's own colours now pass AA.** amber → #935E13, ink-3 →
+  #656B65, same hues; eyebrows use amber or ink-3, never accent. DESIGN.md and
+  styleguide.html carry the new values.
+- **Emergency screens are amber, not red** — Conor's call. The nudge pattern
+  with an amber headline; the words that make them urgent are unchanged.
+- **No gradient text.** The healthy-years range and og.png's headline are
+  solid forest; the gradient stays on the ring and the life-arc.
+- **The demo is honest.** The scripted companion offers only the one-page vet
+  summary, which is real, and no longer books a telehealth slot that is not.
+  "Fits that picture" — diagnosis-shaped — is gone, and the copy guard now
+  covers the file it was in.
+- DESIGN §3 gains a `heading` role for the Playfair card headings; the header's
+  "Add a pet" is a ghost; the "Coming up" emoji is an outline calendar.
+
 ## The type scale (BACKLOG D-UI2, deployed 2026-09-25 from branch `type-scale`)
 
 - **35 hand-set font sizes become 19 named tokens.** Each is a DESIGN.md §3 role —

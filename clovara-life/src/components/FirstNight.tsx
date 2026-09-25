@@ -50,7 +50,7 @@ export function FirstNight({ pet, now = new Date() }: { pet: PetProfile; now?: D
         </p>
 
         {/* Never behind a tap. */}
-        <p className="mt-3 rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-body-lg leading-relaxed text-[#8A5510]">
+        <p className="mt-3 rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-body-lg leading-relaxed text-amber">
           {FIRST_NIGHT_ESCALATION}
         </p>
 

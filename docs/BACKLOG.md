@@ -50,7 +50,8 @@ unreviewed pile.
 | **D-UI3** | Apply the visual direction across all surfaces — **shipped 2026-09-25**, deployed from branch `ui-pass` after Conor saw the before/after gallery. Fifteen spec/product disagreements flagged in ROADMAP "UI pass: open questions" | Claude Code → Conor | done | **C** |
 | **D-UI4** | Palette swap, if the brand itself changes. Cheap and independent of the above: 8 values in one config file, 907 token references follow | Claude Code | S | — |
 | **D-UI5** | Dark mode. DESIGN.md §2 reserves a palette and says do not build until instructed | Conor | M | **C** |
-| **D-UI7** | **Resolve the seventeen UI-pass open questions** (ROADMAP) — two added by the type scale: the heading gap in §3, and 15px ledes. Three are contrast failures in the design system's own colours — amber, ink-3 and accent eyebrows — which want deciding before anything else is built on them | Conor | — | — |
+| **D-UI7** | ~~Resolve the seventeen UI-pass open questions~~ — **resolved 2026-09-25 on branch `d-ui7`, not deployed.** Fourteen closed — four by Conor's decision (emergency screens to amber, no gradient text, a heading role, an honest demo) — and one left open as D-UI8. Outcomes in ROADMAP | Conor + Claude Code | done | **C** |
+| **D-UI8** | **A `fact` block for the conversation kit**, so the live grounded companion (C2) can move onto it without dropping its citations. Proposed: `{ kind:'fact'; claim; source; citation? }`. Adding a kind is a design decision | Conor → Claude Code | M | — |
 | **D-UI6** | Empty, loading and error states as a designed set. They exist and are individually considered; they have never been looked at together | Conor + Claude Code | M | — |
 
 ## A · Before any real person uses this

@@ -139,7 +139,7 @@ export function SitterMode({
             >
               {busy ? 'One moment…' : 'Make a link'}
             </button>
-            {error && <p className="mt-2 text-body text-[#8A5510]">{error}</p>}
+            {error && <p className="mt-2 text-body text-amber">{error}</p>}
 
             {links.length > 0 && (
               <ul className="mt-4 space-y-2">

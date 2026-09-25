@@ -132,7 +132,7 @@ export function Rewards({
                   <p className="text-body-lg font-medium leading-snug text-ink">{item.label}</p>
                   <p className="mt-0.5 text-body-sm leading-snug text-ink-2">{item.detail}</p>
                   {item.recommended && (
-                    <p className="mt-1 text-caption font-semibold uppercase tracking-[0.18em] text-accent">
+                    <p className="mt-1 text-caption font-semibold uppercase tracking-[0.18em] text-amber">
                       Suggested for {pet.name}
                     </p>
                   )}

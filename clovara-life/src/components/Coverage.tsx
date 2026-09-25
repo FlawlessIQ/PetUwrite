@@ -257,7 +257,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
                   <span
                     aria-hidden="true"
                     className={`mt-1 grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full text-caption font-semibold ${
-                      r.covered ? 'bg-sage text-deep' : 'bg-accent/15 text-[#8A5510]'
+                      r.covered ? 'bg-sage text-deep' : 'bg-accent/15 text-amber'
                     }`}
                   >
                     {r.covered ? <Icon name="check" size={12} active /> : '!'}
@@ -286,7 +286,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
         </div>
       </div>
 
-      <p className="mt-6 rounded-soft border border-accent/25 bg-accent/[0.07] px-4 py-3 text-body-sm leading-relaxed text-[#8A5510]">
+      <p className="mt-6 rounded-soft border border-accent/25 bg-accent/[0.07] px-4 py-3 text-body-sm leading-relaxed text-amber">
         <strong className="font-semibold">Illustrative pricing.</strong> {COVERAGE_DISCLAIMER} It
         carries no expense or jurisdictional loading and has not been through a rate filing.
       </p>

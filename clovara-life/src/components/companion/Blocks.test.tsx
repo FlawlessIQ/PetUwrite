@@ -44,6 +44,13 @@ describe('the renderer', () => {
     expect(html({ kind: 'product_ref', productId: 'no-such-thing', why: 'x' })).toBe('')
   })
 
+  it('renders a booking with who and when, and claims neither video nor in-person', () => {
+    const out = html({ kind: 'booking_confirm', vet: 'Dr. Okafor', when: 'Thursday at 9am', prepared: 'Summary ready.' })
+    expect(out).toContain('Dr. Okafor')
+    expect(out).toContain('Thursday at 9am')
+    expect(out).not.toMatch(/video|telehealth|in person/i)
+  })
+
   it('omits a history date it was not given', () => {
     const out = html({ kind: 'history_ref', lead: 'From Max’s record', note: 'Hip dysplasia on file.', date: '' })
     expect(out).toContain('From Max’s record')
@@ -77,9 +84,11 @@ describe('the scripted thread, through the kit', () => {
   it('renders up to the first choice, with the memory moment and the chrome', () => {
     const out = renderToStaticMarkup(<ScriptedConversation turns={turns} petName="Max" since={2020} />)
     expect(out).toContain('From Max&#x27;s record')
-    expect(out).toContain('Book telehealth vet')
-    // It waits for the tap: the booking has not happened yet.
-    expect(out).not.toContain('booked with')
+    expect(out).toContain('history to your vet')
+    // It waits for the tap: the summary has not been prepared yet.
+    expect(out).not.toContain('one-page summary')
+    // And it offers nothing the product cannot do (D-UI7).
+    expect(out).not.toMatch(/telehealth|video slot|Dr\. Chen/i)
     expect(out).not.toMatch(/<h[1-6]|<ul class="list-disc/)
   })
 })

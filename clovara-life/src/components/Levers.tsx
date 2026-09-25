@@ -13,7 +13,7 @@ export interface LeverState {
 
 const TIER_STYLE: Record<EvidenceTier, string> = {
   strong: 'border-forest/30 bg-sage text-deep',
-  associational: 'border-accent/30 bg-[#F6E8D2] text-[#8A5510]',
+  associational: 'border-accent/30 bg-[#F6E8D2] text-amber',
   directional: 'border-line bg-cream text-ink-2',
 }
 
@@ -122,7 +122,7 @@ export function Levers({
           <p className="text-body-lg text-ink">
             <span
               className={`mr-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-body-sm font-semibold ${
-                diff > 0 ? 'bg-sage text-deep' : 'bg-[#F6E8D2] text-[#8A5510]'
+                diff > 0 ? 'bg-sage text-deep' : 'bg-[#F6E8D2] text-amber'
               }`}
             >
               {diff > 0 ? '+' : ''}

@@ -149,7 +149,7 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
       )}
 
       {error && (
-        <p className="card border-accent/30 bg-accent/10 p-5 text-lead text-[#8A5510]">{error}</p>
+        <p className="card border-accent/30 bg-accent/10 p-5 text-lead text-amber">{error}</p>
       )}
 
       {t && (

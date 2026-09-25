@@ -107,7 +107,7 @@ textarea {
 
   /* §3 eyebrow: Poppins 600, 10–11px, caps, .18em as styleguide.html's specimen. */
   .label {
-    @apply text-caption font-semibold uppercase tracking-[0.18em] text-ink-2;
+    @apply text-caption font-semibold uppercase tracking-[0.18em] text-ink-3;
     /* A long metadata eyebrow ("Golden Retriever · 6 years old · neutered male")
        wraps at 390px with the wider tracking; balance it rather than strand a
        word on its own line. */
@@ -136,9 +136,8 @@ textarea {
    * alone, and red is not a chip colour. Sized at the app's scale (12.5px), which
    * is the styleguide's 10.5px by the same ratio as the buttons.
    *
-   * `chip-attention` and `chip-speculative` use #8A5510 rather than §2's `amber`:
-   * amber measures 3.30:1 on the attention fill and 3.99:1 on white, both below
-   * AA for text this size. Flagged in DECISIONS for Conor.
+   * Attention and speculative chips use `amber`, which D-UI7 darkened to pass AA
+   * on the attention fill (4.52:1) — it failed at 3.30:1 before.
    */
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-body-sm font-semibold leading-tight;
@@ -147,13 +146,13 @@ textarea {
     @apply chip bg-sage text-deep;
   }
   .chip-attention {
-    @apply chip bg-[#F6E8D2] text-[#8A5510];
+    @apply chip bg-[#F6E8D2] text-amber;
   }
   .chip-neutral {
     @apply chip border border-line text-ink-2;
   }
   .chip-speculative {
-    @apply chip border border-dashed border-accent text-[#8A5510];
+    @apply chip border border-dashed border-accent text-amber;
   }
   .chip-done {
     @apply chip bg-forest text-white;
@@ -165,12 +164,6 @@ textarea {
   }
 }
 
-.gradient-text {
-  background: var(--clover);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
 
 /* Reveal animation — fully disabled under reduced motion. */
 .reveal {

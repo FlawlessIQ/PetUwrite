@@ -16,40 +16,33 @@ when, and where the code and the spec diverge on purpose.
 | P1 Onboarding & capture | 60s Tier-0 · live-updating reveal · silhouette BCS · condition chips · accuracy meter · photo · family circle · ask registry · Data Covenant page · annual re-projection · phase metrics · vaccine-card extraction w/ confirm-chips | `shipped except two blocked items` 2026-09-23 — Tier-0, Tier-1 sharpening, silhouette BCS, accuracy meter, Data Covenant, ask registry, family circle, photo, the annual re-projection and the four SPEC §4.3 metrics are all deployed and verified. **Both previously-blocked items are now BUILT AND SWITCHED OFF** (2026-09-23): vet-record extraction ships behind `EXTRACTION_ENABLED` with a `StubExtractor` that returns nothing and says why, and conversational onboarding behind `CONVERSATIONAL_ONBOARDING_ENABLED` with a deterministic fallback. The Firestore security review and an LLM key are now switches, not builds. `records/` stays denied in both rule sets until the review. |
 | P2 Protect attach | Pre-priced offer (smart default) · screen of truth · mock rating adapter · post-bind states | `shipped` 2026-09-23 — built against `MockRatingAdapter`; `canBind` is false and binding says so. Post-bind states land with the carrier programme, which is the only thing missing. LEGAL-REVIEW on disclosures, fraud notice and waiting periods. |
 | P3 Launch moments | **Arrival certificate `shipped` 2026-09-23** · **first-night mode `shipped` 2026-09-23** · **socialization passport `shipped` 2026-09-23** · **vaccine autopilot `shipped` 2026-09-23** · **"ate a grape" `shipped` 2026-09-23 (ER lookup behind a seam, needs a Places key)** · **sitter mode `shipped` 2026-09-23** · **gotcha day `shipped` 2026-09-23** · **renewal-explained `shipped dark` 2026-09-23 (flag off until real policies)** · **FitnessProvider adapter + simulated provider `shipped` 2026-09-23** | `shipped` 2026-09-23 — all ten P3 items built — building in SPEC §6 order; everything here is buildable without an external dependency except the nearest-open-ER lookup in "ate a grape", which needs a Places API key |
-| UI pass (convergence to `docs/DESIGN.md`) | §8 checklist: tokens · logo drift · components · companion conversation kit · type · 390/1280 screenshots | `shipped` 2026-09-25 — deployed to hosting:life from branch `ui-pass` on Conor's word after the before/after gallery, and verified against production (demo, routing, companion, onboarding, share card, accessibility, Remember). Six commits off `phase-0-foundations` at `ab0e581`. All 28 browser and static suites green, 701 unit tests. New guard: `verify:brand`. **Fifteen places where the spec and the codebase disagree are flagged rather than changed** — see "UI pass: open questions" below |
+| UI pass (convergence to `docs/DESIGN.md`) | §8 checklist: tokens · logo drift · components · companion conversation kit · type · 390/1280 screenshots | `shipped` 2026-09-25 — deployed to hosting:life from branch `ui-pass` on Conor's word after the before/after gallery, and verified against production (demo, routing, companion, onboarding, share card, accessibility, Remember). Six commits off `phase-0-foundations` at `ab0e581`. All 28 browser and static suites green, 701 unit tests. New guard: `verify:brand`. Seventeen spec/product disagreements were flagged; fourteen are resolved in D-UI7 — see "UI pass: open questions — resolved" below |
 | Type scale (BACKLOG D-UI2) | 35 hand-set font sizes → 19 named §3 tokens; arbitrary sizes rejected by `verify:brand` | `shipped` 2026-09-25 — deployed to hosting:life from branch `type-scale` and verified against production (demo, routing, length, companion, onboarding, accessibility). 400 of 604 uses unchanged, every measured page shorter |
 
 
-## UI pass: open questions for Conor (2026-09-25)
+## UI pass: open questions — resolved in D-UI7 (2026-09-25)
 
-Each is somewhere DESIGN.md and the product disagree (17 now — two added by the type scale) and the product's version looked deliberate, so it was flagged rather than "fixed". None becomes a DECISIONS entry until Conor rules on it (DESIGN.md §8.6).
+Seventeen places where DESIGN.md and the product disagreed. Fourteen are resolved: four by Conor's decision, the rest because the answer was forced by the product's own rules (WCAG AA, invariant 4) or defaulted as recommended. DESIGN.md and styleguide.html were updated together wherever the spec changed.
 
-**Contrast — the design system's own colours fail WCAG AA for the sizes it uses them at.**
-1. `amber` #B27117 is described as "contrast-safe on cream". It measures 3.60:1 on cream, 3.99 on white, 3.30 on the attention-chip fill — below the 4.5:1 AA needs for small text. The app's #8A5510 (5.59:1) is kept for 25 small-text uses, including both attention chips.
-2. `ink-3` #8A918A (captions, eyebrows, the ring micro-label, the companion disclaimer) measures 2.91:1 on cream. `ink-2` is used for text instead; `ink-3` only for placeholders.
-3. Accent-orange eyebrows — the styleguide's own — measure 2.49:1 on cream, failing even the large-text threshold. Left as the spec has them.
-
-**Deliberate product choices the spec contradicts.**
-4. The emergency surfaces (collapse, seizure, "call the poison line now") are red; §5b says escalation is amber, not red. Unchanged. The new kit's `escalate` component is amber, per spec.
-5. The wordmark is "Clovara *Life*"; §1 specifies "Clovara" alone.
-6. Gradient text on the projection range (in-app, `Journey.tsx`) and on og.png's headline; §2 says the gradient never goes on text.
-7. "/ 100" under the score; the styleguide ring omits it.
-8. The header's "Add a pet" is a forest primary on every desktop screen, against §5's one primary per screen.
-9. The vaccine emoji used as the "Coming up" icon on Home; §5 allows emoji only as content-image placeholders. Replacing it means choosing new imagery.
-
-**Copy in the scripted companion thread.**
-10. "What you are describing fits that picture" — diagnosis-shaped under §6.
-11. The thread books a telehealth slot with "Dr. Chen" while `TELEHEALTH_AVAILABLE` is false. DESIGN.md's own mock uses "Book telehealth vet", so the spec agrees with the script here; it is flagged against the journey-map decision of 2026-09-24.
-12. The kit's `monitor` closing line is new copy and has not been through BACKLOG P2.
-
-**Things the spec cannot be held to as written.**
-13. `tabular-nums` does nothing: the shipped Poppins files have no OpenType substitutions and Playfair has no `tnum`. Declared once globally so it becomes true when the fonts do; a font-build decision.
-14. §5b has no block for a cited fact, so the live grounded companion (C2) is not on the kit — `history_ref` would call a breed-table fact the pet's history, and `text` would drop the citation.
-15. The companion disclaimer is 11px ink-2, not 9.5px ink-3: it is the sentence carrying the firewall promise, and at the spec's size and colour it would be the least legible text on the screen.
-16. **§3 has no role between title (≤16px) and display (≥26px)**, yet the app sets 84 Playfair card headings there. The type scale names three steps for them (`heading-sm` 18, `heading` 20, `heading-lg` 22) rather than forcing them into a role; styleguide.html uses Poppins 600 titles for in-card headings instead. (Added with D-UI2.)
-17. **15px prose ledes sit above §3's 14.5px body maximum.** The scale gives them a `lead` step rather than shrinking them. (Added with D-UI2.)
-
-**Judgement calls made, not flagged.** Buttons stay 15px (inside §3's 13–16px title range; ~48px targets) where the styleguide sheet draws 12.5px; chips and bubbles follow the same app-to-styleguide ratio. Accent caveat boxes ("illustrative", missed-dose notes) are not converted to nudges, which §5 limits to one per screen. Poison-line tap-to-call rows, navigation tabs, the forest-card tier switcher, evidence badges and the journey's tappable cards are outside §5's patterns and left as they were.
+| # | Question | Outcome |
+|---|---|---|
+| 1 | `amber` failed AA (3.60:1) | **Darkened to #935E13**, same hue — ≥4.5:1 on every background it is used on. The 25 `#8A5510` stand-ins moved onto the token |
+| 2 | `ink-3` failed AA (2.91:1) | **Darkened to #656B65**, same hue — 4.93:1 on cream. Ring micro-label, eyebrows and the companion disclaimer now use it, as §3/§5 specify |
+| 3 | Accent-orange eyebrows (2.49:1) | **Eyebrows use amber or ink-3**; accent stays for fills, borders and dots |
+| 4 | Emergency screens red vs §5b amber | **Conor: amber, as DESIGN says.** The "ring a vet now" and poison-line screens take the nudge pattern — accent border, nudge fill, amber headline, ink body, forest links. Red remains only for destructive actions (revoking a sitter link) |
+| 5 | Wordmark "Clovara *Life*" | **Kept** (default); DESIGN §1 now names the product lockup |
+| 6 | Gradient text on the projection range and og.png | **Conor: solid colour, per DESIGN.** Forest Playfair; the gradient stays on the ring and life-arc |
+| 7 | "/ 100" under the score | **Kept** (default); DESIGN §5 now allows the scale under the number |
+| 8 | Header "Add a pet" as a second primary | **Now a ghost button** — one forest primary per screen |
+| 9 | 💉 as the "Coming up" icon | **An outline calendar icon** |
+| 10 | "Fits that picture" in the scripted thread | **Deleted** — invariant 4 and §6 both forbid it. `verify:copy` now covers the file the thread is written in, which is how it had slipped past |
+| 11 | The demo booked a telehealth slot that cannot exist | **Conor: make it honest.** The thread now offers only "Send Max's history to your vet" — the one-page summary is real — and no booking, no Dr. Chen |
+| 12 | The kit's `monitor` closing line is unreviewed copy | **Moved to BACKLOG P2** (the judgement-copy read) — not something to decide here |
+| 13 | `tabular-nums` does nothing with these fonts | **Accepted and documented** in DESIGN §3; takes effect only if the font files change |
+| 14 | §5b has no block for a cited fact, so C2 is not on the kit | **Still open.** Proposed shape: `{ kind:'fact'; claim; source; citation? }`, rendered as a card-inset with the source line C2 already shows. Adding a kind is a design decision — BACKLOG D-UI8 |
+| 15 | Companion disclaimer at 11px ink-2 | **Resolved by #2**: 11px ink-3, inside §3's caption range |
+| 16 | No §3 role between title and display | **Conor: keep Playfair, add a role.** DESIGN §3 gains `heading` — Playfair 600, 18–22px |
+| 17 | 15px ledes above body's maximum | **Accepted and documented** in DESIGN §3 as the `lead` step |
 
 ## External dependencies (not engineering; engineering must not fake them)
 

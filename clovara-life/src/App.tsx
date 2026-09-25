@@ -503,7 +503,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setAdding(true)}
-                  className="pill-primary pill-sm hidden lg:inline-flex"
+                  className="pill-ghost pill-sm hidden lg:inline-flex"
                 >
                   Add a pet
                 </button>

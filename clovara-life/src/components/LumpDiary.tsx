@@ -129,7 +129,7 @@ export function LumpDiary({
           The same thing, month after month
         </h2>
         {!quiet && (
-          <p className="mt-2 rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-body-sm leading-relaxed text-[#8A5510]">
+          <p className="mt-2 rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-body-sm leading-relaxed text-amber">
             {NEW_LUMP_WARNING}
           </p>
         )}
@@ -268,7 +268,7 @@ export function LumpDiary({
                           Choose what you will put beside it first.
                         </p>
                       )}
-                      {error && <p className="mt-2 text-body-sm text-[#8A5510]">{error}</p>}
+                      {error && <p className="mt-2 text-body-sm text-amber">{error}</p>}
                     </div>
                   )}
                 </div>

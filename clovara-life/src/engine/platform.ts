@@ -510,7 +510,11 @@ export function buildCompanion(profile: PetProfile, projection: Projection): Com
       recall: declaredCard
         ? {
             label: `From ${profile.name}'s record`,
-            text: `${declaredCard.name} is already noted on ${their} file, with a plan to monitor as ${they} ages. What you are describing fits that picture.`,
+            // "What you are describing fits that picture" used to close this line —
+            // linking a symptom to a condition, which invariant 4 and DESIGN.md §6
+            // both forbid. The record says what is on file; it does not say the
+            // limp is that. Removed rather than reworded (D-UI7).
+            text: `${declaredCard.name} is already noted on ${their} file, with a plan to monitor as ${they} ages.`,
           }
         : {
             label: `From ${profile.name}'s record`,
@@ -521,18 +525,18 @@ export function buildCompanion(profile: PetProfile, projection: Projection): Com
       from: 'ai',
       text: `${focus.action} I would also watch for ${secondClause(focus.watch)}. This is worth a vet's eyes — not an emergency, but soon.`,
       watch: { intro: focus.action, signs: laterClauses(focus.watch), urgency: 'soon' },
-      actions: ['Book telehealth vet', `Send ${profile.name}'s history summary`],
-      actionIds: ['book-telehealth', 'send-summary'],
+      // Only what the product can do. It used to lead with "Book telehealth
+      // vet" and then confirm a slot with a Dr. Chen, while TELEHEALTH_AVAILABLE
+      // is false — the demo showing a capability that does not exist (D-UI7).
+      // The one-page vet summary is real (C0), so that is the action.
+      actions: [`Send ${profile.name}'s history to your vet`],
+      actionIds: ['send-summary'],
     },
-    { from: 'user', text: 'Book it — and yes, send the summary.' },
-    (() => {
-      const prepared = `I have put together a one-page summary for the visit: ${their} ${focus.name.toLowerCase()} notes, the last three weigh-ins, ${their} current ${projection.breed.species === 'cat' ? 'diet and litter-box' : 'activity'} trend, and what ${they} is currently taking.`
-      return {
-        from: 'ai' as const,
-        text: `Done. Dr. Chen has a video slot tomorrow at 5:30pm. ${prepared}`,
-        booking: { vet: 'Dr. Chen', when: 'tomorrow at 5:30pm', prepared },
-      }
-    })(),
+    { from: 'user', text: `Yes — send ${profile.name}'s history.` },
+    {
+      from: 'ai',
+      text: `I have put together a one-page summary for your vet: ${their} ${focus.name.toLowerCase()} notes, the last three weigh-ins, ${their} current ${projection.breed.species === 'cat' ? 'diet and litter-box' : 'activity'} trend, and what ${they} is currently taking.`,
+    },
   ]
 }
 

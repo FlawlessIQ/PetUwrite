@@ -72,8 +72,7 @@ const OG = `<!doctype html><html><head><meta charset="utf-8"><style>
   h1{font-family:'Playfair Display',serif;font-size:70px;font-weight:600;line-height:1.06;
      letter-spacing:-.02em;color:#1B1E1B;max-width:15ch}
   .range{font-family:'Playfair Display',serif;font-size:64px;font-weight:600;line-height:1;
-         background:linear-gradient(140deg,#D98A26,#8FA83E 48%,#1E7A46);
-         -webkit-background-clip:text;background-clip:text;color:transparent}
+         color:#1A5C38}  /* solid forest: §2 keeps the gradient off text (D-UI7) */
   .sub{font-size:22px;color:#5C635C;margin-top:16px;max-width:38ch;line-height:1.5}
   .foot{display:flex;align-items:flex-end;justify-content:space-between}
   .arc{position:absolute;right:56px;bottom:74px}

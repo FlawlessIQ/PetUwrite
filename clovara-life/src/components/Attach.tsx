@@ -117,7 +117,7 @@ export function Attach({
 
             {/* Invariant 2, driven by the adapter rather than hardcoded. */}
             {quote.illustrative && (
-              <p className="border-b border-accent/30 bg-accent/12 px-5 py-3 text-body-sm leading-relaxed text-[#8A5510] sm:px-6">
+              <p className="border-b border-accent/30 bg-accent/12 px-5 py-3 text-body-sm leading-relaxed text-amber sm:px-6">
                 {ILLUSTRATIVE_LABEL}
               </p>
             )}
@@ -234,7 +234,7 @@ export function Attach({
                   {preExisting.map((p) => (
                     <li
                       key={p.conditionId}
-                      className="rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-body-lg leading-relaxed text-[#8A5510]"
+                      className="rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-body-lg leading-relaxed text-amber"
                     >
                       {p.meaning}
                     </li>

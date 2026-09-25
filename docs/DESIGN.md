@@ -1,6 +1,6 @@
 # Clovara Design System — build reference (v1, Sept 2026)
 
-Visual rendering of everything below: `docs/styleguide.html` (open in a browser). If a surface disagrees with this document, the surface is wrong. Changes to this system are decisions — log them in `docs/DECISIONS.md`.
+Visual rendering of everything below: `docs/styleguide.html` (open in a browser). **Last changed 2026-09-25 (D-UI7)** — amber and ink-3 values, the eyebrow colour, a heading role, and the notes marked D-UI7; both files updated together. If a surface disagrees with this document, the surface is wrong. Changes to this system are decisions — log them in `docs/DECISIONS.md`.
 
 ## 1. Logo — one file, no drift
 
@@ -24,6 +24,8 @@ Visual rendering of everything below: `docs/styleguide.html` (open in a browser)
 
 `scripts/verify-brand.mjs` now fails if any copy stops matching the canonical byte for byte, or if any redrawn-clover signature reappears in `src/`, `public/` or `scripts/`.
 
+**Product lockup:** in Clovara Life the wordmark reads "Clovara *Life*", with *Life* in Playfair 500 italic, forest (D-UI7). The rules below apply to "Clovara".
+
 **Usage rules:** clear space = ½ mark width; minimum render 20px (below that, omit); wordmark = "Clovara" in Playfair Display Bold, ink, letter-spacing −0.02em, mark at cap-height × 1.25, gap 10–14px; on photography use a white rounded tile (28px radius, 20px padding). Never: flat recolor, redraw, stretch, effects, gradient-mark on accent orange. Watermark exception: 12° rotation at 14% opacity on forest surfaces only.
 
 ## 2. Color tokens (canonical names → tailwind)
@@ -38,13 +40,13 @@ Update `tailwind.config.js` to exactly this set (renames noted):
 | line | #E5E1D5 | borders, dividers — **unifies the #E6E1D6 variant; change it** |
 | ink | #1B1E1B | primary text, dark buttons |
 | ink-2 | #5C635C | secondary text — **replaces `muted` #6B716C; migrate usages** |
-| ink-3 | #8A918A | captions, placeholders (NEW) |
+| ink-3 | #656B65 | captions, placeholders, eyebrows (NEW). **Was #8A918A**, which measured 2.91:1 on cream and failed AA for the small text it exists for; darkened in D-UI7, same hue |
 | forest | #1A5C38 | primary actions, links, data marks, focus rings |
 | deep | #0F3D26 | hero/manifesto bands, text-on-sage |
 | sage | #E4EAE0 | positive chips, soft fills, icon wells |
 | sage-2 | #D5DFD0 | borders on sage, inactive timeline dots (NEW) |
 | accent | #D98A26 | attention only: eyebrows, nudges, watch-states |
-| amber | #B27117 | accent-toned *text* (contrast-safe on cream) (NEW) |
+| amber | #935E13 | accent-toned *text* (NEW). **Was #B27117**, which measured 3.60:1 on cream and 3.30:1 on the attention chip — not contrast-safe; darkened in D-UI7 to ≥4.5:1 on every background it is used on |
 | nudge-fill | #FBF4E7 | "worth watching" card fill, with 3px accent left border (NEW) |
 | track | #EDEAE0 | ring/chart tracks and grids (NEW) |
 
@@ -62,11 +64,14 @@ Faces: **Playfair Display** (display/emotion) + **Poppins** (UI/body). No third 
 | display | Playfair 600, 26–38px |
 | stat | Playfair 700, 24–38px, `tabular-nums` (all prices/scores/counts) |
 | title | Poppins 600, 13–16px |
+| heading | Playfair 600, 18–22px — card and section headings inside a card (added in D-UI7: §3 had no role between title and display, and the app sets its card headings here) |
 | body | Poppins **300**, 12.5–14.5px, line-height 1.7–1.9, ink-2 (bold spans = 600 ink) |
-| eyebrow | Poppins 600, 10–11px, uppercase, letter-spacing .14–.22em, accent or ink-3 |
+| eyebrow | Poppins 600, 10–11px, uppercase, letter-spacing .14–.22em, **amber or ink-3** (not accent: accent text measures 2.49:1 — D-UI7) |
 | caption | Poppins 400, 9.5–11px, ink-3 |
 
 Body copy width ≤ ~65ch. Inputs ≥16px font on mobile (iOS zoom rule — already in index.css, keep).
+
+**Implemented as a scale** (D-UI2): nineteen named tokens in `tailwind.config.js`, each one of the roles above; `verify:brand` rejects any hand-set size. Two notes from implementation: 15px ledes use a `lead` step above body's 14.5px maximum; and `tabular-nums` is declared globally but the shipped Poppins and Playfair files carry no `tnum` feature, so it takes effect only if the font files change.
 
 ## 4. Shape, depth, spacing, motion
 
@@ -82,7 +87,7 @@ Body copy width ≤ ~65ch. Inputs ≥16px font on mobile (iOS zoom rule — alre
 - **Chips:** sage/deep = good-active · #F6E8D2/amber = attention · line-border/ink-2 = neutral tag · dashed-accent/amber = speculative ("blue sky") · forest/white = built/done. Status = word-or-icon + color, never color alone. Red reserved for destructive confirmation only.
 - **Nudge card:** nudge-fill bg, 3px accent left border, radius 12, amber eyebrow, calm copy ("worth a look, not an emergency"). Max one visible at a time.
 - **Plan card ("precious object"):** forest bg, white text, canonical mark watermark (14%, 12°, brightened), Playfair stat. Reserved for the pet's plan, coverage, points.
-- **Score ring:** track #EDEAE0, 8–9px stroke, round caps, gradient stroke (permitted moment), Playfair number. Micro-label ("Clovara Score") stacked on TWO centered lines inside the ring, 7–8px, letter-spacing .1em, max-width ≈ inner diameter − 10px — a single line clips against the stroke at any ring size. Same fix applies to the walkthrough mockup's ring (drift-list item).
+- **Score ring:** its scale ("/ 100") may sit under the number — it is the only thing on screen saying what the score is out of (D-UI7). Track #EDEAE0, 8–9px stroke, round caps, gradient stroke (permitted moment), Playfair number. Micro-label ("Clovara Score") stacked on TWO centered lines inside the ring, 7–8px, letter-spacing .1em, max-width ≈ inner diameter − 10px — a single line clips against the stroke at any ring size. Same fix applies to the walkthrough mockup's ring (drift-list item).
 - **Silhouette picker (input pattern):** tap-not-type; options as wells (cream bg, 2px line border, radius 12); selected = sage bg + 2px forest border + forest glyph. "I don't know" always offered.
 - **Icons:** outline, 1.7px stroke (2.1px active), round caps/joins, 20–24px grid. No filled sets. Emoji never as UI icons (allowed only as content-image placeholders until real imagery lands).
 - **Data viz:** data = forest; attention series = accent; grid/track #EDEAE0; never gradient or rainbow; ranges as bands with emphasized endpoints; evidence badges (strong/associational/directional) accompany any health-claim visual.
@@ -112,7 +117,7 @@ Component specs (all visible in the walkthrough mockup's Care screen — that re
 | **actions** | pill row under the ai bubble, left-aligned, max 3: one primary (forest, small) + ghosts. Labels are verbs ("Book telehealth vet"). Tapping renders the user's choice as a user bubble |
 | **booking_confirm** | ai bubble with bold vet + time and the "prepared" line ("I've prepared a one-page summary of his hip notes…"). Optional single paw emoji allowed here only |
 | **product_ref** | mini product card (§5 product pattern) inline: image well, title, plain-words `why`, member price. Never more than one per reply |
-| **escalate** | nudge-pattern card (accent border, nudge-fill) with ER routing action + poison-line style tap-to-call. Alarm-free copy; amber not red |
+| **escalate** | nudge-pattern card (accent border, nudge-fill) with ER routing action + poison-line style tap-to-call. Alarm-free copy; amber not red. The same pattern carries the app's emergency screens — "ring a vet now", the poison-line screen — which moved from red to amber in D-UI7 |
 | **Screen chrome (not model output — cannot be omitted):** | header "Knows Max since 2020"; footer note 9.5px ink-3 centered: "Companion shares information and routes you to licensed vets — it doesn't diagnose. Your conversations here are never used in underwriting or claims."; typebar: card pill, ghost placeholder ("Ask about Max…"), 32px forest send disc |
 
 **Motion:** blocks stream in sequentially (120ms stagger, 300ms ease rise); typing indicator = three sage dots in an ai bubble; respect reduced-motion (render instantly).

@@ -93,7 +93,7 @@ export function AccountSheet({
               <p className="label mb-1.5">Membership</p>
               <p className="text-body-lg leading-relaxed text-ink/85">{membershipLine(entitlement)}</p>
               {membershipError && (
-                <p role="alert" className="mt-2 text-body text-[#8A5510]">
+                <p role="alert" className="mt-2 text-body text-amber">
                   {membershipError}
                 </p>
               )}
@@ -196,7 +196,7 @@ export function AccountSheet({
             {error && (
               <p
                 role="alert"
-                className="rounded-soft border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-body-lg leading-relaxed text-[#8A5510]"
+                className="rounded-soft border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-body-lg leading-relaxed text-amber"
               >
                 {error}
               </p>

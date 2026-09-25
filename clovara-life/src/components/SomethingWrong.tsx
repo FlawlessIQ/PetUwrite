@@ -81,11 +81,11 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
       </section>
 
       {result?.escalate && (
-        <section className="card mt-5 border-[#B3261E]/30 bg-[#B3261E]/[0.06] p-5">
-          <h2 className="font-display text-heading-lg leading-tight text-[#8C1D18]">
+        <section className="card mt-5 border-l-[3px] border-l-accent bg-nudge-fill p-5">
+          <h2 className="font-display text-heading-lg leading-tight text-amber">
             {RED_FLAG_HEADLINE}
           </h2>
-          <p className="mt-2 text-body-lg leading-relaxed text-[#8C1D18]">{RED_FLAG_BODY}</p>
+          <p className="mt-2 text-body-lg leading-relaxed text-ink">{RED_FLAG_BODY}</p>
 
           <ul className="mt-4 space-y-2.5">
             {result.matched.map((f) => (

@@ -87,7 +87,7 @@ export function Meds({
             <li key={med.id} className="px-5 py-4">
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <p className="text-lead font-medium text-ink">{med.name}</p>
-                <p className={`text-body-sm ${state.runningOut ? 'text-[#8A5510]' : 'text-ink-2'}`}>
+                <p className={`text-body-sm ${state.runningOut ? 'text-amber' : 'text-ink-2'}`}>
                   {medLine(med, state)}
                 </p>
               </div>
@@ -96,7 +96,7 @@ export function Meds({
               </p>
 
               {state.runningOut && (
-                <p className="mt-2 rounded-soft border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-body-sm leading-relaxed text-[#8A5510]">
+                <p className="mt-2 rounded-soft border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-body-sm leading-relaxed text-amber">
                   {RUNNING_OUT_NOTE}
                 </p>
               )}

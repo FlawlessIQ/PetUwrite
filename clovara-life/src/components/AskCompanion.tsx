@@ -116,14 +116,14 @@ export function AskCompanion({
         </button>
 
         {escalate && (
-          <div className="mt-5 rounded-soft border border-[#B3261E]/30 bg-[#B3261E]/[0.06] px-4 py-4">
-            <p className="font-display text-heading-sm leading-tight text-[#8C1D18]">
+          <div className="nudge mt-5 px-4 py-4">
+            <p className="font-display text-heading-sm leading-tight text-amber">
               {RED_FLAG_HEADLINE}
             </p>
-            <p className="mt-2 text-body-lg leading-relaxed text-[#8C1D18]">{RED_FLAG_BODY}</p>
+            <p className="mt-2 text-body-lg leading-relaxed text-ink">{RED_FLAG_BODY}</p>
             <a
               href="#/wrong"
-              className="mt-3 inline-block text-action text-body-lg font-medium text-[#8C1D18]"
+              className="mt-3 inline-block text-action text-body-lg font-semibold text-forest"
             >
               What to do now
             </a>
