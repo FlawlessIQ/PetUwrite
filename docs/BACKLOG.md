@@ -46,7 +46,7 @@ unreviewed pile.
 | id | Item | Owner | Size | Judged |
 |---|---|---|---|---|
 | **D-UI1** | ~~Visual direction~~ — **closed 2026-09-25**: Conor issued `docs/DESIGN.md` and `docs/styleguide.html` | Conor | — | **C** |
-| **D-UI2** | ~~Type scale~~ — **built 2026-09-25 on branch `type-scale`, not deployed.** 35 hand-set sizes → 19 named tokens (§3 roles, or named as not being one); `verify:brand` rejects arbitrary sizes. Spacing was already on Tailwind's 4px grid (§4) and needed no scale of its own | Claude Code | done | — |
+| **D-UI2** | ~~Type scale~~ — **shipped 2026-09-25**, deployed from branch `type-scale`. 35 hand-set sizes → 19 named tokens (§3 roles, or named as not being one); `verify:brand` rejects arbitrary sizes. Spacing was already on Tailwind's 4px grid (§4) and needed no scale of its own | Claude Code | done | — |
 | **D-UI3** | Apply the visual direction across all surfaces — **shipped 2026-09-25**, deployed from branch `ui-pass` after Conor saw the before/after gallery. Fifteen spec/product disagreements flagged in ROADMAP "UI pass: open questions" | Claude Code → Conor | done | **C** |
 | **D-UI4** | Palette swap, if the brand itself changes. Cheap and independent of the above: 8 values in one config file, 907 token references follow | Claude Code | S | — |
 | **D-UI5** | Dark mode. DESIGN.md §2 reserves a palette and says do not build until instructed | Conor | M | **C** |

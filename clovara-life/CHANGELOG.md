@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## The type scale (BACKLOG D-UI2, branch `type-scale`, not deployed)
+## The type scale (BACKLOG D-UI2, deployed 2026-09-25 from branch `type-scale`)
 
 - **35 hand-set font sizes become 19 named tokens.** Each is a DESIGN.md §3 role —
   caption, body, title, stat, display — or is named as not being one: three
