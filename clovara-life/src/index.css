@@ -56,7 +56,7 @@ textarea {
   }
 
   .pill-primary {
-    @apply pill bg-forest text-white hover:bg-deep disabled:cursor-not-allowed disabled:bg-line disabled:text-muted;
+    @apply pill bg-forest text-white hover:bg-deep disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-2;
   }
 
   .pill-secondary {
@@ -80,14 +80,14 @@ textarea {
   }
 
   .label {
-    @apply text-[11px] font-medium uppercase tracking-[0.14em] text-muted;
+    @apply text-[11px] font-medium uppercase tracking-[0.14em] text-ink-2;
   }
 
   /* 16px minimum: below this iOS Safari force-zooms on focus and never
      zooms back out, leaving the rest of the demo scrolled sideways. */
   .field {
     @apply w-full rounded-soft border border-line bg-white px-4 py-3 text-[16px] text-ink
-      placeholder:text-muted/60 focus:border-forest focus:outline-none;
+      placeholder:text-ink-2/60 focus:border-forest focus:outline-none;
   }
 }
 

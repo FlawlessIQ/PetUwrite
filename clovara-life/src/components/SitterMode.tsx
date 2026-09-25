@@ -97,7 +97,7 @@ export function SitterMode({
         <h2 id="sitter-heading" className="mt-1 font-display text-[20px] text-ink">
           A link for whoever has {pet.name}
         </h2>
-        <p className="mt-1 text-[13.5px] leading-relaxed text-muted">
+        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
           One page, no sign-in, expires in seven days and can be cancelled any time. It shows only
           what is below — nothing about {pet.name}&rsquo;s plan, their health record, or you.
         </p>
@@ -148,9 +148,9 @@ export function SitterMode({
                     key={l.token}
                     className="rounded-soft border border-line bg-white px-4 py-3"
                   >
-                    <p className="break-all text-[12.5px] text-muted">{sitterShareUrl(l.token)}</p>
+                    <p className="break-all text-[12.5px] text-ink-2">{sitterShareUrl(l.token)}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-                      <span className="text-[12.5px] text-muted">
+                      <span className="text-[12.5px] text-ink-2">
                         Until {longDate(l.expiresAt)}
                       </span>
                       <button

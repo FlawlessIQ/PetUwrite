@@ -13,7 +13,7 @@ export function Companion({ pet, projection }: { pet: PetProfile; projection: Pr
         <h1 className="mt-1.5 font-display text-[34px] leading-[1.1] text-ink sm:text-[40px]">
           It remembers {pet.name}
         </h1>
-        <p className="mt-2 max-w-[62ch] text-[15.5px] leading-relaxed text-muted">
+        <p className="mt-2 max-w-[62ch] text-[15.5px] leading-relaxed text-ink-2">
           Knows {pet.name} since {knownSince}. This conversation is built from {pet.name}'s own
           record — the condition on file, the risk window {pet.sex === 'female' ? 'she' : 'he'} is in
           right now, and the signs that actually matter for a {projection.breed.name}. Switch pets
@@ -79,7 +79,7 @@ export function Companion({ pet, projection }: { pet: PetProfile; projection: Pr
           ))}
         </ol>
 
-        <div className="mt-5 flex items-center gap-2 rounded-full border border-line bg-white py-2 pl-5 pr-2 text-[14px] text-muted">
+        <div className="mt-5 flex items-center gap-2 rounded-full border border-line bg-white py-2 pl-5 pr-2 text-[14px] text-ink-2">
           <span className="flex-1">Ask about {pet.name}…</span>
           <span
             aria-hidden="true"
@@ -93,17 +93,17 @@ export function Companion({ pet, projection }: { pet: PetProfile; projection: Pr
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <p className="rounded-soft border border-line bg-white px-4 py-3.5 text-[13.5px] leading-relaxed text-muted">
+        <p className="rounded-soft border border-line bg-white px-4 py-3.5 text-[13.5px] leading-relaxed text-ink-2">
           The companion shares information and routes you to a licensed vet. It does not diagnose —
           that is the legal line and the trust line, and they happen to be the same line.
         </p>
-        <p className="rounded-soft border border-line bg-white px-4 py-3.5 text-[13.5px] leading-relaxed text-muted">
+        <p className="rounded-soft border border-line bg-white px-4 py-3.5 text-[13.5px] leading-relaxed text-ink-2">
           Conversations here are firewalled from underwriting and claims. What you tell the
           assistant does not price your policy.
         </p>
       </div>
 
-      <p className="mt-4 text-[13px] leading-relaxed text-muted">
+      <p className="mt-4 text-[13px] leading-relaxed text-ink-2">
         This thread is scripted for the preview, but every specific in it is pulled from {pet.name}'s
         record rather than written by hand.
       </p>

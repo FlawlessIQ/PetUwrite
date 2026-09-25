@@ -21,12 +21,14 @@ import {
  * should be is not.
  */
 
+// Canvas cannot read Tailwind classes, so these mirror the tokens in
+// tailwind.config.js by value. docs/DESIGN.md §2 is the source for both.
 const CREAM = '#F6F3EB'
 const INK = '#1B1E1B'
 const FOREST = '#1A5C38'
 const DEEP = '#0F3D26'
-const MUTED = '#6B716C'
-const LINE = '#E6E1D6'
+const INK_2 = '#5C635C'
+const LINE = '#E5E1D5'
 const ACCENT = '#D98A26'
 
 const DISPLAY = '"Playfair Display", Georgia, serif'
@@ -178,7 +180,7 @@ async function drawCard(content: CardContent): Promise<Blob | null> {
   ctx.fillText(content.name, cx, CARD_SIZE * 0.605)
 
   // ── Subtitle ─────────────────────────────────────────────────────────────
-  ctx.fillStyle = MUTED
+  ctx.fillStyle = INK_2
   ctx.font = `400 30px ${SANS}`
   ctx.fillText(content.subtitle, cx, CARD_SIZE * 0.605 + 54)
 
@@ -199,7 +201,7 @@ async function drawCard(content: CardContent): Promise<Blob | null> {
   }
 
   // ── Footnote ─────────────────────────────────────────────────────────────
-  ctx.fillStyle = MUTED
+  ctx.fillStyle = INK_2
   ctx.font = `400 25px ${SANS}`
   ctx.fillText(content.footnote, cx, CARD_SIZE - CARD_PADDING - 6)
 

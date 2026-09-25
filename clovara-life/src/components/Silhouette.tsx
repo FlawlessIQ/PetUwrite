@@ -37,8 +37,10 @@ export function Silhouette({
   active: boolean
 }) {
   const w = WAIST[score]
-  const stroke = active ? '#1F5136' : '#9AA39C'
-  const fill = active ? '#DCE8DD' : '#F4F2EC'
+  // DESIGN.md §5 silhouette picker: the selected glyph is forest, the rest
+  // ink-3, both solid — the well around it carries the selected state too.
+  const stroke = active ? '#1A5C38' : '#8A918A'
+  const fill = active ? '#1A5C38' : '#8A918A'
 
   return (
     <svg viewBox="0 0 64 88" width="100%" height="100%" aria-hidden="true" className="block">

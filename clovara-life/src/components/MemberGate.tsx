@@ -29,7 +29,7 @@ export function MemberGate({
         <button type="button" onClick={onStart} disabled={busy} className="pill-primary disabled:opacity-50">
           {busy ? 'One moment…' : 'Start 7-day free trial'}
         </button>
-        <span className="text-[13px] text-muted">
+        <span className="text-[13px] text-ink-2">
           Then $22.99 a month. Cancel any time — it takes one tap.
         </span>
       </div>

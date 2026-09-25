@@ -59,7 +59,7 @@ function Segmented<T extends string>({
             <span className="block text-[15px] font-medium leading-tight">{o.label}</span>
             {o.hint && (
               <span
-                className={`mt-0.5 block text-[12.5px] leading-snug ${active ? 'text-white/70' : 'text-muted'}`}
+                className={`mt-0.5 block text-[12.5px] leading-snug ${active ? 'text-white/70' : 'text-ink-2'}`}
               >
                 {o.hint}
               </span>
@@ -179,7 +179,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
           <button
             type="button"
             onClick={onCancel}
-            className="text-[14px] text-muted hover:text-ink text-action"
+            className="text-[14px] text-ink-2 hover:text-ink text-action"
           >
             Cancel
           </button>
@@ -203,7 +203,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
               <h1 className="font-display text-[30px] leading-[1.15] text-ink sm:text-[34px]">
                 Who are we planning for?
               </h1>
-              <p className="mt-2 text-[15px] text-muted">
+              <p className="mt-2 text-[15px] text-ink-2">
                 Five quick questions and you'll see their plan. No account needed.
               </p>
             </div>
@@ -229,7 +229,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
               href="#/covenant"
               target="_blank"
               rel="noreferrer"
-              className="inline-block text-[13.5px] text-muted transition hover:text-ink text-action"
+              className="inline-block text-[13.5px] text-ink-2 transition hover:text-ink text-action"
             >
               Before you start: what we do and never do with what you tell us
             </a>
@@ -243,7 +243,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
               <h1 className="font-display text-[28px] leading-[1.18] text-ink sm:text-[32px]">
                 What breed?
               </h1>
-              <p className="mt-2 text-[15px] text-muted">
+              <p className="mt-2 text-[15px] text-ink-2">
                 Breed is the single biggest input. If you're not sure, that's a fine answer too.
               </p>
             </div>
@@ -276,11 +276,11 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                   }`}
                 >
                   <span>{b.name}</span>
-                  <span className="text-[12.5px] capitalize text-muted">{b.sizeClass}</span>
+                  <span className="text-[12.5px] capitalize text-ink-2">{b.sizeClass}</span>
                 </button>
               ))}
               {breedMatches.length === 0 && (
-                <p className="px-4 py-3 text-[14px] text-muted">
+                <p className="px-4 py-3 text-[14px] text-ink-2">
                   No match. Try "Mixed / not sure" below.
                 </p>
               )}
@@ -301,7 +301,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
               }`}
             >
               Mixed / not sure
-              <span className="mt-0.5 block text-[13px] text-muted">
+              <span className="mt-0.5 block text-[13px] text-ink-2">
                 We'll use a size-based profile and widen the range to match what we don't know.
               </span>
             </button>
@@ -326,7 +326,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                     >
                       <span className="block text-[14.5px] font-medium">{s.label}</span>
                       <span
-                        className={`block text-[12px] ${mixedSize === s.value ? 'text-white/70' : 'text-muted'}`}
+                        className={`block text-[12px] ${mixedSize === s.value ? 'text-white/70' : 'text-ink-2'}`}
                       >
                         {s.hint}
                       </span>
@@ -368,7 +368,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                 What's their name?
               </h1>
               {breed && (
-                <p className="mt-2 text-[15px] text-muted">
+                <p className="mt-2 text-[15px] text-ink-2">
                   The only thing here you have to type.
                 </p>
               )}
@@ -397,7 +397,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
               <h1 className="font-display text-[28px] leading-[1.18] text-ink sm:text-[32px]">
                 How old is {who}?
               </h1>
-              <p className="mt-2 text-[15px] text-muted">
+              <p className="mt-2 text-[15px] text-ink-2">
                 Roughly is genuinely fine — you can sharpen it later.
               </p>
             </div>
@@ -433,9 +433,9 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                   step={1}
                   value={ageMonths}
                   onChange={(e) => setAgeMonths(Number(e.target.value))}
-                  className="mt-5 w-full accent-[#1F5136]"
+                  className="mt-5 w-full accent-forest"
                 />
-                <div className="mt-1 flex justify-between text-[12.5px] text-muted">
+                <div className="mt-1 flex justify-between text-[12.5px] text-ink-2">
                   <span>newborn</span>
                   <span>20 years</span>
                 </div>
@@ -459,7 +459,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
               <h1 className="font-display text-[28px] leading-[1.18] text-ink sm:text-[32px]">
                 Is {who} male or female?
               </h1>
-              <p className="mt-2 text-[15px] text-muted">Last one. Then the plan.</p>
+              <p className="mt-2 text-[15px] text-ink-2">Last one. Then the plan.</p>
             </div>
             <Segmented
               name="Sex"
@@ -479,7 +479,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
             type="button"
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0}
-            className="text-[15px] text-muted transition hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+            className="text-[15px] text-ink-2 transition hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
           >
             Back
           </button>

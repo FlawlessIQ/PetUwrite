@@ -74,7 +74,7 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
         >
           Check it
         </button>
-        <p className="mt-3 text-[12.5px] leading-relaxed text-muted">
+        <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">
           This checks a short list of signs that always need a vet straight away. It is not a
           diagnosis and it cannot examine {pet.name}.
         </p>
@@ -91,7 +91,7 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
             {result.matched.map((f) => (
               <li key={f.id} className="rounded-soft border border-line bg-white px-4 py-3">
                 <p className="text-[14.5px] font-medium text-ink">{f.label}</p>
-                <p className="mt-0.5 text-[13px] leading-relaxed text-muted">{f.because}</p>
+                <p className="mt-0.5 text-[13px] leading-relaxed text-ink-2">{f.because}</p>
               </li>
             ))}
           </ul>
@@ -110,7 +110,7 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-[12.5px] leading-relaxed text-muted">
+          <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">
             Poison lines can also tell you where your nearest emergency practice is.
           </p>
         </section>
@@ -133,7 +133,7 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
               {flagsFor(pet.species).map((f) => (
                 <li key={f.id} className="py-2.5">
                   <p className="text-[14px] text-ink">{f.label}</p>
-                  <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">{f.because}</p>
+                  <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-2">{f.because}</p>
                 </li>
               ))}
             </ul>
@@ -141,7 +141,7 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
         </section>
       )}
 
-      <p className="mt-5 text-[12px] leading-relaxed text-muted">
+      <p className="mt-5 text-[12px] leading-relaxed text-ink-2">
         {RED_FLAGS_REVIEW_STATUS}: this list is under veterinary review and is written to send you
         to a vet more often than strictly necessary rather than less.
       </p>

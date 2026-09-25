@@ -33,16 +33,16 @@ export function Remembering({
           <h2 id="remember-heading" className="font-display text-[21px] leading-tight text-ink">
             {REMEMBER_HEADLINE(pet.name)}
           </h2>
-          <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{REMEMBER_BODY(pet.name)}</p>
-          <p className="mt-3 text-[13.5px] text-muted">{REMEMBER_PROMPT}</p>
+          <p className="mt-2 text-[14.5px] leading-relaxed text-ink-2">{REMEMBER_BODY(pet.name)}</p>
+          <p className="mt-3 text-[13.5px] text-ink-2">{REMEMBER_PROMPT}</p>
           {pet.diedOn && (
-            <p className="mt-4 text-[13px] text-muted">{longDate(pet.diedOn)}</p>
+            <p className="mt-4 text-[13px] text-ink-2">{longDate(pet.diedOn)}</p>
           )}
           {onUpdate && (
             <button
               type="button"
               onClick={() => onUpdate({ diedOn: undefined })}
-              className="mt-4 text-action text-[13px] text-muted"
+              className="mt-4 text-action text-[13px] text-ink-2"
             >
               Undo — this was a mistake
             </button>
@@ -96,7 +96,7 @@ export function Remembering({
         <button
           type="button"
           onClick={() => setOpening(true)}
-          className="text-action text-[13px] text-muted"
+          className="text-action text-[13px] text-ink-2"
         >
           {pet.name} has died
         </button>

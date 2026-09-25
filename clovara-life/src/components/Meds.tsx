@@ -77,7 +77,7 @@ export function Meds({
         <h2 id="meds-heading" className="mt-1 font-display text-[20px] text-ink">
           What {pet.name} is taking
         </h2>
-        <p className="mt-1 text-[13px] leading-relaxed text-muted">{NOT_A_PRESCRIPTION}</p>
+        <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{NOT_A_PRESCRIPTION}</p>
       </div>
 
       <ul className="divide-y divide-line">
@@ -87,11 +87,11 @@ export function Meds({
             <li key={med.id} className="px-5 py-4">
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <p className="text-[15px] font-medium text-ink">{med.name}</p>
-                <p className={`text-[12.5px] ${state.runningOut ? 'text-[#8A5510]' : 'text-muted'}`}>
+                <p className={`text-[12.5px] ${state.runningOut ? 'text-[#8A5510]' : 'text-ink-2'}`}>
                   {medLine(med, state)}
                 </p>
               </div>
-              <p className="mt-0.5 text-[13.5px] leading-relaxed text-muted">
+              <p className="mt-0.5 text-[13.5px] leading-relaxed text-ink-2">
                 {med.amount} · {FREQUENCIES.find((f) => f.id === med.frequency)?.label.toLowerCase()}
               </p>
 
@@ -113,14 +113,14 @@ export function Meds({
                   {(med.given?.length ?? 0) > 0 && (
                     <button
                       type="button"
-                      className="text-action text-[13px] text-muted"
+                      className="text-action text-[13px] text-ink-2"
                       onClick={() => undoLast(med.id)}
                     >
                       Undo the last one
                     </button>
                   )}
                   {state.perDay > 0 && (
-                    <span className="text-[12.5px] text-muted">
+                    <span className="text-[12.5px] text-ink-2">
                       {state.givenToday} of {state.perDay} today
                     </span>
                   )}
@@ -132,7 +132,7 @@ export function Meds({
       </ul>
 
       <div className="border-t border-line bg-cream/40 px-5 py-4">
-        <p className="text-[12.5px] leading-relaxed text-muted">{MISSED_DOSE}</p>
+        <p className="text-[12.5px] leading-relaxed text-ink-2">{MISSED_DOSE}</p>
       </div>
 
       {onUpdate && (

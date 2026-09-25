@@ -16,7 +16,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
         <h1 className="mt-1.5 font-display text-[34px] leading-[1.1] text-ink sm:text-[40px]">
           {c.hasPolicy ? `${pet.name} is covered` : `What cover would look like for ${pet.name}`}
         </h1>
-        <p className="mt-2 max-w-[62ch] text-[15.5px] leading-relaxed text-muted">
+        <p className="mt-2 max-w-[62ch] text-[15.5px] leading-relaxed text-ink-2">
           {c.hasPolicy
             ? `Policy ${c.policyNumber}. The wellness rider below reimburses the routine care that ${pet.name}'s life stage actually calls for.`
             : `${pet.name} was added during this session, so there is no policy — here is what one would look like, priced the same way.`}
@@ -81,7 +81,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
           {/* SPEC §5's second entry point: a quiet line, not a banner. Somebody
               already on this tab is thinking about it without being pushed. */}
           {!c.hasPolicy && (
-            <p className="text-[14px] leading-relaxed text-muted">
+            <p className="text-[14px] leading-relaxed text-ink-2">
               <a href="#/protect" className="text-forest text-action">
                 Take this cover for {pet.name}
               </a>{' '}
@@ -101,13 +101,13 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
                 <span className="block font-display text-[19px] leading-tight text-ink">
                   Why this price
                 </span>
-                <span className="mt-0.5 block text-[13.5px] text-muted">
+                <span className="mt-0.5 block text-[13.5px] text-ink-2">
                   Every factor, shown. No black box.
                 </span>
               </span>
               <span
                 aria-hidden="true"
-                className={`shrink-0 text-[20px] leading-none text-muted transition-transform ${showMath ? 'rotate-45' : ''}`}
+                className={`shrink-0 text-[20px] leading-none text-ink-2 transition-transform ${showMath ? 'rotate-45' : ''}`}
               >
                 +
               </span>
@@ -122,7 +122,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
                         {b.value}
                       </span>
                       <span className="text-[14.5px] text-ink">{b.label}</span>
-                      <span className="w-full pl-[80px] text-[13px] leading-snug text-muted">
+                      <span className="w-full pl-[80px] text-[13px] leading-snug text-ink-2">
                         {b.note}
                       </span>
                     </li>
@@ -189,7 +189,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
                   </div>
                   <div className="pb-1">
                     <p className="text-[14.5px] font-medium text-ink">{step.t}</p>
-                    <p className="mt-0.5 text-[13px] leading-relaxed text-muted">{step.s}</p>
+                    <p className="mt-0.5 text-[13px] leading-relaxed text-ink-2">{step.s}</p>
                   </div>
                 </li>
               ))}
@@ -204,7 +204,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
               <h2 id="rider-heading" className="font-display text-[22px] leading-tight text-ink">
                 Wellness rider
               </h2>
-              <p className="mt-1 text-[14px] leading-snug text-muted">
+              <p className="mt-1 text-[14px] leading-snug text-ink-2">
                 Routine care, reimbursed. These lines are generated from {pet.name}'s current life
                 stage — {projection.currentStage.label.toLowerCase()} — so the policy pays for the
                 care the journey is already asking for.
@@ -220,19 +220,19 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
                       ${r.allowance}
                     </span>
                   </div>
-                  <p className="mt-1 text-[13px] leading-relaxed text-muted">{r.because}</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{r.because}</p>
                 </li>
               ))}
             </ul>
 
             <div className="border-t border-line bg-cream/50 px-5 py-4 sm:px-6">
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[14px] text-muted">Reimbursable at this stage, up to</span>
+                <span className="text-[14px] text-ink-2">Reimbursable at this stage, up to</span>
                 <span className="font-display text-[20px] font-semibold text-ink">
                   ${c.riderTotal}/yr
                 </span>
               </div>
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted">
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-2">
                 Per-item annual maximums, not an expected payout — most members claim a fraction of
                 the total. The rider costs ${c.riderPrice}/mo, or ${c.riderPrice * 12}/yr.
               </p>
@@ -245,7 +245,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
               <h2 id="riskcov-heading" className="font-display text-[22px] leading-tight text-ink">
                 {projection.breed.name} risks, and where you stand
               </h2>
-              <p className="mt-1 text-[14px] leading-snug text-muted">
+              <p className="mt-1 text-[14px] leading-snug text-ink-2">
                 The conditions the Life Journey flags for this breed, and whether the plan responds
                 to them. Said now, not at claim time.
               </p>
@@ -263,7 +263,7 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
                   </span>
                   <div>
                     <p className="text-[14.5px] font-medium text-ink">{r.name}</p>
-                    <p className="mt-0.5 text-[13px] leading-relaxed text-muted">{r.note}</p>
+                    <p className="mt-0.5 text-[13px] leading-relaxed text-ink-2">{r.note}</p>
                   </div>
                 </li>
               ))}

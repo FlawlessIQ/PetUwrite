@@ -37,7 +37,7 @@ export function RenewalExplained({
             ? `${pet.name}'s premium has not changed`
             : `Why ${pet.name}'s premium is ${money(r.newMonthly)}`}
         </h2>
-        <p className="mt-1 text-[13.5px] text-muted">
+        <p className="mt-1 text-[13.5px] text-ink-2">
           Was {money(r.priorMonthly)} a month. Every part of the change is below.
         </p>
       </div>
@@ -51,7 +51,7 @@ export function RenewalExplained({
                 {l.delta === 0 ? 'no change' : money(l.delta)}
               </p>
             </div>
-            <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{l.because}</p>
+            <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{l.because}</p>
           </li>
         ))}
       </ul>
@@ -65,7 +65,7 @@ export function RenewalExplained({
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-[12.5px] leading-relaxed text-muted">
+        <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">
           This is the Data Covenant in practice: what you tell us works for your pet, and never
           against your price — not up, and not down as a reward for behaving.
         </p>

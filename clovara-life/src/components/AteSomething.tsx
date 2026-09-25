@@ -114,7 +114,7 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
               >
                 <span className="text-[14.5px] font-medium text-ink">{line.name}</span>
                 <span className="text-[15px] font-medium text-forest">{line.display}</span>
-                <span className="w-full text-[12.5px] text-muted">
+                <span className="w-full text-[12.5px] text-ink-2">
                   {line.region} · {line.note}
                 </span>
               </a>
@@ -134,21 +134,21 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
               </button>
             )}
             {vetState === 'asking' && (
-              <p className="text-[13.5px] text-muted">Looking…</p>
+              <p className="text-[13.5px] text-ink-2">Looking…</p>
             )}
             {vetState === 'refused' && (
-              <p className="text-[13.5px] leading-relaxed text-muted">
+              <p className="text-[13.5px] leading-relaxed text-ink-2">
                 Without your location we cannot look. Search for &ldquo;emergency vet near
                 me&rdquo;, or ring a line above — they will tell you where to go.
               </p>
             )}
             {vetState === 'failed' && (
-              <p className="text-[13.5px] leading-relaxed text-muted">{NO_PLACES_COPY}</p>
+              <p className="text-[13.5px] leading-relaxed text-ink-2">{NO_PLACES_COPY}</p>
             )}
             {vetState === 'done' && vets && (
               <>
                 {vets.length === 0 ? (
-                  <p className="text-[13.5px] leading-relaxed text-muted">{NO_PLACES_COPY}</p>
+                  <p className="text-[13.5px] leading-relaxed text-ink-2">{NO_PLACES_COPY}</p>
                 ) : (
                   <ul className="space-y-2">
                     {vets.map((v) => (
@@ -158,7 +158,7 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
                       >
                         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                           <span className="text-[14.5px] font-medium text-ink">{v.name}</span>
-                          <span className="text-[12.5px] text-muted">
+                          <span className="text-[12.5px] text-ink-2">
                             {v.openNow === true
                               ? 'Open now'
                               : v.openNow === false
@@ -167,7 +167,7 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
                             {v.distanceKm !== undefined && ` · ${v.distanceKm}km`}
                           </span>
                         </div>
-                        <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">{v.address}</p>
+                        <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-2">{v.address}</p>
                         {v.tel && (
                           <a
                             href={`tel:${v.tel.replace(/\s+/g, '')}`}
@@ -181,7 +181,7 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
                     ))}
                   </ul>
                 )}
-                <p className="mt-2 text-[12.5px] leading-relaxed text-muted">
+                <p className="mt-2 text-[12.5px] leading-relaxed text-ink-2">
                   Opening hours come from Google and can be wrong at three in the morning. Ring
                   before you drive.
                 </p>
@@ -189,7 +189,7 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
             )}
           </div>
         ) : (
-          <p className="mt-3 text-[13px] leading-relaxed text-muted">{NO_PLACES_COPY}</p>
+          <p className="mt-3 text-[13px] leading-relaxed text-ink-2">{NO_PLACES_COPY}</p>
         )}
       </section>
 
@@ -197,7 +197,7 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
       <section className="card mt-5 overflow-hidden">
         <div className="border-b border-line bg-cream/50 px-5 py-4">
           <h2 className="font-display text-[19px] text-ink">What did they eat?</h2>
-          <p className="mt-1 text-[13px] leading-relaxed text-muted">
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-2">
             This tells you how urgent it is. It never tells you it is fine.
           </p>
         </div>
@@ -232,7 +232,7 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
                 </li>
               ))}
               {results.length === 0 && (
-                <li className="py-3 text-[14px] leading-relaxed text-muted">
+                <li className="py-3 text-[14px] leading-relaxed text-ink-2">
                   Not on our list. That does not mean it is safe — ring a poison line above and ask.
                 </li>
               )}
@@ -286,7 +286,7 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
               </div>
 
               <p className="mt-3 text-[14px] leading-relaxed text-ink">{picked.why}</p>
-              <p className="mt-2 text-[13.5px] leading-relaxed text-muted">
+              <p className="mt-2 text-[13.5px] leading-relaxed text-ink-2">
                 <span className="font-medium text-ink">What you might see: </span>
                 {picked.signs}
               </p>
@@ -302,7 +302,7 @@ export function AteSomething({ pet, onClose }: { pet: PetProfile; onClose: () =>
           )}
         </div>
 
-        <p className="border-t border-line bg-cream/40 px-5 py-4 text-[12.5px] leading-relaxed text-muted">
+        <p className="border-t border-line bg-cream/40 px-5 py-4 text-[12.5px] leading-relaxed text-ink-2">
           {TOXIN_DISCLAIMER}
         </p>
       </section>

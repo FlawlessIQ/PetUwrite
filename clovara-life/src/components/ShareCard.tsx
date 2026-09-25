@@ -87,7 +87,7 @@ export function ShareCard({
             ? `${pet.name}\u2019s Gotcha Day`
             : `${pet.name}\u2019s arrival certificate`}
         </h2>
-        <p className="mt-1 text-[13.5px] leading-relaxed text-muted">
+        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
           Yours to keep or to send. The card is made on your device and never leaves it unless you
           share it.
         </p>
@@ -109,7 +109,7 @@ export function ShareCard({
           )}
         </div>
 
-        {note && <p className="mt-3 text-center text-[13.5px] text-muted">{note}</p>}
+        {note && <p className="mt-3 text-center text-[13.5px] text-ink-2">{note}</p>}
 
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           <button

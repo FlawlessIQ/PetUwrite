@@ -20,7 +20,7 @@ export function Timeline({ projection, name }: { projection: Projection; name: s
         <h2 id="timeline-heading" className="font-display text-[22px] leading-tight text-ink">
           {name}'s life journey
         </h2>
-        <p className="mt-1 text-[14px] leading-snug text-muted">
+        <p className="mt-1 text-[14px] leading-snug text-ink-2">
           What has happened, what matters now, and what to plan for — shaped by breed and age.
         </p>
       </div>
@@ -57,22 +57,22 @@ export function Timeline({ projection, name }: { projection: Projection; name: s
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h3
                   className={`font-display text-[19px] leading-tight ${
-                    isCurrent ? 'text-deep' : isPast ? 'text-muted' : 'text-ink'
+                    isCurrent ? 'text-deep' : isPast ? 'text-ink-2' : 'text-ink'
                   }`}
                 >
                   {stage.label}
                 </h3>
-                <span className="text-[12.5px] text-muted">{stageRange(stage)}</span>
+                <span className="text-[12.5px] text-ink-2">{stageRange(stage)}</span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.08em] ${
-                    isCurrent ? 'bg-sage text-deep' : 'text-muted'
+                    isCurrent ? 'bg-sage text-deep' : 'text-ink-2'
                   }`}
                 >
                   {STATUS_COPY[stage.status]}
                 </span>
               </div>
 
-              <p className={`mt-1.5 text-[14.5px] leading-relaxed ${isPast ? 'text-muted' : 'text-ink/80'}`}>
+              <p className={`mt-1.5 text-[14.5px] leading-relaxed ${isPast ? 'text-ink-2' : 'text-ink/80'}`}>
                 {stage.summary}
               </p>
 
@@ -85,7 +85,7 @@ export function Timeline({ projection, name }: { projection: Projection; name: s
                         isCurrent ? 'bg-forest' : isPast ? 'bg-line' : 'bg-accent/70'
                       }`}
                     />
-                    <span className={isPast ? 'text-muted' : undefined}>{r}</span>
+                    <span className={isPast ? 'text-ink-2' : undefined}>{r}</span>
                   </li>
                 ))}
               </ul>

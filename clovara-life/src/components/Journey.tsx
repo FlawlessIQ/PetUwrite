@@ -107,7 +107,7 @@ export function Journey({
           </h1>
         </div>
         {pet.headline && (
-          <p className="mt-2 max-w-[62ch] text-[15.5px] leading-relaxed text-muted">{pet.headline}</p>
+          <p className="mt-2 max-w-[62ch] text-[15.5px] leading-relaxed text-ink-2">{pet.headline}</p>
         )}
       </header>
 
@@ -117,7 +117,7 @@ export function Journey({
             <h2 id="projection-heading" className="label">
               Healthy years projection
             </h2>
-            <p className="mt-2.5 font-display text-[17px] leading-snug text-muted">
+            <p className="mt-2.5 font-display text-[17px] leading-snug text-ink-2">
               {pet.name} is on track for
             </p>
             <p className="mt-1 font-display text-[54px] font-semibold leading-none tracking-[-0.02em] sm:text-[62px]">
@@ -126,7 +126,7 @@ export function Journey({
               </span>
             </p>
             <p className="mt-1.5 font-display text-[21px] leading-none text-ink">healthy years</p>
-            <p className="mt-4 max-w-[42ch] text-[14px] leading-relaxed text-muted">
+            <p className="mt-4 max-w-[42ch] text-[14px] leading-relaxed text-ink-2">
               {beyond
                 ? `${pet.name} is already past the typical range for the breed. We've shifted the projection to reflect that rather than pretend it hasn't happened.`
                 : 'A range, not a number. We widen it when we know less, and it moves when the things below move.'}
@@ -135,7 +135,7 @@ export function Journey({
 
           <div className="flex flex-col justify-center border-t border-line pt-6 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0">
             <LifeArc projection={projection} />
-            <p className="mt-1 text-center text-[13.5px] text-muted">
+            <p className="mt-1 text-center text-[13.5px] text-ink-2">
               Currently a <span className="font-medium text-deep">{projection.currentStage.label.toLowerCase()}</span>
               {' · '}
               {projection.weightRead}
@@ -181,11 +181,11 @@ export function Journey({
           >
             <span className="min-w-0">
               <span className="block text-[15px] font-medium text-ink">{pet.name}&rsquo;s health file</span>
-              <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">
                 {fileSummary(pet)}
               </span>
             </span>
-            <span aria-hidden="true" className="shrink-0 text-[18px] leading-none text-muted">
+            <span aria-hidden="true" className="shrink-0 text-[18px] leading-none text-ink-2">
               →
             </span>
           </a>
@@ -200,7 +200,7 @@ export function Journey({
               <span className="block font-display text-[17px] leading-snug text-deep">
                 Protect {pet.name} from today
               </span>
-              <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">
                 A price worked out from this plan — no form, and nothing you have already told us.
               </span>
             </span>
@@ -236,7 +236,7 @@ export function Journey({
               className="flex items-center justify-between gap-3 rounded-card border border-line bg-white px-5 py-4"
             >
               <span className="text-[15px] text-ink">{pet.name}&rsquo;s record</span>
-              <span aria-hidden="true" className="text-[18px] leading-none text-muted">→</span>
+              <span aria-hidden="true" className="text-[18px] leading-none text-ink-2">→</span>
             </a>
           )}
           <Timeline projection={projection} name={pet.name} />

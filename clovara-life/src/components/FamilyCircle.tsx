@@ -63,7 +63,7 @@ export function FamilyCircle({ memberCount }: { memberCount: number }) {
 
       {code && (
         <div className="mt-3 rounded-soft border border-forest/25 bg-sage/30 px-3 py-3">
-          <p className="text-[13px] text-muted">Give them this code:</p>
+          <p className="text-[13px] text-ink-2">Give them this code:</p>
           <p className="mt-1 select-all font-display text-[26px] tracking-[0.06em] text-deep">
             {code}
           </p>
@@ -80,7 +80,7 @@ export function FamilyCircle({ memberCount }: { memberCount: number }) {
             >
               {copied ? 'Copied' : 'Copy'}
             </button>
-            <span className="text-[12.5px] text-muted">
+            <span className="text-[12.5px] text-ink-2">
               Works once, for {expires} days. Then it stops working.
             </span>
           </div>
@@ -109,7 +109,7 @@ export function FamilyCircle({ memberCount }: { memberCount: number }) {
               setJoining(true)
               setError(null)
             }}
-            className="text-[14px] text-muted transition hover:text-ink text-action"
+            className="text-[14px] text-ink-2 transition hover:text-ink text-action"
           >
             I have a code
           </button>

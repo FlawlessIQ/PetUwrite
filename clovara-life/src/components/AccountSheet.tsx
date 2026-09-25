@@ -87,7 +87,7 @@ export function AccountSheet({
               You are signed in as{' '}
               <span className="font-medium text-deep">{displayNameFor(user)}</span>.
             </p>
-            <p className="text-[13.5px] leading-relaxed text-muted">{user.email}</p>
+            <p className="text-[13.5px] leading-relaxed text-ink-2">{user.email}</p>
 
             <div className="rounded-soft border border-line bg-cream/60 p-4">
               <p className="label mb-1.5">Membership</p>
@@ -130,7 +130,7 @@ export function AccountSheet({
                   onClose()
                 }}
                 disabled={busy}
-                className="text-[14.5px] text-muted transition hover:text-ink disabled:opacity-40 text-action"
+                className="text-[14.5px] text-ink-2 transition hover:text-ink disabled:opacity-40 text-action"
               >
                 Sign out
               </button>
@@ -148,7 +148,7 @@ export function AccountSheet({
                   {needsEmailForLink ? 'Confirm your email' : 'Sign in to Clovara'}
                 </h2>
               </div>
-              <p className="text-[14.5px] leading-snug text-muted">
+              <p className="text-[14.5px] leading-snug text-ink-2">
                 {needsEmailForLink
                   ? 'You opened the link on a different device. Type the address you asked for it with and we can finish.'
                   : 'Your pets and their plans, on every device you use. No password to remember.'}
@@ -220,7 +220,7 @@ export function AccountSheet({
               <>
                 <div className="flex items-center gap-3" aria-hidden="true">
                   <span className="h-px flex-1 bg-line" />
-                  <span className="text-[12.5px] uppercase tracking-[0.08em] text-muted">or</span>
+                  <span className="text-[12.5px] uppercase tracking-[0.08em] text-ink-2">or</span>
                   <span className="h-px flex-1 bg-line" />
                 </div>
                 <button
@@ -246,7 +246,7 @@ export function AccountSheet({
               <button
                 type="button"
                 onClick={onClose}
-                className="text-muted hover:text-ink text-action"
+                className="text-ink-2 hover:text-ink text-action"
               >
                 Not now
               </button>

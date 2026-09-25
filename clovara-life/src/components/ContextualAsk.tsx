@@ -33,13 +33,13 @@ export function ContextualAsk<T extends string>({
           <button
             type="button"
             onClick={onDismiss}
-            className="text-[13.5px] text-muted transition hover:text-ink text-action"
+            className="text-[13.5px] text-ink-2 transition hover:text-ink text-action"
           >
             Not now
           </button>
         )}
       </div>
-      <p className="mt-1 text-[14px] leading-snug text-muted">{ask.benefit}</p>
+      <p className="mt-1 text-[14px] leading-snug text-ink-2">{ask.benefit}</p>
       <div role="radiogroup" aria-label={ask.question} className="mt-3.5 grid gap-2 sm:grid-cols-3">
         {options.map((o) => {
           const on = value === o.value
@@ -58,7 +58,7 @@ export function ContextualAsk<T extends string>({
             >
               <span className="block text-[14.5px] font-medium leading-tight">{o.label}</span>
               {o.hint && (
-                <span className={`mt-0.5 block text-[12px] ${on ? 'text-white/70' : 'text-muted'}`}>
+                <span className={`mt-0.5 block text-[12px] ${on ? 'text-white/70' : 'text-ink-2'}`}>
                   {o.hint}
                 </span>
               )}

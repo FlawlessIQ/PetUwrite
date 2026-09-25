@@ -40,13 +40,13 @@ export function Methodology({ projection }: { projection: Projection }) {
           <span className="block font-display text-[20px] leading-tight text-ink">
             How we work this out
           </span>
-          <span className="mt-0.5 block text-[13.5px] text-muted">
+          <span className="mt-0.5 block text-[13.5px] text-ink-2">
             The sources, the confidence level, and what moved the number.
           </span>
         </span>
         <span
           aria-hidden="true"
-          className={`shrink-0 text-[20px] leading-none text-muted transition-transform ${open ? 'rotate-45' : ''}`}
+          className={`shrink-0 text-[20px] leading-none text-ink-2 transition-transform ${open ? 'rotate-45' : ''}`}
         >
           +
         </span>
@@ -62,7 +62,7 @@ export function Methodology({ projection }: { projection: Projection }) {
                   breed.confidence === 'published'
                     ? 'bg-sage text-deep'
                     : breed.confidence === 'derived'
-                      ? 'bg-cream text-muted'
+                      ? 'bg-cream text-ink-2'
                       : 'bg-accent/15 text-[#8A5510]'
                 }`}
               >
@@ -71,14 +71,14 @@ export function Methodology({ projection }: { projection: Projection }) {
               {CONFIDENCE_COPY[breed.confidence]}
             </p>
             {breed.note && (
-              <p className="mt-2.5 text-[14px] leading-relaxed text-muted">{breed.note}</p>
+              <p className="mt-2.5 text-[14px] leading-relaxed text-ink-2">{breed.note}</p>
             )}
           </div>
 
           <div>
             <h3 className="label mb-2">What moved the projection</h3>
             {factors.length === 0 ? (
-              <p className="text-[14.5px] text-muted">
+              <p className="text-[14.5px] text-ink-2">
                 Nothing — everything is at the reference setting, so this is the breed baseline.
               </p>
             ) : (
@@ -94,7 +94,7 @@ export function Methodology({ projection }: { projection: Projection }) {
                       {f.delta.toFixed(2)}
                     </span>
                     <span className="text-[14.5px] text-ink">{f.label}</span>
-                    <span className="text-[13px] text-muted">
+                    <span className="text-[13px] text-ink-2">
                       {EVIDENCE_LABELS[f.tier].label.toLowerCase()}
                     </span>
                   </li>
@@ -102,7 +102,7 @@ export function Methodology({ projection }: { projection: Projection }) {
               </ul>
             )}
             {projection.widened && (
-              <p className="mt-3 text-[14px] leading-relaxed text-muted">
+              <p className="mt-3 text-[14px] leading-relaxed text-ink-2">
                 The range is wider than usual here, because some of what we would want to know is
                 either uncertain or missing. That widening is deliberate.
               </p>
@@ -111,7 +111,7 @@ export function Methodology({ projection }: { projection: Projection }) {
 
           <div>
             <h3 className="label mb-2">What we do not model</h3>
-            <ul className="space-y-1.5 text-[14px] leading-relaxed text-muted">
+            <ul className="space-y-1.5 text-[14px] leading-relaxed text-ink-2">
               {breed.species === 'cat' && (
                 <>
                   <li>
@@ -155,12 +155,12 @@ export function Methodology({ projection }: { projection: Projection }) {
                   ) : (
                     <span className="text-ink">{c.label}</span>
                   )}
-                  {c.metric && <span className="block text-muted">Measures: {c.metric}</span>}
-                  {c.figure && <span className="block text-muted">Figure used: {c.figure}</span>}
+                  {c.metric && <span className="block text-ink-2">Measures: {c.metric}</span>}
+                  {c.figure && <span className="block text-ink-2">Figure used: {c.figure}</span>}
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-[13.5px] leading-relaxed text-muted">
+            <p className="mt-4 text-[13.5px] leading-relaxed text-ink-2">
               Studies of pet longevity do not all measure the same thing. Life expectancy at age 0
               includes animals that die young and runs below median survival or median age at death.
               We never average figures across studies, and where no figure has been published for a

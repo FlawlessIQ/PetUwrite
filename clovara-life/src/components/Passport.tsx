@@ -50,7 +50,7 @@ export function Passport({
         <h2 id="passport-heading" className="mt-1 font-display text-[20px] text-ink">
           {copy.title}
         </h2>
-        <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{copy.body}</p>
+        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{copy.body}</p>
 
         <div className="mt-4 flex items-center gap-3">
           <span className="h-2 flex-1 overflow-hidden rounded-full bg-white">
@@ -59,7 +59,7 @@ export function Passport({
               style={{ width: `${pct}%` }}
             />
           </span>
-          <span className="shrink-0 text-[13px] text-muted">
+          <span className="shrink-0 text-[13px] text-ink-2">
             {state.collected.length} of {state.stamps.length}
           </span>
         </div>
@@ -78,12 +78,12 @@ export function Passport({
               >
                 <span className="text-[15px] text-ink">{group}</span>
                 <span className="flex items-center gap-3">
-                  <span className="text-[13px] text-muted">
+                  <span className="text-[13px] text-ink-2">
                     {done}/{total}
                   </span>
                   <span
                     aria-hidden="true"
-                    className={`text-[18px] leading-none text-muted transition-transform ${open ? 'rotate-45' : ''}`}
+                    className={`text-[18px] leading-none text-ink-2 transition-transform ${open ? 'rotate-45' : ''}`}
                   >
                     +
                   </span>
@@ -116,7 +116,7 @@ export function Passport({
                             >
                               ✓
                             </span>
-                            <span className={`text-[14.5px] ${has ? 'text-muted line-through' : 'text-ink'}`}>
+                            <span className={`text-[14.5px] ${has ? 'text-ink-2 line-through' : 'text-ink'}`}>
                               {st.label}
                             </span>
                           </button>
@@ -133,7 +133,7 @@ export function Passport({
       <div className="border-t border-line bg-cream/40 px-5 py-4">
         <p className="text-[13px] leading-relaxed text-deep">{PASSPORT_PRINCIPLE}</p>
         {pet.species === 'dog' && (
-          <p className="mt-2 text-[12.5px] leading-relaxed text-muted">{PASSPORT_VET_LINE}</p>
+          <p className="mt-2 text-[12.5px] leading-relaxed text-ink-2">{PASSPORT_VET_LINE}</p>
         )}
       </div>
     </section>

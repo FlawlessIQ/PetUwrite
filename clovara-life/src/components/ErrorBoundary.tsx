@@ -56,14 +56,14 @@ export class ErrorBoundary extends Component<Props, State> {
           <h1 className="font-display text-[26px] leading-tight text-ink">
             Something went wrong
           </h1>
-          <p className="mx-auto mt-2.5 max-w-[36ch] text-[14.5px] leading-relaxed text-muted">
+          <p className="mx-auto mt-2.5 max-w-[36ch] text-[14.5px] leading-relaxed text-ink-2">
             This one is on us, not on you. Starting over clears the pets saved in this browser and
             reloads a clean demo.
           </p>
           <button type="button" onClick={this.startOver} className="pill-primary mt-6">
             Start over
           </button>
-          <p className="mt-5 break-words text-[12px] leading-relaxed text-muted/70">
+          <p className="mt-5 break-words text-[12px] leading-relaxed text-ink-2/70">
             {this.state.error.message}
           </p>
         </div>

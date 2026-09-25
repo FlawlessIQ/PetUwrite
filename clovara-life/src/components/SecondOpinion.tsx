@@ -34,7 +34,7 @@ export function SecondOpinion({
         <h2 id="opinion-heading" className="mt-1 font-display text-[20px] text-ink">
           What to ask your vet
         </h2>
-        <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{OPENING}</p>
+        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{OPENING}</p>
       </div>
 
       <div className="px-5 py-5">
@@ -70,7 +70,7 @@ export function SecondOpinion({
                   </span>
                   <span>
                     <span className="block text-[15px] leading-snug text-ink">{q.text}</span>
-                    <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">
+                    <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">
                       {q.because}
                     </span>
                   </span>
@@ -91,7 +91,7 @@ export function SecondOpinion({
               </div>
             )}
 
-            <p className="mt-5 text-[12.5px] leading-relaxed text-muted">{PRICE_NOTE}</p>
+            <p className="mt-5 text-[12.5px] leading-relaxed text-ink-2">{PRICE_NOTE}</p>
           </div>
         )}
       </div>

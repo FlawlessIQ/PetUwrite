@@ -107,7 +107,7 @@ export function LifeArc({ projection }: { projection: Projection }) {
           </filter>
         </defs>
 
-        <path d={ARC} fill="none" stroke="#E6E1D6" strokeWidth={g.stroke} strokeLinecap="round" />
+        <path d={ARC} fill="none" stroke="#EDEAE0" strokeWidth={g.stroke} strokeLinecap="round" />
         <path
           d={ARC}
           fill="none"
@@ -146,7 +146,7 @@ export function LifeArc({ projection }: { projection: Projection }) {
               x={anchor === 'start' ? g.P - 6 : anchor === 'end' ? g.W - g.P + 6 : p.x}
               y={g.H - 6}
               textAnchor={anchor}
-              className="fill-muted"
+              className="fill-ink-2"
               style={{ fontSize: g.label, fontWeight: 500 }}
             >
               {s.label}

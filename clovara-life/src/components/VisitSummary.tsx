@@ -16,9 +16,9 @@ import { track } from '../analytics/track'
  * paste mangled.
  */
 const TOLD_STYLE: Record<Told, string> = {
-  'owner said': 'text-muted',
+  'owner said': 'text-ink-2',
   'from a document': 'text-deep',
-  'not asked': 'text-muted/70 italic',
+  'not asked': 'text-ink-2/70 italic',
 }
 
 export function VisitSummary({
@@ -53,7 +53,7 @@ export function VisitSummary({
         <h2 id="visit-heading" className="mt-1 font-display text-[20px] text-ink">
           Everything about {pet.name}, on one page
         </h2>
-        <p className="mt-1 text-[13.5px] leading-relaxed text-muted">
+        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
           What you would be asked in the room and would not remember. Copy it, send it ahead, or
           read it off your phone.
         </p>
@@ -86,7 +86,7 @@ export function VisitSummary({
               <div key={s.heading}>
                 <p className="label">{s.heading}</p>
                 {s.lines.length === 0 ? (
-                  <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted">{s.emptyNote}</p>
+                  <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">{s.emptyNote}</p>
                 ) : (
                   <ul className="mt-1.5 divide-y divide-line border-t border-line">
                     {s.lines.map((l) => (
@@ -95,7 +95,7 @@ export function VisitSummary({
                           <span className="text-[14.5px] text-ink">{l.label}</span>
                           <span className={`text-[13px] ${TOLD_STYLE[l.told]}`}>{l.told}</span>
                         </div>
-                        <p className="mt-0.5 text-[13.5px] leading-relaxed text-muted">{l.value}</p>
+                        <p className="mt-0.5 text-[13.5px] leading-relaxed text-ink-2">{l.value}</p>
                       </li>
                     ))}
                   </ul>
@@ -107,7 +107,7 @@ export function VisitSummary({
               <p className="label">Notes that travel with it</p>
               <ul className="mt-1.5 space-y-1.5">
                 {summary.caveats.map((c) => (
-                  <li key={c} className="text-[13px] leading-relaxed text-muted">
+                  <li key={c} className="text-[13px] leading-relaxed text-ink-2">
                     {c}
                   </li>
                 ))}

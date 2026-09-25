@@ -69,13 +69,13 @@ export function AnnualReview({
           A year with {pet.name}
         </h2>
         {shift && !shift.unchanged ? (
-          <p className="mt-1 text-[14px] leading-relaxed text-muted">
+          <p className="mt-1 text-[14px] leading-relaxed text-ink-2">
             Last year we said {lastYear!.low.toFixed(1)}–{lastYear!.high.toFixed(1)} healthy years.
             Today it is {currentRange.low.toFixed(1)}–{currentRange.high.toFixed(1)} — {pet.name} is
             a year older, and the range moves with them.
           </p>
         ) : (
-          <p className="mt-1 text-[14px] leading-relaxed text-muted">
+          <p className="mt-1 text-[14px] leading-relaxed text-ink-2">
             A once-a-year check of the handful of things that actually change. Every question is
             optional, and "still true" is the most common answer.
           </p>
@@ -89,9 +89,9 @@ export function AnnualReview({
             <li key={item.field} className={`px-5 py-4 ${done ? 'opacity-55' : ''}`}>
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <p className="text-[15px] font-medium text-ink">{item.prompt}</p>
-                <p className="text-[13px] text-muted">{item.current}</p>
+                <p className="text-[13px] text-ink-2">{item.current}</p>
               </div>
-              <p className="mt-1 text-[13px] leading-relaxed text-muted">{item.because}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{item.because}</p>
               {done ? (
                 <p className="mt-2 text-[13px] text-forest">Thank you — noted.</p>
               ) : (
@@ -118,7 +118,7 @@ export function AnnualReview({
       </ul>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-cream/40 px-5 py-4">
-        <p className="text-[13px] text-muted">
+        <p className="text-[13px] text-ink-2">
           {allHandled
             ? 'That is everything. We will ask again next year.'
             : `${items.filter((i) => !handled.has(i.field)).length} left, none of them required.`}

@@ -90,7 +90,7 @@ export function TopNav({
                 onClick={() => onChange(s.id)}
                 aria-current={on ? 'page' : undefined}
                 className={`rounded-full px-3.5 py-2 text-[14px] font-medium transition ${
-                  on ? 'bg-ink text-cream' : 'text-muted hover:bg-white hover:text-ink'
+                  on ? 'bg-ink text-cream' : 'text-ink-2 hover:bg-white hover:text-ink'
                 }`}
               >
                 {s.label}
@@ -127,7 +127,7 @@ export function TabBar({
                 onClick={() => onChange(s.id)}
                 aria-current={on ? 'page' : undefined}
                 className={`flex w-full flex-col items-center justify-center gap-1 py-2.5 text-[9.5px] font-medium transition ${
-                  on ? 'text-forest' : 'text-muted'
+                  on ? 'text-forest' : 'text-ink-2'
                 }`}
               >
                 <Icon>{s.icon}</Icon>

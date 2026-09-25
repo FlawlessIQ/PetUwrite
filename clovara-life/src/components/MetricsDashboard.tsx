@@ -135,7 +135,7 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-[30px] leading-tight text-ink">Internal metrics</h1>
-          <p className="mt-1 text-[14px] text-muted">
+          <p className="mt-1 text-[14px] text-ink-2">
             Not a customer surface. Read-only, admin-gated in the Firestore rules.
           </p>
         </div>
@@ -157,7 +157,7 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
           <section className="card overflow-hidden">
             <div className="border-b border-line bg-cream/50 px-5 py-4">
               <h2 className="font-display text-[20px] text-ink">The gates</h2>
-              <p className="mt-1 text-[13.5px] text-muted">
+              <p className="mt-1 text-[13.5px] text-ink-2">
                 Unique visitors reaching each step, and the rate against the step above.
               </p>
             </div>
@@ -172,7 +172,7 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
                     <span className="flex items-baseline gap-3">
                       <span className="font-display text-[20px] text-deep">{n}</span>
                       {i > 0 && (
-                        <span className="w-[52px] text-right text-[13px] text-muted">
+                        <span className="w-[52px] text-right text-[13px] text-ink-2">
                           {rate === null ? '—' : `${rate}%`}
                         </span>
                       )}
@@ -187,7 +187,7 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
             <section className="card overflow-hidden">
               <div className="border-b border-line bg-cream/50 px-5 py-4">
                 <h2 className="font-display text-[20px] text-ink">Phase 1 — the four numbers</h2>
-                <p className="mt-1 text-[13.5px] text-muted">
+                <p className="mt-1 text-[13.5px] text-ink-2">
                   SPEC §4.3's metrics for onboarding. Demo pets are excluded from all four —
                   Max, Winston and Luna are walked through in front of investors, which is a
                   session that reveals in seconds and sharpens nothing.
@@ -204,7 +204,7 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
                     </span>
                   </div>
                   {phase.reveal.samples > 0 && (
-                    <p className="mt-1 text-[13px] text-muted">
+                    <p className="mt-1 text-[13px] text-ink-2">
                       {phase.reveal.p90Seconds?.toFixed(0)}s at the 90th ·{' '}
                       {phase.reveal.withinTarget} of {phase.reveal.samples} inside SPEC's
                       sixty-second target
@@ -222,7 +222,7 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
                     </span>
                   </div>
                   {phase.tier1.sessions > 0 && (
-                    <p className="mt-1 text-[13px] text-muted">
+                    <p className="mt-1 text-[13px] text-ink-2">
                       {phase.tier1.completedAny} of {phase.tier1.sessions} sessions ·{' '}
                       {phase.tier1.meanFields.toFixed(1)} fields each on average, sessions that
                       answered nothing included
@@ -245,7 +245,7 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
                         const pct = Math.round((b.count / phase.accuracy.visitors) * 100)
                         return (
                           <div key={b.label} className="flex items-center gap-3">
-                            <span className="w-[66px] shrink-0 text-[13px] text-muted">
+                            <span className="w-[66px] shrink-0 text-[13px] text-ink-2">
                               {b.label}
                             </span>
                             <span className="h-2 flex-1 overflow-hidden rounded-full bg-cream">
@@ -254,13 +254,13 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
                                 style={{ width: `${pct}%` }}
                               />
                             </span>
-                            <span className="w-[34px] shrink-0 text-right text-[13px] text-muted">
+                            <span className="w-[34px] shrink-0 text-right text-[13px] text-ink-2">
                               {b.count}
                             </span>
                           </div>
                         )
                       })}
-                      <p className="pt-1 text-[13px] text-muted">
+                      <p className="pt-1 text-[13px] text-ink-2">
                         One score per visitor — their highest.
                       </p>
                     </div>
@@ -276,7 +276,7 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
                         : `${phase.records.connected} of ${phase.records.eligible}`}
                     </span>
                   </div>
-                  <p className="mt-1 text-[13px] text-muted">
+                  <p className="mt-1 text-[13px] text-ink-2">
                     Vet-record extraction (P1.7) is blocked on the Firestore security review, so
                     this reads zero because the feature does not exist — not because nobody uses
                     it.
@@ -310,7 +310,7 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
             </ul>
           </section>
 
-          <p className="card p-5 text-[13.5px] leading-relaxed text-muted">
+          <p className="card p-5 text-[13.5px] leading-relaxed text-ink-2">
             <span className="font-medium text-ink">Read this number honestly.</span> Events buffer
             locally and flush when someone signs in, so a visitor who sees the reveal and never
             signs up is never counted — the top of this funnel ({top} visitors) is an undercount,

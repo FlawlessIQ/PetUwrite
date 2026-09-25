@@ -38,7 +38,7 @@ export function ImportPrompt({
             <h2 id="import-heading" className="font-display text-[19px] leading-tight text-ink">
               Keep working with {list}?
             </h2>
-            <p className="mt-1 max-w-[56ch] text-[14px] leading-snug text-muted">
+            <p className="mt-1 max-w-[56ch] text-[14px] leading-snug text-ink-2">
               {names.length === 1 ? 'This pet was' : 'These pets were'} made on this device before
               you signed in. Move {names.length === 1 ? 'them' : 'them'} into your account and{' '}
               {names.length === 1 ? 'their plan follows' : 'their plans follow'} you to every device.
@@ -49,7 +49,7 @@ export function ImportPrompt({
               type="button"
               onClick={onDismiss}
               disabled={busy}
-              className="text-[14.5px] text-muted transition hover:text-ink disabled:opacity-40 text-action"
+              className="text-[14.5px] text-ink-2 transition hover:text-ink disabled:opacity-40 text-action"
             >
               Not now
             </button>

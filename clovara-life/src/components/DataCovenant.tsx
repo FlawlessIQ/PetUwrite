@@ -22,7 +22,7 @@ export function DataCovenant({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           onClick={onClose}
-          className="text-[14px] text-muted transition hover:text-ink text-action"
+          className="text-[14px] text-ink-2 transition hover:text-ink text-action"
         >
           Back to the app
         </button>

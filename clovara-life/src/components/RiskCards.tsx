@@ -13,7 +13,7 @@ export function RiskCards({ projection, name }: { projection: Projection; name: 
         <h2 id="risks-heading" className="font-display text-[22px] leading-tight text-ink">
           What matters for a {projection.breed.name}
         </h2>
-        <p className="mt-1 text-[14px] leading-snug text-muted">
+        <p className="mt-1 text-[14px] leading-snug text-ink-2">
           The conditions most worth knowing about for this breed, and when they typically show up.
         </p>
       </div>
@@ -35,21 +35,21 @@ export function RiskCards({ projection, name }: { projection: Projection; name: 
               <p className="mt-1 text-[13px] font-medium text-forest">{card.window}</p>
 
               <p className="mt-2 text-[14px] leading-relaxed text-ink/80">
-                <span className="text-muted">What you might notice — </span>
+                <span className="text-ink-2">What you might notice — </span>
                 {card.watch}
               </p>
               <p className="mt-1.5 text-[14px] leading-relaxed text-ink/80">
-                <span className="text-muted">What to do — </span>
+                <span className="text-ink-2">What to do — </span>
                 {card.action}
               </p>
 
               {card.context && (
                 <p className="mt-2.5 rounded-soft border border-line bg-cream/60 px-3 py-2.5 text-[13.5px] leading-relaxed text-ink/80">
-                  <span className="mb-1 block text-[11px] uppercase tracking-[0.09em] text-muted">
+                  <span className="mb-1 block text-[11px] uppercase tracking-[0.09em] text-ink-2">
                     About {name} specifically
                   </span>
                   {card.context.text}
-                  <span className="mt-1.5 block text-[12.5px] text-muted">
+                  <span className="mt-1.5 block text-[12.5px] text-ink-2">
                     {card.context.source.label}
                   </span>
                 </p>
@@ -67,7 +67,7 @@ export function RiskCards({ projection, name }: { projection: Projection; name: 
         })}
       </ul>
 
-      <p className="border-t border-line bg-cream/50 px-5 py-3.5 text-[13px] leading-relaxed text-muted sm:px-6">
+      <p className="border-t border-line bg-cream/50 px-5 py-3.5 text-[13px] leading-relaxed text-ink-2 sm:px-6">
         These are breed-average patterns, not findings about {name}. Your vet is the one who decides
         what any of it means for your pet.
       </p>

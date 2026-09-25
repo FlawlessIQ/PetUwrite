@@ -15,8 +15,8 @@ import { track } from '../analytics/track'
 const STATUS_STYLE: Record<DoseState['status'], string> = {
   recorded: 'bg-sage text-deep',
   due: 'bg-accent/15 text-[#8A5510]',
-  'past-window': 'bg-cream text-muted',
-  upcoming: 'bg-white text-muted',
+  'past-window': 'bg-cream text-ink-2',
+  upcoming: 'bg-white text-ink-2',
 }
 
 const STATUS_WORD: Record<DoseState['status'], string> = {
@@ -69,7 +69,7 @@ export function Vaccines({
           {vaccineHeadline(pet, state)}
         </h2>
         {/* Before the schedule, not after it. */}
-        <p className="mt-2 text-[13px] leading-relaxed text-muted">{VACCINE_DISCLAIMER}</p>
+        <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{VACCINE_DISCLAIMER}</p>
       </div>
 
       <ul className="divide-y divide-line">
@@ -80,12 +80,12 @@ export function Vaccines({
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <p className="text-[15px] font-medium text-ink">{vaccine.label}</p>
                 {vaccine.lawDependent && (
-                  <span className="rounded-full bg-cream px-2.5 py-1 text-[11.5px] text-muted">
+                  <span className="rounded-full bg-cream px-2.5 py-1 text-[11.5px] text-ink-2">
                     Depends on local law
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-[13px] leading-relaxed text-muted">{vaccine.protects}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{vaccine.protects}</p>
 
               <ul className="mt-3 space-y-2">
                 {doses.map((d) => (
@@ -93,7 +93,7 @@ export function Vaccines({
                     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                       <span className="text-[14px] text-ink">
                         {d.dose.label}
-                        <span className="ml-2 text-[12.5px] text-muted">
+                        <span className="ml-2 text-[12.5px] text-ink-2">
                           {d.givenOn
                             ? longDate(d.givenOn)
                             : `usually ${longDate(d.windowOpens)} – ${longDate(d.windowCloses)}`}
@@ -169,7 +169,7 @@ export function Vaccines({
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-[12.5px] leading-relaxed text-muted">{VACCINE_RECORD_NOTE}</p>
+        <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">{VACCINE_RECORD_NOTE}</p>
       </div>
     </section>
   )

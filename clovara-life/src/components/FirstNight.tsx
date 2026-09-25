@@ -26,7 +26,7 @@ export function FirstNight({ pet, now = new Date() }: { pet: PetProfile; now?: D
         <h2 id="first-night-heading" className="mt-1 font-display text-[20px] text-ink">
           {current.title}
         </h2>
-        <p className="mt-1 text-[13.5px] text-muted">
+        <p className="mt-1 text-[13.5px] text-ink-2">
           {pet.name} has been home about {Math.max(1, Math.round(hoursHome))} hour
           {Math.round(hoursHome) === 1 ? '' : 's'}.
         </p>
@@ -71,14 +71,14 @@ export function FirstNight({ pet, now = new Date() }: { pet: PetProfile; now?: D
                       <span className="text-[14.5px] text-ink">{b.title}</span>
                       <span
                         aria-hidden="true"
-                        className={`shrink-0 text-[18px] leading-none text-muted transition-transform ${open ? 'rotate-45' : ''}`}
+                        className={`shrink-0 text-[18px] leading-none text-ink-2 transition-transform ${open ? 'rotate-45' : ''}`}
                       >
                         +
                       </span>
                     </button>
                     {open && (
                       <div className="pb-4">
-                        <p className="text-[14px] leading-relaxed text-muted">{b.body}</p>
+                        <p className="text-[14px] leading-relaxed text-ink-2">{b.body}</p>
                         <p className="mt-2 text-[13.5px] leading-relaxed text-deep">
                           <span className="font-medium">Normal: </span>
                           {b.normal}
@@ -92,7 +92,7 @@ export function FirstNight({ pet, now = new Date() }: { pet: PetProfile; now?: D
           </div>
         )}
 
-        <p className="mt-5 text-[12.5px] leading-relaxed text-muted">{FIRST_NIGHT_FOOTER}</p>
+        <p className="mt-5 text-[12.5px] leading-relaxed text-ink-2">{FIRST_NIGHT_FOOTER}</p>
       </div>
     </section>
   )

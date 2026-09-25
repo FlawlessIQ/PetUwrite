@@ -99,10 +99,10 @@ export function Sharpen({
               Answered
             </span>
           ) : (
-            <span className="text-[12.5px] text-muted">+{meta.points} to sharpness</span>
+            <span className="text-[12.5px] text-ink-2">+{meta.points} to sharpness</span>
           )}
         </div>
-        <p className="mb-3.5 text-[13.5px] leading-snug text-muted">{meta.benefit}</p>
+        <p className="mb-3.5 text-[13.5px] leading-snug text-ink-2">{meta.benefit}</p>
         {children}
       </div>
     )
@@ -137,7 +137,7 @@ export function Sharpen({
           >
             <span className="block text-[14.5px] font-medium leading-tight">{o.label}</span>
             {o.hint && (
-              <span className={`mt-0.5 block text-[12px] ${on ? 'text-white/70' : 'text-muted'}`}>
+              <span className={`mt-0.5 block text-[12px] ${on ? 'text-white/70' : 'text-ink-2'}`}>
                 {o.hint}
               </span>
             )}
@@ -155,7 +155,7 @@ export function Sharpen({
         <h2 id="sharpen-heading" className="font-display text-[22px] leading-tight text-ink">
           {unanswered === 0 ? `${pet.name}'s plan is as sharp as we can make it` : 'Sharpen the plan'}
         </h2>
-        <p className="mt-1 text-[14px] leading-snug text-muted">
+        <p className="mt-1 text-[14px] leading-snug text-ink-2">
           {unanswered === 0
             ? "You've told us everything that moves the number. Change any of it any time."
             : `${unanswered} question${unanswered === 1 ? '' : 's'} left, each one optional. Watch the range above as you answer.`}
@@ -183,7 +183,7 @@ export function Sharpen({
                 </span>
                 <span
                   className={`mt-1 block whitespace-nowrap text-center text-[9.5px] leading-tight sm:text-[11.5px] ${
-                    on ? 'font-medium text-deep' : 'text-muted'
+                    on ? 'font-medium text-deep' : 'text-ink-2'
                   }`}
                 >
                   {BCS_LABELS[score].label}
@@ -193,7 +193,7 @@ export function Sharpen({
           })}
         </div>
         {pet.bodyConditionScore && (
-          <p className="mt-2.5 text-[13.5px] leading-relaxed text-muted">
+          <p className="mt-2.5 text-[13.5px] leading-relaxed text-ink-2">
             {BCS_LABELS[pet.bodyConditionScore].detail}.{' '}
             <span className="text-ink/70">
               A weight in pounds is optional and does not change this — you have already told us the
@@ -219,7 +219,7 @@ export function Sharpen({
               if (Number.isFinite(n) && n > 0 && n !== pet.weightLb) answer('weightLb', { weightLb: n })
             }}
           />
-          <p className="mt-1.5 text-[12.5px] text-muted">
+          <p className="mt-1.5 text-[12.5px] text-ink-2">
             Typical adult range for a {breed.name}: {breed.weight.low}–{breed.weight.high} lb.
           </p>
         </div>

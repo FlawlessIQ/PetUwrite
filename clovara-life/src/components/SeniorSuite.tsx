@@ -32,7 +32,7 @@ export function SeniorSuite({
         <h2 id="senior-heading" className="mt-1 font-display text-[20px] text-ink">
           Making the house easier for {pet.name}
         </h2>
-        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted">{SENIOR_OPENING}</p>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">{SENIOR_OPENING}</p>
       </div>
 
       <div className="px-5 py-5">
@@ -54,13 +54,13 @@ export function SeniorSuite({
                   <span className="text-[14.5px] text-ink">{a.what}</span>
                   <span
                     aria-hidden="true"
-                    className={`shrink-0 text-[18px] leading-none text-muted transition-transform ${isOpen ? 'rotate-45' : ''}`}
+                    className={`shrink-0 text-[18px] leading-none text-ink-2 transition-transform ${isOpen ? 'rotate-45' : ''}`}
                   >
                     +
                   </span>
                 </button>
                 {isOpen && (
-                  <p className="pb-3.5 text-[13.5px] leading-relaxed text-muted">{a.why}</p>
+                  <p className="pb-3.5 text-[13.5px] leading-relaxed text-ink-2">{a.why}</p>
                 )}
               </li>
             )
@@ -77,7 +77,7 @@ export function SeniorSuite({
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-[12.5px] leading-relaxed text-muted">{MENTION_NOTE}</p>
+        <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">{MENTION_NOTE}</p>
 
         {/* ── What the plan already says for this stage ──────────────── */}
         {state.careActions.length > 0 && (
@@ -106,7 +106,7 @@ export function SeniorSuite({
           </>
         )}
 
-        <p className="mt-6 border-t border-line pt-4 text-[12.5px] leading-relaxed text-muted">
+        <p className="mt-6 border-t border-line pt-4 text-[12.5px] leading-relaxed text-ink-2">
           {NO_SCALE_NOTE}
         </p>
       </div>

@@ -26,7 +26,7 @@ export function Rewards({
         <h1 className="mt-1.5 font-display text-[34px] leading-[1.1] text-ink sm:text-[40px]">
           Healthy habits, rewarded
         </h1>
-        <p className="mt-2 max-w-[62ch] text-[15.5px] leading-relaxed text-muted">
+        <p className="mt-2 max-w-[62ch] text-[15.5px] leading-relaxed text-ink-2">
           The behaviours that earn the most points are the same ones that move {pet.name}'s
           healthy-years projection. That alignment is the design — points follow evidence, not
           engagement for its own sake.
@@ -71,7 +71,7 @@ export function Rewards({
               <h2 id="earn-heading" className="font-display text-[22px] leading-tight text-ink">
                 How points are earned
               </h2>
-              <p className="mt-1 text-[14px] leading-snug text-muted">
+              <p className="mt-1 text-[14px] leading-snug text-ink-2">
                 {r.alignedCount} of these also move the healthy-years number. Those are marked.
               </p>
             </div>
@@ -82,7 +82,7 @@ export function Rewards({
                   <li key={rule.id} className="flex items-center gap-3 px-5 py-3.5 sm:px-6">
                     <div className="min-w-0 flex-1">
                       <p className="text-[14.5px] font-medium text-ink">{rule.label}</p>
-                      <p className="mt-0.5 text-[12.5px] capitalize text-muted">{rule.cadence}</p>
+                      <p className="mt-0.5 text-[12.5px] capitalize text-ink-2">{rule.cadence}</p>
                     </div>
                     {rule.movesProjection && (
                       <span className="shrink-0 rounded-full bg-sage px-2.5 py-0.5 text-[11px] font-medium text-deep">
@@ -103,7 +103,7 @@ export function Rewards({
             <h2 id="redeem-heading" className="font-display text-[22px] leading-tight text-ink">
               Redeem points
             </h2>
-            <p className="mt-1 text-[14px] leading-snug text-muted">
+            <p className="mt-1 text-[14px] leading-snug text-ink-2">
               Products and care services. Never premium — that is a regulatory line, not a product
               choice.
             </p>
@@ -130,7 +130,7 @@ export function Rewards({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[14.5px] font-medium leading-snug text-ink">{item.label}</p>
-                  <p className="mt-0.5 text-[12.5px] leading-snug text-muted">{item.detail}</p>
+                  <p className="mt-0.5 text-[12.5px] leading-snug text-ink-2">{item.detail}</p>
                   {item.recommended && (
                     <p className="mt-1 text-[11.5px] font-medium uppercase tracking-[0.07em] text-accent">
                       Suggested for {pet.name}
@@ -141,9 +141,9 @@ export function Rewards({
                   <p className="font-display text-[15px] font-semibold text-forest">
                     {item.cost.toLocaleString()}
                   </p>
-                  <p className="text-[11px] text-muted">points</p>
+                  <p className="text-[11px] text-ink-2">points</p>
                   {!item.affordable && (
-                    <p className="mt-0.5 text-[11px] text-muted">
+                    <p className="mt-0.5 text-[11px] text-ink-2">
                       {(item.cost - r.points).toLocaleString()} to go
                     </p>
                   )}
@@ -154,7 +154,7 @@ export function Rewards({
         </section>
       </div>
 
-      <p className="mt-6 text-[13px] leading-relaxed text-muted">{REWARDS_DISCLAIMER}</p>
+      <p className="mt-6 text-[13px] leading-relaxed text-ink-2">{REWARDS_DISCLAIMER}</p>
     </div>
   )
 }

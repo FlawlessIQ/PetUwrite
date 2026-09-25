@@ -13,7 +13,7 @@ export interface LeverState {
 const TIER_STYLE: Record<EvidenceTier, string> = {
   strong: 'border-forest/30 bg-sage text-deep',
   associational: 'border-accent/30 bg-accent/10 text-[#8A5510]',
-  directional: 'border-line bg-cream text-muted',
+  directional: 'border-line bg-cream text-ink-2',
 }
 
 function EvidenceBadge({ tier }: { tier: EvidenceTier }) {
@@ -69,7 +69,7 @@ export function Levers({
         <h2 id="levers-heading" className="font-display text-[22px] leading-tight text-ink">
           What you can change
         </h2>
-        <p className="mt-1 text-[14px] leading-snug text-muted">
+        <p className="mt-1 text-[14px] leading-snug text-ink-2">
           Move these and watch the projection respond. Each one is labelled with how strong the
           evidence behind it actually is.
         </p>
@@ -85,7 +85,7 @@ export function Levers({
                 <h3 className="text-[15px] font-medium text-ink">{lever.label}</h3>
                 <EvidenceBadge tier={lever.evidenceTier} />
               </div>
-              <p className="mb-3 text-[13.5px] leading-snug text-muted">{lever.question}</p>
+              <p className="mb-3 text-[13.5px] leading-snug text-ink-2">{lever.question}</p>
 
               <div role="radiogroup" aria-label={lever.label} className="grid grid-cols-3 gap-2">
                 {lever.options.map((o) => {
@@ -110,9 +110,9 @@ export function Levers({
               </div>
 
               {active && (
-                <p className="mt-3 text-[13.5px] leading-relaxed text-muted">{active.note}</p>
+                <p className="mt-3 text-[13.5px] leading-relaxed text-ink-2">{active.note}</p>
               )}
-              <p className="mt-2 text-[12.5px] leading-relaxed text-muted/80">{lever.evidenceNote}</p>
+              <p className="mt-2 text-[12.5px] leading-relaxed text-ink-2/80">{lever.evidenceNote}</p>
             </div>
           )
         })}
@@ -132,7 +132,7 @@ export function Levers({
             against their current routine.
           </p>
         ) : (
-          <p className="text-[14px] text-muted">
+          <p className="text-[14px] text-ink-2">
             Set to what you told us. Change any of the {projection.levers.length === 4 ? 'four' : 'three'} to see the
             projection move.
           </p>

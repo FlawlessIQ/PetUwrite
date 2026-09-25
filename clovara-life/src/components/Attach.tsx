@@ -152,7 +152,7 @@ export function Attach({
                         }`}
                       >
                         <span className="block text-[14.5px] font-medium text-ink">{t.name}</span>
-                        <span className="mt-0.5 block text-[12.5px] text-muted">
+                        <span className="mt-0.5 block text-[12.5px] text-ink-2">
                           {t.reimbursement}% back · ${t.deductible} deductible · {t.annualLimit}
                         </span>
                       </button>
@@ -167,7 +167,7 @@ export function Attach({
                     />
                     <span>
                       Add the wellness rider
-                      <span className="block text-[12.5px] text-muted">
+                      <span className="block text-[12.5px] text-ink-2">
                         Routine care — not insurance, and billed as its own line.
                       </span>
                     </span>
@@ -186,7 +186,7 @@ export function Attach({
                         <span className="text-[14px] text-ink">{b.label}</span>
                         <span className="text-[14px] font-medium text-deep">{b.value}</span>
                       </div>
-                      <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">{b.note}</p>
+                      <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-2">{b.note}</p>
                     </li>
                   ))}
                 </ul>
@@ -203,7 +203,7 @@ export function Attach({
           <section className="card overflow-hidden">
             <div className="border-b border-line bg-cream/50 px-5 py-4">
               <h2 className="font-display text-[21px] text-ink">What you would actually be buying</h2>
-              <p className="mt-1 text-[13.5px] leading-relaxed text-muted">
+              <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
                 The uncomfortable page, on purpose. Everything here is a reason a claim gets turned
                 down, and it is better to read it now than to find out later.
               </p>
@@ -223,7 +223,7 @@ export function Attach({
                         from {longDate(w.coveredFrom)}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">{w.because}</p>
+                    <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-2">{w.because}</p>
                   </li>
                 ))}
               </ul>
@@ -249,7 +249,7 @@ export function Attach({
           <section className="card mt-5 overflow-hidden">
             <div className="border-b border-line bg-cream/50 px-5 py-4">
               <h2 className="font-display text-[19px] text-ink">The small print, in full</h2>
-              <p className="mt-1 text-[13px] text-muted">
+              <p className="mt-1 text-[13px] text-ink-2">
                 Read to the bottom — the button below stays off until you have.
               </p>
             </div>
@@ -261,10 +261,10 @@ export function Attach({
               {DISCLOSURES.map((d) => (
                 <div key={d.id} className="mb-4">
                   <p className="text-[14.5px] font-medium text-ink">{d.heading}</p>
-                  <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{d.body}</p>
+                  <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{d.body}</p>
                 </div>
               ))}
-              <p className="mt-4 border-t border-line pt-4 text-[12.5px] leading-relaxed text-muted">
+              <p className="mt-4 border-t border-line pt-4 text-[12.5px] leading-relaxed text-ink-2">
                 {FRAUD_NOTICE}
               </p>
             </div>
@@ -278,7 +278,7 @@ export function Attach({
               onChange={(e) => setAttested(e.target.checked)}
               className="mt-1"
             />
-            <span className={readToEnd ? '' : 'text-muted'}>{ATTESTATION}</span>
+            <span className={readToEnd ? '' : 'text-ink-2'}>{ATTESTATION}</span>
           </label>
 
           <button

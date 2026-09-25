@@ -63,7 +63,7 @@ export function Briefing({
         )}
 
         {!NULL_ENVIRONMENT.available && (
-          <p className="mt-4 text-[12px] leading-relaxed text-muted">
+          <p className="mt-4 text-[12px] leading-relaxed text-ink-2">
             No weather or pollen here yet — there is no provider connected, and we would rather say
             one fewer thing than guess at it.
           </p>

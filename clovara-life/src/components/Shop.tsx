@@ -11,7 +11,7 @@ import { isRemembered } from '../engine/remember'
 const STRENGTH_STYLE: Record<ClaimStrength, string> = {
   behaviour: 'bg-sage text-deep',
   supportive: 'bg-accent/12 text-[#8A5510]',
-  comfort: 'bg-cream text-muted',
+  comfort: 'bg-cream text-ink-2',
 }
 
 export function Shop({
@@ -50,7 +50,7 @@ export function Shop({
 
         <p className="label">Shop</p>
 
-        <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-muted">
+        <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-ink-2">
 
           There is nothing here for {pet.name}. Everything on this shelf was chosen from
 
@@ -72,7 +72,7 @@ export function Shop({
         <h1 className="mt-1.5 font-display text-[34px] leading-[1.1] text-ink sm:text-[40px]">
           Picked for {pet.name}
         </h1>
-        <p className="mt-2 max-w-[64ch] text-[15.5px] leading-relaxed text-muted">
+        <p className="mt-2 max-w-[64ch] text-[15.5px] leading-relaxed text-ink-2">
           {projection.breed.name}, {Math.floor(projection.ageYears)}, {projection.currentStage.label.toLowerCase()}
           {(pet.conditionIds ?? []).length > 0 ? `, managing ${pet.conditionIds.length} condition${pet.conditionIds.length > 1 ? 's' : ''}` : ''}.
           Every card below says why it is here, and it is here because of {pet.name}'s own risk profile —
@@ -113,14 +113,14 @@ export function Shop({
 
                 <div className="flex flex-1 flex-col p-4">
                   <h3 className="text-[15px] font-medium leading-snug text-ink">{p.name}</h3>
-                  <p className="mt-1 text-[13px] leading-snug text-muted">{p.subtitle}</p>
+                  <p className="mt-1 text-[13px] leading-snug text-ink-2">{p.subtitle}</p>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${STRENGTH_STYLE[p.claimStrength]}`}>
                       {CLAIM_STRENGTH_LABELS[p.claimStrength].label}
                     </span>
                     {p.subscription && (
-                      <span className="rounded-full border border-line px-2.5 py-0.5 text-[11px] text-muted">
+                      <span className="rounded-full border border-line px-2.5 py-0.5 text-[11px] text-ink-2">
                         Refill monthly
                       </span>
                     )}
@@ -137,18 +137,18 @@ export function Shop({
                           </span>
                           {member ? (
                             <>
-                              <span className="text-[13px] text-muted line-through">${p.price}</span>
-                              <span className="text-[12px] text-muted">member</span>
+                              <span className="text-[13px] text-ink-2 line-through">${p.price}</span>
+                              <span className="text-[12px] text-ink-2">member</span>
                             </>
                           ) : (
-                            <span className="text-[12px] text-muted">
+                            <span className="text-[12px] text-ink-2">
                               ${p.memberPrice} for members
                             </span>
                           )}
                         </>
                       )}
                     </div>
-                    <p className="mt-0.5 text-[12px] text-muted">Earns {p.points} points</p>
+                    <p className="mt-0.5 text-[12px] text-ink-2">Earns {p.points} points</p>
 
                     <button
                       type="button"
@@ -184,7 +184,7 @@ export function Shop({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[14.5px] font-medium text-ink">{p.name}</p>
-                  <p className="truncate text-[12.5px] text-muted">{p.subtitle}</p>
+                  <p className="truncate text-[12.5px] text-ink-2">{p.subtitle}</p>
                 </div>
                 <span className="shrink-0 text-[14px] font-medium text-forest">
                   {p.price === 0 ? 'Free' : `$${member ? p.memberPrice : p.price}`}
@@ -213,7 +213,7 @@ export function Shop({
         </p>
       </section>
 
-      <p className="mt-5 text-[13px] leading-relaxed text-muted">
+      <p className="mt-5 text-[13px] leading-relaxed text-ink-2">
         Product names, prices and images in this preview are illustrative placeholders. The matching
         logic is not — each item is here because it targets a condition on {pet.name}'s own risk
         cards. Supplement copy is deliberately qualitative: nothing here claims to treat or prevent

@@ -83,7 +83,7 @@ export function AskCompanion({
         <h2 id="ask-heading" className="mt-1 font-display text-[20px] text-ink">
           It can only tell you what it already knows
         </h2>
-        <p className="mt-1 text-[13.5px] leading-relaxed text-muted">
+        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
           Everything it says comes from {pet.name}&rsquo;s record or the breed research, and it
           shows you which. It does not guess, and it cannot examine {pet.name}.
         </p>
@@ -164,7 +164,7 @@ export function AskCompanion({
                 {recall.facts.map((f) => (
                   <li key={f.id} className="rounded-soft border border-line bg-white px-4 py-3">
                     <p className="text-[14.5px] leading-relaxed text-ink">{f.claim}</p>
-                    <p className="mt-1 text-[12.5px] text-muted">
+                    <p className="mt-1 text-[12.5px] text-ink-2">
                       {SOURCE_LABEL[f.source.kind] ?? f.source.kind}
                       {f.source.kind === 'breed-table' && ` · ${f.source.citation} evidence`}
                     </p>
@@ -175,7 +175,7 @@ export function AskCompanion({
 
             <p
               className={`mt-3 text-[13.5px] leading-relaxed ${
-                recall.route === 'vet-soon' ? 'text-deep' : 'text-muted'
+                recall.route === 'vet-soon' ? 'text-deep' : 'text-ink-2'
               }`}
             >
               {recall.closing}

@@ -164,7 +164,7 @@ function PetSwitcher({
       >
         {active && <PetAvatar pet={active} size={22} className="-ml-1" />}
         <span className="max-w-[8rem] truncate">{active ? active.name : 'Choose a pet'}</span>
-        <span aria-hidden="true" className="text-[11px] text-muted">
+        <span aria-hidden="true" className="text-[11px] text-ink-2">
           ▾
         </span>
       </button>
@@ -191,7 +191,7 @@ function PetSwitcher({
                 <PetAvatar pet={p} size={26} />
                 <span className="truncate">{p.name}</span>
               </span>
-              <span className="shrink-0 text-[12px] text-muted">{p.demo ? 'Demo' : 'Yours'}</span>
+              <span className="shrink-0 text-[12px] text-ink-2">{p.demo ? 'Demo' : 'Yours'}</span>
             </button>
           ))}
           <button
@@ -217,7 +217,7 @@ function PetSwitcher({
             {accountLabel ? (
               <>
                 <span className="block truncate font-medium">{accountLabel}</span>
-                <span className="block text-[12.5px] text-muted">Signed in · manage account</span>
+                <span className="block text-[12.5px] text-ink-2">Signed in · manage account</span>
               </>
             ) : (
               'Sign in'
@@ -231,7 +231,7 @@ function PetSwitcher({
                 onReset()
                 setOpen(false)
               }}
-              className="w-full shrink-0 border-t border-line px-4 py-2.5 text-left text-[13.5px] text-muted transition hover:bg-cream hover:text-ink"
+              className="w-full shrink-0 border-t border-line px-4 py-2.5 text-left text-[13.5px] text-ink-2 transition hover:bg-cream hover:text-ink"
             >
               Reset demo data
             </button>
@@ -449,7 +449,7 @@ export default function App() {
   if (sitter) {
     return (
       <Suspense
-        fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">One moment…</div>}
+        fallback={<div className="mx-auto max-w-shell px-5 py-10 text-ink-2">One moment…</div>}
       >
         <SitterCardPage token={sitter} />
       </Suspense>
@@ -532,7 +532,7 @@ export default function App() {
         )}
         {wrongRoute && active ? (
           <Suspense
-            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
+            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-ink-2">Loading…</div>}
           >
             <SomethingWrongPage
               pet={active}
@@ -544,7 +544,7 @@ export default function App() {
           </Suspense>
         ) : healthRoute !== null && healthPet ? (
           <Suspense
-            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
+            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-ink-2">Loading…</div>}
           >
             <HealthFilePage
               pet={healthPet}
@@ -562,7 +562,7 @@ export default function App() {
           </Suspense>
         ) : protectRoute && active ? (
           <Suspense
-            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
+            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-ink-2">Loading…</div>}
           >
             <AttachFlow
               pet={active}
@@ -575,7 +575,7 @@ export default function App() {
           </Suspense>
         ) : ateRoute && active ? (
           <Suspense
-            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
+            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-ink-2">Loading…</div>}
           >
             <AteSomething
               pet={active}
@@ -587,7 +587,7 @@ export default function App() {
           </Suspense>
         ) : covenantRoute ? (
           <Suspense
-            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}
+            fallback={<div className="mx-auto max-w-shell px-5 py-10 text-ink-2">Loading…</div>}
           >
             <DataCovenant
               onClose={() => {
@@ -597,7 +597,7 @@ export default function App() {
             />
           </Suspense>
         ) : adminRoute ? (
-          <Suspense fallback={<div className="mx-auto max-w-shell px-5 py-10 text-muted">Loading…</div>}>
+          <Suspense fallback={<div className="mx-auto max-w-shell px-5 py-10 text-ink-2">Loading…</div>}>
             <MetricsDashboard
               onClose={() => {
                 window.location.hash = `#/pet/${encodeURIComponent(active?.id ?? DEMO_PETS[0].id)}/home`
@@ -656,7 +656,7 @@ export default function App() {
               <span className="font-display text-[16px] text-ink">Clovara Life</span>
             </div>
             <div className="max-w-[62ch] space-y-2">
-              <p className="text-[13.5px] leading-relaxed text-muted">
+              <p className="text-[13.5px] leading-relaxed text-ink-2">
                 Clovara Life shares information to support care decisions. It is not veterinary
                 advice; your veterinarian decides care. Pricing, products and activity data in this
                 preview are illustrative.

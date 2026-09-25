@@ -50,12 +50,12 @@ export function SitterCard({ token }: { token: string }) {
         <span className="font-display text-[19px] text-ink">Clovara</span>
       </div>
 
-      {state === 'loading' && <p className="text-[15px] text-muted">One moment…</p>}
+      {state === 'loading' && <p className="text-[15px] text-ink-2">One moment…</p>}
 
       {state === 'gone' && (
         <div className="card p-6">
           <h1 className="font-display text-[22px] text-ink">This link is no longer live</h1>
-          <p className="mt-2 text-[14.5px] leading-relaxed text-muted">
+          <p className="mt-2 text-[14.5px] leading-relaxed text-ink-2">
             Sitter links last a few days and can be cancelled at any time. Ask whoever sent it for a
             new one.
           </p>
@@ -78,7 +78,7 @@ export function SitterCard({ token }: { token: string }) {
             )}
             <div className="min-w-0">
               <h1 className="font-display text-[24px] leading-tight text-ink">{card.name}</h1>
-              {card.species && <p className="text-[13.5px] text-muted">Looking after a {card.species}</p>}
+              {card.species && <p className="text-[13.5px] text-ink-2">Looking after a {card.species}</p>}
             </div>
           </div>
 
@@ -100,12 +100,12 @@ export function SitterCard({ token }: { token: string }) {
               ))}
             </ul>
           ) : (
-            <p className="px-5 py-6 text-[14.5px] leading-relaxed text-muted">
+            <p className="px-5 py-6 text-[14.5px] leading-relaxed text-ink-2">
               Nothing has been written down yet. Ask whoever sent this for the details.
             </p>
           )}
 
-          <p className="border-t border-line bg-cream/40 px-5 py-4 text-[12.5px] leading-relaxed text-muted">
+          <p className="border-t border-line bg-cream/40 px-5 py-4 text-[12.5px] leading-relaxed text-ink-2">
             Shared with you by {card.name}&rsquo;s family.
             {expires ? ` This page stops working after ${longDate(expires)}.` : ''} In an emergency,
             ring the vet above or your nearest emergency practice.
