@@ -1,7 +1,26 @@
 # Clovara — the next horizon, specced
 
-**Status: DRAFT, for Conor to correct.** Nothing here is built. It covers the
-fifteen items ROADMAP lists as "needs spec before build".
+**Status: every Tier 1 item is built. Tiers 2 and 3 still need decisions.**
+It covers the fifteen items ROADMAP lists as "needs spec before build".
+
+**Shipped 2026-09-24** — §1.1 lump diary · §1.2 morning briefing · §1.3 second
+opinion · §1.4 meds autopilot · §1.5 senior suite · and the defensive pass from
+§2.5, which makes every existing surface go quiet when a pet dies. `CHANGELOG.md`
+has the detail.
+
+Three of them ship deliberately narrower than specced, and each one answered an
+open question by declining it rather than deferring it:
+
+- **No cost range** on second opinion (§1.3). The questions were the value and
+  none of the risk.
+- **No quality-of-life scale** in the senior suite (§1.5, and §5.5). Adopting a
+  validated scale is clinical content and belongs with the reviewer who owns
+  `clovara-life/src/data/toxins.ts`.
+- **Briefing email off** (§1.2). A daily email is a different consent from a
+  monthly one and is not an engineering default.
+
+The Remember *chapter* (§2.5) remains deliberately unwritten. The eleven
+decisions in §5 that are not answered above are still open.
 
 ## How to read this, and what it deliberately does not do
 
@@ -292,7 +311,11 @@ The `main` hosting target, which this engagement has deliberately never touched.
 10. **Remember:** who writes it — and can we do the defensive pass now?
 11. **Native apps:** which build target, and when?
 
-# 6. What I would build first
+# 6. What I built first, and in what order
+
+Recorded rather than rewritten, because the reasoning was the useful part and it
+held up. Both were built on 2026-09-24, in this order, followed by second
+opinion, the meds autopilot, the morning briefing and the senior suite.
 
 **The lump diary**, and not because it is the most valuable. It is the one where
 the machinery is already built, the scope is small and honest, and the thing it

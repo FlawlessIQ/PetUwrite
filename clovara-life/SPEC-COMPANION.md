@@ -1,8 +1,21 @@
 # Clovara Companion — architecture spec
 
-**Status: DRAFT, for Conor to correct.** Nothing here is built. It extends
+**Status: the architecture is built; the decisions are still open.** It extends
 `SPEC.md` and inherits every invariant in its §2; where this document and SPEC
 disagree, SPEC wins until Conor says otherwise.
+
+**What shipped, 2026-09-24** — see `CHANGELOG.md` for the detail:
+
+| | |
+|---|---|
+| C0 · vet-visit summary | shipped |
+| C1 · safety classifier | shipped |
+| C2 · retrieval and grounding | shipped |
+| C3 · model composition | **built and switched off** — `COMPANION_MODEL_ENABLED` is false pending the privacy decision in §4. Verification, the response schema and 45 red-team checks are all in place |
+| C4 · telehealth routing | done as far as it honestly can be. Asking for a vet gets a true answer and a route; `TELEHEALTH_AVAILABLE` is false and no provider interface was invented against an unknown partner API. `docs/TELEHEALTH-PARTNER-REQUIREMENTS.md` is what a partner conversation needs |
+
+C0–C2 use no model at all. **The six decisions in §10 are still open**, and the
+one in §4 is what keeps C3 switched off.
 
 Open questions that are Conor's and not engineering's are marked **[DECIDE]**
 and collected in §10.

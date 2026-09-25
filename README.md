@@ -2,7 +2,32 @@
 
 This repository now contains a production-grade Next.js marketing site for Clovara, built with the App Router, TypeScript, Tailwind CSS, Framer Motion, and Lucide React.
 
-The legacy Flutter app source remains in the repo for reference, but the root web project is the Next.js site deployed to Firebase Hosting as a static export.
+## Three things live in this repository
+
+| | Where | Deployed as |
+|---|---|---|
+| **The marketing site** (this project) | `app/`, `components/`, `hooks/` | `hosting:main` → pet-underwriter-ai.web.app |
+| **Clovara Life** — the pet wellness membership product | `clovara-life/` | `hosting:life` → clovara-life.web.app |
+| **The Flutter app** — underwriting, quotes, the admin console | `lib/` | `/app` under `hosting:main` |
+
+The Flutter app is **not** dormant reference code: `npm run build` runs
+`scripts/copy-legacy-app.mjs`, which copies its `build/web/` output into `out/app/`,
+so it ships with every deploy of this site. Do not delete `lib/` on the assumption
+that nothing uses it.
+
+Clovara Life has its own README, spec, changelog and test suites in
+`clovara-life/`, and is worked on independently of this project.
+
+## Where the documentation lives
+
+- **[`CLAUDE.md`](CLAUDE.md)** — repo instructions, the invariants, and the living-documents protocol. Read first.
+- **[`docs/README.md`](docs/README.md)** — an index of all 203 documents, saying which are maintained and which are history.
+- **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)** — the two hosting targets and how to deploy either without touching the other.
+- **[`docs/ROADMAP.md`](docs/ROADMAP.md)** — the living build state. Not the `ROADMAP.md` in this directory, which is a January 2026 snapshot.
+- **`clovara-life/SPEC.md`** — the build contract for Clovara Life and its nine invariants.
+
+Other `.md` files in this directory are older notes on the underwriting product
+and the Flutter app. They were true when written; nothing keeps them true.
 
 ## Quick Start
 

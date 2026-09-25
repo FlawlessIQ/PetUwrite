@@ -3,6 +3,10 @@
 > **How to use this document:** paste it into Claude Code from `~/Development/Clovara`. It is the build contract for taking Clovara Life from investor demo to production product. It supersedes the earlier `clovara-life/HANDOFF.md` where they conflict; the invariants section repeats and extends that file deliberately. Read `clovara-life/README.md` first — it is the authoritative technical reference for what exists.
 >
 > Work phase by phase, in order. Each phase ends deployed and demonstrable. Ask Conor only for decisions this spec explicitly defers to him.
+>
+> **Where this stands, 2026-09-25:** the contract below is unchanged, but P0–P3 are all built, deployed and verified, as are the companion architecture (`SPEC-COMPANION.md`) and every Tier 1 item in `SPEC-HORIZON.md`. Read this document for the invariants and the intent; read `../docs/ROADMAP.md` for what is actually done and `CHANGELOG.md` for how. Nothing that blocks a launch is code — `../docs/EXECUTION-PLAN.md` says what it is instead.
+>
+> (`HANDOFF.md`, referenced above, no longer exists; this document replaced it.)
 
 ---
 

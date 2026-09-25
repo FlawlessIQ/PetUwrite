@@ -1,3 +1,9 @@
+> **This is not the living roadmap.** The maintained one is
+> [`docs/ROADMAP.md`](docs/ROADMAP.md), which `CLAUDE.md` requires updating with
+> any change to behaviour or scope. This file is a visual status snapshot of the
+> underwriting product from January 2026 and nothing keeps it true. Two files with
+> the same name, one of them stale, is a trap — read the other one.
+
 # Clovara - Visual Development Roadmap
 
 ```
