@@ -414,13 +414,18 @@ export default function App() {
    * active, which for a fresh visitor is a demo pet. Somebody else's animal.
    *
    * Reading the route directly removes the ordering question rather than
-   * answering it. activeId is still nudged along so the rest of the app agrees
-   * once you leave the page.
+   * answering it.
+   *
+   * It deliberately does NOT push its pet back into `activeId`. It used to, "so
+   * the rest of the app agrees once you leave the page", and that nudge was the
+   * third bug of this shape: following a link from Max's Health File to Luna
+   * left `activeId` on Max, `healthRoute` went null in the same tick, and the
+   * URL writer below then replaced the incoming link with `#/pet/demo-max/home`.
+   * A link to one animal opened another animal's record. Nothing needs the
+   * nudge — the close button writes the hash for the pet it was showing, and
+   * every other exit is a link the hash listener already handles.
    */
   const healthPet = healthRoute ? (pets.find((p) => p.id === healthRoute) ?? active) : active
-  useEffect(() => {
-    if (healthRoute && pets.some((p) => p.id === healthRoute)) setActiveId(healthRoute)
-  }, [healthRoute, pets])
 
   const addPet = (pet: PetProfile) => {
     void persistPet(pet)
