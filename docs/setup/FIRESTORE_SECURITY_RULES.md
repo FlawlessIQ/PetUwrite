@@ -669,9 +669,9 @@ allow read: if isAdmin(); // Uses helper function with single get()
 - [Testing Rules](https://firebase.google.com/docs/rules/unit-tests)
 
 ### Clovara Documentation
-- [Admin Dashboard Guide](./ADMIN_DASHBOARD_GUIDE.md)
-- [Override Eligibility Guide](./ADMIN_OVERRIDE_ELIGIBILITY_GUIDE.md)
-- [Underwriting Rules Engine](./UNDERWRITING_RULES_ENGINE_GUIDE.md)
+- [Admin Dashboard Guide](../admin/ADMIN_DASHBOARD_GUIDE.md)
+- [Override Eligibility Guide](../admin/ADMIN_OVERRIDE_ELIGIBILITY_GUIDE.md)
+- [Underwriting Rules Engine](../guides/UNDERWRITING_RULES_ENGINE_GUIDE.md)
 
 ---
 

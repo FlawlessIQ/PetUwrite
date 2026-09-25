@@ -30,7 +30,7 @@ if these are not done.
 
 | # | What | Owner | Blocks |
 |---|---|---|---|
-| **A1** | **A vet reads `data/toxins.ts` and `data/redFlags.ts`** | vet advisor | Everything. These decide what somebody is told when their animal has eaten something or collapsed. Both ship marked VET-REVIEW and **neither has been read by a clinician.** |
+| **A1** | **A vet reads `clovara-life/src/data/toxins.ts` and `clovara-life/src/data/redFlags.ts`** | vet advisor | Everything. These decide what somebody is told when their animal has eaten something or collapsed. Both ship marked VET-REVIEW and **neither has been read by a clinician.** |
 | **A2** | Counsel: attach disclosures, fraud notice, CA/NY auto-renewal, Data Covenant, toxin copy | counsel | Taking money, and the Protect flow |
 | **A3** | Clovara-entity Stripe account | Conor | Taking money at all. Today it is the FlawlessIQ sandbox, so the wrong company would be merchant of record |
 | **A4** | Rotate the Stripe key + webhook secret | Conor | Nothing, but both were exposed by the `.env` incident. One command each: `rotate-stripe-key.sh` |

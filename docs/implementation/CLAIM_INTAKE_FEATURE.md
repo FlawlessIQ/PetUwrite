@@ -351,10 +351,10 @@ Navigator.push(
 
 ## Related Documentation
 
-- [Claim Data Model](../models/claim_model.md)
-- [ConversationalAI Service](../services/conversational_ai_service.md)
+- Claim Data Model *(planned; never written)*
+- ConversationalAI Service *(planned; never written)*
 - [Claims Analytics Dashboard](../admin/ADMIN_DASHBOARD_GUIDE.md)
-- [Firebase Storage Setup](../setup/firebase_storage_setup.md)
+- Firebase Storage Setup *(planned; never written)*
 
 ---
 

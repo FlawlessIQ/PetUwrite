@@ -19,11 +19,11 @@ Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cu
 |---|---|---|
 | Carrier program live (Accelerant): agreement, filed rates, licensing | Conor | in diligence |
 | Wearable partner signed (Tractive / Fi / PetPace diligence) | Conor + Matt | evaluating |
-| LEGAL-REVIEW items: disclosures, auto-renew (CA/NY), attestation, toxin copy, VAS state list | Counsel (to engage) | open — **now also the P2 attach disclosures, fraud notice and waiting periods (`data/attach.ts`), with four questions logged** |
+| LEGAL-REVIEW items: disclosures, auto-renew (CA/NY), attestation, toxin copy, VAS state list | Counsel (to engage) | open — **now also the P2 attach disclosures, fraud notice and waiting periods (`clovara-life/src/data/attach.ts`), with four questions logged** |
 | Firestore security review before vet records ship | Conor (budget line exists) — **still needed; see note below** | `blocks switching on P1.7, not building it` — the extraction pipeline, confirm-chips and provenance stamping are built and tested behind a flag. records/ stays denied in both rule sets until the review. |
 | Breed data: McMillan 2024 Supp. Table 3 | Conor (file supplied 2026-09-22) | `shipped` — all 23 dog gaps closed; no illustrative dogs remain |
 | Breed data: Teng 2024 cat table (5 gaps), Abyssinian figure, AAHA Table 4 | Conor to obtain files | open |
-| Vet review pass: condition onset windows; clinical content ownership | Vet advisor | open — **now includes `data/toxins.ts` AND `data/redFlags.ts` (the C1 safety list). Both are the highest-stakes content in the product, both are marked VET-REVIEW, both are biased towards the phone call, and neither has been read by a vet.** |
+| Vet review pass: condition onset windows; clinical content ownership | Vet advisor | open — **now includes `clovara-life/src/data/toxins.ts` AND `clovara-life/src/data/redFlags.ts` (the C1 safety list). Both are the highest-stakes content in the product, both are marked VET-REVIEW, both are biased towards the phone call, and neither has been read by a vet.** |
 | Google Places API key + billing (nearest open emergency vet, SPEC §6.5) | Claude Code (2026-09-24) | `shipped` — key created via gcloud, restricted to one API and the `clovara-life.web.app` referrer (403 without it, verified), capped at 60/min and 1,000/day against a 75,000 default. Live in production: five open emergency practices, nearest 2.2km. |
 | Real shop SKUs / affiliate agreements | Conor + Dan | open |
 | Telehealth partner for companion routing | Conor | open — **requirements written** at `docs/TELEHEALTH-PARTNER-REQUIREMENTS.md`: five questions that decide the integration, and two things we must not agree to. No adapter built, on purpose. |
@@ -174,7 +174,7 @@ Every buildable item on this roadmap is built. What remains is not engineering:
 
 
 | Counsel | attach disclosures, fraud notice, CA/NY auto-renewal, Data Covenant, toxin copy, VAS state list |
-| A vet | `data/toxins.ts` above all, plus condition onset windows |
+| A vet | `clovara-life/src/data/toxins.ts` above all, plus condition onset windows |
 | Carrier programme | real binding; `canBind` is false and the flow says so |
 | Clovara-entity Stripe account | anything going live |
 | Teng 2024 cat table, Abyssinian, AAHA Table 4 | the last five illustrative feline figures |

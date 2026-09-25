@@ -400,13 +400,13 @@ firebase deploy --only hosting:main   # plain `firebase deploy` pushes both site
 ## 📞 Support & Resources
 
 ### For Developers
-- **Implementation Details:** [Implementation Summary](./ADMIN_OVERRIDE_ELIGIBILITY_IMPLEMENTATION_SUMMARY.md)
+- **Implementation Details:** [Implementation Summary](../admin/ADMIN_OVERRIDE_ELIGIBILITY_IMPLEMENTATION_SUMMARY.md)
 - **Code Location:** `/lib/screens/admin_dashboard.dart`
 - **Key Methods:** Lines ~1850-2250
 
 ### For Admins
-- **Complete Guide:** [Override Eligibility Guide](./ADMIN_OVERRIDE_ELIGIBILITY_GUIDE.md)
-- **Quick Reference:** [Quick Reference](./ADMIN_OVERRIDE_ELIGIBILITY_QUICK_REF.md)
+- **Complete Guide:** [Override Eligibility Guide](../admin/ADMIN_OVERRIDE_ELIGIBILITY_GUIDE.md)
+- **Quick Reference:** [Quick Reference](../admin/ADMIN_OVERRIDE_ELIGIBILITY_QUICK_REF.md)
 - **Use Cases:** See Guide Section "Use Cases"
 
 ### For Product/Business

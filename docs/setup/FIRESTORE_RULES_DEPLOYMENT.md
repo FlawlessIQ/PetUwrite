@@ -379,8 +379,8 @@ firebase firestore:logs --limit 50
 
 ### Clovara Documentation
 - [Full Security Rules Documentation](./FIRESTORE_SECURITY_RULES.md)
-- [Admin Dashboard Guide](./ADMIN_DASHBOARD_GUIDE.md)
-- [Underwriting Rules Engine Guide](./UNDERWRITING_RULES_ENGINE_GUIDE.md)
+- [Admin Dashboard Guide](../admin/ADMIN_DASHBOARD_GUIDE.md)
+- [Underwriting Rules Engine Guide](../guides/UNDERWRITING_RULES_ENGINE_GUIDE.md)
 
 ---
 

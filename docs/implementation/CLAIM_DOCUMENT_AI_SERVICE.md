@@ -658,8 +658,8 @@ try {
 ## Related Documentation
 
 - [Claim Intake Screen](./CLAIM_INTAKE_FEATURE.md)
-- [Claim Data Model](../models/claim_model.md)
-- [Firebase Storage Setup](../setup/firebase_storage_setup.md)
+- Claim Data Model *(planned; never written)*
+- Firebase Storage Setup *(planned; never written)*
 - [Google Cloud Vision Setup](../setup/google_vision_setup.md)
 
 ---

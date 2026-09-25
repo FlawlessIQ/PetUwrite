@@ -769,9 +769,9 @@ exports.calculateOverrideMetrics = functions.pubsub
 
 - [Admin Dashboard Guide](./ADMIN_DASHBOARD_GUIDE.md)
 - [Ineligible Quotes Guide](./ADMIN_INELIGIBLE_QUOTES_GUIDE.md)
-- [Underwriting Rules Engine](./UNDERWRITING_RULES_ENGINE_GUIDE.md)
-- [Audit Trail & Compliance](./AUDIT_TRAIL_DOCUMENTATION.md)
-- [Risk Scoring Engine](./RISK_SCORING_DOCUMENTATION.md)
+- [Underwriting Rules Engine](../guides/UNDERWRITING_RULES_ENGINE_GUIDE.md)
+- Audit Trail & Compliance *(planned; never written)*
+- Risk Scoring Engine *(planned; never written)*
 
 ---
 

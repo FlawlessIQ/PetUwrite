@@ -261,7 +261,7 @@ class MedicalCondition {
 ```
 
 ### 4. Admin Review Integration
-**File:** `lib/admin/admin_dashboard.dart`
+**File:** `lib/screens/admin_dashboard.dart`
 
 Add to quote review:
 - View complete medical history

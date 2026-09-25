@@ -734,7 +734,7 @@ static const double humanReviewThreshold = 60.0;   // Lower = more denials
 
 ## Related Documentation
 
-- [Claim Data Model](../models/claim_model.md)
+- Claim Data Model *(planned; never written)*
 - [Claim Document AI Service](./CLAIM_DOCUMENT_AI_SERVICE.md)
 - [Claim Intake Screen](./CLAIM_INTAKE_FEATURE.md)
 - [Admin Dashboard](../admin/ADMIN_DASHBOARD_GUIDE.md)

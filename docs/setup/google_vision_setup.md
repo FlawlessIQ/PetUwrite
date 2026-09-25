@@ -4,7 +4,7 @@
 
 This doc covers general Vision setup (API key + proxy pattern). For the specific **vet record image OCR** flow used in medical underwriting (Cloud Function `extractImageText`, emulator notes, IAM), see:
 
-- [docs/setup/VET_RECORD_IMAGE_OCR_SETUP.md](docs/setup/VET_RECORD_IMAGE_OCR_SETUP.md)
+- [VET_RECORD_IMAGE_OCR_SETUP.md](VET_RECORD_IMAGE_OCR_SETUP.md)
 
 ## Quick Setup (5 minutes)
 

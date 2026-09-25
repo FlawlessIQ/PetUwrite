@@ -20,7 +20,7 @@ Complete claims analytics and ML retraining preparation system for Clovara.
    - Heatmap data preparation
    - ML export functionality
 
-3. **`lib/widgets/claims_analytics_tab.dart`** (415 lines)
+3. **`lib/screens/admin/claims_analytics_tab.dart`** (415 lines)
    - Complete Claims Analytics UI
    - Summary cards (Total Claims, Avg Amount, High Risk)
    - Risk band table with 6 columns
@@ -272,7 +272,7 @@ firebase deploy --only firestore:rules
 **Files Created:**
 - `lib/models/claim.dart`
 - `lib/services/claims_service.dart`
-- `lib/widgets/claims_analytics_tab.dart`
+- `lib/screens/admin/claims_analytics_tab.dart`
 - `CLAIMS_ANALYTICS_GUIDE.md`
 - `CLAIMS_ANALYTICS_QUICK_REF.md`
 

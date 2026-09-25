@@ -295,7 +295,7 @@ await FirebaseFirestore.instance
 ---
 
 ### Step 4: Test Access
-Run the tests in [FIRESTORE_RULES_DEPLOYMENT.md](./FIRESTORE_RULES_DEPLOYMENT.md) to verify:
+Run the tests in [FIRESTORE_RULES_DEPLOYMENT.md](../setup/FIRESTORE_RULES_DEPLOYMENT.md) to verify:
 - ✅ Users can read rules
 - ✅ Users cannot write rules
 - ✅ Admins can write rules
@@ -422,15 +422,15 @@ Executive summary including:
 ## 📞 Support
 
 ### For Deployment Issues:
-See [FIRESTORE_RULES_DEPLOYMENT.md](./FIRESTORE_RULES_DEPLOYMENT.md)
+See [FIRESTORE_RULES_DEPLOYMENT.md](../setup/FIRESTORE_RULES_DEPLOYMENT.md)
 
 ### For Rules Reference:
-See [FIRESTORE_SECURITY_RULES.md](./FIRESTORE_SECURITY_RULES.md)
+See [FIRESTORE_SECURITY_RULES.md](../setup/FIRESTORE_SECURITY_RULES.md)
 
 ### For Admin Features:
-- [Admin Dashboard Guide](./ADMIN_DASHBOARD_GUIDE.md)
-- [Override Eligibility Guide](./ADMIN_OVERRIDE_ELIGIBILITY_GUIDE.md)
-- [Underwriting Rules Engine Guide](./UNDERWRITING_RULES_ENGINE_GUIDE.md)
+- [Admin Dashboard Guide](../admin/ADMIN_DASHBOARD_GUIDE.md)
+- [Override Eligibility Guide](../admin/ADMIN_OVERRIDE_ELIGIBILITY_GUIDE.md)
+- [Underwriting Rules Engine Guide](../guides/UNDERWRITING_RULES_ENGINE_GUIDE.md)
 
 ---
 

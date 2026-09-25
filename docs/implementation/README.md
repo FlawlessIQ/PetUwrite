@@ -12,7 +12,7 @@ This folder contains comprehensive implementation documentation for all major fe
 ### 🎯 Quick Reference by Status
 
 #### ✅ COMPLETE & PRODUCTION-READY
-- [**MVP_IMPLEMENTATION_COMPLETE.md**](../../MVP_IMPLEMENTATION_COMPLETE.md) - 📍 **START HERE** - Latest comprehensive summary
+- [**MVP_IMPLEMENTATION_COMPLETE.md**](../MVP_IMPLEMENTATION_COMPLETE.md) - 📍 **START HERE** - Latest comprehensive summary
 - [PLATFORM_COMPLETE_OVERVIEW.md](PLATFORM_COMPLETE_OVERVIEW.md) - Full platform feature inventory (~40% MVP)
 - [IMPLEMENTATION_COMPLETE_SUMMARY.md](IMPLEMENTATION_COMPLETE_SUMMARY.md) - Early implementation milestone
 
@@ -137,7 +137,7 @@ This folder contains comprehensive implementation documentation for all major fe
 ## 🚀 How to Use This Documentation
 
 ### For Developers
-1. **Start with**: [MVP_IMPLEMENTATION_COMPLETE.md](../../MVP_IMPLEMENTATION_COMPLETE.md) for latest status
+1. **Start with**: [MVP_IMPLEMENTATION_COMPLETE.md](../MVP_IMPLEMENTATION_COMPLETE.md) for latest status
 2. **Understand architecture**: [PLATFORM_COMPLETE_OVERVIEW.md](PLATFORM_COMPLETE_OVERVIEW.md)
 3. **Pick a feature**: Find relevant PHASE or feature-specific docs
 4. **Implement**: Follow code examples and integration guides
@@ -150,8 +150,8 @@ This folder contains comprehensive implementation documentation for all major fe
 4. **Time estimates**: Check PLATFORM_COMPLETE_OVERVIEW.md roadmap
 
 ### For Investors
-1. **Executive summary**: [MVP_IMPLEMENTATION_COMPLETE.md](../../MVP_IMPLEMENTATION_COMPLETE.md)
-2. **Technical validation**: [../../INVESTOR_VALIDATION.md](../../INVESTOR_VALIDATION.md)
+1. **Executive summary**: [MVP_IMPLEMENTATION_COMPLETE.md](../MVP_IMPLEMENTATION_COMPLETE.md)
+2. **Technical validation**: [../INVESTOR_VALIDATION.md](../INVESTOR_VALIDATION.md)
 3. **Legal compliance**: [../../docs/legal/](../../docs/legal/)
 4. **Progress tracking**: See "Feature Status Overview" above
 
@@ -208,8 +208,8 @@ Based on current implementation status:
 - [../../docs/guides/](../../docs/guides/) - Developer guides
 
 ### Investor Relations
-- [../../INVESTOR_VALIDATION.md](../../INVESTOR_VALIDATION.md) - Code-verified validation
-- [../../TECHNICAL_SUMMARY_ONE_PAGER.md](../../TECHNICAL_SUMMARY_ONE_PAGER.md) - One-page summary
+- [../INVESTOR_VALIDATION.md](../INVESTOR_VALIDATION.md) - Code-verified validation
+- ../../TECHNICAL_SUMMARY_ONE_PAGER.md *(planned; never written)* - One-page summary
 
 ---
 
@@ -248,7 +248,7 @@ Based on current implementation status:
 1. ✅ Update this README if status changes
 2. ✅ Create a new implementation doc for major features
 3. ✅ Add unit/widget tests
-4. ✅ Update [MVP_IMPLEMENTATION_COMPLETE.md](../../MVP_IMPLEMENTATION_COMPLETE.md)
+4. ✅ Update [MVP_IMPLEMENTATION_COMPLETE.md](../MVP_IMPLEMENTATION_COMPLETE.md)
 
 ### Documentation Standards
 - **File naming**: `FEATURE_NAME_STATUS.md` (e.g., `PHASE_1_COMPLETE.md`)

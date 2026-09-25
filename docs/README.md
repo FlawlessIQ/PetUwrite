@@ -75,12 +75,17 @@ several describe work that has since been done or dropped.
 
 | | |
 |---|---|
-| `legal/` | Privacy policy, terms, insurance disclaimers, state licensing checklist. **None of them records a counsel review**, and the open counsel item is Execution Plan A2 — so do not assume any of this has been cleared. |
-| `platform/` | A structured set with its own README: architecture, data model, customer and admin flows, the PDF pipeline. The most coherent folder here. |
-| `setup/` | One-time setup guides — Firebase, auth, environment, keys. |
-| `guides/` | How-to and quick-reference sheets, mostly for the admin console. |
-| `admin/` | Admin dashboard documentation. |
-| `implementation/` | Implementation notes and completion reports, with its own README. |
+Every folder now has a README naming what is reference and what is a completion
+report. Start there rather than with a filename.
+
+| | |
+|---|---|
+| [`legal/`](legal/README.md) | Privacy policy, terms, disclaimers, state licensing. **Nothing in it records a counsel review** — Execution Plan A2. |
+| [`platform/`](platform/README.md) | Architecture, data model, customer and admin flows, the PDF pipeline. The most coherent folder here. |
+| [`setup/`](setup/README.md) | One-time setup per environment. Not deployment — that is [DEPLOYMENT.md](DEPLOYMENT.md). |
+| [`guides/`](guides/README.md) | How the underwriting product works. `PRICING_MODEL_REVIEW_CURRENT_PRODUCT.md` is the one to read if you care how a premium is computed. |
+| [`admin/`](admin/README.md) | The underwriter console: five features, documented three times each. |
+| [`implementation/`](implementation/README.md) | Implementation notes and completion reports. |
 | `archive/` | Finished work, kept for history. **Nothing in here should be read as current.** 80 files. |
 
 ## Three things to know before trusting anything in here

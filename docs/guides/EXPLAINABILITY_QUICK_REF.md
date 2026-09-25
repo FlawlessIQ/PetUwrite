@@ -221,7 +221,7 @@ testWidgets('renders chart', (tester) async {
 
 - [Full Implementation Guide](./EXPLAINABILITY_GUIDE.md)
 - [Risk Scoring Engine](./lib/services/risk_scoring_engine.dart)
-- [Admin Dashboard](./ADMIN_DASHBOARD_GUIDE.md)
+- [Admin Dashboard](../admin/ADMIN_DASHBOARD_GUIDE.md)
 
 ---
 

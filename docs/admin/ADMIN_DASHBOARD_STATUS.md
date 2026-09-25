@@ -364,7 +364,7 @@ node seed_underwriting_rules.js
 
 - **Dashboard:** `lib/screens/admin_dashboard.dart`
 - **Rules Editor:** `lib/screens/admin_rules_editor_page.dart`
-- **Claims Analytics:** `lib/widgets/claims_analytics_tab.dart`
+- **Claims Analytics:** `lib/screens/admin/claims_analytics_tab.dart`
 - **Explainability:** `lib/widgets/explainability_chart.dart`
 - **Indexes:** `firestore.indexes.json`
 - **Documentation:** `ADMIN_DASHBOARD_FEATURES_SUMMARY.md`

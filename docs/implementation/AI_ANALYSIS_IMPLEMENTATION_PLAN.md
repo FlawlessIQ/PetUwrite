@@ -1,3 +1,9 @@
+> **Not built, as of 2026-09-25.** None of the four files this plan proposes —
+> `lib/screens/ai_analysis_screen.dart`, `lib/widgets/risk_score_card.dart`,
+> `lib/widgets/ai_insights_card.dart`, `lib/widgets/analysis_animation.dart` —
+> exists in the repository. Read this as a proposal that was never executed, not
+> as a description of the product.
+
 # 🤖 AI-Powered Quote Flow - Implementation Plan
 
 **Issue Identified:** Quote process doesn't feel AI-powered - shows generic plans without analysis  

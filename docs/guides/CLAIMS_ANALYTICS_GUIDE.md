@@ -681,7 +681,7 @@ claimsByMonth.forEach((month, count) {
 **Key Files:**
 - `lib/models/claim.dart` - InsuranceClaim model
 - `lib/services/claims_service.dart` - ClaimsService with analytics methods
-- `lib/widgets/claims_analytics_tab.dart` - Admin dashboard tab
+- `lib/screens/admin/claims_analytics_tab.dart` - Admin dashboard tab
 - `firestore.rules` - Security rules for claims/ and model_training_data/
 
 **Next Action:** Monitor claims for 3 months, then export training data for first ML model retraining cycle! 🚀
