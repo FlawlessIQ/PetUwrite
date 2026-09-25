@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## UI pass — convergence to docs/DESIGN.md (branch `ui-pass`, not deployed)
+## UI pass — convergence to docs/DESIGN.md (deployed 2026-09-25 from branch `ui-pass`)
 
 Convergence, not redesign: the app brought in line with DESIGN.md and
 styleguide.html, in §8's order, with everything that looked deliberate but

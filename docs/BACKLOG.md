@@ -47,7 +47,7 @@ unreviewed pile.
 |---|---|---|---|---|
 | **D-UI1** | ~~Visual direction~~ — **closed 2026-09-25**: Conor issued `docs/DESIGN.md` and `docs/styleguide.html` | Conor | — | **C** |
 | **D-UI2** | **Type and spacing scale.** The UI pass converged weights, tracking and roles to §3 but did **not** consolidate the 34 hard-coded font sizes into role tokens — §8 did not ask for it and it touches every component. Still the thing that makes the next visual change cheap | Claude Code | M | — |
-| **D-UI3** | Apply the visual direction across all surfaces — **built on branch `ui-pass` 2026-09-25, not deployed**, awaiting Conor's review of the before/after gallery. Fifteen spec/product disagreements flagged in ROADMAP "UI pass: open questions" | Claude Code → Conor | done | — |
+| **D-UI3** | Apply the visual direction across all surfaces — **shipped 2026-09-25**, deployed from branch `ui-pass` after Conor saw the before/after gallery. Fifteen spec/product disagreements flagged in ROADMAP "UI pass: open questions" | Claude Code → Conor | done | **C** |
 | **D-UI4** | Palette swap, if the brand itself changes. Cheap and independent of the above: 8 values in one config file, 907 token references follow | Claude Code | S | — |
 | **D-UI5** | Dark mode. DESIGN.md §2 reserves a palette and says do not build until instructed | Conor | M | **C** |
 | **D-UI7** | **Resolve the fifteen UI-pass open questions** (ROADMAP). Three are contrast failures in the design system's own colours — amber, ink-3 and accent eyebrows — which want deciding before anything else is built on them | Conor | — | — |
