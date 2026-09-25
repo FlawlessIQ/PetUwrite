@@ -39,6 +39,10 @@ unreviewed pile.
 | **P1** | **Walk the product.** 30 minutes on a phone, the nine steps in `STRATEGIC-REVIEW-2026-09.md` §6. Steps 5 (collapse) and 9 (marking a pet as died) matter most | Conor | — | — |
 | **P2** | **Read the copy that carries judgement.** Not all 2,920 strings — the ~200 that decide something: every refusal, every empty state, the escalation ladder, the death-of-a-pet flow, the Data Covenant. **Claude Code to extract the list as one document first** | Claude Code → Conor | S | — |
 | **P3** | **Define the first cohort.** Fifty people, and what we want to learn from them. Unblocks the prioritisation of every J item and gives A2/A3 a date | Conor | — | — |
+| **P5** | **Run the UAT** — `docs/UAT-PLAN.md`: Bruno, a Labrador, from nine weeks to goodbye, in Chrome. Three tracks (his life signed out; his family signed in; everywhere), a Judge line per chapter, dry-run against production 2026-09-25. Supersedes the informal P1 walk-through | Conor (+ testers) | — | — |
+| **U1** | **Fix before the UAT: the Remember pass leaks on Home.** After a pet is marked as died, Home still asks to "add neutered or spayed" citing "longer life", and still shows the Clovara Score, "On track…" and "Bruno's day". `verify-remember` missed it: it looks for "Sharpen" and the prompt says "sharp". UAT-PLAN K1–K2, Sev 1 | Claude Code | S | — |
+| **U2** | **Fix before the UAT: every member is greeted as "Conor".** `Home.tsx:124` hard-codes the name. UAT-PLAN K3 | Claude Code | S | — |
+| **U3** | "Bruno has been home about 1 hours" — pluralisation on First Nights. UAT-PLAN K4 | Claude Code | S | — |
 | **P4** | **Ratify or overturn the six refusals.** The lump diary not saying whether a lump grew · the companion not naming a condition · the vet summary omitting the projection · the safety check not reassuring · C3 discarding uncited output · the senior suite carrying no quality-of-life score. Each is a strategic choice currently made by default | Conor (+V for the clinical half) | — | — |
 
 ## D · Design and UI
