@@ -94,10 +94,10 @@ export function SitterMode({
     <section className="card overflow-hidden" aria-labelledby="sitter-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
         <p className="label">Sitter mode</p>
-        <h2 id="sitter-heading" className="mt-1 font-display text-[20px] text-ink">
+        <h2 id="sitter-heading" className="mt-1 font-display text-heading text-ink">
           A link for whoever has {pet.name}
         </h2>
-        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
+        <p className="mt-1 text-body leading-relaxed text-ink-2">
           One page, no sign-in, expires in seven days and can be cancelled any time. It shows only
           what is below — nothing about {pet.name}&rsquo;s plan, their health record, or you.
         </p>
@@ -125,7 +125,7 @@ export function SitterMode({
         </div>
 
         {!signedIn ? (
-          <p className="mt-5 rounded-soft bg-sage/60 px-4 py-3 text-[13.5px] leading-relaxed text-deep">
+          <p className="mt-5 rounded-soft bg-sage/60 px-4 py-3 text-body leading-relaxed text-deep">
             Sitter links need an account, because the link has to keep working when your phone is in
             your pocket.
           </p>
@@ -133,13 +133,13 @@ export function SitterMode({
           <>
             <button
               type="button"
-              className="pill-primary mt-5 px-5 py-2.5 text-[14px]"
+              className="pill-primary mt-5 px-5 py-2.5 text-body-lg"
               onClick={make}
               disabled={busy}
             >
               {busy ? 'One moment…' : 'Make a link'}
             </button>
-            {error && <p className="mt-2 text-[13.5px] text-[#8A5510]">{error}</p>}
+            {error && <p className="mt-2 text-body text-[#8A5510]">{error}</p>}
 
             {links.length > 0 && (
               <ul className="mt-4 space-y-2">
@@ -148,21 +148,21 @@ export function SitterMode({
                     key={l.token}
                     className="rounded-soft border border-line bg-white px-4 py-3"
                   >
-                    <p className="break-all text-[12.5px] text-ink-2">{sitterShareUrl(l.token)}</p>
+                    <p className="break-all text-body-sm text-ink-2">{sitterShareUrl(l.token)}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-                      <span className="text-[12.5px] text-ink-2">
+                      <span className="text-body-sm text-ink-2">
                         Until {longDate(l.expiresAt)}
                       </span>
                       <button
                         type="button"
-                        className="text-[13px] text-forest text-action"
+                        className="text-body-sm text-forest text-action"
                         onClick={() => copy(l.token)}
                       >
                         {copied === l.token ? 'Copied' : 'Copy'}
                       </button>
                       <button
                         type="button"
-                        className="text-[13px] text-[#8C1D18] text-action"
+                        className="text-body-sm text-[#8C1D18] text-action"
                         onClick={() => revoke(l.token)}
                       >
                         Cancel this link

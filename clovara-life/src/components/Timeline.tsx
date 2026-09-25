@@ -17,10 +17,10 @@ export function Timeline({ projection, name }: { projection: Projection; name: s
   return (
     <section className="card overflow-hidden" aria-labelledby="timeline-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4 sm:px-6">
-        <h2 id="timeline-heading" className="font-display text-[22px] leading-tight text-ink">
+        <h2 id="timeline-heading" className="font-display text-heading-lg leading-tight text-ink">
           {name}'s life journey
         </h2>
-        <p className="mt-1 text-[14px] leading-snug text-ink-2">
+        <p className="mt-1 text-body-lg leading-snug text-ink-2">
           What has happened, what matters now, and what to plan for — shaped by breed and age.
         </p>
       </div>
@@ -56,15 +56,15 @@ export function Timeline({ projection, name }: { projection: Projection; name: s
 
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h3
-                  className={`font-display text-[19px] leading-tight ${
+                  className={`font-display text-heading-sm leading-tight ${
                     isCurrent ? 'text-deep' : isPast ? 'text-ink-2' : 'text-ink'
                   }`}
                 >
                   {stage.label}
                 </h3>
-                <span className="text-[12.5px] text-ink-2">{stageRange(stage)}</span>
+                <span className="text-body-sm text-ink-2">{stageRange(stage)}</span>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[12px] font-semibold ${
+                  className={`rounded-full px-2 py-0.5 text-body-sm font-semibold ${
                     isCurrent ? 'bg-sage text-deep' : 'text-ink-2'
                   }`}
                 >
@@ -72,13 +72,13 @@ export function Timeline({ projection, name }: { projection: Projection; name: s
                 </span>
               </div>
 
-              <p className={`mt-1.5 text-[14.5px] leading-relaxed ${isPast ? 'text-ink-2' : 'text-ink/80'}`}>
+              <p className={`mt-1.5 text-body-lg leading-relaxed ${isPast ? 'text-ink-2' : 'text-ink/80'}`}>
                 {stage.summary}
               </p>
 
               <ul className="mt-3 space-y-2">
                 {stage.recommendations.map((r, idx) => (
-                  <li key={idx} className="flex gap-2.5 text-[14px] leading-relaxed text-ink/85">
+                  <li key={idx} className="flex gap-2.5 text-body-lg leading-relaxed text-ink/85">
                     <span
                       aria-hidden="true"
                       className={`mt-[8px] h-[5px] w-[5px] shrink-0 rounded-full ${

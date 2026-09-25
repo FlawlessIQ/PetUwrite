@@ -32,12 +32,12 @@ export function RenewalExplained({
     <section className="card overflow-hidden" aria-labelledby="renewal-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
         <p className="label">Renewal</p>
-        <h2 id="renewal-heading" className="mt-1 font-display text-[20px] text-ink">
+        <h2 id="renewal-heading" className="mt-1 font-display text-heading text-ink">
           {r.unchanged
             ? `${pet.name}'s premium has not changed`
             : `Why ${pet.name}'s premium is ${money(r.newMonthly)}`}
         </h2>
-        <p className="mt-1 text-[13.5px] text-ink-2">
+        <p className="mt-1 text-body text-ink-2">
           Was {money(r.priorMonthly)} a month. Every part of the change is below.
         </p>
       </div>
@@ -46,26 +46,26 @@ export function RenewalExplained({
         {r.lines.map((l) => (
           <li key={l.id} className="px-5 py-4">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <p className="text-[15px] text-ink">{l.label}</p>
-              <p className="text-[15px] font-medium text-deep">
+              <p className="text-lead text-ink">{l.label}</p>
+              <p className="text-lead font-medium text-deep">
                 {l.delta === 0 ? 'no change' : money(l.delta)}
               </p>
             </div>
-            <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{l.because}</p>
+            <p className="mt-1 text-body leading-relaxed text-ink-2">{l.because}</p>
           </li>
         ))}
       </ul>
 
       <div className="border-t border-line bg-sage/40 px-5 py-4">
-        <p className="text-[14px] font-medium text-deep">What is not in this price</p>
+        <p className="text-body-lg font-medium text-deep">What is not in this price</p>
         <ul className="mt-2 space-y-1.5">
           {r.notFactors.map((n) => (
-            <li key={n} className="text-[13.5px] leading-relaxed text-deep">
+            <li key={n} className="text-body leading-relaxed text-deep">
               {n}
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">
+        <p className="mt-3 text-body-sm leading-relaxed text-ink-2">
           This is the Data Covenant in practice: what you tell us works for your pet, and never
           against your price — not up, and not down as a reward for behaving.
         </p>

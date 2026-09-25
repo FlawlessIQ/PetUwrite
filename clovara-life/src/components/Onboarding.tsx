@@ -56,10 +56,10 @@ function Segmented<T extends string>({
                 : 'border-line bg-cream text-ink hover:border-forest/50'
             }`}
           >
-            <span className="block text-[15px] font-medium leading-tight">{o.label}</span>
+            <span className="block text-lead font-medium leading-tight">{o.label}</span>
             {o.hint && (
               <span
-                className={`mt-0.5 block text-[12.5px] leading-snug ${active ? 'text-deep/80' : 'text-ink-2'}`}
+                className={`mt-0.5 block text-body-sm leading-snug ${active ? 'text-deep/80' : 'text-ink-2'}`}
               >
                 {o.hint}
               </span>
@@ -179,7 +179,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
           <button
             type="button"
             onClick={onCancel}
-            className="text-[14px] text-ink-2 hover:text-ink text-action"
+            className="text-body-lg text-ink-2 hover:text-ink text-action"
           >
             Cancel
           </button>
@@ -200,10 +200,10 @@ export function Onboarding({ onComplete, onCancel }: Props) {
         {step === 0 && (
           <div className="reveal space-y-6">
             <div>
-              <h1 className="font-display text-[30px] leading-[1.15] text-ink sm:text-[34px]">
+              <h1 className="font-display text-display leading-[1.15] text-ink sm:text-display-lg">
                 Who are we planning for?
               </h1>
-              <p className="mt-2 text-[15px] text-ink-2">
+              <p className="mt-2 text-lead text-ink-2">
                 Five quick questions and you'll see their plan. No account needed.
               </p>
             </div>
@@ -229,7 +229,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
               href="#/covenant"
               target="_blank"
               rel="noreferrer"
-              className="inline-block text-[13.5px] text-ink-2 transition hover:text-ink text-action"
+              className="inline-block text-body text-ink-2 transition hover:text-ink text-action"
             >
               Before you start: what we do and never do with what you tell us
             </a>
@@ -240,10 +240,10 @@ export function Onboarding({ onComplete, onCancel }: Props) {
         {step === 1 && species && (
           <div className="reveal space-y-5">
             <div>
-              <h1 className="font-display text-[28px] leading-[1.18] text-ink sm:text-[32px]">
+              <h1 className="font-display text-display-sm leading-[1.18] text-ink sm:text-display">
                 What breed?
               </h1>
-              <p className="mt-2 text-[15px] text-ink-2">
+              <p className="mt-2 text-lead text-ink-2">
                 Breed is the single biggest input. If you're not sure, that's a fine answer too.
               </p>
             </div>
@@ -271,16 +271,16 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                     setBreedQuery(b.name)
                     setShowSizePicker(false)
                   }}
-                  className={`flex w-full items-center justify-between gap-3 border-b border-line px-4 py-2.5 text-left text-[15px] transition last:border-b-0 ${
+                  className={`flex w-full items-center justify-between gap-3 border-b border-line px-4 py-2.5 text-left text-lead transition last:border-b-0 ${
                     breedId === b.id ? 'bg-sage text-deep' : 'bg-white hover:bg-cream'
                   }`}
                 >
                   <span>{b.name}</span>
-                  <span className="text-[12.5px] capitalize text-ink-2">{b.sizeClass}</span>
+                  <span className="text-body-sm capitalize text-ink-2">{b.sizeClass}</span>
                 </button>
               ))}
               {breedMatches.length === 0 && (
-                <p className="px-4 py-3 text-[14px] text-ink-2">
+                <p className="px-4 py-3 text-body-lg text-ink-2">
                   No match. Try "Mixed / not sure" below.
                 </p>
               )}
@@ -294,14 +294,14 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                 setBreedQuery('')
                 setMixedSize(null)
               }}
-              className={`w-full rounded-inner border-2 px-4 py-3 text-left text-[15px] transition ${
+              className={`w-full rounded-inner border-2 px-4 py-3 text-left text-lead transition ${
                 showSizePicker
                   ? 'border-forest bg-sage text-deep'
                   : 'border-line bg-cream hover:border-forest/50'
               }`}
             >
               Mixed / not sure
-              <span className="mt-0.5 block text-[13px] text-ink-2">
+              <span className="mt-0.5 block text-body-sm text-ink-2">
                 We'll use a size-based profile and widen the range to match what we don't know.
               </span>
             </button>
@@ -324,9 +324,9 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                           : 'border-line bg-cream hover:border-forest/50'
                       }`}
                     >
-                      <span className="block text-[14.5px] font-medium">{s.label}</span>
+                      <span className="block text-body-lg font-medium">{s.label}</span>
                       <span
-                        className={`block text-[12px] ${mixedSize === s.value ? 'text-deep/80' : 'text-ink-2'}`}
+                        className={`block text-body-sm ${mixedSize === s.value ? 'text-deep/80' : 'text-ink-2'}`}
                       >
                         {s.hint}
                       </span>
@@ -345,7 +345,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                       key={id}
                       type="button"
                       onClick={() => setBreedId(id)}
-                      className={`rounded-inner border-2 px-4 py-3 text-left text-[15px] transition ${
+                      className={`rounded-inner border-2 px-4 py-3 text-left text-lead transition ${
                         breedId === id
                           ? 'border-forest bg-sage text-deep'
                           : 'border-line bg-cream hover:border-forest/50'
@@ -364,11 +364,11 @@ export function Onboarding({ onComplete, onCancel }: Props) {
         {step === 2 && (
           <div className="reveal space-y-6">
             <div>
-              <h1 className="font-display text-[28px] leading-[1.18] text-ink sm:text-[32px]">
+              <h1 className="font-display text-display-sm leading-[1.18] text-ink sm:text-display">
                 What's their name?
               </h1>
               {breed && (
-                <p className="mt-2 text-[15px] text-ink-2">
+                <p className="mt-2 text-lead text-ink-2">
                   The only thing here you have to type.
                 </p>
               )}
@@ -394,10 +394,10 @@ export function Onboarding({ onComplete, onCancel }: Props) {
         {step === 3 && (
           <div className="reveal space-y-6">
             <div>
-              <h1 className="font-display text-[28px] leading-[1.18] text-ink sm:text-[32px]">
+              <h1 className="font-display text-display-sm leading-[1.18] text-ink sm:text-display">
                 How old is {who}?
               </h1>
-              <p className="mt-2 text-[15px] text-ink-2">
+              <p className="mt-2 text-lead text-ink-2">
                 Roughly is genuinely fine — you can sharpen it later.
               </p>
             </div>
@@ -419,7 +419,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
               </div>
             ) : (
               <div>
-                <p className="font-display text-[34px] leading-none text-deep">
+                <p className="font-display text-display-lg leading-none text-deep">
                   About {ageLabel(ageMonths)}
                 </p>
                 <label htmlFor="age-slider" className="sr-only">
@@ -435,7 +435,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
                   onChange={(e) => setAgeMonths(Number(e.target.value))}
                   className="mt-5 w-full accent-forest"
                 />
-                <div className="mt-1 flex justify-between text-[12.5px] text-ink-2">
+                <div className="mt-1 flex justify-between text-body-sm text-ink-2">
                   <span>newborn</span>
                   <span>20 years</span>
                 </div>
@@ -445,7 +445,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
             <button
               type="button"
               onClick={() => setUseExact((v) => !v)}
-              className="text-[14px] text-forest hover:text-deep text-action"
+              className="text-body-lg text-forest hover:text-deep text-action"
             >
               {useExact ? 'I only know roughly' : 'I know the exact date'}
             </button>
@@ -456,10 +456,10 @@ export function Onboarding({ onComplete, onCancel }: Props) {
         {step === 4 && (
           <div className="reveal space-y-6">
             <div>
-              <h1 className="font-display text-[28px] leading-[1.18] text-ink sm:text-[32px]">
+              <h1 className="font-display text-display-sm leading-[1.18] text-ink sm:text-display">
                 Is {who} male or female?
               </h1>
-              <p className="mt-2 text-[15px] text-ink-2">Last one. Then the plan.</p>
+              <p className="mt-2 text-lead text-ink-2">Last one. Then the plan.</p>
             </div>
             <Segmented
               name="Sex"
@@ -479,7 +479,7 @@ export function Onboarding({ onComplete, onCancel }: Props) {
             type="button"
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0}
-            className="text-[15px] text-ink-2 transition hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+            className="text-lead text-ink-2 transition hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
           >
             Back
           </button>

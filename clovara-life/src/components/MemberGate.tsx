@@ -24,12 +24,12 @@ export function MemberGate({
   return (
     <div className="rounded-soft border border-forest/25 bg-sage/30 p-4">
       {children && <div className="pointer-events-none mb-3 opacity-55">{children}</div>}
-      <p className="text-[14.5px] leading-relaxed text-ink/85">{reason}</p>
+      <p className="text-body-lg leading-relaxed text-ink/85">{reason}</p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button type="button" onClick={onStart} disabled={busy} className="pill-primary disabled:opacity-50">
           {busy ? 'One moment…' : 'Start 7-day free trial'}
         </button>
-        <span className="text-[13px] text-ink-2">
+        <span className="text-body-sm text-ink-2">
           Then $22.99 a month. Cancel any time — it takes one tap.
         </span>
       </div>
@@ -51,7 +51,7 @@ export function TrialBanner({
   return (
     <div className="mx-auto w-full max-w-shell px-5 pt-5">
       <div className="card flex flex-col gap-3 border-forest/25 bg-sage/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[14.5px] leading-snug text-ink/85">
+        <p className="text-body-lg leading-snug text-ink/85">
           {daysLeft === 0
             ? 'Your free trial ends today. Your membership starts tomorrow at $22.99 a month.'
             : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left of your free trial. After that it's $22.99 a month.`}
@@ -59,7 +59,7 @@ export function TrialBanner({
         <button
           type="button"
           onClick={onManage}
-          className="shrink-0 self-start text-[14px] text-forest hover:text-deep sm:self-auto text-action"
+          className="shrink-0 self-start text-body-lg text-forest hover:text-deep sm:self-auto text-action"
         >
           Manage membership
         </button>

@@ -24,7 +24,7 @@ export function UserBubble({ text, delay = 0 }: { text: string; delay?: number }
   return (
     <li className="flex justify-end">
       <p
-        className="stream-in max-w-[82%] rounded-[18px] rounded-br-[6px] bg-forest px-4 py-3 text-[14.5px] leading-[1.5] text-white"
+        className="stream-in max-w-[82%] rounded-[18px] rounded-br-[6px] bg-forest px-4 py-3 text-body-lg leading-[1.5] text-white"
         style={{ animationDelay: `${delay}ms` }}
       >
         {text}
@@ -40,7 +40,7 @@ export function AiReply({ blocks, ctx, delay = 0 }: { blocks: CompanionBlock[]; 
   return (
     <li className="flex flex-col items-start gap-2">
       {inBubble.length > 0 && (
-        <div className="max-w-[82%] space-y-2.5 rounded-[18px] rounded-bl-[6px] border border-line bg-card px-4 py-3 text-[14.5px] leading-[1.5] text-ink">
+        <div className="max-w-[82%] space-y-2.5 rounded-[18px] rounded-bl-[6px] border border-line bg-card px-4 py-3 text-body-lg leading-[1.5] text-ink">
           {inBubble.map((b, i) => (
             <div key={i} className="stream-in" style={{ animationDelay: `${delay + i * STAGGER_MS}ms` }}>
               <RenderBlock block={b} ctx={ctx} />
@@ -78,7 +78,7 @@ export const DISCLAIMER =
 
 export function ChromeHeader({ petName, since }: { petName: string; since: number }) {
   return (
-    <p className="mb-4 text-center text-[13px] font-semibold tracking-[0.02em] text-ink-2">
+    <p className="mb-4 text-center text-body-sm font-semibold tracking-[0.02em] text-ink-2">
       Knows {petName} since <span className="tabular-nums">{since}</span>
     </p>
   )
@@ -99,7 +99,7 @@ export function ChromeTypebar({ petName, target = 'ask' }: { petName: string; ta
         el?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' })
         el?.focus({ preventScroll: true })
       }}
-      className="mt-5 flex w-full items-center gap-2 rounded-full border border-line bg-card py-1.5 pl-5 pr-1.5 text-left text-[14px] text-ink-2 transition hover:border-forest/50"
+      className="mt-5 flex w-full items-center gap-2 rounded-full border border-line bg-card py-1.5 pl-5 pr-1.5 text-left text-body-lg text-ink-2 transition hover:border-forest/50"
     >
       <span className="flex-1">Ask about {petName}…</span>
       <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-forest">
@@ -112,7 +112,7 @@ export function ChromeTypebar({ petName, target = 'ask' }: { petName: string; ta
 }
 
 export function ChromeDisclaimer() {
-  return <p className="mt-3 text-center text-[11px] leading-relaxed text-ink-2">{DISCLAIMER}</p>
+  return <p className="mt-3 text-center text-caption leading-relaxed text-ink-2">{DISCLAIMER}</p>
 }
 
 // ── The scripted player ─────────────────────────────────────────────────────

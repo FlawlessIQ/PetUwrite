@@ -48,10 +48,10 @@ export function Passport({
     <section className="card overflow-hidden" aria-labelledby="passport-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
         <p className="label">Passport</p>
-        <h2 id="passport-heading" className="mt-1 font-display text-[20px] text-ink">
+        <h2 id="passport-heading" className="mt-1 font-display text-heading text-ink">
           {copy.title}
         </h2>
-        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{copy.body}</p>
+        <p className="mt-1 text-body leading-relaxed text-ink-2">{copy.body}</p>
 
         <div className="mt-4 flex items-center gap-3">
           <span className="h-2 flex-1 overflow-hidden rounded-full bg-white">
@@ -60,7 +60,7 @@ export function Passport({
               style={{ width: `${pct}%` }}
             />
           </span>
-          <span className="shrink-0 text-[13px] text-ink-2">
+          <span className="shrink-0 text-body-sm text-ink-2">
             {state.collected.length} of {state.stamps.length}
           </span>
         </div>
@@ -77,14 +77,14 @@ export function Passport({
                 onClick={() => setOpenGroup(open ? null : group)}
                 className="flex w-full items-center justify-between gap-4 px-5 py-3.5 text-left"
               >
-                <span className="text-[15px] text-ink">{group}</span>
+                <span className="text-lead text-ink">{group}</span>
                 <span className="flex items-center gap-3">
-                  <span className="text-[13px] text-ink-2">
+                  <span className="text-body-sm text-ink-2">
                     {done}/{total}
                   </span>
                   <span
                     aria-hidden="true"
-                    className={`text-[18px] leading-none text-ink-2 transition-transform ${open ? 'rotate-45' : ''}`}
+                    className={`text-heading-sm leading-none text-ink-2 transition-transform ${open ? 'rotate-45' : ''}`}
                   >
                     +
                   </span>
@@ -109,7 +109,7 @@ export function Passport({
                           >
                             <span
                               aria-hidden="true"
-                              className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[12px] leading-none transition ${
+                              className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-body-sm leading-none transition ${
                                 has
                                   ? 'border-forest bg-forest text-white'
                                   : 'border-line bg-white text-transparent'
@@ -117,7 +117,7 @@ export function Passport({
                             >
                               <Icon name="check" size={13} active />
                             </span>
-                            <span className={`text-[14.5px] ${has ? 'text-ink-2 line-through' : 'text-ink'}`}>
+                            <span className={`text-body-lg ${has ? 'text-ink-2 line-through' : 'text-ink'}`}>
                               {st.label}
                             </span>
                           </button>
@@ -132,9 +132,9 @@ export function Passport({
       </ul>
 
       <div className="border-t border-line bg-cream/40 px-5 py-4">
-        <p className="text-[13px] leading-relaxed text-deep">{PASSPORT_PRINCIPLE}</p>
+        <p className="text-body-sm leading-relaxed text-deep">{PASSPORT_PRINCIPLE}</p>
         {pet.species === 'dog' && (
-          <p className="mt-2 text-[12.5px] leading-relaxed text-ink-2">{PASSPORT_VET_LINE}</p>
+          <p className="mt-2 text-body-sm leading-relaxed text-ink-2">{PASSPORT_VET_LINE}</p>
         )}
       </div>
     </section>

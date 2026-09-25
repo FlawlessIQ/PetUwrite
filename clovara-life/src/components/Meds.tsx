@@ -74,10 +74,10 @@ export function Meds({
     <section className="card overflow-hidden" aria-labelledby="meds-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
         <p className="label">Medication</p>
-        <h2 id="meds-heading" className="mt-1 font-display text-[20px] text-ink">
+        <h2 id="meds-heading" className="mt-1 font-display text-heading text-ink">
           What {pet.name} is taking
         </h2>
-        <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{NOT_A_PRESCRIPTION}</p>
+        <p className="mt-1 text-body-sm leading-relaxed text-ink-2">{NOT_A_PRESCRIPTION}</p>
       </div>
 
       <ul className="divide-y divide-line">
@@ -86,17 +86,17 @@ export function Meds({
           return (
             <li key={med.id} className="px-5 py-4">
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <p className="text-[15px] font-medium text-ink">{med.name}</p>
-                <p className={`text-[12.5px] ${state.runningOut ? 'text-[#8A5510]' : 'text-ink-2'}`}>
+                <p className="text-lead font-medium text-ink">{med.name}</p>
+                <p className={`text-body-sm ${state.runningOut ? 'text-[#8A5510]' : 'text-ink-2'}`}>
                   {medLine(med, state)}
                 </p>
               </div>
-              <p className="mt-0.5 text-[13.5px] leading-relaxed text-ink-2">
+              <p className="mt-0.5 text-body leading-relaxed text-ink-2">
                 {med.amount} · {FREQUENCIES.find((f) => f.id === med.frequency)?.label.toLowerCase()}
               </p>
 
               {state.runningOut && (
-                <p className="mt-2 rounded-soft border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-[#8A5510]">
+                <p className="mt-2 rounded-soft border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-body-sm leading-relaxed text-[#8A5510]">
                   {RUNNING_OUT_NOTE}
                 </p>
               )}
@@ -105,7 +105,7 @@ export function Meds({
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    className="pill-ghost px-4 py-2 text-[13.5px]"
+                    className="pill-ghost px-4 py-2 text-body"
                     onClick={() => logDose(med.id)}
                   >
                     {state.doneToday ? 'Log another anyway' : 'Given just now'}
@@ -113,14 +113,14 @@ export function Meds({
                   {(med.given?.length ?? 0) > 0 && (
                     <button
                       type="button"
-                      className="text-action text-[13px] text-ink-2"
+                      className="text-action text-body-sm text-ink-2"
                       onClick={() => undoLast(med.id)}
                     >
                       Undo the last one
                     </button>
                   )}
                   {state.perDay > 0 && (
-                    <span className="text-[12.5px] text-ink-2">
+                    <span className="text-body-sm text-ink-2">
                       {state.givenToday} of {state.perDay} today
                     </span>
                   )}
@@ -132,7 +132,7 @@ export function Meds({
       </ul>
 
       <div className="border-t border-line bg-cream/40 px-5 py-4">
-        <p className="text-[12.5px] leading-relaxed text-ink-2">{MISSED_DOSE}</p>
+        <p className="text-body-sm leading-relaxed text-ink-2">{MISSED_DOSE}</p>
       </div>
 
       {onUpdate && (
@@ -170,7 +170,7 @@ export function Meds({
                     type="button"
                     aria-pressed={frequency === f.id}
                     onClick={() => setFrequency(f.id)}
-                    className={`rounded-full border-[1.5px] px-3.5 py-2 text-[13.5px] transition ${
+                    className={`rounded-full border-[1.5px] px-3.5 py-2 text-body transition ${
                       frequency === f.id
                         ? 'border-forest bg-sage text-deep'
                         : 'border-line bg-white text-ink'
@@ -197,7 +197,7 @@ export function Meds({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="pill-primary px-5 py-2.5 text-[14px]"
+                  className="pill-primary px-5 py-2.5 text-body-lg"
                   onClick={add}
                   disabled={!name.trim() || !amount.trim()}
                 >
@@ -205,7 +205,7 @@ export function Meds({
                 </button>
                 <button
                   type="button"
-                  className="pill-ghost px-5 py-2.5 text-[14px]"
+                  className="pill-ghost px-5 py-2.5 text-body-lg"
                   onClick={() => setAdding(false)}
                 >
                   Cancel
@@ -215,7 +215,7 @@ export function Meds({
           ) : (
             <button
               type="button"
-              className="pill-ghost px-5 py-2.5 text-[14px]"
+              className="pill-ghost px-5 py-2.5 text-body-lg"
               onClick={() => setAdding(true)}
             >
               Add a medication

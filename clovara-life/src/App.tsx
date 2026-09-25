@@ -161,7 +161,7 @@ function PetSwitcher({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-2 text-[14.5px] font-medium text-ink transition hover:border-forest/50"
+        className="flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-2 text-body-lg font-medium text-ink transition hover:border-forest/50"
       >
         {active && <PetAvatar pet={active} size={22} className="-ml-1" />}
         <span className="max-w-[8rem] truncate">{active ? active.name : 'Choose a pet'}</span>
@@ -182,7 +182,7 @@ function PetSwitcher({
                 onSelect(p.id)
                 setOpen(false)
               }}
-              className={`flex w-full shrink-0 items-center justify-between gap-2 border-b border-line px-4 py-2.5 text-left text-[14.5px] transition ${
+              className={`flex w-full shrink-0 items-center justify-between gap-2 border-b border-line px-4 py-2.5 text-left text-body-lg transition ${
                 p.id === activeId ? 'bg-sage text-deep' : 'hover:bg-cream'
               }`}
             >
@@ -190,7 +190,7 @@ function PetSwitcher({
                 <PetAvatar pet={p} size={26} />
                 <span className="truncate">{p.name}</span>
               </span>
-              <span className="shrink-0 text-[12px] text-ink-2">{p.demo ? 'Demo' : 'Yours'}</span>
+              <span className="shrink-0 text-body-sm text-ink-2">{p.demo ? 'Demo' : 'Yours'}</span>
             </button>
           ))}
           <button
@@ -200,7 +200,7 @@ function PetSwitcher({
               onAdd()
               setOpen(false)
             }}
-            className="w-full shrink-0 bg-cream/60 px-4 py-2.5 text-left text-[14.5px] font-medium text-forest transition hover:bg-cream"
+            className="w-full shrink-0 bg-cream/60 px-4 py-2.5 text-left text-body-lg font-medium text-forest transition hover:bg-cream"
           >
             + Add a pet
           </button>
@@ -211,12 +211,12 @@ function PetSwitcher({
               onAccount()
               setOpen(false)
             }}
-            className="w-full shrink-0 border-t border-line px-4 py-2.5 text-left text-[14px] text-ink transition hover:bg-cream"
+            className="w-full shrink-0 border-t border-line px-4 py-2.5 text-left text-body-lg text-ink transition hover:bg-cream"
           >
             {accountLabel ? (
               <>
                 <span className="block truncate font-medium">{accountLabel}</span>
-                <span className="block text-[12.5px] text-ink-2">Signed in · manage account</span>
+                <span className="block text-body-sm text-ink-2">Signed in · manage account</span>
               </>
             ) : (
               'Sign in'
@@ -230,7 +230,7 @@ function PetSwitcher({
                 onReset()
                 setOpen(false)
               }}
-              className="w-full shrink-0 border-t border-line px-4 py-2.5 text-left text-[13.5px] text-ink-2 transition hover:bg-cream hover:text-ink"
+              className="w-full shrink-0 border-t border-line px-4 py-2.5 text-left text-body text-ink-2 transition hover:bg-cream hover:text-ink"
             >
               Reset demo data
             </button>
@@ -660,17 +660,17 @@ export default function App() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2.5">
               <CloverMark size={22} />
-              <span className="font-display text-[16px] text-ink">Clovara Life</span>
+              <span className="font-display text-title text-ink">Clovara Life</span>
             </div>
             <div className="max-w-[62ch] space-y-2">
-              <p className="text-[13.5px] leading-relaxed text-ink-2">
+              <p className="text-body leading-relaxed text-ink-2">
                 Clovara Life shares information to support care decisions. It is not veterinary
                 advice; your veterinarian decides care. Pricing, products and activity data in this
                 preview are illustrative.
               </p>
               <a
                 href="#/covenant"
-                className="inline-block text-[13.5px] text-forest underline underline-offset-4 transition hover:text-deep"
+                className="inline-block text-body text-forest underline underline-offset-4 transition hover:text-deep"
               >
                 The Data Covenant — what we do and never do with what you tell us
               </a>

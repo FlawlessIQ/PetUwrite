@@ -39,10 +39,10 @@ export function ConfirmChips({
   if (!EXTRACTION_ENABLED || !extractionProvider().available) {
     return (
       <section className="card p-5" aria-labelledby="chips-heading">
-        <h2 id="chips-heading" className="font-display text-[19px] text-ink">
+        <h2 id="chips-heading" className="font-display text-heading-sm text-ink">
           Reading vet records
         </h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
+        <p className="mt-2 text-body-lg leading-relaxed text-ink-2">
           {unavailableReason ??
             'Not switched on yet. It needs a security review of how those documents are stored, which is booked separately — we would rather not hold them at all than hold them badly.'}
         </p>
@@ -65,38 +65,38 @@ export function ConfirmChips({
   return (
     <section className="card overflow-hidden" aria-labelledby="chips-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
-        <h2 id="chips-heading" className="font-display text-[19px] text-ink">
+        <h2 id="chips-heading" className="font-display text-heading-sm text-ink">
           Is this right?
         </h2>
-        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
+        <p className="mt-1 text-body leading-relaxed text-ink-2">
           We read this off the page. Nothing is saved until you say it is correct, and anything you
           are unsure about is better left out.
         </p>
       </div>
 
       {pending.length === 0 ? (
-        <p className="px-5 py-5 text-[14.5px] text-ink-2">
+        <p className="px-5 py-5 text-body-lg text-ink-2">
           {kept.length > 0 ? 'Saved. Thank you.' : 'Nothing left to check.'}
         </p>
       ) : (
         <ul className="divide-y divide-line">
           {pending.map((c) => (
             <li key={c.id} className="px-5 py-4">
-              <p className="text-[15px] text-ink">{c.label}</p>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
+              <p className="text-lead text-ink">{c.label}</p>
+              <p className="mt-1 text-body-sm leading-relaxed text-ink-2">
                 Read from: &ldquo;{c.sourceText}&rdquo;
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="pill-ghost px-4 py-2 text-[13.5px]"
+                  className="pill-ghost px-4 py-2 text-body"
                   onClick={() => decide(c, true)}
                 >
                   Yes, that is right
                 </button>
                 <button
                   type="button"
-                  className="pill-ghost px-4 py-2 text-[13.5px]"
+                  className="pill-ghost px-4 py-2 text-body"
                   onClick={() => decide(c, false)}
                 >
                   No, leave it out

@@ -71,7 +71,7 @@ textarea {
    * a ~48px target — inside §3's 13–16px title range, and a thumb's width.
    */
   .pill {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[15px] font-semibold transition;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-lead font-semibold transition;
   }
 
   .pill-primary {
@@ -90,7 +90,7 @@ textarea {
   /* §5 "one primary (forest, small)" and compact ghosts: the same pill, smaller.
      Still at least 36px tall, which is what the a11y suite holds tap targets to. */
   .pill-sm {
-    @apply min-h-[36px] px-4 py-2 text-[13.5px];
+    @apply min-h-[36px] px-4 py-2 text-body;
   }
 
   /*
@@ -107,7 +107,7 @@ textarea {
 
   /* §3 eyebrow: Poppins 600, 10–11px, caps, .18em as styleguide.html's specimen. */
   .label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-2;
+    @apply text-caption font-semibold uppercase tracking-[0.18em] text-ink-2;
     /* A long metadata eyebrow ("Golden Retriever · 6 years old · neutered male")
        wraps at 390px with the wider tracking; balance it rather than strand a
        word on its own line. */
@@ -127,7 +127,7 @@ textarea {
      the global :focus-visible on specificity, leaving a 1px border change as the
      only keyboard cue. §4 says the ring goes on every interactive element. */
   .field {
-    @apply w-full rounded-inner border border-line bg-card px-4 py-3 text-[16px] text-ink
+    @apply w-full rounded-inner border border-line bg-card px-4 py-3 text-title text-ink
       placeholder:text-ink-3 focus:border-forest;
   }
 
@@ -141,7 +141,7 @@ textarea {
    * AA for text this size. Flagged in DECISIONS for Conor.
    */
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-semibold leading-tight;
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-body-sm font-semibold leading-tight;
   }
   .chip-good {
     @apply chip bg-sage text-deep;

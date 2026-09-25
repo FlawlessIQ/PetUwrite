@@ -89,7 +89,7 @@ export function TopNav({
                 type="button"
                 onClick={() => onChange(s.id)}
                 aria-current={on ? 'page' : undefined}
-                className={`rounded-full px-3.5 py-2 text-[14px] font-medium transition ${
+                className={`rounded-full px-3.5 py-2 text-body-lg font-medium transition ${
                   on ? 'bg-ink text-cream' : 'text-ink-2 hover:bg-white hover:text-ink'
                 }`}
               >
@@ -126,7 +126,7 @@ export function TabBar({
                 type="button"
                 onClick={() => onChange(s.id)}
                 aria-current={on ? 'page' : undefined}
-                className={`flex w-full flex-col items-center justify-center gap-1 py-2.5 text-[9.5px] font-medium transition ${
+                className={`flex w-full flex-col items-center justify-center gap-1 py-2.5 text-caption-sm font-medium transition ${
                   on ? 'text-forest' : 'text-ink-2'
                 }`}
               >

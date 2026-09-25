@@ -31,10 +31,10 @@ export function SecondOpinion({
     <section className="card overflow-hidden" aria-labelledby="opinion-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
         <p className="label">Before you agree to it</p>
-        <h2 id="opinion-heading" className="mt-1 font-display text-[20px] text-ink">
+        <h2 id="opinion-heading" className="mt-1 font-display text-heading text-ink">
           What to ask your vet
         </h2>
-        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{OPENING}</p>
+        <p className="mt-1 text-body leading-relaxed text-ink-2">{OPENING}</p>
       </div>
 
       <div className="px-5 py-5">
@@ -58,19 +58,19 @@ export function SecondOpinion({
 
         {result && (
           <div className="mt-5">
-            <p className="rounded-soft bg-sage/50 px-4 py-3 text-[13.5px] leading-relaxed text-deep">
+            <p className="rounded-soft bg-sage/50 px-4 py-3 text-body leading-relaxed text-deep">
               {NOT_A_VERDICT}
             </p>
 
             <ol className="mt-4 space-y-3.5">
               {result.questions.map((q, i) => (
                 <li key={q.id} className="flex gap-3">
-                  <span aria-hidden="true" className="shrink-0 text-[14px] font-medium text-forest">
+                  <span aria-hidden="true" className="shrink-0 text-body-lg font-medium text-forest">
                     {i + 1}.
                   </span>
                   <span>
-                    <span className="block text-[15px] leading-snug text-ink">{q.text}</span>
-                    <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">
+                    <span className="block text-lead leading-snug text-ink">{q.text}</span>
+                    <span className="mt-0.5 block text-body-sm leading-relaxed text-ink-2">
                       {q.because}
                     </span>
                   </span>
@@ -83,7 +83,7 @@ export function SecondOpinion({
                 <p className="label">Worth mentioning, from {pet.name}&rsquo;s record</p>
                 <ul className="mt-2 space-y-1.5">
                   {result.fromTheRecord.map((r) => (
-                    <li key={r} className="text-[13.5px] leading-relaxed text-ink">
+                    <li key={r} className="text-body leading-relaxed text-ink">
                       {r}
                     </li>
                   ))}
@@ -91,7 +91,7 @@ export function SecondOpinion({
               </div>
             )}
 
-            <p className="mt-5 text-[12.5px] leading-relaxed text-ink-2">{PRICE_NOTE}</p>
+            <p className="mt-5 text-body-sm leading-relaxed text-ink-2">{PRICE_NOTE}</p>
           </div>
         )}
       </div>

@@ -53,17 +53,17 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="mx-auto mb-5 w-fit">
             <CloverMark size={36} />
           </div>
-          <h1 className="font-display text-[26px] leading-tight text-ink">
+          <h1 className="font-display text-display-sm leading-tight text-ink">
             Something went wrong
           </h1>
-          <p className="mx-auto mt-2.5 max-w-[36ch] text-[14.5px] leading-relaxed text-ink-2">
+          <p className="mx-auto mt-2.5 max-w-[36ch] text-body-lg leading-relaxed text-ink-2">
             This one is on us, not on you. Starting over clears the pets saved in this browser and
             reloads a clean demo.
           </p>
           <button type="button" onClick={this.startOver} className="pill-primary mt-6">
             Start over
           </button>
-          <p className="mt-5 break-words text-[12px] leading-relaxed text-ink-2/70">
+          <p className="mt-5 break-words text-body-sm leading-relaxed text-ink-2/70">
             {this.state.error.message}
           </p>
         </div>

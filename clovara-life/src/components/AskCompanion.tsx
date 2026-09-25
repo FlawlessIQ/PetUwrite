@@ -80,10 +80,10 @@ export function AskCompanion({
     <section className="card overflow-hidden" aria-labelledby="ask-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
         <p className="label">Ask about {pet.name}</p>
-        <h2 id="ask-heading" className="mt-1 font-display text-[20px] text-ink">
+        <h2 id="ask-heading" className="mt-1 font-display text-heading text-ink">
           It can only tell you what it already knows
         </h2>
-        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
+        <p className="mt-1 text-body leading-relaxed text-ink-2">
           Everything it says comes from {pet.name}&rsquo;s record or the breed research, and it
           shows you which. It does not guess, and it cannot examine {pet.name}.
         </p>
@@ -117,13 +117,13 @@ export function AskCompanion({
 
         {escalate && (
           <div className="mt-5 rounded-soft border border-[#B3261E]/30 bg-[#B3261E]/[0.06] px-4 py-4">
-            <p className="font-display text-[19px] leading-tight text-[#8C1D18]">
+            <p className="font-display text-heading-sm leading-tight text-[#8C1D18]">
               {RED_FLAG_HEADLINE}
             </p>
-            <p className="mt-2 text-[14px] leading-relaxed text-[#8C1D18]">{RED_FLAG_BODY}</p>
+            <p className="mt-2 text-body-lg leading-relaxed text-[#8C1D18]">{RED_FLAG_BODY}</p>
             <a
               href="#/wrong"
-              className="mt-3 inline-block text-action text-[14px] font-medium text-[#8C1D18]"
+              className="mt-3 inline-block text-action text-body-lg font-medium text-[#8C1D18]"
             >
               What to do now
             </a>
@@ -132,11 +132,11 @@ export function AskCompanion({
 
         {vet && (
           <div className="mt-5 rounded-soft border border-line bg-cream/50 px-4 py-4">
-            <p className="font-display text-[18px] leading-tight text-ink">{vet.headline}</p>
-            <p className="mt-2 text-[14px] leading-relaxed text-ink">{vet.body}</p>
+            <p className="font-display text-heading-sm leading-tight text-ink">{vet.headline}</p>
+            <p className="mt-2 text-body-lg leading-relaxed text-ink">{vet.body}</p>
             <ol className="mt-3 space-y-2">
               {vet.steps.map((step, i) => (
-                <li key={step} className="flex gap-3 text-[14px] leading-relaxed text-ink">
+                <li key={step} className="flex gap-3 text-body-lg leading-relaxed text-ink">
                   <span aria-hidden="true" className="shrink-0 font-medium text-forest">
                     {i + 1}.
                   </span>
@@ -146,7 +146,7 @@ export function AskCompanion({
             </ol>
             <a
               href={`#/health/${encodeURIComponent(pet.id)}`}
-              className="mt-3 inline-block text-action text-[14px] font-medium text-forest"
+              className="mt-3 inline-block text-action text-body-lg font-medium text-forest"
             >
               Open {pet.name}&rsquo;s summary
             </a>
@@ -156,15 +156,15 @@ export function AskCompanion({
         {recall && (
           <div className="mt-5">
             {recall.opening && (
-              <p className="text-[15px] leading-relaxed text-ink">{recall.opening}</p>
+              <p className="text-lead leading-relaxed text-ink">{recall.opening}</p>
             )}
 
             {recall.facts.length > 0 && (
               <ul className="mt-3 space-y-2.5">
                 {recall.facts.map((f) => (
                   <li key={f.id} className="rounded-soft border border-line bg-white px-4 py-3">
-                    <p className="text-[14.5px] leading-relaxed text-ink">{f.claim}</p>
-                    <p className="mt-1 text-[12.5px] text-ink-2">
+                    <p className="text-body-lg leading-relaxed text-ink">{f.claim}</p>
+                    <p className="mt-1 text-body-sm text-ink-2">
                       {SOURCE_LABEL[f.source.kind] ?? f.source.kind}
                       {f.source.kind === 'breed-table' && ` · ${f.source.citation} evidence`}
                     </p>
@@ -174,7 +174,7 @@ export function AskCompanion({
             )}
 
             <p
-              className={`mt-3 text-[13.5px] leading-relaxed ${
+              className={`mt-3 text-body leading-relaxed ${
                 recall.route === 'vet-soon' ? 'text-deep' : 'text-ink-2'
               }`}
             >

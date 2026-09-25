@@ -79,21 +79,21 @@ export function AccountSheet({
           <div className="space-y-5">
             <div className="flex items-center gap-2.5">
               <CloverMark size={24} />
-              <h2 id="account-title" className="font-display text-[22px] leading-tight text-ink">
+              <h2 id="account-title" className="font-display text-heading-lg leading-tight text-ink">
                 Signed in
               </h2>
             </div>
-            <p className="text-[15px] leading-relaxed text-ink/85">
+            <p className="text-lead leading-relaxed text-ink/85">
               You are signed in as{' '}
               <span className="font-medium text-deep">{displayNameFor(user)}</span>.
             </p>
-            <p className="text-[13.5px] leading-relaxed text-ink-2">{user.email}</p>
+            <p className="text-body leading-relaxed text-ink-2">{user.email}</p>
 
             <div className="rounded-soft border border-line bg-cream/60 p-4">
               <p className="label mb-1.5">Membership</p>
-              <p className="text-[14.5px] leading-relaxed text-ink/85">{membershipLine(entitlement)}</p>
+              <p className="text-body-lg leading-relaxed text-ink/85">{membershipLine(entitlement)}</p>
               {membershipError && (
-                <p role="alert" className="mt-2 text-[13.5px] text-[#8A5510]">
+                <p role="alert" className="mt-2 text-body text-[#8A5510]">
                   {membershipError}
                 </p>
               )}
@@ -101,7 +101,7 @@ export function AccountSheet({
                 type="button"
                 onClick={isMember(entitlement) ? onManage : onStartTrial}
                 disabled={membershipBusy}
-                className="mt-3 text-[14px] text-forest transition hover:text-deep disabled:opacity-40 text-action"
+                className="mt-3 text-body-lg text-forest transition hover:text-deep disabled:opacity-40 text-action"
               >
                 {membershipBusy
                   ? 'One moment…'
@@ -117,7 +117,7 @@ export function AccountSheet({
             <a
               href="#/covenant"
               onClick={onClose}
-              className="block text-[14px] text-forest transition hover:text-deep text-action"
+              className="block text-body-lg text-forest transition hover:text-deep text-action"
             >
               The Data Covenant
             </a>
@@ -130,7 +130,7 @@ export function AccountSheet({
                   onClose()
                 }}
                 disabled={busy}
-                className="text-[14.5px] text-ink-2 transition hover:text-ink disabled:opacity-40 text-action"
+                className="text-body-lg text-ink-2 transition hover:text-ink disabled:opacity-40 text-action"
               >
                 Sign out
               </button>
@@ -144,11 +144,11 @@ export function AccountSheet({
             <div>
               <div className="mb-2 flex items-center gap-2.5">
                 <CloverMark size={24} />
-                <h2 id="account-title" className="font-display text-[22px] leading-tight text-ink">
+                <h2 id="account-title" className="font-display text-heading-lg leading-tight text-ink">
                   {needsEmailForLink ? 'Confirm your email' : 'Sign in to Clovara'}
                 </h2>
               </div>
-              <p className="text-[14.5px] leading-snug text-ink-2">
+              <p className="text-body-lg leading-snug text-ink-2">
                 {needsEmailForLink
                   ? 'You opened the link on a different device. Type the address you asked for it with and we can finish.'
                   : 'Your pets and their plans, on every device you use. No password to remember.'}
@@ -157,7 +157,7 @@ export function AccountSheet({
 
             {sent ? (
               <div className="space-y-4">
-                <div className="rounded-soft border border-line bg-sage/50 p-4 text-[14.5px] leading-relaxed text-deep">
+                <div className="rounded-soft border border-line bg-sage/50 p-4 text-body-lg leading-relaxed text-deep">
                   Check <span className="font-medium">{email.trim()}</span> — there's a sign-in link
                   waiting. Open it on this device and you'll land straight back here.
                 </div>
@@ -167,7 +167,7 @@ export function AccountSheet({
                     setSent(false)
                     clearError()
                   }}
-                  className="text-[14px] text-forest hover:text-deep text-action"
+                  className="text-body-lg text-forest hover:text-deep text-action"
                 >
                   Use a different address
                 </button>
@@ -196,7 +196,7 @@ export function AccountSheet({
             {error && (
               <p
                 role="alert"
-                className="rounded-soft border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-[14px] leading-relaxed text-[#8A5510]"
+                className="rounded-soft border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-body-lg leading-relaxed text-[#8A5510]"
               >
                 {error}
               </p>
@@ -220,7 +220,7 @@ export function AccountSheet({
               <>
                 <div className="flex items-center gap-3" aria-hidden="true">
                   <span className="h-px flex-1 bg-line" />
-                  <span className="text-[12.5px] uppercase tracking-[0.08em] text-ink-2">or</span>
+                  <span className="text-body-sm uppercase tracking-[0.08em] text-ink-2">or</span>
                   <span className="h-px flex-1 bg-line" />
                 </div>
                 <button
@@ -242,7 +242,7 @@ export function AccountSheet({
               </>
             )}
 
-            <div className="flex items-center justify-end border-t border-line pt-4 text-[14px]">
+            <div className="flex items-center justify-end border-t border-line pt-4 text-body-lg">
               <button
                 type="button"
                 onClick={onClose}

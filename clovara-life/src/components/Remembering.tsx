@@ -30,19 +30,19 @@ export function Remembering({
     return (
       <section className="card overflow-hidden" aria-labelledby="remember-heading">
         <div className="px-5 py-6">
-          <h2 id="remember-heading" className="font-display text-[21px] leading-tight text-ink">
+          <h2 id="remember-heading" className="font-display text-heading leading-tight text-ink">
             {REMEMBER_HEADLINE(pet.name)}
           </h2>
-          <p className="mt-2 text-[14.5px] leading-relaxed text-ink-2">{REMEMBER_BODY(pet.name)}</p>
-          <p className="mt-3 text-[13.5px] text-ink-2">{REMEMBER_PROMPT}</p>
+          <p className="mt-2 text-body-lg leading-relaxed text-ink-2">{REMEMBER_BODY(pet.name)}</p>
+          <p className="mt-3 text-body text-ink-2">{REMEMBER_PROMPT}</p>
           {pet.diedOn && (
-            <p className="mt-4 text-[13px] text-ink-2">{longDate(pet.diedOn)}</p>
+            <p className="mt-4 text-body-sm text-ink-2">{longDate(pet.diedOn)}</p>
           )}
           {onUpdate && (
             <button
               type="button"
               onClick={() => onUpdate({ diedOn: undefined })}
-              className="mt-4 text-action text-[13px] text-ink-2"
+              className="mt-4 text-action text-body-sm text-ink-2"
             >
               Undo — this was a mistake
             </button>
@@ -58,7 +58,7 @@ export function Remembering({
     <div className="px-5 py-4">
       {opening ? (
         <div>
-          <label htmlFor="died-on" className="text-[14px] leading-relaxed text-ink">
+          <label htmlFor="died-on" className="text-body-lg leading-relaxed text-ink">
             If {pet.name} has died, telling us stops everything — the reminders, the suggestions,
             the questions. Nothing is deleted.
           </label>
@@ -73,7 +73,7 @@ export function Remembering({
             />
             <button
               type="button"
-              className="pill-primary px-5 py-2.5 text-[14px]"
+              className="pill-primary px-5 py-2.5 text-body-lg"
               disabled={!date}
               onClick={() => {
                 onUpdate({ diedOn: new Date(`${date}T12:00:00Z`).toISOString() })
@@ -85,7 +85,7 @@ export function Remembering({
             </button>
             <button
               type="button"
-              className="pill-ghost px-5 py-2.5 text-[14px]"
+              className="pill-ghost px-5 py-2.5 text-body-lg"
               onClick={() => setOpening(false)}
             >
               Cancel
@@ -96,7 +96,7 @@ export function Remembering({
         <button
           type="button"
           onClick={() => setOpening(true)}
-          className="text-action text-[13px] text-ink-2"
+          className="text-action text-body-sm text-ink-2"
         >
           {pet.name} has died
         </button>

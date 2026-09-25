@@ -58,12 +58,12 @@ export function PhotoPicker({
   return (
     <div className="border-t border-line px-5 py-5 sm:px-6" data-ask="photo">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h3 className="text-[15.5px] font-medium text-ink">
+        <h3 className="text-lead font-medium text-ink">
           {pet.photo ? `A photo of ${pet.name}` : `Add a photo of ${pet.name}`}
         </h3>
-        <span className="text-[12.5px] text-ink-2">Changes nothing in the plan</span>
+        <span className="text-body-sm text-ink-2">Changes nothing in the plan</span>
       </div>
-      <p className="mb-3.5 text-[13.5px] leading-snug text-ink-2">
+      <p className="mb-3.5 text-body leading-snug text-ink-2">
         It makes the app theirs, and we keep a larger copy so their shape can be
         compared over time later on.
       </p>
@@ -94,7 +94,7 @@ export function PhotoPicker({
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 text-[13.5px] leading-relaxed text-[#8A5510]">
+        <p role="alert" className="mt-3 text-body leading-relaxed text-[#8A5510]">
           {error}
         </p>
       )}

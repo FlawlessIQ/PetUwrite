@@ -23,28 +23,28 @@ export function DataCovenant({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           onClick={onClose}
-          className="text-[14px] text-ink-2 transition hover:text-ink text-action"
+          className="text-body-lg text-ink-2 transition hover:text-ink text-action"
         >
           Back to the app
         </button>
       </div>
 
-      <h1 className="font-display text-[36px] leading-[1.08] text-ink sm:text-[44px]">
+      <h1 className="font-display text-display-lg leading-[1.08] text-ink sm:text-display-2xl">
         {COVENANT_TITLE}
       </h1>
-      <p className="mt-4 max-w-[58ch] text-[17px] leading-relaxed text-ink/85">{COVENANT_INTRO}</p>
+      <p className="mt-4 max-w-[58ch] text-title leading-relaxed text-ink/85">{COVENANT_INTRO}</p>
 
       <div className="mt-10 space-y-9">
         {COVENANT.map((section) => (
           <section key={section.id} id={section.id} aria-labelledby={`${section.id}-h`}>
             <h2
               id={`${section.id}-h`}
-              className="font-display text-[23px] leading-tight text-ink sm:text-[26px]"
+              className="font-display text-heading-lg leading-tight text-ink sm:text-display-sm"
             >
               {section.heading}
             </h2>
             {section.body.map((p, i) => (
-              <p key={i} className="mt-3 max-w-[62ch] text-[15.5px] leading-relaxed text-ink/80">
+              <p key={i} className="mt-3 max-w-[62ch] text-lead leading-relaxed text-ink/80">
                 {p}
               </p>
             ))}
@@ -56,7 +56,7 @@ export function DataCovenant({ onClose }: { onClose: () => void }) {
                     className="flex gap-3 rounded-soft border border-forest/25 bg-sage/30 px-4 py-3"
                   >
                     <Icon name="check" size={17} className="mt-1 text-forest" active />
-                    <span className="text-[15.5px] leading-relaxed text-ink/85">{p}</span>
+                    <span className="text-lead leading-relaxed text-ink/85">{p}</span>
                   </li>
                 ))}
               </ul>

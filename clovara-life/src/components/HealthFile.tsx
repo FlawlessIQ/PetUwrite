@@ -51,15 +51,15 @@ export function HealthFile({
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="label">Health file</p>
-          <h1 className="mt-1 font-display text-[28px] leading-tight text-ink">
+          <h1 className="mt-1 font-display text-display-sm leading-tight text-ink">
             Everything on record for {pet.name}
           </h1>
-          <p className="mt-1.5 max-w-[56ch] text-[14px] leading-relaxed text-ink-2">
+          <p className="mt-1.5 max-w-[56ch] text-body-lg leading-relaxed text-ink-2">
             The things you keep rather than the things that need you today. Nothing here is shared
             with anyone unless you make a sitter link.
           </p>
         </div>
-        <button type="button" onClick={onClose} className="pill-ghost px-4 py-2 text-[13.5px]">
+        <button type="button" onClick={onClose} className="pill-ghost px-4 py-2 text-body">
           Back to {pet.name}
         </button>
       </div>
@@ -83,7 +83,7 @@ export function HealthFile({
       </div>
 
       {!vax.visible && !passport.visible && (
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
+        <p className="mt-2 text-body-lg leading-relaxed text-ink-2">
           {pet.name} is past the age for the vaccination course and the socialisation passport, so
           there is nothing to show from either.
         </p>
@@ -93,7 +93,7 @@ export function HealthFile({
         <Remembering pet={pet} onUpdate={onUpdate} />
       </div>
 
-      <p className="mt-4 text-[12.5px] leading-relaxed text-ink-2">
+      <p className="mt-4 text-body-sm leading-relaxed text-ink-2">
         Reading vet records into this file is built and switched off — it needs a security review of
         how those documents are stored before it can be turned on. The projection on {pet.name}
         &rsquo;s plan does not use anything from this page.

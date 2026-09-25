@@ -65,17 +65,17 @@ export function AnnualReview({
   return (
     <section className="card overflow-hidden" aria-labelledby="review-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
-        <h2 id="review-heading" className="font-display text-[20px] text-ink">
+        <h2 id="review-heading" className="font-display text-heading text-ink">
           A year with {pet.name}
         </h2>
         {shift && !shift.unchanged ? (
-          <p className="mt-1 text-[14px] leading-relaxed text-ink-2">
+          <p className="mt-1 text-body-lg leading-relaxed text-ink-2">
             Last year we said {lastYear!.low.toFixed(1)}–{lastYear!.high.toFixed(1)} healthy years.
             Today it is {currentRange.low.toFixed(1)}–{currentRange.high.toFixed(1)} — {pet.name} is
             a year older, and the range moves with them.
           </p>
         ) : (
-          <p className="mt-1 text-[14px] leading-relaxed text-ink-2">
+          <p className="mt-1 text-body-lg leading-relaxed text-ink-2">
             A once-a-year check of the handful of things that actually change. Every question is
             optional, and "still true" is the most common answer.
           </p>
@@ -88,24 +88,24 @@ export function AnnualReview({
           return (
             <li key={item.field} className={`px-5 py-4 ${done ? 'opacity-55' : ''}`}>
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <p className="text-[15px] font-medium text-ink">{item.prompt}</p>
-                <p className="text-[13px] text-ink-2">{item.current}</p>
+                <p className="text-lead font-medium text-ink">{item.prompt}</p>
+                <p className="text-body-sm text-ink-2">{item.current}</p>
               </div>
-              <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{item.because}</p>
+              <p className="mt-1 text-body-sm leading-relaxed text-ink-2">{item.because}</p>
               {done ? (
-                <p className="mt-2 text-[13px] text-forest">Thank you — noted.</p>
+                <p className="mt-2 text-body-sm text-forest">Thank you — noted.</p>
               ) : (
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="pill-ghost px-4 py-2 text-[14px]"
+                    className="pill-ghost px-4 py-2 text-body-lg"
                     onClick={() => mark(item.field, false)}
                   >
                     Still true
                   </button>
                   <button
                     type="button"
-                    className="pill-ghost px-4 py-2 text-[14px]"
+                    className="pill-ghost px-4 py-2 text-body-lg"
                     onClick={() => mark(item.field, true)}
                   >
                     This changed
@@ -118,18 +118,18 @@ export function AnnualReview({
       </ul>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-cream/40 px-5 py-4">
-        <p className="text-[13px] text-ink-2">
+        <p className="text-body-sm text-ink-2">
           {allHandled
             ? 'That is everything. We will ask again next year.'
             : `${items.filter((i) => !handled.has(i.field)).length} left, none of them required.`}
         </p>
         <div className="flex gap-2">
-          <button type="button" className="pill-ghost px-4 py-2 text-[14px]" onClick={onDismiss}>
+          <button type="button" className="pill-ghost px-4 py-2 text-body-lg" onClick={onDismiss}>
             Not now
           </button>
           <button
             type="button"
-            className="pill-primary px-4 py-2 text-[14px]"
+            className="pill-primary px-4 py-2 text-body-lg"
             onClick={finish}
             disabled={!allHandled}
           >

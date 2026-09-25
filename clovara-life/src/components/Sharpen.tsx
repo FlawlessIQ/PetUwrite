@@ -93,16 +93,16 @@ export function Sharpen({
     return (
       <div className="border-t border-line px-5 py-5 first:border-t-0 sm:px-6">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <h3 className="text-[15.5px] font-medium text-ink">{title}</h3>
+          <h3 className="text-lead font-medium text-ink">{title}</h3>
           {meta.answered ? (
             <span className="chip-good">
               Answered
             </span>
           ) : (
-            <span className="text-[12.5px] text-ink-2">+{meta.points} to sharpness</span>
+            <span className="text-body-sm text-ink-2">+{meta.points} to sharpness</span>
           )}
         </div>
-        <p className="mb-3.5 text-[13.5px] leading-snug text-ink-2">{meta.benefit}</p>
+        <p className="mb-3.5 text-body leading-snug text-ink-2">{meta.benefit}</p>
         {children}
       </div>
     )
@@ -135,9 +135,9 @@ export function Sharpen({
                 : 'border-line bg-cream text-ink hover:border-forest/50'
             }`}
           >
-            <span className="block text-[14.5px] font-medium leading-tight">{o.label}</span>
+            <span className="block text-body-lg font-medium leading-tight">{o.label}</span>
             {o.hint && (
-              <span className={`mt-0.5 block text-[12px] ${on ? 'text-deep/80' : 'text-ink-2'}`}>
+              <span className={`mt-0.5 block text-body-sm ${on ? 'text-deep/80' : 'text-ink-2'}`}>
                 {o.hint}
               </span>
             )}
@@ -152,10 +152,10 @@ export function Sharpen({
   return (
     <section className="card overflow-hidden" aria-labelledby="sharpen-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4 sm:px-6">
-        <h2 id="sharpen-heading" className="font-display text-[22px] leading-tight text-ink">
+        <h2 id="sharpen-heading" className="font-display text-heading-lg leading-tight text-ink">
           {unanswered === 0 ? `${pet.name}'s plan is as sharp as we can make it` : 'Sharpen the plan'}
         </h2>
-        <p className="mt-1 text-[14px] leading-snug text-ink-2">
+        <p className="mt-1 text-body-lg leading-snug text-ink-2">
           {unanswered === 0
             ? "You've told us everything that moves the number. Change any of it any time."
             : `${unanswered} question${unanswered === 1 ? '' : 's'} left, each one optional. Watch the range above as you answer.`}
@@ -182,7 +182,7 @@ export function Sharpen({
                   <Silhouette score={score} species={pet.species} active={on} />
                 </span>
                 <span
-                  className={`mt-1 block whitespace-nowrap text-center text-[9.5px] leading-tight sm:text-[11.5px] ${
+                  className={`mt-1 block whitespace-nowrap text-center text-caption-sm leading-tight sm:text-caption ${
                     on ? 'font-medium text-deep' : 'text-ink-2'
                   }`}
                 >
@@ -193,7 +193,7 @@ export function Sharpen({
           })}
         </div>
         {pet.bodyConditionScore && (
-          <p className="mt-2.5 text-[13.5px] leading-relaxed text-ink-2">
+          <p className="mt-2.5 text-body leading-relaxed text-ink-2">
             {BCS_LABELS[pet.bodyConditionScore].detail}.{' '}
             <span className="text-ink/70">
               A weight in pounds is optional and does not change this — you have already told us the
@@ -219,7 +219,7 @@ export function Sharpen({
               if (Number.isFinite(n) && n > 0 && n !== pet.weightLb) answer('weightLb', { weightLb: n })
             }}
           />
-          <p className="mt-1.5 text-[12.5px] text-ink-2">
+          <p className="mt-1.5 text-body-sm text-ink-2">
             Typical adult range for a {breed.name}: {breed.weight.low}–{breed.weight.high} lb.
           </p>
         </div>
@@ -232,7 +232,7 @@ export function Sharpen({
             type="button"
             aria-pressed={pet.conditionsReviewed === true && pet.conditionIds.length === 0}
             onClick={() => answer('conditionIds', { conditionIds: [], conditionsReviewed: true })}
-            className={`rounded-full border px-3.5 py-1.5 text-[14px] transition ${
+            className={`rounded-full border px-3.5 py-1.5 text-body-lg transition ${
               pet.conditionsReviewed && pet.conditionIds.length === 0
                 ? 'border-forest bg-sage text-deep'
                 : 'border-line bg-cream text-ink hover:border-forest/50'
@@ -255,7 +255,7 @@ export function Sharpen({
                     conditionsReviewed: true,
                   })
                 }
-                className={`rounded-full border px-3.5 py-1.5 text-[14px] transition ${
+                className={`rounded-full border px-3.5 py-1.5 text-body-lg transition ${
                   on
                     ? 'border-forest bg-sage text-deep'
                     : 'border-line bg-cream text-ink hover:border-forest/50'
@@ -342,7 +342,7 @@ export function Sharpen({
         <button
           type="button"
           onClick={() => setShowAnswered((v) => !v)}
-          className="text-[13.5px] text-forest hover:text-deep text-action"
+          className="text-body text-forest hover:text-deep text-action"
         >
           {showAnswered ? 'Hide what you have answered' : 'Change something you already answered'}
         </button>

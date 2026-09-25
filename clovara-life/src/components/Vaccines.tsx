@@ -65,11 +65,11 @@ export function Vaccines({
     <section className="card overflow-hidden" aria-labelledby="vaccines-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
         <p className="label">Vaccinations</p>
-        <h2 id="vaccines-heading" className="mt-1 font-display text-[20px] text-ink">
+        <h2 id="vaccines-heading" className="mt-1 font-display text-heading text-ink">
           {vaccineHeadline(pet, state)}
         </h2>
         {/* Before the schedule, not after it. */}
-        <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{VACCINE_DISCLAIMER}</p>
+        <p className="mt-2 text-body-sm leading-relaxed text-ink-2">{VACCINE_DISCLAIMER}</p>
       </div>
 
       <ul className="divide-y divide-line">
@@ -78,22 +78,22 @@ export function Vaccines({
           return (
             <li key={vaccineId} className="px-5 py-4">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <p className="text-[15px] font-medium text-ink">{vaccine.label}</p>
+                <p className="text-lead font-medium text-ink">{vaccine.label}</p>
                 {vaccine.lawDependent && (
-                  <span className="rounded-full bg-cream px-2.5 py-1 text-[11.5px] text-ink-2">
+                  <span className="rounded-full bg-cream px-2.5 py-1 text-caption text-ink-2">
                     Depends on local law
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{vaccine.protects}</p>
+              <p className="mt-1 text-body-sm leading-relaxed text-ink-2">{vaccine.protects}</p>
 
               <ul className="mt-3 space-y-2">
                 {doses.map((d) => (
                   <li key={d.dose.id}>
                     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-                      <span className="text-[14px] text-ink">
+                      <span className="text-body-lg text-ink">
                         {d.dose.label}
-                        <span className="ml-2 text-[12.5px] text-ink-2">
+                        <span className="ml-2 text-body-sm text-ink-2">
                           {d.givenOn
                             ? longDate(d.givenOn)
                             : `usually ${longDate(d.windowOpens)} – ${longDate(d.windowCloses)}`}
@@ -101,14 +101,14 @@ export function Vaccines({
                       </span>
                       <span className="flex items-center gap-2">
                         <span
-                          className={`rounded-full px-2.5 py-1 text-[11.5px] ${STATUS_STYLE[d.status]}`}
+                          className={`rounded-full px-2.5 py-1 text-caption ${STATUS_STYLE[d.status]}`}
                         >
                           {STATUS_WORD[d.status]}
                         </span>
                         {onUpdate && (
                           <button
                             type="button"
-                            className="text-[12.5px] text-forest text-action"
+                            className="text-body-sm text-forest text-action"
                             onClick={() => {
                               setEditing(editing === d.dose.id ? null : d.dose.id)
                               setDate(d.givenOn ?? '')
@@ -135,7 +135,7 @@ export function Vaccines({
                         />
                         <button
                           type="button"
-                          className="pill-primary px-4 py-2 text-[13.5px]"
+                          className="pill-primary px-4 py-2 text-body"
                           onClick={() => record(d.dose.id, date)}
                           disabled={!date}
                         >
@@ -144,7 +144,7 @@ export function Vaccines({
                         {d.givenOn && (
                           <button
                             type="button"
-                            className="pill-ghost px-4 py-2 text-[13.5px]"
+                            className="pill-ghost px-4 py-2 text-body"
                             onClick={() => clear(d.dose.id)}
                           >
                             Remove
@@ -164,12 +164,12 @@ export function Vaccines({
         <p className="label">Worth asking your vet about</p>
         <ul className="mt-2 space-y-1.5">
           {NON_CORE_TO_ASK[pet.species].map((q) => (
-            <li key={q} className="text-[13.5px] leading-relaxed text-ink">
+            <li key={q} className="text-body leading-relaxed text-ink">
               {q}
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">{VACCINE_RECORD_NOTE}</p>
+        <p className="mt-3 text-body-sm leading-relaxed text-ink-2">{VACCINE_RECORD_NOTE}</p>
       </div>
     </section>
   )

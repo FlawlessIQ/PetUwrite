@@ -49,22 +49,22 @@ export function FamilyCircle({ memberCount }: { memberCount: number }) {
   return (
     <div className="rounded-soft border border-line bg-cream/60 p-4">
       <p className="label mb-1.5">Family circle</p>
-      <p className="text-[14.5px] leading-relaxed text-ink/85">
+      <p className="text-body-lg leading-relaxed text-ink/85">
         {memberCount <= 1
           ? "It's just you so far. Anyone you add sees the same pets and can answer the same questions."
           : `${memberCount} people share these pets.`}
       </p>
 
       {joined && (
-        <p className="mt-3 rounded-soft border border-forest/25 bg-sage/40 px-3 py-2 text-[14px] text-deep">
+        <p className="mt-3 rounded-soft border border-forest/25 bg-sage/40 px-3 py-2 text-body-lg text-deep">
           You're in. Reload to see their pets.
         </p>
       )}
 
       {code && (
         <div className="mt-3 rounded-soft border border-forest/25 bg-sage/30 px-3 py-3">
-          <p className="text-[13px] text-ink-2">Give them this code:</p>
-          <p className="mt-1 select-all font-display text-[26px] tracking-[0.06em] text-deep">
+          <p className="text-body-sm text-ink-2">Give them this code:</p>
+          <p className="mt-1 select-all font-display text-display-sm tracking-[0.06em] text-deep">
             {code}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -76,11 +76,11 @@ export function FamilyCircle({ memberCount }: { memberCount: number }) {
                   () => setCopied(false),
                 )
               }}
-              className="text-[13.5px] text-forest hover:text-deep text-action"
+              className="text-body text-forest hover:text-deep text-action"
             >
               {copied ? 'Copied' : 'Copy'}
             </button>
-            <span className="text-[12.5px] text-ink-2">
+            <span className="text-body-sm text-ink-2">
               Works once, for {expires} days. Then it stops working.
             </span>
           </div>
@@ -88,7 +88,7 @@ export function FamilyCircle({ memberCount }: { memberCount: number }) {
       )}
 
       {error && (
-        <p role="alert" className="mt-3 text-[13.5px] leading-relaxed text-[#8A5510]">
+        <p role="alert" className="mt-3 text-body leading-relaxed text-[#8A5510]">
           {error}
         </p>
       )}
@@ -99,7 +99,7 @@ export function FamilyCircle({ memberCount }: { memberCount: number }) {
             type="button"
             onClick={invite}
             disabled={busy}
-            className="text-[14px] text-forest transition hover:text-deep disabled:opacity-40 text-action"
+            className="text-body-lg text-forest transition hover:text-deep disabled:opacity-40 text-action"
           >
             {busy ? 'One moment…' : code ? 'Make another code' : 'Invite someone'}
           </button>
@@ -109,7 +109,7 @@ export function FamilyCircle({ memberCount }: { memberCount: number }) {
               setJoining(true)
               setError(null)
             }}
-            className="text-[14px] text-ink-2 transition hover:text-ink text-action"
+            className="text-body-lg text-ink-2 transition hover:text-ink text-action"
           >
             I have a code
           </button>

@@ -23,34 +23,34 @@ export function FirstNight({ pet, now = new Date() }: { pet: PetProfile; now?: D
     <section className="card overflow-hidden" aria-labelledby="first-night-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
         <p className="label">First nights</p>
-        <h2 id="first-night-heading" className="mt-1 font-display text-[20px] text-ink">
+        <h2 id="first-night-heading" className="mt-1 font-display text-heading text-ink">
           {current.title}
         </h2>
-        <p className="mt-1 text-[13.5px] text-ink-2">
+        <p className="mt-1 text-body text-ink-2">
           {pet.name} has been home about {Math.max(1, Math.round(hoursHome))} hour
           {Math.round(hoursHome) === 1 ? '' : 's'}.
         </p>
       </div>
 
       <div className="px-5 py-5">
-        <p className="text-[15px] leading-relaxed text-ink">{current.body}</p>
+        <p className="text-lead leading-relaxed text-ink">{current.body}</p>
 
         <ul className="mt-4 space-y-2.5">
           {current.doNow.map((item) => (
-            <li key={item} className="flex gap-3 text-[14.5px] leading-relaxed text-ink">
+            <li key={item} className="flex gap-3 text-body-lg leading-relaxed text-ink">
               <span aria-hidden="true" className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-forest" />
               <span>{item}</span>
             </li>
           ))}
         </ul>
 
-        <p className="mt-4 rounded-soft bg-sage/60 px-4 py-3 text-[14px] leading-relaxed text-deep">
+        <p className="mt-4 rounded-soft bg-sage/60 px-4 py-3 text-body-lg leading-relaxed text-deep">
           <span className="font-medium">Normal right now: </span>
           {current.normal}
         </p>
 
         {/* Never behind a tap. */}
-        <p className="mt-3 rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-[14px] leading-relaxed text-[#8A5510]">
+        <p className="mt-3 rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-body-lg leading-relaxed text-[#8A5510]">
           {FIRST_NIGHT_ESCALATION}
         </p>
 
@@ -68,18 +68,18 @@ export function FirstNight({ pet, now = new Date() }: { pet: PetProfile; now?: D
                       onClick={() => setOpenId(open ? null : b.id)}
                       className="flex w-full items-center justify-between gap-4 py-3 text-left"
                     >
-                      <span className="text-[14.5px] text-ink">{b.title}</span>
+                      <span className="text-body-lg text-ink">{b.title}</span>
                       <span
                         aria-hidden="true"
-                        className={`shrink-0 text-[18px] leading-none text-ink-2 transition-transform ${open ? 'rotate-45' : ''}`}
+                        className={`shrink-0 text-heading-sm leading-none text-ink-2 transition-transform ${open ? 'rotate-45' : ''}`}
                       >
                         +
                       </span>
                     </button>
                     {open && (
                       <div className="pb-4">
-                        <p className="text-[14px] leading-relaxed text-ink-2">{b.body}</p>
-                        <p className="mt-2 text-[13.5px] leading-relaxed text-deep">
+                        <p className="text-body-lg leading-relaxed text-ink-2">{b.body}</p>
+                        <p className="mt-2 text-body leading-relaxed text-deep">
                           <span className="font-medium">Normal: </span>
                           {b.normal}
                         </p>
@@ -92,7 +92,7 @@ export function FirstNight({ pet, now = new Date() }: { pet: PetProfile; now?: D
           </div>
         )}
 
-        <p className="mt-5 text-[12.5px] leading-relaxed text-ink-2">{FIRST_NIGHT_FOOTER}</p>
+        <p className="mt-5 text-body-sm leading-relaxed text-ink-2">{FIRST_NIGHT_FOOTER}</p>
       </div>
     </section>
   )

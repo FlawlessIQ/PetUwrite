@@ -26,20 +26,20 @@ export function ContextualAsk<T extends string>({
       className="card mb-5 overflow-hidden border-forest/25 bg-sage/30 px-5 py-4 sm:px-6"
     >
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-        <h2 id={`ask-${ask.field}`} className="font-display text-[19px] leading-tight text-ink">
+        <h2 id={`ask-${ask.field}`} className="font-display text-heading-sm leading-tight text-ink">
           {ask.question}
         </h2>
         {onDismiss && (
           <button
             type="button"
             onClick={onDismiss}
-            className="text-[13.5px] text-ink-2 transition hover:text-ink text-action"
+            className="text-body text-ink-2 transition hover:text-ink text-action"
           >
             Not now
           </button>
         )}
       </div>
-      <p className="mt-1 text-[14px] leading-snug text-ink-2">{ask.benefit}</p>
+      <p className="mt-1 text-body-lg leading-snug text-ink-2">{ask.benefit}</p>
       <div role="radiogroup" aria-label={ask.question} className="mt-3.5 grid gap-2 sm:grid-cols-3">
         {options.map((o) => {
           const on = value === o.value
@@ -56,9 +56,9 @@ export function ContextualAsk<T extends string>({
                   : 'border-line bg-cream text-ink hover:border-forest/50'
               }`}
             >
-              <span className="block text-[14.5px] font-medium leading-tight">{o.label}</span>
+              <span className="block text-body-lg font-medium leading-tight">{o.label}</span>
               {o.hint && (
-                <span className={`mt-0.5 block text-[12px] ${on ? 'text-deep/80' : 'text-ink-2'}`}>
+                <span className={`mt-0.5 block text-body-sm ${on ? 'text-deep/80' : 'text-ink-2'}`}>
                   {o.hint}
                 </span>
               )}

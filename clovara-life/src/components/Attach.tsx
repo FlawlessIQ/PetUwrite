@@ -94,7 +94,7 @@ export function Attach({
     <div className="mx-auto w-full max-w-[720px] px-5 pb-24 pt-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="label">Protect {pet.name} · step {step} of 2</p>
-        <button type="button" onClick={onClose} className="pill-ghost px-4 py-2 text-[13.5px]">
+        <button type="button" onClick={onClose} className="pill-ghost px-4 py-2 text-body">
           Not now
         </button>
       </div>
@@ -103,12 +103,12 @@ export function Attach({
         <>
           <section className="card overflow-hidden">
             <div className="bg-deep px-5 py-6 text-white sm:px-6">
-              <p className="text-[13.5px] text-white/75">{quote.tier.name}</p>
-              <p className="mt-1 font-display text-[40px] leading-none">
+              <p className="text-body text-white/75">{quote.tier.name}</p>
+              <p className="mt-1 font-display text-display-xl leading-none">
                 {money(quote.totalMonthly)}
-                <span className="ml-2 text-[16px] font-normal text-white/70">a month</span>
+                <span className="ml-2 text-title font-normal text-white/70">a month</span>
               </p>
-              <p className="mt-2 text-[13.5px] leading-relaxed text-white/80">
+              <p className="mt-2 text-body leading-relaxed text-white/80">
                 {money(quote.monthlyPremium)} insurance
                 {quote.riderPrice > 0 && <> · {money(quote.riderPrice)} wellness rider</>}. Two
                 separate lines, always.
@@ -117,13 +117,13 @@ export function Attach({
 
             {/* Invariant 2, driven by the adapter rather than hardcoded. */}
             {quote.illustrative && (
-              <p className="border-b border-accent/30 bg-accent/12 px-5 py-3 text-[13px] leading-relaxed text-[#8A5510] sm:px-6">
+              <p className="border-b border-accent/30 bg-accent/12 px-5 py-3 text-body-sm leading-relaxed text-[#8A5510] sm:px-6">
                 {ILLUSTRATIVE_LABEL}
               </p>
             )}
 
             <div className="px-5 py-5 sm:px-6">
-              <p className="text-[15px] leading-relaxed text-ink">
+              <p className="text-lead leading-relaxed text-ink">
                 Worked out from {pet.name}&rsquo;s plan — their breed, their age and what you have
                 told us. You did not have to fill in a form, and we did not ask you anything we
                 already knew.
@@ -133,7 +133,7 @@ export function Attach({
                 type="button"
                 onClick={() => setAdjusting((a) => !a)}
                 aria-expanded={adjusting}
-                className="mt-4 text-[14px] text-forest text-action"
+                className="mt-4 text-body-lg text-forest text-action"
               >
                 {adjusting ? 'Hide options' : 'Adjust'}
               </button>
@@ -151,14 +151,14 @@ export function Attach({
                           opts.tierId === t.id ? 'border-forest bg-sage' : 'border-line bg-cream'
                         }`}
                       >
-                        <span className="block text-[14.5px] font-medium text-ink">{t.name}</span>
-                        <span className="mt-0.5 block text-[12.5px] text-ink-2">
+                        <span className="block text-body-lg font-medium text-ink">{t.name}</span>
+                        <span className="mt-0.5 block text-body-sm text-ink-2">
                           {t.reimbursement}% back · ${t.deductible} deductible · {t.annualLimit}
                         </span>
                       </button>
                     ))}
                   </div>
-                  <label className="flex items-start gap-3 text-[14.5px] text-ink">
+                  <label className="flex items-start gap-3 text-body-lg text-ink">
                     <input
                       type="checkbox"
                       checked={opts.rider}
@@ -167,7 +167,7 @@ export function Attach({
                     />
                     <span>
                       Add the wellness rider
-                      <span className="block text-[12.5px] text-ink-2">
+                      <span className="block text-body-sm text-ink-2">
                         Routine care — not insurance, and billed as its own line.
                       </span>
                     </span>
@@ -176,17 +176,17 @@ export function Attach({
               )}
 
               <details className="mt-5">
-                <summary className="cursor-pointer text-[14px] text-forest">
+                <summary className="cursor-pointer text-body-lg text-forest">
                   Why this price
                 </summary>
                 <ul className="mt-3 divide-y divide-line border-t border-line">
                   {quote.breakdown.map((b) => (
                     <li key={b.label} className="py-2.5">
                       <div className="flex items-baseline justify-between gap-4">
-                        <span className="text-[14px] text-ink">{b.label}</span>
-                        <span className="text-[14px] font-medium text-deep">{b.value}</span>
+                        <span className="text-body-lg text-ink">{b.label}</span>
+                        <span className="text-body-lg font-medium text-deep">{b.value}</span>
                       </div>
-                      <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-2">{b.note}</p>
+                      <p className="mt-0.5 text-body-sm leading-relaxed text-ink-2">{b.note}</p>
                     </li>
                   ))}
                 </ul>
@@ -202,8 +202,8 @@ export function Attach({
         <>
           <section className="card overflow-hidden">
             <div className="border-b border-line bg-cream/50 px-5 py-4">
-              <h2 className="font-display text-[21px] text-ink">What you would actually be buying</h2>
-              <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
+              <h2 className="font-display text-heading text-ink">What you would actually be buying</h2>
+              <p className="mt-1 text-body leading-relaxed text-ink-2">
                 The uncomfortable page, on purpose. Everything here is a reason a claim gets turned
                 down, and it is better to read it now than to find out later.
               </p>
@@ -211,19 +211,19 @@ export function Attach({
 
             <div className="px-5 py-5">
               <p className="label">Cover would start</p>
-              <p className="mt-1 text-[15px] text-ink">{longDate(effective)}</p>
+              <p className="mt-1 text-lead text-ink">{longDate(effective)}</p>
 
               <p className="label mt-5">But not all at once</p>
               <ul className="mt-2 divide-y divide-line border-t border-line">
                 {waiting.map((w) => (
                   <li key={w.id} className="py-3">
                     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                      <span className="text-[14.5px] text-ink">{w.label}</span>
-                      <span className="text-[14px] font-medium text-deep">
+                      <span className="text-body-lg text-ink">{w.label}</span>
+                      <span className="text-body-lg font-medium text-deep">
                         from {longDate(w.coveredFrom)}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-2">{w.because}</p>
+                    <p className="mt-0.5 text-body-sm leading-relaxed text-ink-2">{w.because}</p>
                   </li>
                 ))}
               </ul>
@@ -234,22 +234,22 @@ export function Attach({
                   {preExisting.map((p) => (
                     <li
                       key={p.conditionId}
-                      className="rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-[14px] leading-relaxed text-[#8A5510]"
+                      className="rounded-soft border border-accent/30 bg-accent/10 px-4 py-3 text-body-lg leading-relaxed text-[#8A5510]"
                     >
                       {p.meaning}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-2 text-[14px] leading-relaxed text-ink">{noPreExistingLine(pet)}</p>
+                <p className="mt-2 text-body-lg leading-relaxed text-ink">{noPreExistingLine(pet)}</p>
               )}
             </div>
           </section>
 
           <section className="card mt-5 overflow-hidden">
             <div className="border-b border-line bg-cream/50 px-5 py-4">
-              <h2 className="font-display text-[19px] text-ink">The small print, in full</h2>
-              <p className="mt-1 text-[13px] text-ink-2">
+              <h2 className="font-display text-heading-sm text-ink">The small print, in full</h2>
+              <p className="mt-1 text-body-sm text-ink-2">
                 Read to the bottom — the button below stays off until you have.
               </p>
             </div>
@@ -260,17 +260,17 @@ export function Attach({
             >
               {DISCLOSURES.map((d) => (
                 <div key={d.id} className="mb-4">
-                  <p className="text-[14.5px] font-medium text-ink">{d.heading}</p>
-                  <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{d.body}</p>
+                  <p className="text-body-lg font-medium text-ink">{d.heading}</p>
+                  <p className="mt-1 text-body leading-relaxed text-ink-2">{d.body}</p>
                 </div>
               ))}
-              <p className="mt-4 border-t border-line pt-4 text-[12.5px] leading-relaxed text-ink-2">
+              <p className="mt-4 border-t border-line pt-4 text-body-sm leading-relaxed text-ink-2">
                 {FRAUD_NOTICE}
               </p>
             </div>
           </section>
 
-          <label className="mt-5 flex items-start gap-3 text-[14px] leading-relaxed text-ink">
+          <label className="mt-5 flex items-start gap-3 text-body-lg leading-relaxed text-ink">
             <input
               type="checkbox"
               checked={attested}
@@ -291,14 +291,14 @@ export function Attach({
           </button>
 
           {bindNote && (
-            <p className="mt-3 rounded-soft border border-line bg-cream/60 px-4 py-3 text-[13.5px] leading-relaxed text-ink">
+            <p className="mt-3 rounded-soft border border-line bg-cream/60 px-4 py-3 text-body leading-relaxed text-ink">
               {bindNote}
             </p>
           )}
 
           <button
             type="button"
-            className="mt-4 w-full text-[13.5px] text-forest text-action"
+            className="mt-4 w-full text-body text-forest text-action"
             onClick={() => setStep(1)}
           >
             Back to the price

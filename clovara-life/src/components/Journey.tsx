@@ -110,12 +110,12 @@ export function Journey({
         </p>
         <div className="mt-1.5 flex items-center gap-3.5">
           <PetAvatar pet={pet} size={56} />
-          <h1 className="font-display text-[38px] leading-[1.08] text-ink sm:text-[46px]">
+          <h1 className="font-display text-display-xl leading-[1.08] text-ink sm:text-display-2xl">
             {pet.name}
           </h1>
         </div>
         {pet.headline && (
-          <p className="mt-2 max-w-[62ch] text-[15.5px] leading-relaxed text-ink-2">{pet.headline}</p>
+          <p className="mt-2 max-w-[62ch] text-lead leading-relaxed text-ink-2">{pet.headline}</p>
         )}
       </header>
 
@@ -125,16 +125,16 @@ export function Journey({
             <h2 id="projection-heading" className="label">
               Healthy years projection
             </h2>
-            <p className="mt-2.5 font-display text-[17px] leading-snug text-ink-2">
+            <p className="mt-2.5 font-display text-title leading-snug text-ink-2">
               {pet.name} is on track for
             </p>
-            <p className="mt-1 font-display text-[54px] font-semibold leading-none tracking-[-0.02em] sm:text-[62px]">
+            <p className="mt-1 font-display text-hero font-semibold leading-none tracking-[-0.02em] sm:text-hero-xl">
               <span className="gradient-text">
                 {lowShown.toFixed(1)}–{highShown.toFixed(1)}
               </span>
             </p>
-            <p className="mt-1.5 font-display text-[21px] leading-none text-ink">healthy years</p>
-            <p className="mt-4 max-w-[42ch] text-[14px] leading-relaxed text-ink-2">
+            <p className="mt-1.5 font-display text-heading leading-none text-ink">healthy years</p>
+            <p className="mt-4 max-w-[42ch] text-body-lg leading-relaxed text-ink-2">
               {beyond
                 ? `${pet.name} is already past the typical range for the breed. We've shifted the projection to reflect that rather than pretend it hasn't happened.`
                 : 'A range, not a number. We widen it when we know less, and it moves when the things below move.'}
@@ -143,7 +143,7 @@ export function Journey({
 
           <div className="flex flex-col justify-center border-t border-line pt-6 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0">
             <LifeArc projection={projection} />
-            <p className="mt-1 text-center text-[13.5px] text-ink-2">
+            <p className="mt-1 text-center text-body text-ink-2">
               Currently a <span className="font-medium text-deep">{projection.currentStage.label.toLowerCase()}</span>
               {' · '}
               {projection.weightRead}
@@ -188,8 +188,8 @@ export function Journey({
             className="flex items-center justify-between gap-3 rounded-card border border-line bg-white px-5 py-4 transition hover:border-forest/50"
           >
             <span className="min-w-0">
-              <span className="block text-[15px] font-medium text-ink">{pet.name}&rsquo;s health file</span>
-              <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">
+              <span className="block text-lead font-medium text-ink">{pet.name}&rsquo;s health file</span>
+              <span className="mt-0.5 block text-body-sm leading-relaxed text-ink-2">
                 {fileSummary(pet)}
               </span>
             </span>
@@ -203,10 +203,10 @@ export function Journey({
             className="flex items-center justify-between gap-3 rounded-card border border-forest/25 bg-sage/40 px-5 py-4 transition hover:border-forest/50"
           >
             <span className="min-w-0">
-              <span className="block font-display text-[17px] leading-snug text-deep">
+              <span className="block font-display text-title leading-snug text-deep">
                 Protect {pet.name} from today
               </span>
-              <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">
+              <span className="mt-0.5 block text-body-sm leading-relaxed text-ink-2">
                 A price worked out from this plan — no form, and nothing you have already told us.
               </span>
             </span>
@@ -239,7 +239,7 @@ export function Journey({
               href={`#/health/${encodeURIComponent(pet.id)}`}
               className="flex items-center justify-between gap-3 rounded-card border border-line bg-white px-5 py-4"
             >
-              <span className="text-[15px] text-ink">{pet.name}&rsquo;s record</span>
+              <span className="text-lead text-ink">{pet.name}&rsquo;s record</span>
               <Icon name="arrow-right" size={18} className="text-ink-2" />
             </a>
           )}

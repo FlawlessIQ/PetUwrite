@@ -36,7 +36,7 @@ export function Briefing({
     <section className="card overflow-hidden" aria-labelledby="briefing-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
         <p className="label">{today}</p>
-        <h2 id="briefing-heading" className="mt-1 font-display text-[20px] text-ink">
+        <h2 id="briefing-heading" className="mt-1 font-display text-heading text-ink">
           {briefing.items.some((i) => i.actionable)
             ? `${pet.name} today`
             : `${pet.name} is all set`}
@@ -45,7 +45,7 @@ export function Briefing({
 
       <div className="px-5 py-5">
         {briefing.nothingToSay ? (
-          <p className="text-[15px] leading-relaxed text-ink">{briefing.nothingToSay}</p>
+          <p className="text-lead leading-relaxed text-ink">{briefing.nothingToSay}</p>
         ) : (
           <ul className="space-y-3">
             {briefing.items.map((item) => (
@@ -56,14 +56,14 @@ export function Briefing({
                     item.actionable ? 'bg-forest' : 'bg-line'
                   }`}
                 />
-                <span className="text-[15px] leading-relaxed text-ink">{item.text}</span>
+                <span className="text-lead leading-relaxed text-ink">{item.text}</span>
               </li>
             ))}
           </ul>
         )}
 
         {!NULL_ENVIRONMENT.available && (
-          <p className="mt-4 text-[12px] leading-relaxed text-ink-2">
+          <p className="mt-4 text-body-sm leading-relaxed text-ink-2">
             No weather or pollen here yet — there is no provider connected, and we would rather say
             one fewer thing than guess at it.
           </p>

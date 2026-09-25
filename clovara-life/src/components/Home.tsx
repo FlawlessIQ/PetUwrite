@@ -57,10 +57,10 @@ function ScoreRing({ value }: { value: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-display text-[34px] font-bold leading-none tabular-nums text-ink">{value}</span>
-        <span className="mt-0.5 text-[10px] leading-none tabular-nums text-ink-2">/ 100</span>
+        <span className="font-display text-display-lg font-bold leading-none tabular-nums text-ink">{value}</span>
+        <span className="mt-0.5 text-caption-sm leading-none tabular-nums text-ink-2">/ 100</span>
         <span
-          className="mt-1.5 text-center text-[8px] font-semibold uppercase leading-[1.35] tracking-[0.1em] text-ink-2"
+          className="mt-1.5 text-center text-micro font-semibold uppercase leading-[1.35] tracking-[0.1em] text-ink-2"
           style={{ maxWidth: inner - 10 }}
         >
           Clovara
@@ -122,8 +122,8 @@ export function Home({
   return (
     <div className="mx-auto w-full max-w-shell px-5 pb-24 pt-8 sm:pt-10">
       <header className="mb-6">
-        <p className="text-[15px] text-ink-2">{greeting()}, Conor</p>
-        <h1 className="mt-0.5 font-display text-[34px] leading-[1.1] text-ink sm:text-[40px]">
+        <p className="text-lead text-ink-2">{greeting()}, Conor</p>
+        <h1 className="mt-0.5 font-display text-display-lg leading-[1.1] text-ink sm:text-display-xl">
           {pet.name}'s day
         </h1>
       </header>
@@ -136,10 +136,10 @@ export function Home({
         >
           <div className="px-5 py-4 sm:px-6">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <h2 id="accuracy-heading" className="font-display text-[19px] leading-tight text-ink">
+              <h2 id="accuracy-heading" className="font-display text-heading-sm leading-tight text-ink">
                 {accuracyLine(pet.name, accuracy)}
               </h2>
-              <span className="font-display text-[22px] font-semibold text-deep">
+              <span className="font-display text-heading-lg font-semibold text-deep">
                 {accuracy.score}%
               </span>
             </div>
@@ -159,12 +159,12 @@ export function Home({
             </div>
 
             {accuracy.nextBest && (
-              <p className="mt-3 text-[14px] leading-relaxed text-ink/80">
+              <p className="mt-3 text-body-lg leading-relaxed text-ink/80">
                 {accuracy.nextBest.benefit}
               </p>
             )}
             {accuracy.ceiling && (
-              <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
+              <p className="mt-2 text-body-sm leading-relaxed text-ink-2">
                 {accuracy.ceiling.reason}
               </p>
             )}
@@ -203,13 +203,13 @@ export function Home({
                     'No policy yet'
                   )}
                 </span>
-                <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink/80">
+                <p className="mt-2.5 text-body-lg leading-relaxed text-ink/80">
                   {h.score.headline}
                 </p>
                 <button
                   type="button"
                   onClick={() => onNavigate('life')}
-                  className="mt-2 text-[13.5px] text-forest hover:text-deep text-action"
+                  className="mt-2 text-body text-forest hover:text-deep text-action"
                 >
                   {remembered
                     ? `${pet.name}'s record`
@@ -221,18 +221,18 @@ export function Home({
             {!remembered && (
             <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
               <div className="rounded-soft bg-cream px-4 py-3">
-                <p className="font-display text-[19px] font-semibold leading-none text-ink">
+                <p className="font-display text-heading-sm font-semibold leading-none text-ink">
                   {remembered ? '—' : h.steps.toLocaleString()}
                 </p>
-                <p className="mt-1 text-[12px] text-ink-2">
+                <p className="mt-1 text-body-sm text-ink-2">
                   {isCat ? 'Active minutes' : 'Steps'} today · CloTag
                 </p>
               </div>
               <div className="rounded-soft bg-cream px-4 py-3">
-                <p className="font-display text-[19px] font-semibold leading-none text-ink">
+                <p className="font-display text-heading-sm font-semibold leading-none text-ink">
                   {rewards.streaks[0].value}
                 </p>
-                <p className="mt-1 text-[12px] text-ink-2">Dental streak · {rewards.streaks[0].note}</p>
+                <p className="mt-1 text-body-sm text-ink-2">Dental streak · {rewards.streaks[0].note}</p>
               </div>
             </div>
             )}
@@ -242,7 +242,7 @@ export function Home({
                 type="button"
                 onClick={() => setScoreOpen((o) => !o)}
                 aria-expanded={scoreOpen}
-                className="text-[13.5px] text-forest hover:text-deep text-action"
+                className="text-body text-forest hover:text-deep text-action"
               >
                 {scoreOpen ? 'Hide the breakdown' : 'What makes up the score'}
               </button>
@@ -252,8 +252,8 @@ export function Home({
                 {h.score.bands.map((b) => (
                   <li key={b.id}>
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-[14px] text-ink">{b.label}</span>
-                      <span className="shrink-0 text-[13px] font-medium text-ink-2">
+                      <span className="text-body-lg text-ink">{b.label}</span>
+                      <span className="shrink-0 text-body-sm font-medium text-ink-2">
                         {b.earned}/{b.max}
                       </span>
                     </div>
@@ -263,11 +263,11 @@ export function Home({
                         style={{ width: `${(b.earned / b.max) * 100}%` }}
                       />
                     </div>
-                    <p className="mt-1 text-[12.5px] leading-snug text-ink-2">{b.detail}</p>
+                    <p className="mt-1 text-body-sm leading-snug text-ink-2">{b.detail}</p>
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">
+              <p className="mt-3 text-body-sm leading-relaxed text-ink-2">
                 The score is a product construct, not a clinical measure. It restates the same
                 modifiable inputs that drive the healthy-years projection, weighted to match how
                 strong the evidence behind each one is. It has not been validated against outcomes.
@@ -279,18 +279,18 @@ export function Home({
 
           {/* ── Nudge ─────────────────────────────────────────────────── */}
           <section className="card border-l-[3px] border-l-accent bg-nudge-fill px-5 py-5 sm:px-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8A5510]">
+            <p className="text-caption font-semibold uppercase tracking-[0.18em] text-[#8A5510]">
               {h.nudge.eyebrow}
             </p>
-            <h2 className="mt-1.5 text-[15.5px] font-semibold leading-snug text-ink">
+            <h2 className="mt-1.5 text-lead font-semibold leading-snug text-ink">
               {h.nudge.title}
             </h2>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-ink-2">{h.nudge.body}</p>
+            <p className="mt-1.5 text-body-lg leading-relaxed text-ink-2">{h.nudge.body}</p>
             {!remembered && <Sparkline points={h.stepsTrend} down={h.trendDown} />}
             <button
               type="button"
               onClick={() => onNavigate('care')}
-              className="mt-2 text-[13.5px] font-medium text-forest hover:text-deep text-action"
+              className="mt-2 text-body font-medium text-forest hover:text-deep text-action"
             >
               Ask the companion about it
             </button>
@@ -305,21 +305,21 @@ export function Home({
               <div className="mt-3 flex items-start gap-3.5">
                 <span
                   aria-hidden="true"
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-soft bg-sage text-[19px]"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-soft bg-sage text-heading-sm"
                 >
                   💉
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14.5px] font-medium leading-snug text-ink">
+                  <p className="text-body-lg font-medium leading-snug text-ink">
                     {h.comingUp.title}
                   </p>
-                  <p className="mt-0.5 text-[13px] leading-relaxed text-ink-2">
+                  <p className="mt-0.5 text-body-sm leading-relaxed text-ink-2">
                     {h.comingUp.detail}
                   </p>
                   <button
                     type="button"
                     onClick={() => onNavigate('coverage')}
-                    className="mt-1.5 text-[12.5px] font-medium text-forest hover:text-deep text-action"
+                    className="mt-1.5 text-body-sm font-medium text-forest hover:text-deep text-action"
                   >
                     Covered by the wellness rider
                   </button>
@@ -333,15 +333,15 @@ export function Home({
             {/* "This week" is present tense. For a pet who has died the same
                 card is a record of the stage they reached. */}
             <p className="label">{remembered ? 'The stage they reached' : 'This week'}</p>
-            <h2 className="mt-2 font-display text-[20px] leading-tight text-ink">
+            <h2 className="mt-2 font-display text-heading leading-tight text-ink">
               {projection.currentStage.label} stage
             </h2>
-            <p className="mt-1 text-[14px] leading-relaxed text-ink-2">
+            <p className="mt-1 text-body-lg leading-relaxed text-ink-2">
               {projection.currentStage.summary}
             </p>
             <ul className="mt-3 space-y-2">
               {projection.currentStage.recommendations.slice(0, 3).map((rec, i) => (
-                <li key={i} className="flex gap-2.5 text-[13.5px] leading-relaxed text-ink/80">
+                <li key={i} className="flex gap-2.5 text-body leading-relaxed text-ink/80">
                   <span aria-hidden="true" className="mt-[7px] h-[5px] w-[5px] shrink-0 rounded-full bg-forest" />
                   <span>{rec}</span>
                 </li>
@@ -350,7 +350,7 @@ export function Home({
             <button
               type="button"
               onClick={() => onNavigate('life')}
-              className="mt-3 text-[13.5px] font-medium text-forest hover:text-deep text-action"
+              className="mt-3 text-body font-medium text-forest hover:text-deep text-action"
             >
               See the full life plan
             </button>
@@ -360,10 +360,10 @@ export function Home({
           {!remembered && (
           <section className="card flex items-center gap-4 px-5 py-4 sm:px-6">
             <div className="min-w-0 flex-1">
-              <p className="font-display text-[22px] font-semibold leading-none text-ink">
+              <p className="font-display text-heading-lg font-semibold leading-none text-ink">
                 {rewards.points.toLocaleString()}
               </p>
-              <p className="mt-1 text-[13px] text-ink-2">
+              <p className="mt-1 text-body-sm text-ink-2">
                 Clovara points · +{rewards.weekPoints} this week
               </p>
             </div>
@@ -388,10 +388,10 @@ export function Home({
         className="mt-6 flex items-center justify-between gap-3 rounded-soft border border-line bg-white px-4 py-3.5 transition hover:border-forest/50"
       >
         <span className="min-w-0">
-          <span className="block text-[14.5px] font-medium text-ink">
+          <span className="block text-body-lg font-medium text-ink">
             Something is wrong with {pet.name}
           </span>
-          <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">
+          <span className="mt-0.5 block text-body-sm leading-relaxed text-ink-2">
             Describe it, and we will tell you if it is a ring-now.
           </span>
         </span>
@@ -405,10 +405,10 @@ export function Home({
         className="mt-3 flex items-center justify-between gap-3 rounded-soft border border-line bg-white px-4 py-3.5 transition hover:border-forest/50"
       >
         <span className="min-w-0">
-          <span className="block text-[14.5px] font-medium text-ink">
+          <span className="block text-body-lg font-medium text-ink">
             {pet.name} ate something they shouldn&rsquo;t have
           </span>
-          <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">
+          <span className="mt-0.5 block text-body-sm leading-relaxed text-ink-2">
             How urgent it is, and who to ring.
           </span>
         </span>
@@ -420,7 +420,7 @@ export function Home({
       {/* Straight from the provider (SPEC §6.9). When a partner SDK lands,
           `simulated` goes false and this disclosure disappears on its own. */}
       {fitnessProvider().simulated && !remembered && (
-        <p className="mt-6 text-[13px] leading-relaxed text-ink-2">{SIMULATED_DISCLOSURE}</p>
+        <p className="mt-6 text-body-sm leading-relaxed text-ink-2">{SIMULATED_DISCLOSURE}</p>
       )}
     </div>
   )

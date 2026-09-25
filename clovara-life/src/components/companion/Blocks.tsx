@@ -49,7 +49,7 @@ function ClockIcon() {
 }
 function HistoryRef({ block }: { block: Of<'history_ref'> }) {
   return (
-    <div className="flex gap-2 rounded-[10px] bg-sage px-3 py-2.5 text-[13px] leading-relaxed text-deep">
+    <div className="flex gap-2 rounded-[10px] bg-sage px-3 py-2.5 text-body-sm leading-relaxed text-deep">
       <ClockIcon />
       <p>
         <strong className="font-semibold">{block.lead}:</strong> {block.note}
@@ -130,13 +130,13 @@ function ProductRef({ block }: { block: Of<'product_ref'> }) {
   return (
     <div className="flex gap-3 rounded-soft border border-line bg-cream px-3 py-3">
       {/* §5: emoji only as a content-image placeholder until real imagery lands. */}
-      <span aria-hidden="true" className="grid h-12 w-12 shrink-0 place-items-center rounded-inner bg-card text-[22px]">
+      <span aria-hidden="true" className="grid h-12 w-12 shrink-0 place-items-center rounded-inner bg-card text-heading-lg">
         {p.emoji}
       </span>
       <div className="min-w-0">
-        <p className="text-[14px] font-semibold leading-snug text-ink">{p.name}</p>
-        <p className="mt-0.5 text-[13px] leading-snug text-ink-2">{block.why}</p>
-        <p className="mt-1 text-[13px] font-semibold tabular-nums text-forest">${p.memberPrice} for members</p>
+        <p className="text-body-lg font-semibold leading-snug text-ink">{p.name}</p>
+        <p className="mt-0.5 text-body-sm leading-snug text-ink-2">{block.why}</p>
+        <p className="mt-1 text-body-sm font-semibold tabular-nums text-forest">${p.memberPrice} for members</p>
       </div>
     </div>
   )
@@ -152,7 +152,7 @@ function Escalate({ block }: { block: Of<'escalate'> }) {
       </a>
       <ul className="mt-3 space-y-1.5">
         {POISON_LINES.map((l) => (
-          <li key={l.id} className="text-[13px] leading-snug text-ink-2">
+          <li key={l.id} className="text-body-sm leading-snug text-ink-2">
             <a href={`tel:${l.tel}`} className="text-action font-semibold tabular-nums text-forest">
               {l.display}
             </a>{' '}

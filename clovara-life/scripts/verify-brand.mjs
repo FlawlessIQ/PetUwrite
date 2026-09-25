@@ -91,5 +91,27 @@ ok(
     .map(([k, v]) => `${k} should be ${v}`),
 )
 
+console.log('\n§3 — the type scale (BACKLOG D-UI2)')
+// Before the scale there were 35 distinct hand-set sizes across 604 uses. The
+// scale is only worth having if nothing can step outside it again.
+ok('no arbitrary font sizes — every size is a scale token', grep(styled, /(?:^|[\s"'`{:])text-\[\d+(?:\.\d+)?(?:px|rem|em)\]/))
+const scale = {
+  micro: '8px', 'caption-sm': '9.5px', caption: '11px', 'body-sm': '12.5px', body: '13.5px', 'body-lg': '14px',
+  lead: '15px', title: '16px', 'heading-sm': '18px', heading: '20px', 'heading-lg': '22px', stat: '24px', 'display-sm': '26px',
+  display: '30px', 'display-lg': '34px', 'display-xl': '40px', 'display-2xl': '46px', hero: '54px', 'hero-xl': '62px',
+}
+const fontBlock = tw.slice(tw.indexOf('fontSize:'), tw.indexOf('}', tw.indexOf('fontSize:')))
+ok(
+  'the scale carries exactly its nineteen steps',
+  [
+    ...Object.entries(scale)
+      .filter(([k, v]) => !new RegExp(`['"]?${k}['"]?:\\s*'${v.replace('.', '\\.')}'`).test(fontBlock))
+      .map(([k, v]) => `${k} should be ${v}`),
+    ...((fontBlock.match(/^\s+['"]?[a-z0-9-]+['"]?:\s*'[\d.]+px'/gm) ?? []).length !== 19 ? ['the scale has gained or lost a step'] : []),
+  ],
+)
+// Inputs below 16px make iOS Safari zoom on focus and never zoom back out.
+ok('inputs stay at 16px', /\.field[\s\S]{0,200}text-title/.test(readFileSync(resolve(ROOT, 'src/index.css'), 'utf8')) ? [] : ['.field is no longer text-title (16px)'])
+
 console.log(`\n${failures === 0 ? 'brand verified' : `${failures} failed`}\n`)
 process.exit(failures === 0 ? 0 : 1)

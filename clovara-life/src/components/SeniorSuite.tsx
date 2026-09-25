@@ -29,14 +29,14 @@ export function SeniorSuite({
     <section className="card overflow-hidden" aria-labelledby="senior-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4">
         <p className="label">{state.stageLabel}</p>
-        <h2 id="senior-heading" className="mt-1 font-display text-[20px] text-ink">
+        <h2 id="senior-heading" className="mt-1 font-display text-heading text-ink">
           Making the house easier for {pet.name}
         </h2>
-        <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">{SENIOR_OPENING}</p>
+        <p className="mt-1.5 text-body leading-relaxed text-ink-2">{SENIOR_OPENING}</p>
       </div>
 
       <div className="px-5 py-5">
-        <p className="text-[14.5px] leading-relaxed text-ink">{state.stageSummary}</p>
+        <p className="text-body-lg leading-relaxed text-ink">{state.stageSummary}</p>
 
         {/* ── What to change ─────────────────────────────────────────── */}
         <p className="label mt-5">Around the house</p>
@@ -51,16 +51,16 @@ export function SeniorSuite({
                   onClick={() => setOpen(isOpen ? null : a.id)}
                   className="flex w-full items-center justify-between gap-4 py-3 text-left"
                 >
-                  <span className="text-[14.5px] text-ink">{a.what}</span>
+                  <span className="text-body-lg text-ink">{a.what}</span>
                   <span
                     aria-hidden="true"
-                    className={`shrink-0 text-[18px] leading-none text-ink-2 transition-transform ${isOpen ? 'rotate-45' : ''}`}
+                    className={`shrink-0 text-heading-sm leading-none text-ink-2 transition-transform ${isOpen ? 'rotate-45' : ''}`}
                   >
                     +
                   </span>
                 </button>
                 {isOpen && (
-                  <p className="pb-3.5 text-[13.5px] leading-relaxed text-ink-2">{a.why}</p>
+                  <p className="pb-3.5 text-body leading-relaxed text-ink-2">{a.why}</p>
                 )}
               </li>
             )
@@ -71,13 +71,13 @@ export function SeniorSuite({
         <p className="label mt-6">Worth mentioning at the next visit</p>
         <ul className="mt-2 space-y-2">
           {state.worthMentioning.map((m) => (
-            <li key={m} className="flex gap-3 text-[14px] leading-relaxed text-ink">
+            <li key={m} className="flex gap-3 text-body-lg leading-relaxed text-ink">
               <span aria-hidden="true" className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-line" />
               <span>{m}</span>
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">{MENTION_NOTE}</p>
+        <p className="mt-3 text-body-sm leading-relaxed text-ink-2">{MENTION_NOTE}</p>
 
         {/* ── What the plan already says for this stage ──────────────── */}
         {state.careActions.length > 0 && (
@@ -85,7 +85,7 @@ export function SeniorSuite({
             <p className="label mt-6">What the plan already says</p>
             <ul className="mt-2 space-y-2">
               {state.careActions.map((c) => (
-                <li key={c} className="text-[14px] leading-relaxed text-ink">
+                <li key={c} className="text-body-lg leading-relaxed text-ink">
                   {c}
                 </li>
               ))}
@@ -98,7 +98,7 @@ export function SeniorSuite({
             <p className="label mt-6">Already on the record</p>
             <ul className="mt-2 space-y-1.5">
               {state.openNow.map((c) => (
-                <li key={c.id} className="text-[14px] leading-relaxed text-ink">
+                <li key={c.id} className="text-body-lg leading-relaxed text-ink">
                   {c.name}
                 </li>
               ))}
@@ -106,7 +106,7 @@ export function SeniorSuite({
           </>
         )}
 
-        <p className="mt-6 border-t border-line pt-4 text-[12.5px] leading-relaxed text-ink-2">
+        <p className="mt-6 border-t border-line pt-4 text-body-sm leading-relaxed text-ink-2">
           {NO_SCALE_NOTE}
         </p>
       </div>

@@ -3,6 +3,21 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## The type scale (BACKLOG D-UI2, branch `type-scale`, not deployed)
+
+- **35 hand-set font sizes become 19 named tokens.** Each is a DESIGN.md §3 role —
+  caption, body, title, stat, display — or is named as not being one: three
+  heading steps for the Playfair card headings §3 has no role for, and `lead`
+  for 15px ledes above §3's body maximum. Both are open questions for Conor.
+- **Nothing grew into a layout sized for it.** Sizes snap to the nearest step,
+  ties rounding down: 400 of 604 uses did not move, and every measured page is
+  shorter — the new-puppy Home from 11.9 to 11.7 screens.
+- **The first attempt was wrong, and the suites said so.** Rounding up put the
+  new-puppy Home over its length budget and a poison-line phone number onto a
+  second line on the emergency screen.
+- **It cannot erode.** `verify:brand` rejects any arbitrary `text-[Npx]` and pins
+  the nineteen steps; inputs stay at 16px for iOS.
+
 ## UI pass — convergence to docs/DESIGN.md (deployed 2026-09-25 from branch `ui-pass`)
 
 Convergence, not redesign: the app brought in line with DESIGN.md and

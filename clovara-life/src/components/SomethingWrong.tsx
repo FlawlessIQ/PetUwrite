@@ -43,16 +43,16 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
   return (
     <div className="mx-auto w-full max-w-[720px] px-5 pb-24 pt-6">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="font-display text-[26px] leading-tight text-ink">
+        <h1 className="font-display text-display-sm leading-tight text-ink">
           Something is wrong with {pet.name}
         </h1>
-        <button type="button" onClick={onClose} className="pill-ghost px-4 py-2 text-[13.5px]">
+        <button type="button" onClick={onClose} className="pill-ghost px-4 py-2 text-body">
           Back
         </button>
       </div>
 
       <section className="card p-5">
-        <label htmlFor="wrong" className="text-[15px] leading-relaxed text-ink">
+        <label htmlFor="wrong" className="text-lead leading-relaxed text-ink">
           What are you seeing? Write it how you would say it.
         </label>
         <textarea
@@ -74,7 +74,7 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
         >
           Check it
         </button>
-        <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">
+        <p className="mt-3 text-body-sm leading-relaxed text-ink-2">
           This checks a short list of signs that always need a vet straight away. It is not a
           diagnosis and it cannot examine {pet.name}.
         </p>
@@ -82,16 +82,16 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
 
       {result?.escalate && (
         <section className="card mt-5 border-[#B3261E]/30 bg-[#B3261E]/[0.06] p-5">
-          <h2 className="font-display text-[22px] leading-tight text-[#8C1D18]">
+          <h2 className="font-display text-heading-lg leading-tight text-[#8C1D18]">
             {RED_FLAG_HEADLINE}
           </h2>
-          <p className="mt-2 text-[14.5px] leading-relaxed text-[#8C1D18]">{RED_FLAG_BODY}</p>
+          <p className="mt-2 text-body-lg leading-relaxed text-[#8C1D18]">{RED_FLAG_BODY}</p>
 
           <ul className="mt-4 space-y-2.5">
             {result.matched.map((f) => (
               <li key={f.id} className="rounded-soft border border-line bg-white px-4 py-3">
-                <p className="text-[14.5px] font-medium text-ink">{f.label}</p>
-                <p className="mt-0.5 text-[13px] leading-relaxed text-ink-2">{f.because}</p>
+                <p className="text-body-lg font-medium text-ink">{f.label}</p>
+                <p className="mt-0.5 text-body-sm leading-relaxed text-ink-2">{f.because}</p>
               </li>
             ))}
           </ul>
@@ -104,13 +104,13 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
                   onClick={() => track('poison_line_tapped', { line: l.id, pet_is_demo: !!pet.demo })}
                   className="flex flex-wrap items-baseline justify-between gap-x-3 rounded-soft border border-line bg-white px-4 py-3"
                 >
-                  <span className="text-[14px] font-medium text-ink">{l.name}</span>
-                  <span className="text-[15px] font-medium text-forest">{l.display}</span>
+                  <span className="text-body-lg font-medium text-ink">{l.name}</span>
+                  <span className="text-lead font-medium text-forest">{l.display}</span>
                 </a>
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">
+          <p className="mt-3 text-body-sm leading-relaxed text-ink-2">
             Poison lines can also tell you where your nearest emergency practice is.
           </p>
         </section>
@@ -118,13 +118,13 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
 
       {result && !result.escalate && (
         <section className="card mt-5 p-5">
-          <h2 className="font-display text-[20px] leading-tight text-ink">{NO_FLAG_HEADLINE}</h2>
-          <p className="mt-2 text-[14.5px] leading-relaxed text-ink">{NO_FLAG_BODY}</p>
+          <h2 className="font-display text-heading leading-tight text-ink">{NO_FLAG_HEADLINE}</h2>
+          <p className="mt-2 text-body-lg leading-relaxed text-ink">{NO_FLAG_BODY}</p>
           <button
             type="button"
             onClick={() => setShowList((v) => !v)}
             aria-expanded={showList}
-            className="mt-3 text-action text-[13.5px] text-forest"
+            className="mt-3 text-action text-body text-forest"
           >
             {showList ? 'Hide what we check for' : `See all ${result.consideredCount} things we check for`}
           </button>
@@ -132,8 +132,8 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
             <ul className="mt-3 divide-y divide-line border-t border-line">
               {flagsFor(pet.species).map((f) => (
                 <li key={f.id} className="py-2.5">
-                  <p className="text-[14px] text-ink">{f.label}</p>
-                  <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-2">{f.because}</p>
+                  <p className="text-body-lg text-ink">{f.label}</p>
+                  <p className="mt-0.5 text-body-sm leading-relaxed text-ink-2">{f.because}</p>
                 </li>
               ))}
             </ul>
@@ -141,7 +141,7 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
         </section>
       )}
 
-      <p className="mt-5 text-[12px] leading-relaxed text-ink-2">
+      <p className="mt-5 text-body-sm leading-relaxed text-ink-2">
         {RED_FLAGS_REVIEW_STATUS}: this list is under veterinary review and is written to send you
         to a vet more often than strictly necessary rather than less.
       </p>

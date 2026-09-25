@@ -37,16 +37,16 @@ export function Methodology({ projection }: { projection: Projection }) {
         className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left sm:px-6"
       >
         <span>
-          <span className="block font-display text-[20px] leading-tight text-ink">
+          <span className="block font-display text-heading leading-tight text-ink">
             How we work this out
           </span>
-          <span className="mt-0.5 block text-[13.5px] text-ink-2">
+          <span className="mt-0.5 block text-body text-ink-2">
             The sources, the confidence level, and what moved the number.
           </span>
         </span>
         <span
           aria-hidden="true"
-          className={`shrink-0 text-[20px] leading-none text-ink-2 transition-transform ${open ? 'rotate-45' : ''}`}
+          className={`shrink-0 text-heading leading-none text-ink-2 transition-transform ${open ? 'rotate-45' : ''}`}
         >
           +
         </span>
@@ -56,9 +56,9 @@ export function Methodology({ projection }: { projection: Projection }) {
         <div className="reveal space-y-6 border-t border-line px-5 py-6 sm:px-6">
           <div>
             <h3 className="label mb-2">Confidence in this breed's baseline</h3>
-            <p className="text-[14.5px] leading-relaxed text-ink/85">
+            <p className="text-body-lg leading-relaxed text-ink/85">
               <span
-                className={`mr-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium capitalize ${
+                className={`mr-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-body-sm font-medium capitalize ${
                   breed.confidence === 'published'
                     ? 'bg-sage text-deep'
                     : breed.confidence === 'derived'
@@ -71,14 +71,14 @@ export function Methodology({ projection }: { projection: Projection }) {
               {CONFIDENCE_COPY[breed.confidence]}
             </p>
             {breed.note && (
-              <p className="mt-2.5 text-[14px] leading-relaxed text-ink-2">{breed.note}</p>
+              <p className="mt-2.5 text-body-lg leading-relaxed text-ink-2">{breed.note}</p>
             )}
           </div>
 
           <div>
             <h3 className="label mb-2">What moved the projection</h3>
             {factors.length === 0 ? (
-              <p className="text-[14.5px] text-ink-2">
+              <p className="text-body-lg text-ink-2">
                 Nothing — everything is at the reference setting, so this is the breed baseline.
               </p>
             ) : (
@@ -86,15 +86,15 @@ export function Methodology({ projection }: { projection: Projection }) {
                 {factors.map((f) => (
                   <li key={f.label} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                     <span
-                      className={`inline-flex w-[62px] justify-center rounded-full px-2 py-0.5 text-[12.5px] font-semibold ${
+                      className={`inline-flex w-[62px] justify-center rounded-full px-2 py-0.5 text-body-sm font-semibold ${
                         f.delta > 0 ? 'bg-sage text-deep' : 'bg-[#F6E8D2] text-[#8A5510]'
                       }`}
                     >
                       {f.delta > 0 ? '+' : ''}
                       {f.delta.toFixed(2)}
                     </span>
-                    <span className="text-[14.5px] text-ink">{f.label}</span>
-                    <span className="text-[13px] text-ink-2">
+                    <span className="text-body-lg text-ink">{f.label}</span>
+                    <span className="text-body-sm text-ink-2">
                       {EVIDENCE_LABELS[f.tier].label.toLowerCase()}
                     </span>
                   </li>
@@ -102,7 +102,7 @@ export function Methodology({ projection }: { projection: Projection }) {
               </ul>
             )}
             {projection.widened && (
-              <p className="mt-3 text-[14px] leading-relaxed text-ink-2">
+              <p className="mt-3 text-body-lg leading-relaxed text-ink-2">
                 The range is wider than usual here, because some of what we would want to know is
                 either uncertain or missing. That widening is deliberate.
               </p>
@@ -111,7 +111,7 @@ export function Methodology({ projection }: { projection: Projection }) {
 
           <div>
             <h3 className="label mb-2">What we do not model</h3>
-            <ul className="space-y-1.5 text-[14px] leading-relaxed text-ink-2">
+            <ul className="space-y-1.5 text-body-lg leading-relaxed text-ink-2">
               {breed.species === 'cat' && (
                 <>
                   <li>
@@ -142,7 +142,7 @@ export function Methodology({ projection }: { projection: Projection }) {
             <h3 className="label mb-2">Sources</h3>
             <ul className="space-y-2.5">
               {unique.map((c) => (
-                <li key={c.label} className="text-[13.5px] leading-relaxed">
+                <li key={c.label} className="text-body leading-relaxed">
                   {c.url ? (
                     <a
                       href={c.url}
@@ -160,7 +160,7 @@ export function Methodology({ projection }: { projection: Projection }) {
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-[13.5px] leading-relaxed text-ink-2">
+            <p className="mt-4 text-body leading-relaxed text-ink-2">
               Studies of pet longevity do not all measure the same thing. Life expectancy at age 0
               includes animals that die young and runs below median survival or median age at death.
               We never average figures across studies, and where no figure has been published for a
