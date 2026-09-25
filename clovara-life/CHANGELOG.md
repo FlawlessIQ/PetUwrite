@@ -3,6 +3,17 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## The companion on the kit (BACKLOG D-UI8, branch `d-ui8`, not deployed)
+
+- **Every companion reply is blocks now.** The grounded answers, the red-flag
+  escalation and "can I talk to a vet" used to render their own markup; they are
+  restated as conversation-kit blocks and rendered by the kit, word for word.
+- **A `fact` block, with its source.** Each grounded fact shows where it came
+  from — "from the breed research · OFA evidence". A fact without a source
+  cannot render as one; it degrades to plain text.
+- **Navigation is a link.** "Open Scout's summary" is a real link again, still a
+  pill — the first version made it a button, and the companion suite caught it.
+
 ## Design decisions (BACKLOG D-UI7, deployed 2026-09-25 from branch `d-ui7`)
 
 - **The design system's own colours now pass AA.** amber → #935E13, ink-3 →

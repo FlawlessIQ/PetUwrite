@@ -18,7 +18,7 @@ describe('the renderer', () => {
     expect(out).toMatch(/^<p>/)
   })
 
-  it('has a component for exactly the seven kinds, and no other', () => {
+  it('has a component for exactly the eight kinds, and no other', () => {
     expect(Object.keys(BLOCK_RENDERERS).sort()).toEqual([...BLOCK_KINDS].sort())
   })
 
@@ -42,6 +42,21 @@ describe('the renderer', () => {
 
   it('renders nothing for a product that does not exist, rather than an empty card', () => {
     expect(html({ kind: 'product_ref', productId: 'no-such-thing', why: 'x' })).toBe('')
+  })
+
+  it('renders an action that is a route as a link, and any other action as a button', () => {
+    const out = html({ kind: 'actions', items: [
+      { label: 'Open Max’s summary', style: 'primary', action: '#/health/demo-max' },
+      { label: 'Tell me more', style: 'ghost', action: 'more' },
+    ] })
+    expect(out).toMatch(/<a href="#\/health\/demo-max"[^>]*>Open Max’s summary<\/a>/)
+    expect(out).toMatch(/<button[^>]*>Tell me more<\/button>/)
+  })
+
+  it('renders a fact with its source, and its citation when it has one', () => {
+    const out = html({ kind: 'fact', claim: 'Hip dysplasia is common in Labradors.', source: 'from the breed research', citation: 'OFA evidence' })
+    expect(out).toContain('Hip dysplasia is common in Labradors.')
+    expect(out).toContain('from the breed research · OFA evidence')
   })
 
   it('renders a booking with who and when, and claims neither video nor in-person', () => {

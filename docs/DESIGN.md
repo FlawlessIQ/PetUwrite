@@ -1,6 +1,6 @@
 # Clovara Design System — build reference (v1, Sept 2026)
 
-Visual rendering of everything below: `docs/styleguide.html` (open in a browser). **Last changed 2026-09-25 (D-UI7)** — amber and ink-3 values, the eyebrow colour, a heading role, and the notes marked D-UI7; both files updated together. If a surface disagrees with this document, the surface is wrong. Changes to this system are decisions — log them in `docs/DECISIONS.md`.
+Visual rendering of everything below: `docs/styleguide.html` (open in a browser). **Last changed 2026-09-25 (D-UI7, D-UI8)** — amber and ink-3 values, the eyebrow colour, a heading role, and the notes marked D-UI7; both files updated together. If a surface disagrees with this document, the surface is wrong. Changes to this system are decisions — log them in `docs/DECISIONS.md`.
 
 ## 1. Logo — one file, no drift
 
@@ -105,6 +105,7 @@ type CompanionBlock =
   | { kind:'booking_confirm';vet: string; when: string; prepared: string }
   | { kind:'product_ref';    productId: string; why: string }
   | { kind:'escalate';       reason: string }                  // urgent-vet routing card
+  | { kind:'fact';           claim: string; source: string; citation?: string }   // a grounded fact and where it came from (D-UI8)
 ```
 
 Component specs (all visible in the walkthrough mockup's Care screen — that rendering is canonical):
@@ -114,9 +115,10 @@ Component specs (all visible in the walkthrough mockup's Care screen — that re
 | **Bubbles** | user: forest bg, white text, right-aligned, radius 18/18/6/18; ai: card bg, 1px line border, left-aligned, radius 18/18/18/6; max-width 82%; 12.5px, line-height 1.5 |
 | **history_ref** | sage inset inside the ai bubble: radius 10, padding 8–10px, deep text 11px, 13px outline clock icon (1.7–2px stroke, deep), bold lead ("From Max's history:"), then note + date. The memory moment — never plain text |
 | **watch_signs** | ai-bubble list, each sign with a small forest dot; urgency drives the closing line ("not an emergency, but soon"), calm voice per §6; `now` urgency auto-appends an `escalate` block |
-| **actions** | pill row under the ai bubble, left-aligned, max 3: one primary (forest, small) + ghosts. Labels are verbs ("Book telehealth vet"). Tapping renders the user's choice as a user bubble |
+| **actions** | pill row under the ai bubble, left-aligned, max 3: one primary (forest, small) + ghosts. Labels are verbs ("Send Max's history to your vet"). Tapping renders the user's choice as a user bubble. An action whose value is a route (`#/…`) is navigation and renders as a link, still a pill (D-UI8) |
 | **booking_confirm** | ai bubble with bold vet + time and the "prepared" line ("I've prepared a one-page summary of his hip notes…"). Optional single paw emoji allowed here only |
 | **product_ref** | mini product card (§5 product pattern) inline: image well, title, plain-words `why`, member price. Never more than one per reply |
+| **fact** | (D-UI8) card-inset inside the ai bubble: cream fill, 1px line border, radius 12; the claim in body ink, then the source line in ink-2 — "from the breed research · OFA evidence". The source is mandatory: a fact without one degrades to plain text. Added so the grounded companion (C2) could render on the kit without losing its citations — `history_ref` would call a breed-table fact the pet's history |
 | **escalate** | nudge-pattern card (accent border, nudge-fill) with ER routing action + poison-line style tap-to-call. Alarm-free copy; amber not red. The same pattern carries the app's emergency screens — "ring a vet now", the poison-line screen — which moved from red to amber in D-UI7 |
 | **Screen chrome (not model output — cannot be omitted):** | header "Knows Max since 2020"; footer note 9.5px ink-3 centered: "Companion shares information and routes you to licensed vets — it doesn't diagnose. Your conversations here are never used in underwriting or claims."; typebar: card pill, ghost placeholder ("Ask about Max…"), 32px forest send disc |
 

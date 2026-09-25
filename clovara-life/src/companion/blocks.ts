@@ -30,12 +30,21 @@ export type CompanionBlock =
   | { kind: 'product_ref'; productId: string; why: string }
   /** The urgent-vet routing card. Amber, not red; calm copy. */
   | { kind: 'escalate'; reason: string }
+  /**
+   * A grounded fact and where it came from (D-UI8). Added so the live companion
+   * (C2) could move onto the kit without dropping its citations: history_ref
+   * would call a breed-table fact the pet's history, and text would lose the
+   * source line C2 exists to show. `source` is always shown; `citation` names
+   * the research and its strength when there is some.
+   */
+  | { kind: 'fact'; claim: string; source: string; citation?: string }
 
 export type BlockKind = CompanionBlock['kind']
 
 /**
  * Every kind the renderer knows, and nothing else. A test holds this list to
- * the seven in §5b — adding a kind is a design decision, not a code change.
+ * the eight in §5b — adding a kind is a design decision, not a code change.
+ * The eighth, `fact`, was that decision (D-UI8).
  */
 export const BLOCK_KINDS = [
   'text',
@@ -45,6 +54,7 @@ export const BLOCK_KINDS = [
   'booking_confirm',
   'product_ref',
   'escalate',
+  'fact',
 ] as const satisfies readonly BlockKind[]
 
 export const MAX_ACTIONS = 3
@@ -136,13 +146,19 @@ function coerce(r: unknown): CompanionBlock {
     case 'escalate':
       if (str(o.reason)) return { kind: 'escalate', reason: o.reason }
       break
+    case 'fact':
+      // A fact without a source is exactly what this block exists to prevent.
+      if (str(o.claim) && str(o.source) && o.source.trim()) {
+        return { kind: 'fact', claim: o.claim, source: o.source, ...(str(o.citation) && o.citation ? { citation: o.citation } : {}) }
+      }
+      break
   }
   return { kind: 'text', md: plainInline(fallbackText(o)) }
 }
 
 /** The most readable thing we can find in a block we do not understand. */
 function fallbackText(o: Record<string, unknown>): string {
-  for (const k of ['md', 'text', 'note', 'reason', 'intro', 'content', 'message']) {
+  for (const k of ['md', 'text', 'claim', 'note', 'reason', 'intro', 'content', 'message']) {
     if (str(o[k]) && o[k]) return o[k] as string
   }
   return ''

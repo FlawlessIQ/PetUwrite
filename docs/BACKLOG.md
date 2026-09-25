@@ -51,7 +51,7 @@ unreviewed pile.
 | **D-UI4** | Palette swap, if the brand itself changes. Cheap and independent of the above: 8 values in one config file, 907 token references follow | Claude Code | S | — |
 | **D-UI5** | Dark mode. DESIGN.md §2 reserves a palette and says do not build until instructed | Conor | M | **C** |
 | **D-UI7** | ~~Resolve the seventeen UI-pass open questions~~ — **resolved and shipped 2026-09-25**, deployed from branch `d-ui7`. Fourteen closed — four by Conor's decision (emergency screens to amber, no gradient text, a heading role, an honest demo) — and one left open as D-UI8. Outcomes in ROADMAP | Conor + Claude Code | done | **C** |
-| **D-UI8** | **A `fact` block for the conversation kit**, so the live grounded companion (C2) can move onto it without dropping its citations. Proposed: `{ kind:'fact'; claim; source; citation? }`. Adding a kind is a design decision | Conor → Claude Code | M | — |
+| **D-UI8** | ~~A `fact` block for the conversation kit~~ — **built 2026-09-25 on branch `d-ui8`, not deployed.** `{ kind:'fact'; claim; source; citation? }` added to §5b; the live companion's recall, escalation and vet routes all render through the kit now, so no path renders free text | Conor → Claude Code | done | **C** |
 | **D-UI6** | Empty, loading and error states as a designed set. They exist and are individually considered; they have never been looked at together | Conor + Claude Code | M | — |
 
 ## A · Before any real person uses this

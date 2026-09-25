@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { BLOCK_KINDS, inlineSegments, MAX_ACTIONS, normalise, plainInline } from './blocks'
 
 describe('the schema', () => {
-  it('has exactly the seven kinds in DESIGN.md §5b — adding one is a design decision', () => {
+  it('has exactly the eight kinds in DESIGN.md §5b — adding one is a design decision', () => {
     expect([...BLOCK_KINDS].sort()).toEqual(
-      ['actions', 'booking_confirm', 'escalate', 'history_ref', 'product_ref', 'text', 'watch_signs'].sort(),
+      ['actions', 'booking_confirm', 'escalate', 'fact', 'history_ref', 'product_ref', 'text', 'watch_signs'].sort(),
     )
   })
 
@@ -71,6 +71,18 @@ describe('normalise — what arrives is made safe before anything renders it', (
       { kind: 'escalate', reason: 'r' },
     ])
     expect(out.filter((b) => b.kind === 'escalate')).toHaveLength(1)
+  })
+
+  it('refuses a fact with no source — it becomes plain text, never a sourceless fact card', () => {
+    const [b] = normalise([{ kind: 'fact', claim: 'Hip dysplasia is common in the breed', source: '  ' }])
+    expect(b).toEqual({ kind: 'text', md: 'Hip dysplasia is common in the breed' })
+  })
+
+  it('keeps a citation only when there is one', () => {
+    const [a] = normalise([{ kind: 'fact', claim: 'c', source: 's' }])
+    const [b] = normalise([{ kind: 'fact', claim: 'c', source: 's', citation: 'Dog Aging Project evidence' }])
+    expect(a).toEqual({ kind: 'fact', claim: 'c', source: 's' })
+    expect(b).toEqual({ kind: 'fact', claim: 'c', source: 's', citation: 'Dog Aging Project evidence' })
   })
 
   it('never invents a date for history', () => {

@@ -85,7 +85,19 @@ function Actions({ block, ctx }: { block: Of<'actions'>; ctx: BlockContext }) {
   const locked = !!ctx.chosen || !ctx.onAction
   return (
     <div className="flex flex-wrap gap-2" role="group" aria-label="Choose what happens next">
-      {block.items.map((it) => (
+      {block.items.map((it) =>
+        // An action that is a route is navigation, and navigation is a link: it
+        // can open in a new tab and is announced as one. Everything else
+        // continues the conversation, so it is a button.
+        it.action.startsWith('#/') ? (
+          <a
+            key={it.action}
+            href={it.action}
+            className={`${it.style === 'primary' ? 'pill-primary' : 'pill-ghost'} pill-sm`}
+          >
+            {it.label}
+          </a>
+        ) : (
         <button
           key={it.action}
           type="button"
@@ -101,7 +113,8 @@ function Actions({ block, ctx }: { block: Of<'actions'>; ctx: BlockContext }) {
         >
           {it.label}
         </button>
-      ))}
+        ),
+      )}
     </div>
   )
 }
@@ -164,8 +177,21 @@ function Escalate({ block }: { block: Of<'escalate'> }) {
   )
 }
 
+// ── fact: a grounded claim and where it came from (D-UI8) ──────────────────
+function Fact({ block }: { block: Of<'fact'> }) {
+  return (
+    <div className="rounded-inner border border-line bg-cream px-3 py-2.5">
+      <p className="text-body-lg leading-relaxed text-ink">{block.claim}</p>
+      <p className="mt-1 text-body-sm text-ink-2">
+        {block.source}
+        {block.citation && ` · ${block.citation}`}
+      </p>
+    </div>
+  )
+}
+
 /**
- * kind → component. Exactly §5b's seven; the test fails if this grows a key
+ * kind → component. Exactly §5b's eight; the test fails if this grows a key
  * the schema does not have — which is where a "likely_condition" would appear.
  */
 export const BLOCK_RENDERERS: { [K in BlockKind]: (p: { block: Of<K>; ctx: BlockContext }) => ReactElement | null } = {
@@ -176,6 +202,7 @@ export const BLOCK_RENDERERS: { [K in BlockKind]: (p: { block: Of<K>; ctx: Block
   booking_confirm: ({ block }) => <BookingConfirm block={block} />,
   product_ref: ({ block }) => <ProductRef block={block} />,
   escalate: ({ block }) => <Escalate block={block} />,
+  fact: ({ block }) => <Fact block={block} />,
 }
 
 /** One block. Anything the registry does not know renders as text — never as nothing. */

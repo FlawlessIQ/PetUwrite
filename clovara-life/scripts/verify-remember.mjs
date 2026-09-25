@@ -49,7 +49,15 @@ const seed = async (over, hash = '#/pet/pet-rem/life') => {
     [{ ...base, ...over }, hash],
   )
   await page.reload({ waitUntil: 'networkidle' })
-  await page.waitForTimeout(1300)
+  // Wait for the pet's page to have actually rendered, not for a fixed time.
+  // A flat 1.3s passed alone and failed under the full suite's load, reading
+  // the page before the plan had drawn — a flake in this harness, not the app.
+  await page
+    .waitForFunction((name) => document.body.innerText.includes(name) && document.querySelectorAll('section').length > 1, [base.name], {
+      timeout: 15000,
+    })
+    .catch(() => {})
+  await page.waitForTimeout(400)
   return page.locator('body').innerText()
 }
 
