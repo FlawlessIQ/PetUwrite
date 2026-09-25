@@ -1,9 +1,12 @@
 import type { PetProfile, Projection } from '../data/types'
+import { useMemo } from 'react'
+import { scriptedTurns } from '../companion/script'
 import { buildCompanion } from '../engine/platform'
 import { AskCompanion } from './AskCompanion'
+import { ScriptedConversation } from './companion/Conversation'
 
 export function Companion({ pet, projection }: { pet: PetProfile; projection: Projection }) {
-  const thread = buildCompanion(pet, projection)
+  const turns = useMemo(() => scriptedTurns(buildCompanion(pet, projection)), [pet, projection])
   const knownSince = new Date(pet.birthDate).getFullYear()
 
   return (
@@ -25,71 +28,8 @@ export function Companion({ pet, projection }: { pet: PetProfile; projection: Pr
 
 
       <div className="card mt-5 px-4 py-5 sm:px-6 sm:py-6">
-        <ol className="flex flex-col gap-3.5">
-          {thread.map((m, i) => (
-            <li
-              key={i}
-              className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[88%] rounded-[18px] px-4 py-3 text-[14.5px] leading-relaxed sm:max-w-[78%] ${
-                  m.from === 'user'
-                    ? 'rounded-br-[6px] bg-forest text-white'
-                    : 'rounded-bl-[6px] border border-line bg-cream/50 text-ink'
-                }`}
-              >
-                <p>{m.text}</p>
-
-                {m.recall && (
-                  <div className="mt-3 flex gap-2.5 rounded-soft bg-sage px-3 py-2.5 text-[13.5px] leading-relaxed text-deep">
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="mt-[3px] h-[15px] w-[15px] shrink-0 stroke-current"
-                      fill="none"
-                      strokeWidth={2}
-                    >
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M12 8v4l2.5 2.5" strokeLinecap="round" />
-                    </svg>
-                    <span>
-                      <strong className="font-semibold">{m.recall.label}:</strong> {m.recall.text}
-                    </span>
-                  </div>
-                )}
-
-                {m.actions && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {m.actions.map((a, j) => (
-                      <span
-                        key={a}
-                        className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium ${
-                          j === 0
-                            ? 'bg-forest text-white'
-                            : 'border border-line bg-white text-ink'
-                        }`}
-                      >
-                        {a}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </li>
-          ))}
-        </ol>
-
-        <div className="mt-5 flex items-center gap-2 rounded-full border border-line bg-white py-2 pl-5 pr-2 text-[14px] text-ink-2">
-          <span className="flex-1">Ask about {pet.name}…</span>
-          <span
-            aria-hidden="true"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-forest"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-white" fill="none" strokeWidth={2.2} strokeLinecap="round">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </span>
-        </div>
+        {/* DESIGN.md §5b: typed blocks through the kit, never free text. */}
+        <ScriptedConversation key={pet.id} turns={turns} petName={pet.name} since={knownSince} />
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">

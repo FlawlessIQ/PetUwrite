@@ -154,10 +154,11 @@ console.log('\nInvariant 4 — never diagnoses')
  * vet with a possibility worth naming. Banning that would delete reference
  * content to satisfy a regex.
  */
-const conversational = COPY.filter((c) =>
-  /(companion|grounding|safety|verification|secondOpinion|SomethingWrong|AskCompanion)\.tsx?$/i.test(
-    c.file,
-  ),
+const conversational = COPY.filter(
+  (c) =>
+    /(companion|grounding|safety|verification|secondOpinion|SomethingWrong|AskCompanion)\.tsx?$/i.test(c.file) ||
+    // The conversation kit (DESIGN.md §5b) renders every companion reply.
+    /\/companion\//.test(c.file),
 )
 ok(
   'the conversational surfaces are still being read',

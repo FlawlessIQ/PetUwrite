@@ -456,10 +456,20 @@ export function buildRewards(profile: PetProfile, projection: Projection): Rewar
 
 export interface CompanionMessage {
   from: 'user' | 'ai'
+  /** The whole message as prose. Kept for the tests and anything reading it plainly. */
   text: string
   /** A recall block — the thing that only exists because we hold the history. */
   recall?: { label: string; text: string }
   actions?: string[]
+  /** Stable ids for `actions`, by position — what a tap means, not what it says. */
+  actionIds?: string[]
+  /**
+   * The same content, structured for the conversation kit (DESIGN.md §5b), which
+   * never renders free text. Medical content has to arrive as watch signs or as
+   * history; these fields are what let it.
+   */
+  watch?: { intro: string; signs: string[]; urgency: 'monitor' | 'soon' | 'now' }
+  booking?: { vet: string; when: string; prepared: string }
 }
 
 /**
@@ -510,19 +520,30 @@ export function buildCompanion(profile: PetProfile, projection: Projection): Com
     {
       from: 'ai',
       text: `${focus.action} I would also watch for ${secondClause(focus.watch)}. This is worth a vet's eyes — not an emergency, but soon.`,
+      watch: { intro: focus.action, signs: laterClauses(focus.watch), urgency: 'soon' },
       actions: ['Book telehealth vet', `Send ${profile.name}'s history summary`],
+      actionIds: ['book-telehealth', 'send-summary'],
     },
     { from: 'user', text: 'Book it — and yes, send the summary.' },
-    {
-      from: 'ai',
-      text: `Done. Dr. Chen has a video slot tomorrow at 5:30pm. I have put together a one-page summary for the visit: ${their} ${focus.name.toLowerCase()} notes, the last three weigh-ins, ${their} current ${projection.breed.species === 'cat' ? 'diet and litter-box' : 'activity'} trend, and what ${they} is currently taking.`,
-    },
+    (() => {
+      const prepared = `I have put together a one-page summary for the visit: ${their} ${focus.name.toLowerCase()} notes, the last three weigh-ins, ${their} current ${projection.breed.species === 'cat' ? 'diet and litter-box' : 'activity'} trend, and what ${they} is currently taking.`
+      return {
+        from: 'ai' as const,
+        text: `Done. Dr. Chen has a video slot tomorrow at 5:30pm. ${prepared}`,
+        booking: { vet: 'Dr. Chen', when: 'tomorrow at 5:30pm', prepared },
+      }
+    })(),
   ]
 }
 
 /** "Slower to rise after a nap, bunny-hopping at a run." → first clause. */
 function firstClause(watch: string): string {
   return watch.split(/[,;.]/)[0].trim().toLowerCase()
+}
+/** Every clause after the first — the first is what the owner already described. */
+function laterClauses(watch: string): string[] {
+  const parts = watch.split(/[,;.]/).map((p) => p.trim()).filter(Boolean)
+  return (parts.length > 1 ? parts.slice(1) : parts).map((p) => p.charAt(0).toUpperCase() + p.slice(1))
 }
 function secondClause(watch: string): string {
   const parts = watch.split(/[,;.]/).map((p) => p.trim()).filter(Boolean)
