@@ -50,7 +50,7 @@ gathered in its §5. Nothing is built.
   as `toxins.ts` and `redFlags.ts`, not a separate decision.
 - **SPEC §4.2 assumes indoor/outdoor and age-at-neuter are still to do.** Both landed before P0
   opened (2026-09-22) and are deployed. P1 is smaller than the spec text implies.
-- **SPEC §1 says "75+ tests".** It is 678 unit plus 107 emulator plus twenty-seven end-to-end and static suites, and `npm run verify:all` runs every browser suite in one command.
+- **SPEC §1 says "75+ tests".** It is 678 unit plus 110 emulator (16 of them adversarial) plus twenty-seven end-to-end and static suites, and `npm run verify:all` runs every browser suite in one command.
   Left alone at Conor's instruction; noted so nobody reads it as a target.
 - **Apple sign-in is deferred**, not built as SPEC §3 lists it. Web is covered by email link +
   Google; Apple is only needed when a native iOS app ships. Tracked as an external dependency.

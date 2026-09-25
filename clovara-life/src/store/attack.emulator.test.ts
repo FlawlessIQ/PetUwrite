@@ -175,6 +175,88 @@ describe.skipIf(!ENABLED)('attacking the Life rules', () => {
     }
   })
 
+  it("ATTACK: write a lump onto a stranger's pet", async () => {
+    // The lump diary lives ON the pet document rather than in a subcollection
+    // (SPEC-HORIZON §1.1 diverged here, because `{sub=**}` under a pet is
+    // denied). That makes the pet document's write rule the only thing standing
+    // between a stranger and somebody's lump photographs, so it is worth
+    // attacking directly rather than assuming the read test covers it.
+    const victim = await signInFreshViaLink(auth, 'atk-lumpvictim')
+    const id = `hh-lump-${Date.now()}`
+    await seedAsAdmin(`households/${id}`, {
+      createdBy: { stringValue: victim.uid },
+      memberIds: strArr([victim.uid]),
+      members: { mapValue: { fields: {} } },
+    })
+    await seedAsAdmin(`households/${id}/pets/p1`, { name: { stringValue: 'Scout' } })
+
+    await signInFreshViaLink(auth, 'atk-lumpwriter')
+    const pet = fs.doc(db, 'households', id, 'pets', 'p1')
+    expect(await denied(fs.setDoc(pet, { lumps: [] }, { merge: true }))).toBe(true)
+    expect(await denied(fs.updateDoc(pet, { lumps: [] }))).toBe(true)
+    expect(await denied(fs.deleteDoc(pet))).toBe(true)
+  })
+
+  it('ATTACK: hide a lump in a subcollection, where the review gate does not look', async () => {
+    // The reason lumps are on the pet document is that everything under a pet is
+    // denied pending the security review. If a subcollection were ever allowed
+    // by accident, lump photographs would be the first thing written there and
+    // nothing would notice.
+    const me = await signInFreshViaLink(auth, 'atk-lumpsub')
+    const id = `hh-lumpsub-${Date.now()}`
+    await seedAsAdmin(`households/${id}`, {
+      createdBy: { stringValue: me.uid },
+      memberIds: strArr([me.uid]),
+      members: { mapValue: { fields: {} } },
+    })
+    for (const sub of ['lumps', 'photos', 'records', 'anything']) {
+      const d = fs.doc(db, 'households', id, 'pets', 'p1', sub, 'x1')
+      expect(await denied(fs.setDoc(d, { note: 'hidden' })), `write ${sub}`).toBe(true)
+      expect(await denied(fs.getDoc(d)), `read ${sub}`).toBe(true)
+    }
+  })
+
+  /**
+   * NOT AN ATTACK THAT FAILS — a boundary, asserted so it cannot move quietly.
+   *
+   * A pet document has no field allowlist: any member may write any field,
+   * including `provenance: 'vet_verified'` and an `updatedBy` naming somebody
+   * else. Today that is cosmetic. Nothing grants a privilege, a price or a claim
+   * outcome on the strength of a pet field — the Data Covenant firewalls
+   * underwriting from all of it and `canBind` is false — so the worst an owner
+   * can do is mislabel their own data in their own app.
+   *
+   * It stops being cosmetic the moment anything trusts those fields: a claim, a
+   * rating input, or a badge shown to a sitter who is not the person who typed
+   * it. That is precisely what the Firestore security review (ROADMAP B1) gates
+   * vet-record extraction on, so this test exists to hand the reviewer a
+   * demonstrated fact rather than a question.
+   */
+  it('BOUNDARY: a member can stamp their own data "vet_verified" (known, for the review)', async () => {
+    const me = await signInFreshViaLink(auth, 'atk-prov')
+    const id = `hh-prov-${Date.now()}`
+    await seedAsAdmin(`households/${id}`, {
+      createdBy: { stringValue: me.uid },
+      memberIds: strArr([me.uid]),
+      members: { mapValue: { fields: {} } },
+    })
+    const pet = fs.doc(db, 'households', id, 'pets', 'p1')
+    // Allowed today. If this ever starts being denied, the rules gained a
+    // constraint and this test should become an ATTACK that fails.
+    expect(
+      await denied(
+        fs.setDoc(pet, {
+          weightLb: {
+            value: 3,
+            provenance: 'vet_verified',
+            updatedAt: new Date().toISOString(),
+            updatedBy: 'somebody-else',
+          },
+        }),
+      ),
+    ).toBe(false)
+  })
+
   it('ATTACK: forge analytics as another user', async () => {
     const me = await signInFreshViaLink(auth, 'atk-analytics')
     expect(

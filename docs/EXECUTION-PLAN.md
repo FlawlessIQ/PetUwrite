@@ -49,7 +49,7 @@ Each of these turns a flag from false to true. No building required.
 
 | # | Decision | Owner | Turns on |
 |---|---|---|---|
-| **B1** | **Firestore security review** (SPEC §7; $15K line exists) | Conor | Vet-record extraction. The pipeline, confirm-chips and provenance are built and off. My own adversarial pass found **two real holes** in rules I wrote — that is the argument for it, not against |
+| **B1** | **Firestore security review** (SPEC §7; $15K line exists). Brief written: `docs/FIRESTORE-REVIEW-BRIEF.md` — scope, the two holes already found, and the one open question about pet-field provenance | Conor | Vet-record extraction. The pipeline, confirm-chips and provenance are built and off. My own adversarial pass found **two real holes** in rules I wrote — that is the argument for it, not against |
 | **B2** | **May owner-written text go to Google?** | Conor + counsel | Companion C3 **and** conversational onboarding. One decision, two features |
 | **B3** | Telehealth partner | Conor | Companion C4's real routing. `docs/TELEHEALTH-PARTNER-REQUIREMENTS.md` is the conversation |
 | **B4** | Carrier programme (Accelerant) | Conor | Real binding. `canBind` is false and the flow says why |
