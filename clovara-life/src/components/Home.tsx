@@ -213,8 +213,8 @@ export function Home({
                 <h2 id="score-heading" className="sr-only">
                   Clovara Score
                 </h2>
-                <span className={coverage.hasPolicy ? 'chip-good' : 'chip-neutral'}>
-                  {coverage.hasPolicy ? (
+                <span className={coverage?.hasPolicy ? 'chip-good' : 'chip-neutral'}>
+                  {coverage?.hasPolicy ? (
                     <>
                       <Icon name="check" size={14} active />
                       Coverage active
@@ -236,7 +236,7 @@ export function Home({
               </div>
             </div>
 
-            {!remembered && (
+            {rewards && (
             <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
               <div className="rounded-soft bg-cream px-4 py-3">
                 <p className="font-display text-heading-sm font-semibold leading-none text-ink">
@@ -385,7 +385,7 @@ export function Home({
           </section>
 
           {/* ── Points ────────────────────────────────────────────────── */}
-          {!remembered && (
+          {rewards && (
           <section className="card flex items-center gap-4 px-5 py-4 sm:px-6">
             <div className="min-w-0 flex-1">
               <p className="font-display text-heading-lg font-semibold leading-none text-ink">

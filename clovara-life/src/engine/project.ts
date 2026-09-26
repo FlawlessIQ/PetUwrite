@@ -12,6 +12,7 @@ import type {
   RiskCard,
   SizeClass,
 } from '../data/types'
+import { isRemembered } from './remember'
 import {
   ACTIVITY_DELTAS,
   CAT_STAGE_BOUNDS,
@@ -414,7 +415,12 @@ export interface ProjectOptions {
  * injected via options.now.
  */
 export function project(profile: PetProfile, options: ProjectOptions = {}): Projection {
-  const now = options.now ?? new Date()
+  // Once a pet has died the clock stops at that date (SPEC-HORIZON §2.5). Every
+  // age, stage and window downstream is then the one they reached — nobody is
+  // told their dog is thirteen a year after he died at twelve.
+  const asked = options.now ?? new Date()
+  const died = isRemembered(profile) ? new Date(Date.parse(profile.diedOn!)) : null
+  const now = died && died < asked ? died : asked
   const breed = findBreed(profile.breedId)
   if (!breed) throw new Error(`Unknown breed: ${profile.breedId}`)
 

@@ -2,6 +2,7 @@ import type { PetProfile, Projection } from '../data/types'
 import { MemberGate } from './MemberGate'
 import { buildRewards } from '../engine/platform'
 import { REWARDS_DISCLAIMER } from '../data/rewards'
+import { Quiet } from './Quiet'
 
 export function Rewards({
   pet,
@@ -18,6 +19,14 @@ export function Rewards({
   onStartTrial: () => void
 }) {
   const r = buildRewards(pet, projection)
+  // Null once a pet has died: nothing is counted, nothing is redeemable.
+  if (!r) {
+    return (
+      <Quiet label="Rewards" pet={pet}>
+        Nothing is being counted for {pet.name} any more.
+      </Quiet>
+    )
+  }
 
   return (
     <div className="mx-auto w-full max-w-shell px-5 pb-24 pt-8 sm:pt-10">

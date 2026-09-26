@@ -4,7 +4,7 @@ import { reviewDue } from './review'
 import { gotchaState } from './gotchaDay'
 import { vaccineState } from './vaccines'
 import { passportState } from './passport'
-import { buildHome, recommendProducts } from './platform'
+import { buildCompanion, buildCoverage, buildHome, buildRewards, recommendProducts } from './platform'
 import { planAccuracy } from './accuracy'
 import { asksFor } from '../data/askRegistry'
 import { project } from './project'
@@ -104,6 +104,32 @@ describe('EVERY surface that would otherwise carry on', () => {
     const home = buildHome(died(pup), proj(died(pup)))
     expect(home.score).toBeNull()
     expect(home.comingUp).toBeNull()
+  })
+
+  // UAT run 1, D19: Rewards, Care and Coverage kept going, and Life still
+  // forecast healthy years, a day after.
+  it('nothing is counted any more', () => {
+    expect(buildRewards(alive(), proj(alive())), 'control').not.toBeNull()
+    expect(buildRewards(died(), proj(died()))).toBeNull()
+  })
+
+  it('the companion has nothing to say', () => {
+    expect(buildCompanion(alive(), proj(alive())).length, 'control').toBeGreaterThan(0)
+    expect(buildCompanion(died(), proj(died()))).toHaveLength(0)
+  })
+
+  it('no cover is priced', () => {
+    expect(buildCoverage(alive(), proj(alive())), 'control').not.toBeNull()
+    expect(buildCoverage(died(), proj(died()))).toBeNull()
+  })
+
+  it('their age stops at the day they died', () => {
+    // Born 2018-09-24, died twenty days before NOW (2026-09-24): about 8, and
+    // still about 8 when somebody looks in 2030.
+    const later = new Date('2030-01-01T00:00:00Z')
+    expect(project(alive(), { now: later }).ageYears, 'control').toBeGreaterThan(11)
+    expect(project(died(), { now: later }).ageYears).toBeLessThanOrEqual(8)
+    expect(project(died(), { now: later }).ageYears).toBe(project(died(), { now: NOW }).ageYears)
   })
 
   it('the home nudge stops talking about them in the present', () => {

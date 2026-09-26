@@ -59,6 +59,11 @@ export const MUST_GO_QUIET = [
   // UAT K2: a score and its verdict are a judgement on how somebody is doing now.
   'clovara score',
   'wellness rider appointments',
+  // UAT run 1, D19: four tabs that were never on this list.
+  'healthy-years forecast',
+  'rewards and streaks',
+  'the companion',
+  'cover pricing',
 ] as const
 
 /** What stays reachable, because taking it away would be its own cruelty. */

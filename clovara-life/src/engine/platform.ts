@@ -295,7 +295,11 @@ export function buildCoverage(
   profile: PetProfile,
   projection: Projection,
   tierId = 'complete',
-): CoverageView {
+): CoverageView | null {
+  // Nothing is priced for a pet who has died — a price is an offer, and the
+  // first of the four failures in remember.ts is a renewal notice for a dead
+  // animal. Null, so every caller has to decide what it shows instead.
+  if (isRemembered(profile)) return null
   const breed = projection.breed
   const tier = PLAN_TIERS.find((t) => t.id === tierId) ?? PLAN_TIERS[1]
   const base = BASE_RATE[profile.species][breed.sizeClass]
@@ -403,7 +407,10 @@ export interface RewardsView {
  * a pet whose owner brushes daily has a long dental streak and a pet whose owner
  * rarely brushes does not. Stable across reloads.
  */
-export function buildRewards(profile: PetProfile, projection: Projection): RewardsView {
+export function buildRewards(profile: PetProfile, projection: Projection): RewardsView | null {
+  // Streaks, "+130 this week" and a shelf to redeem against are a running
+  // commentary on a life. Once it has ended there is nothing to count.
+  if (isRemembered(profile)) return null
   const dentalDays =
     (profile.dental ?? 'weekly') === 'daily' ? seeded(profile.id + 'd', 24, 61) : (profile.dental ?? 'weekly') === 'weekly' ? seeded(profile.id + 'd', 4, 9) : seeded(profile.id + 'd', 0, 2)
   const walkDays =
@@ -483,6 +490,8 @@ export interface CompanionMessage {
  * is firewalled from underwriting and claims.
  */
 export function buildCompanion(profile: PetProfile, projection: Projection): CompanionMessage[] {
+  // The scripted thread is an owner worried about how their pet is doing now.
+  if (isRemembered(profile)) return []
   const declaredCard = projection.riskCards.find((r) => r.mode === 'manage')
   const activeCard = projection.riskCards.find((r) => r.mode === 'active')
   // Every shipped breed has conditions, but never index blind in front of an audience.

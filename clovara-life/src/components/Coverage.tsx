@@ -4,11 +4,23 @@ import { buildCoverage } from '../engine/platform'
 import { COVERAGE_DISCLAIMER, PLAN_TIERS } from '../data/coverage'
 import { CloverMark } from './CloverMark'
 import { Icon } from './Icon'
+import { Quiet } from './Quiet'
 
 export function Coverage({ pet, projection }: { pet: PetProfile; projection: Projection }) {
   const [tierId, setTierId] = useState('complete')
   const [showMath, setShowMath] = useState(false)
   const c = buildCoverage(pet, projection, tierId)
+
+  // Null once a pet has died. No policy can be bound today (canBind is false),
+  // so there is no live policy to show here; what happens to one when there
+  // is belongs to the carrier programme (BACKLOG B4), not to this screen.
+  if (!c) {
+    return (
+      <Quiet label="Coverage" pet={pet}>
+        There is no cover to offer for {pet.name}, and we are not going to price one.
+      </Quiet>
+    )
+  }
 
   return (
     <div className="mx-auto w-full max-w-shell px-5 pb-24 pt-8 sm:pt-10">

@@ -109,6 +109,40 @@ ok('the record is one tap away', (await page.getByRole('button', { name: /Scout.
 ok('no activity story', !/activity is down|steps today|is down \d+%/i.test(t))
 ok('and no present-tense framing of their week', !/\bthis week\b/i.test(t), t.slice(0, 160))
 
+// UAT run 1, D19: the first version of this script checked Life's offers,
+// Home, Shop and the Health File, and four other tabs kept going. So every tab
+// is visited now, alive first as a control, then after.
+console.log('\nEvery tab — control while alive')
+const TAB_TALK = {
+  life: [/on track for/i, /healthy years/i, /What comes next/i, /What matters for a/i],
+  rewards: [/this week/i, /streak/i, /Redeem/i, /\d+ points|CLOVARA POINTS/i],
+  care: [/Should I be worried/i, /What would you like to know/i, /right now/i],
+  coverage: [/per month|a month/i, /Take this cover/i, /reimbursement/i],
+}
+for (const [tab, res] of Object.entries(TAB_TALK)) {
+  t = await seed({}, `#/pet/pet-rem/${tab}`)
+  ok(`${tab} is talking while they are alive`, res.every((re) => re.test(t)), res.filter((re) => !re.test(t)).join(' '))
+}
+
+console.log('\nEvery tab — quiet after')
+for (const [tab, res] of Object.entries(TAB_TALK)) {
+  t = await seed({ diedOn: daysAgo(20) }, `#/pet/pet-rem/${tab}`)
+  const hits = res.filter((re) => re.test(t)).map((re) => (t.match(re) || [''])[0])
+  ok(`${tab} goes quiet`, hits.length === 0, hits.join(' | '))
+  ok(`${tab} still leads back to the record`, (await page.locator('a[href="#/health/pet-rem"]').count()) >= 1)
+}
+// Reached the way a person reaches it — from Scout's own Coverage — because
+// a cold load of #/protect acts on whichever pet is active, which is Max.
+await seed({ diedOn: daysAgo(20) }, '#/pet/pet-rem/coverage')
+await page.evaluate(() => { window.location.hash = '#/protect' })
+await page.waitForTimeout(900)
+t = await page.locator('body').innerText()
+ok('and #/protect prices nothing', /PROTECT/i.test(t) && !/\$\d/.test(t) && !/Protect Scout for/i.test(t), t.slice(0, 160))
+
+t = await seed({ diedOn: daysAgo(20) }, '#/pet/pet-rem/life')
+ok('Life says how long they lived instead', /Scout.s life/i.test(t) && /\d+ years?\b/.test(t))
+ok('and the stages they lived through, not the ones to come', /lived through/i.test(t) && !/What comes next/i.test(t))
+
 console.log('\nThe shop stops recommending')
 t = await seed({ diedOn: daysAgo(20) }, '#/pet/pet-rem/shop')
 ok(

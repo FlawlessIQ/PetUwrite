@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { project } from './project'
 import {
   buildCompanion,
-  buildCoverage,
+  buildCoverage as buildCoverageOrNull,
   buildHome,
-  buildRewards,
+  buildRewards as buildRewardsOrNull,
   clovaraScore,
   recommendProducts,
 } from './platform'
@@ -14,6 +14,10 @@ import { PRODUCTS } from '../data/products'
 import { REDEMPTIONS, POINT_RULES } from '../data/rewards'
 import { RIDER_ITEMS } from '../data/coverage'
 import type { PetProfile } from '../data/types'
+
+// Every pet priced in this file is alive; a remembered pet gets null (remember.test.ts).
+const buildCoverage = (...a: Parameters<typeof buildCoverageOrNull>) => buildCoverageOrNull(...a)!
+const buildRewards = (...a: Parameters<typeof buildRewardsOrNull>) => buildRewardsOrNull(...a)!
 
 const NOW = new Date('2026-08-14T12:00:00Z')
 

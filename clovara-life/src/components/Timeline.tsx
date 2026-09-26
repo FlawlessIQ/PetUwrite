@@ -13,7 +13,26 @@ const STATUS_COPY: Record<LifeStage['status'], string> = {
   future: 'What comes next',
 }
 
-export function Timeline({ projection, name }: { projection: Projection; name: string }) {
+/** For a pet who has died: what they lived through, not what to plan for. */
+const REMEMBERED_COPY: Record<LifeStage['status'], string> = {
+  past: 'Lived through',
+  current: 'The stage they reached',
+  future: '',
+}
+
+export function Timeline({
+  projection,
+  name,
+  remembered = false,
+}: {
+  projection: Projection
+  name: string
+  remembered?: boolean
+}) {
+  // The stages still to come, and the advice on every stage, are a plan for a
+  // life that is going on. A remembered pet keeps the stages they lived.
+  const stages = remembered ? projection.stages.filter((s) => s.status !== 'future') : projection.stages
+  const copy = remembered ? REMEMBERED_COPY : STATUS_COPY
   return (
     <section className="card overflow-hidden" aria-labelledby="timeline-heading">
       <div className="border-b border-line bg-cream/50 px-5 py-4 sm:px-6">
@@ -21,15 +40,17 @@ export function Timeline({ projection, name }: { projection: Projection; name: s
           {name}'s life journey
         </h2>
         <p className="mt-1 text-body-lg leading-snug text-ink-2">
-          What has happened, what matters now, and what to plan for — shaped by breed and age.
+          {remembered
+            ? `The stages ${name} lived through.`
+            : 'What has happened, what matters now, and what to plan for — shaped by breed and age.'}
         </p>
       </div>
 
       <ol className="relative px-5 py-2 sm:px-6">
-        {projection.stages.map((stage, i) => {
+        {stages.map((stage, i) => {
           const isCurrent = stage.status === 'current'
           const isPast = stage.status === 'past'
-          const last = i === projection.stages.length - 1
+          const last = i === stages.length - 1
 
           return (
             <li key={stage.id} className="relative pb-7 pl-8 pt-6 sm:pl-10">
@@ -68,7 +89,7 @@ export function Timeline({ projection, name }: { projection: Projection; name: s
                     isCurrent ? 'bg-sage text-deep' : 'text-ink-2'
                   }`}
                 >
-                  {STATUS_COPY[stage.status]}
+                  {copy[stage.status]}
                 </span>
               </div>
 
@@ -76,6 +97,7 @@ export function Timeline({ projection, name }: { projection: Projection; name: s
                 {stage.summary}
               </p>
 
+              {!remembered && (
               <ul className="mt-3 space-y-2">
                 {stage.recommendations.map((r, idx) => (
                   <li key={idx} className="flex gap-2.5 text-body-lg leading-relaxed text-ink/85">
@@ -89,6 +111,7 @@ export function Timeline({ projection, name }: { projection: Projection; name: s
                   </li>
                 ))}
               </ul>
+              )}
             </li>
           )
         })}

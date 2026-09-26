@@ -4,10 +4,24 @@ import { scriptedTurns } from '../companion/script'
 import { buildCompanion } from '../engine/platform'
 import { AskCompanion } from './AskCompanion'
 import { ScriptedConversation } from './companion/Conversation'
+import { isRemembered } from '../engine/remember'
+import { Quiet } from './Quiet'
 
 export function Companion({ pet, projection }: { pet: PetProfile; projection: Projection }) {
   const turns = useMemo(() => scriptedTurns(buildCompanion(pet, projection)), [pet, projection])
   const knownSince = new Date(pet.birthDate).getFullYear()
+
+  // The thread is empty for a remembered pet (buildCompanion). The Ask box
+  // goes too: "What would you like to know about {name}?" is a question about
+  // how they are doing, and the Remember pass promises those have stopped.
+  if (isRemembered(pet)) {
+    return (
+      <Quiet label="Companion" pet={pet}>
+        The companion has stopped. Everything it knew about {pet.name} is in their record, and the
+        one-page summary is still there if a vet ever asks for it.
+      </Quiet>
+    )
+  }
 
   return (
     <div className="mx-auto w-full max-w-[760px] px-5 pb-24 pt-8 sm:pt-10">

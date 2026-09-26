@@ -3,6 +3,17 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## UAT fixes, round two (BACKLOG U4–U5, branch `uat-fixes-2`, not yet deployed)
+
+- **Every tab goes quiet when a pet has died, not just Home.** Life no longer
+  forecasts healthy years: it says how long they lived, their dates, and the
+  stages they lived through — no stages to come, no advice, no breed risks.
+  Rewards, Care, Coverage and Protect each say one plain line and lead back to
+  the record. Their age stops at the day they died, everywhere.
+- **"Find the nearest vet open now" on the collapse screen.** "Stop and ring a
+  vet now" offered only poison lines; it now has the same lookup as "ate
+  something".
+
 ## UAT fixes (BACKLOG U1–U3, deployed 2026-09-26 from branch `uat-fixes`)
 
 - **Home goes quiet when a pet has died.** No plan-accuracy meter and no "add

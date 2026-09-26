@@ -83,6 +83,9 @@ export const MockRatingAdapter: RatingAdapter = {
 
   quote(pet, projection, opts) {
     const view = buildCoverage(pet, projection, opts.tierId)
+    // Unreachable through the app — App routes a remembered pet's #/protect to
+    // a quiet screen — and a throw rather than a price if that ever breaks.
+    if (!view) throw new Error('No cover is priced for a pet who has died')
     const riderPrice = opts.rider ? RIDER_PRICE[pet.species] : 0
     return {
       tier: view.tier,

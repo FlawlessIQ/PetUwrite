@@ -16,6 +16,8 @@ import { PetAvatar } from './components/PetAvatar'
 import { AccountSheet } from './components/AccountSheet'
 import { useAuth } from './auth/AuthProvider'
 import { displayNameFor, greetingNameFor } from './auth/session'
+import { isRemembered } from './engine/remember'
+import { Quiet } from './components/Quiet'
 import { track } from './analytics/track'
 import { takeTimeToReveal } from './analytics/timing'
 import { clearLocalPets } from './store/localPets'
@@ -567,6 +569,10 @@ export default function App() {
               }}
             />
           </Suspense>
+        ) : protectRoute && active && isRemembered(active) ? (
+          <Quiet label="Protect" pet={active}>
+            There is no cover to offer for {active.name}, and we are not going to price one.
+          </Quiet>
         ) : protectRoute && active ? (
           <Suspense
             fallback={<div className="mx-auto max-w-shell px-5 py-10 text-ink-2">Loading…</div>}

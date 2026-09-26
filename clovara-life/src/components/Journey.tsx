@@ -17,6 +17,7 @@ import { Remembering } from './Remembering'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
 import { Icon } from './Icon'
+import { longDate } from '../share/cardLayout'
 
 /**
  * What the one Health File line says.
@@ -119,6 +120,25 @@ export function Journey({
         )}
       </header>
 
+      {/* Once a pet has died the projection is a forecast for somebody who is
+          not here — "on track for 12.9–15.2 healthy years" a day after. The
+          engine froze their age at the date (project.ts); this says what it
+          was, and nothing about what might have been. */}
+      {remembered && (
+        <section className="card mb-5 px-5 py-7 sm:px-8" aria-labelledby="life-heading">
+          <h2 id="life-heading" className="label">
+            {pet.name}&rsquo;s life
+          </h2>
+          <p className="mt-2 font-display text-display-lg leading-tight text-ink">
+            {ageLabel(projection.ageYears).replace(/ old$/, '')}
+          </p>
+          <p className="mt-2 text-body-lg text-ink-2">
+            {pet.birthDateApprox ? 'Born around ' : ''}
+            {longDate(pet.birthDate)} – {longDate(pet.diedOn!)}
+          </p>
+        </section>
+      )}
+      {!remembered && (
       <section className="card mb-5 overflow-hidden" aria-labelledby="projection-heading">
         <div className="grid gap-6 px-5 py-7 sm:px-8 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:gap-10">
           <div className="flex flex-col justify-center">
@@ -154,6 +174,7 @@ export function Journey({
           </div>
         </div>
       </section>
+      )}
 
       {/* ── Body ─────────────────────────────────────────────────────────── */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
@@ -246,14 +267,16 @@ export function Journey({
               <Icon name="arrow-right" size={18} className="text-ink-2" />
             </a>
           )}
-          <Timeline projection={projection} name={pet.name} />
+          <Timeline projection={projection} name={pet.name} remembered={remembered} />
         </div>
         <div className="space-y-5">
           {!remembered && (
             <Levers projection={projection} state={levers} onChange={setLevers} baseline={baseline} />
           )}
-          <RiskCards projection={projection} name={pet.name} />
-          <Methodology projection={projection} />
+          {/* What to watch for next, and how a forecast was made — neither
+              means anything once there is no forecast. */}
+          {!remembered && <RiskCards projection={projection} name={pet.name} />}
+          {!remembered && <Methodology projection={projection} />}
         </div>
       </div>
     </div>
