@@ -319,9 +319,9 @@ New in run 2:
 
 | # | Case | What happened | Expected | Sev | Screenshot | Found by | Status |
 |---|---|---|---|---|---|---|---|
-| **N3** | A5.2 | After "Check it", the urgent answer is neither scrolled to nor announced: no `scrollIntoView`, no `aria-live`. At 500×756 the headline lands at 522px with the matched signs and numbers below the fold; on a phone with the keyboard still up it may be hidden entirely | The answer comes into view, and a screen reader hears it | **2** | — | Claude | fixed on `uat-fixes-4` (U8) |
-| **N1** | A1.5, A7.1 | With no answers to build a lever on (the D3 fix), Home's nudge falls back to "ON TRACK · Nothing needs attention this week · Bruno is doing well on everything we can see from here" — for a puppy added a minute ago, and for a senior with hip dysplasia — followed by "Ask the companion about it" with no "it" | Say how little we can see, or ask for the next answer; no companion prompt without a subject | 3 | — | Claude | fixed on `uat-fixes-4` (U8) |
-| **N2** | A3.1 | Never-asked review questions keep their re-check wording — "Anything diagnosed *since last year*?", "Neutered or spayed *since*?" — beside "Answer it" | Worded as a first question | 4 | — | Claude | fixed on `uat-fixes-4` (U8) |
+| **N3** | A5.2 | After "Check it", the urgent answer is neither scrolled to nor announced: no `scrollIntoView`, no `aria-live`. At 500×756 the headline lands at 522px with the matched signs and numbers below the fold; on a phone with the keyboard still up it may be hidden entirely | The answer comes into view, and a screen reader hears it | **2** | — | Claude | fixed and deployed (U8) |
+| **N1** | A1.5, A7.1 | With no answers to build a lever on (the D3 fix), Home's nudge falls back to "ON TRACK · Nothing needs attention this week · Bruno is doing well on everything we can see from here" — for a puppy added a minute ago, and for a senior with hip dysplasia — followed by "Ask the companion about it" with no "it" | Say how little we can see, or ask for the next answer; no companion prompt without a subject | 3 | — | Claude | fixed and deployed (U8) |
+| **N2** | A3.1 | Never-asked review questions keep their re-check wording — "Anything diagnosed *since last year*?", "Neutered or spayed *since*?" — beside "Answer it" | Worded as a first question | 4 | — | Claude | fixed and deployed (U8) |
 
 ### Run 1 — Track A, 2026-09-26, Claude in Chrome, production (after U1–U3 deployed)
 

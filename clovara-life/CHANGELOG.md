@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## UAT fixes, round four (BACKLOG U8, branch `uat-fixes-4`, not yet deployed)
+## UAT fixes, round four (BACKLOG U8, deployed 2026-09-26 from branch `uat-fixes-4`)
 
 - **The urgent answer comes to you.** After "Check it" on "something is
   wrong", the answer's heading takes focus: it scrolls into view, the phone

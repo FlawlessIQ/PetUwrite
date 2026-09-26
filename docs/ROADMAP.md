@@ -196,7 +196,7 @@ day): 43 of 45 pass, 1 fails, 19 defects — one Sev 1 (the Remember pass leaks 
 Coverage) and one Sev 2 (no find-a-vet on the collapse screen). BACKLOG U4–U7; defect log in the plan §8. U4 and U5 fixed and deployed from branch `uat-fixes-2`; U6 and U7 fixed and deployed from branch
 `uat-fixes-3` (2026-09-26). Every run-1 defect is fixed and live. **Run 2** (500px, after the fixes): 44 of 45 pass, 18 of 19
 run-1 defects confirmed live, and three new ones — BACKLOG U8, the worst a Sev 2: the urgent answer on
-"something is wrong" is not scrolled into view or announced. U8 fixed on branch `uat-fixes-4`, not yet deployed.
+"something is wrong" is not scrolled into view or announced. U8 fixed and deployed from branch `uat-fixes-4` (2026-09-26).
 
 ## Backlog batch (2026-09-26, branch `backlog-batch`)
 
