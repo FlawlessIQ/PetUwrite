@@ -193,8 +193,8 @@ above is the starting point, not the finish.
 production (2026-09-25) found four defects to fix first; K1–K4 (BACKLOG U1–U3) are **fixed and
 deployed** from branch `uat-fixes` (2026-09-26). **Run 1** (Track A, desktop, Claude in Chrome, same
 day): 43 of 45 pass, 1 fails, 19 defects — one Sev 1 (the Remember pass leaks on Life, Rewards, Care and
-Coverage) and one Sev 2 (no find-a-vet on the collapse screen). BACKLOG U4–U7; defect log in the plan §8. U4 and U5 fixed and deployed from branch `uat-fixes-2`; U6 and U7 fixed on branch `uat-fixes-3`, not yet
-deployed (2026-09-26). Every run-1 defect is now fixed.
+Coverage) and one Sev 2 (no find-a-vet on the collapse screen). BACKLOG U4–U7; defect log in the plan §8. U4 and U5 fixed and deployed from branch `uat-fixes-2`; U6 and U7 fixed and deployed from branch
+`uat-fixes-3` (2026-09-26). Every run-1 defect is fixed and live.
 
 ## The plan
 

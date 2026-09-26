@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## UAT fixes, round three (BACKLOG U6–U7, branch `uat-fixes-3`, not yet deployed)
+## UAT fixes, round three (BACKLOG U6–U7, deployed 2026-09-26 from branch `uat-fixes-3`)
 
 - **A default is not an answer.** The levers no longer show a choice nobody
   made, the score no longer names defaults ("Intact", "Weekly") as facts, Home's
