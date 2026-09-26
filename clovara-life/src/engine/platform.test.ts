@@ -342,7 +342,7 @@ describe('home', () => {
     for (const pet of DEMO_PETS) {
       const h = buildHome(pet, p(pet))
       expect(h.nudge.title.length).toBeGreaterThan(8)
-      expect(h.score.value).toBeGreaterThan(0)
+      expect(h.score?.value).toBeGreaterThan(0)
       expect(h.stepsTrend.length).toBe(7)
       expect(h.steps).toBeGreaterThan(0)
     }

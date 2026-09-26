@@ -559,7 +559,13 @@ function secondClause(watch: string): string {
 // ───────────────────────────────────────────────────────────────────────────
 
 export interface HomeView {
-  score: Score
+  /**
+   * Null once a pet has died. A score and its "on track, with room" headline
+   * are a verdict on how somebody is doing now; the record keeps the inputs,
+   * but Home stops grading them (SPEC-HORIZON §2.5). Null rather than a flag
+   * so a surface cannot render it without checking.
+   */
+  score: Score | null
   steps: number
   stepsTrend: number[]
   trendDown: boolean
@@ -568,7 +574,9 @@ export interface HomeView {
 }
 
 export function buildHome(profile: PetProfile, projection: Projection): HomeView {
-  const score = clovaraScore(profile, projection)
+  const remembered = isRemembered(profile)
+  const graded = clovaraScore(profile, projection)
+  const score = remembered ? null : graded
 
   // Through the adapter (SPEC §6.9), not from a hash in here. When a partner
   // SDK lands it implements FitnessProvider and this line does not change.
@@ -577,9 +585,9 @@ export function buildHome(profile: PetProfile, projection: Projection): HomeView
   const trend = reading.trend
   const trendDown = reading.belowNormal
 
-  const gap = score.biggestGap
+  const gap = graded.biggestGap
   // No nudge, no activity story, nothing that speaks of them in the present.
-  const nudge = isRemembered(profile)
+  const nudge = remembered
     ? {
         eyebrow: 'Remembering',
         title: `${profile.name}'s record is still here`,
@@ -615,7 +623,8 @@ export function buildHome(profile: PetProfile, projection: Projection): HomeView
     stepsTrend: trend,
     trendDown,
     nudge,
-    comingUp: rider
+    // A wellness-rider appointment is a reminder that something is due.
+    comingUp: rider && !remembered
       ? { title: rider.label, detail: rider.because, covered: true }
       : null,
   }

@@ -1,6 +1,6 @@
 # Clovara Roadmap — living document
 
-Last updated: 2026-09-25 (maintained by Claude Code per CLAUDE.md)
+Last updated: 2026-09-26 (maintained by Claude Code per CLAUDE.md)
 
 Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cut(<why>)`
 
@@ -186,6 +186,12 @@ above is the starting point, not the finish.
   paint is 452ms, so splitting them would mean refactoring `project()` — the most load-bearing code
   in the repo — against a problem that does not exist. Revisit only if a real user on a real
   connection complains.
+
+## UAT (BACKLOG P5)
+
+`docs/UAT-PLAN.md` — Bruno, a Labrador, nine weeks to goodbye, in Chrome. The dry-run against
+production (2026-09-25) found four defects to fix first; K1–K4 (BACKLOG U1–U3) are **fixed on
+branch `uat-fixes`, not yet deployed** (2026-09-26). The UAT should run after that deploy.
 
 ## The plan
 

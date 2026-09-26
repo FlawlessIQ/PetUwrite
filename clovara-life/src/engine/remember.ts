@@ -56,6 +56,9 @@ export const MUST_GO_QUIET = [
   'contextual asks',
   'lump diary prompts',
   'protect offer',
+  // UAT K2: a score and its verdict are a judgement on how somebody is doing now.
+  'clovara score',
+  'wellness rider appointments',
 ] as const
 
 /** What stays reachable, because taking it away would be its own cruelty. */

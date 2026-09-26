@@ -5,6 +5,7 @@ import { gotchaState } from './gotchaDay'
 import { vaccineState } from './vaccines'
 import { passportState } from './passport'
 import { buildHome, recommendProducts } from './platform'
+import { planAccuracy } from './accuracy'
 import { asksFor } from '../data/askRegistry'
 import { project } from './project'
 import type { PetProfile } from '../data/types'
@@ -81,6 +82,28 @@ describe('EVERY surface that would otherwise carry on', () => {
       expect(asksFor(trigger, died()), trigger).toHaveLength(0)
     }
     expect(asksFor('life', alive()).length, 'control').toBeGreaterThan(0)
+  })
+
+  // UAT K1–K2: listed here from the start, and still shown on Home after a
+  // death — "72% sharp — add neutered or spayed to reach 81%". Enumerating the
+  // list is not the same as proving each item.
+  it('the plan stops asking to be sharpened', () => {
+    expect(planAccuracy(alive()).showOnHome, 'control').toBe(true)
+    expect(planAccuracy(alive()).nextBest, 'control').not.toBeNull()
+    const a = planAccuracy(died())
+    expect(a.showOnHome).toBe(false)
+    expect(a.nextBest).toBeNull()
+    expect(a.scoreWithNextBest).toBe(a.score)
+  })
+
+  it('Home stops grading them, and nothing is coming up', () => {
+    // A puppy's stage has a wellness-rider item, so the control has one.
+    const pup = { birthDate: '2026-06-24' }
+    expect(buildHome(alive(pup), proj(alive(pup))).score, 'control').not.toBeNull()
+    expect(buildHome(alive(pup), proj(alive(pup))).comingUp, 'control').not.toBeNull()
+    const home = buildHome(died(pup), proj(died(pup)))
+    expect(home.score).toBeNull()
+    expect(home.comingUp).toBeNull()
   })
 
   it('the home nudge stops talking about them in the present', () => {

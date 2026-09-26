@@ -104,10 +104,13 @@ export function Home({
   pet,
   projection,
   onNavigate,
+  greetName = null,
 }: {
   pet: PetProfile
   projection: Projection
   onNavigate: (s: Surface) => void
+  /** The signed-in person's first name; null greets nobody by name. */
+  greetName?: string | null
 }) {
   const [scoreOpen, setScoreOpen] = useState(false)
   const accuracy = planAccuracy(pet)
@@ -121,9 +124,14 @@ export function Home({
   return (
     <div className="mx-auto w-full max-w-shell px-5 pb-24 pt-8 sm:pt-10">
       <header className="mb-6">
-        <p className="text-lead text-ink-2">{greeting()}, Conor</p>
+        <p className="text-lead text-ink-2">
+          {greeting()}
+          {greetName ? `, ${greetName}` : ''}
+        </p>
+        {/* "{name}'s day" is present tense; once they have died it is just
+            their name. */}
         <h1 className="mt-0.5 font-display text-display-lg leading-[1.1] text-ink sm:text-display-xl">
-          {pet.name}'s day
+          {remembered ? pet.name : `${pet.name}'s day`}
         </h1>
       </header>
 
@@ -185,6 +193,19 @@ export function Home({
           <Briefing pet={pet} projection={projection} />
 
           {/* ── Score ─────────────────────────────────────────────────── */}
+          {/* No score once they have died — buildHome returns none. The record
+              stays one tap away instead. */}
+          {remembered && (
+            <button
+              type="button"
+              onClick={() => onNavigate('life')}
+              className="flex w-full items-center justify-between gap-3 rounded-card border border-line bg-white px-5 py-4 text-left"
+            >
+              <span className="text-lead text-ink">{pet.name}&rsquo;s record</span>
+              <Icon name="arrow-right" size={18} className="text-ink-2" />
+            </button>
+          )}
+          {h.score && (
           <section className="card px-5 py-6 sm:px-6" aria-labelledby="score-heading">
             <div className="flex flex-wrap items-center gap-5 sm:flex-nowrap">
               <ScoreRing value={h.score.value} />
@@ -210,9 +231,7 @@ export function Home({
                   onClick={() => onNavigate('life')}
                   className="mt-2 text-body text-forest hover:text-deep text-action"
                 >
-                  {remembered
-                    ? `${pet.name}'s record`
-                    : `On track for ${projection.healthyYearsRange.low.toFixed(1)}–${projection.healthyYearsRange.high.toFixed(1)} healthy years`}
+                  On track for {projection.healthyYearsRange.low.toFixed(1)}–{projection.healthyYearsRange.high.toFixed(1)} healthy years
                 </button>
               </div>
             </div>
@@ -221,7 +240,7 @@ export function Home({
             <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
               <div className="rounded-soft bg-cream px-4 py-3">
                 <p className="font-display text-heading-sm font-semibold leading-none text-ink">
-                  {remembered ? '—' : h.steps.toLocaleString()}
+                  {h.steps.toLocaleString()}
                 </p>
                 <p className="mt-1 text-body-sm text-ink-2">
                   {isCat ? 'Active minutes' : 'Steps'} today · CloTag
@@ -275,6 +294,7 @@ export function Home({
               )}
             </div>
           </section>
+          )}
 
           {/* ── Nudge ─────────────────────────────────────────────────── */}
           <section className="card border-l-[3px] border-l-accent bg-nudge-fill px-5 py-5 sm:px-6">
@@ -285,14 +305,18 @@ export function Home({
               {h.nudge.title}
             </h2>
             <p className="mt-1.5 text-body-lg leading-relaxed text-ink-2">{h.nudge.body}</p>
-            {!remembered && <Sparkline points={h.stepsTrend} down={h.trendDown} />}
-            <button
-              type="button"
-              onClick={() => onNavigate('care')}
-              className="mt-2 text-body font-medium text-forest hover:text-deep text-action"
-            >
-              Ask the companion about it
-            </button>
+            {!remembered && (
+              <>
+                <Sparkline points={h.stepsTrend} down={h.trendDown} />
+                <button
+                  type="button"
+                  onClick={() => onNavigate('care')}
+                  className="mt-2 text-body font-medium text-forest hover:text-deep text-action"
+                >
+                  Ask the companion about it
+                </button>
+              </>
+            )}
           </section>
         </div>
 
@@ -337,6 +361,9 @@ export function Home({
             <p className="mt-1 text-body-lg leading-relaxed text-ink-2">
               {projection.currentStage.summary}
             </p>
+            {/* The recommendations are advice for a living animal — the
+                "suggestions" the Remember pass promises have stopped. */}
+            {!remembered && (
             <ul className="mt-3 space-y-2">
               {projection.currentStage.recommendations.slice(0, 3).map((rec, i) => (
                 <li key={i} className="flex gap-2.5 text-body leading-relaxed text-ink/80">
@@ -345,6 +372,8 @@ export function Home({
                 </li>
               ))}
             </ul>
+            )}
+            {!remembered && (
             <button
               type="button"
               onClick={() => onNavigate('life')}
@@ -352,6 +381,7 @@ export function Home({
             >
               See the full life plan
             </button>
+            )}
           </section>
 
           {/* ── Points ────────────────────────────────────────────────── */}

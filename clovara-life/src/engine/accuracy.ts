@@ -29,6 +29,7 @@
  */
 import type { Breed, PetProfile } from '../data/types'
 import { findBreed } from '../data/engine'
+import { isRemembered } from './remember'
 
 export interface AccuracyField {
   /** Matches the PetProfile key, so the UI can route to the right control. */
@@ -237,7 +238,12 @@ export function planAccuracy(profile: PetProfile): PlanAccuracy {
   const cap = ceiling?.max ?? 100
   const score = Math.round(Math.min(raw, cap))
 
-  const nextBest = fields.find((f) => !f.answered) ?? null
+  // Once a pet has died there is nothing left to sharpen (SPEC-HORIZON §2.5,
+  // MUST_GO_QUIET 'plan-accuracy nagging'). The score is still computed — the
+  // record keeps it — but nothing asks for the next answer, and Home has no
+  // reason to show the meter.
+  const remembered = isRemembered(profile)
+  const nextBest = remembered ? null : (fields.find((f) => !f.answered) ?? null)
   const withNext = nextBest
     ? Math.round(
         Math.min(TIER0_POINTS + ((earned + nextBest.points) / total) * TIER1_POINTS, cap),
@@ -250,7 +256,7 @@ export function planAccuracy(profile: PetProfile): PlanAccuracy {
     scoreWithNextBest: withNext,
     fields,
     ceiling,
-    showOnHome: score <= 90,
+    showOnHome: !remembered && score <= 90,
   }
 }
 

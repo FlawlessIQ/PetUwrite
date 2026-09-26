@@ -172,3 +172,18 @@ export function displayNameFor(user: { displayName?: string | null; email?: stri
   if (email) return email.split('@')[0]
   return 'your account'
 }
+
+/**
+ * The name to greet someone by, or null to greet nobody by name.
+ *
+ * Stricter than displayNameFor: that one must always say something, this one
+ * must only say something true. An email local part ("j.smith1983") is fine as
+ * an account label and wrong in "Good morning, …", so only a display name the
+ * person (or their provider) chose counts, and only its first word.
+ */
+export function greetingNameFor(
+  user: { displayName?: string | null } | null | undefined,
+): string | null {
+  const first = user?.displayName?.trim().split(/\s+/)[0]
+  return first ? first : null
+}

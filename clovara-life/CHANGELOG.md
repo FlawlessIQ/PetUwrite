@@ -3,6 +3,18 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## UAT fixes (BACKLOG U1–U3, branch `uat-fixes`, not yet deployed)
+
+- **Home goes quiet when a pet has died.** No plan-accuracy meter and no "add
+  neutered or spayed", no Clovara Score and no "On track…", nothing coming up,
+  no "Ask the companion about it", no stage advice. The heading is the pet's
+  name, not "{name}'s day", and the record is one tap away. Enforced in the
+  engines, so a surface that forgets to check has nothing to show.
+- **Nobody is greeted as Conor.** Home greets by the first word of the
+  signed-in display name, or by no name at all.
+- **"about 1 hour"**, not "about 1 hours", in the first half hour of First
+  Nights.
+
 ## The companion on the kit (BACKLOG D-UI8, deployed 2026-09-25 from branch `d-ui8`)
 
 - **Every companion reply is blocks now.** The grounded answers, the red-flag

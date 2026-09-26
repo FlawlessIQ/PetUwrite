@@ -85,9 +85,27 @@ ok(
   !/\b(another pet|new pet|second pet|adopt a|get a (puppy|kitten)|ready for another)\b/i.test(t),
 )
 
+console.log('\nControl — Home is grading and asking while they are alive')
+t = await seed({}, '#/pet/pet-rem/home')
+// These are the exact strings the UAT dry-run found still on Home after a
+// death (K1–K2). The old check here looked for "Sharpen" and missed "sharp".
+const GRADING = [
+  ['the plan-accuracy meter', /\d+% sharp/i],
+  ['the next answer to add', /\bAdd (body condition|anything diagnosed|neutered or spayed|activity level|dental routine|indoor or outdoor|age at neutering|how they eat)\b/i],
+  ['the Clovara Score', /Clovara\s+Score/i],
+  ['the score verdict', /\bOn track\b/i],
+  ['the present-tense heading', /Scout's day/],
+  ['the companion prompt', /Ask the companion about it/i],
+]
+for (const [label, re] of GRADING) ok(`${label} is there`, re.test(t))
+// UAT K3: every visitor was greeted as "Conor". Signed out, nobody is named.
+ok('a signed-out visitor is greeted by no name', /Good (morning|afternoon|evening)\n/.test(t) && !/Good (morning|afternoon|evening), /.test(t), t.slice(0, 80))
+
 console.log('\nThe home surface goes quiet too')
 t = await seed({ diedOn: daysAgo(20) }, '#/pet/pet-rem/home')
 ok('the nudge stops talking in the present', /record is still here/i.test(t))
+for (const [label, re] of GRADING) ok(`${label} is gone`, !re.test(t), (t.match(re) || [''])[0])
+ok('the record is one tap away', (await page.getByRole('button', { name: /Scout.s record/ }).count()) >= 1)
 ok('no activity story', !/activity is down|steps today|is down \d+%/i.test(t))
 ok('and no present-tense framing of their week', !/\bthis week\b/i.test(t), t.slice(0, 160))
 

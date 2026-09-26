@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   authErrorMessage,
   displayNameFor,
+  greetingNameFor,
   errorCode,
   looksLikeEmail,
   looksLikeSignInLink,
@@ -92,6 +93,21 @@ describe('displayNameFor', () => {
     expect(displayNameFor({}).length).toBeGreaterThan(0)
     expect(displayNameFor({ displayName: null, email: null }).length).toBeGreaterThan(0)
     expect(displayNameFor({ displayName: '', email: '' }).length).toBeGreaterThan(0)
+  })
+})
+
+describe('greetingNameFor', () => {
+  it('greets by the first word of a chosen name', () => {
+    expect(greetingNameFor({ displayName: 'Conor Lawless' })).toBe('Conor')
+    expect(greetingNameFor({ displayName: '  Aoife  ' })).toBe('Aoife')
+  })
+
+  it('greets nobody by name rather than by an email address or a guess', () => {
+    expect(greetingNameFor(null)).toBeNull()
+    expect(greetingNameFor({ displayName: null })).toBeNull()
+    expect(greetingNameFor({ displayName: '   ' })).toBeNull()
+    // Deliberately not typed to take an email: the local part is not a name.
+    expect(greetingNameFor({ displayName: undefined })).toBeNull()
   })
 })
 

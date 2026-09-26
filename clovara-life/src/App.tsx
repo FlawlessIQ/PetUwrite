@@ -15,7 +15,7 @@ import { CloverMark, Wordmark } from './components/CloverMark'
 import { PetAvatar } from './components/PetAvatar'
 import { AccountSheet } from './components/AccountSheet'
 import { useAuth } from './auth/AuthProvider'
-import { displayNameFor } from './auth/session'
+import { displayNameFor, greetingNameFor } from './auth/session'
 import { track } from './analytics/track'
 import { takeTimeToReveal } from './analytics/timing'
 import { clearLocalPets } from './store/localPets'
@@ -616,7 +616,7 @@ export default function App() {
           <Onboarding onComplete={addPet} onCancel={() => setAdding(false)} />
         ) : active ? (
           <div key={`${active.id}-${surface}`} className="reveal">
-            {surface === 'home' && <Home pet={active} projection={projection} onNavigate={go} />}
+            {surface === 'home' && <Home pet={active} projection={projection} onNavigate={go} greetName={greetingNameFor(user)} />}
             {surface === 'care' && <Companion pet={active} projection={projection} />}
             {surface === 'rewards' && (
               <Rewards
