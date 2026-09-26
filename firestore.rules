@@ -579,6 +579,50 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid in lifeHousehold(householdId).memberIds;
     }
 
+    // BACKLOG T2. Every pet field carries its own `updatedBy`, and a member
+    // could write somebody else's uid into it. For each field a write CHANGES,
+    // `updatedBy` must be the writer. A field the write leaves untouched keeps
+    // whoever set it — so a partner editing the weight does not have to "own"
+    // the name the owner typed. Rules have no loops, hence the list; it mirrors
+    // StoredPet in clovara-life/src/data/stored.ts. A field not on it is
+    // unconstrained, as every field was before — T1, the full allowlist, is
+    // still the Firestore review's to decide.
+    function lifeFieldIsTheirs(k) {
+      return !(k in request.resource.data)
+        || (resource != null && k in resource.data && request.resource.data[k] == resource.data[k])
+        || request.resource.data[k].updatedBy == request.auth.uid;
+    }
+
+    function lifePetFieldsAreTheirs() {
+      return lifeFieldIsTheirs('name') &&
+        lifeFieldIsTheirs('species') &&
+        lifeFieldIsTheirs('breedId') &&
+        lifeFieldIsTheirs('birthDate') &&
+        lifeFieldIsTheirs('birthDateApprox') &&
+        lifeFieldIsTheirs('sex') &&
+        lifeFieldIsTheirs('neutered') &&
+        lifeFieldIsTheirs('conditionsReviewed') &&
+        lifeFieldIsTheirs('knownSince') &&
+        lifeFieldIsTheirs('lastReviewedAt') &&
+        lifeFieldIsTheirs('lastReviewedRange') &&
+        lifeFieldIsTheirs('socialStamps') &&
+        lifeFieldIsTheirs('vaccineRecords') &&
+        lifeFieldIsTheirs('careNotes') &&
+        lifeFieldIsTheirs('lumps') &&
+        lifeFieldIsTheirs('diedOn') &&
+        lifeFieldIsTheirs('medications') &&
+        lifeFieldIsTheirs('neuterAgeBand') &&
+        lifeFieldIsTheirs('weightLb') &&
+        lifeFieldIsTheirs('bodyConditionScore') &&
+        lifeFieldIsTheirs('conditionIds') &&
+        lifeFieldIsTheirs('activity') &&
+        lifeFieldIsTheirs('dental') &&
+        lifeFieldIsTheirs('diet') &&
+        lifeFieldIsTheirs('outdoorAccess') &&
+        lifeFieldIsTheirs('photo') &&
+        lifeFieldIsTheirs('headline');
+    }
+
     match /households/{householdId} {
       // `array-contains` on memberIds is the only query this permits, which is
       // exactly the lookup ensureHousehold() performs.
@@ -628,7 +672,8 @@ service cloud.firestore {
       allow delete: if false;
 
       match /pets/{petId} {
-        allow read, write: if lifeIsMember(householdId);
+        allow read, delete: if lifeIsMember(householdId);
+        allow create, update: if lifeIsMember(householdId) && lifePetFieldsAreTheirs();
 
         // P1 lands records/ and events/ here. They hold vet records, which are
         // sensitive enough that ROADMAP carries a security review as a gate

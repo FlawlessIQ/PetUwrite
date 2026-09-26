@@ -241,8 +241,10 @@ describe.skipIf(!ENABLED)('attacking the Life rules', () => {
       members: { mapValue: { fields: {} } },
     })
     const pet = fs.doc(db, 'households', id, 'pets', 'p1')
-    // Allowed today. If this ever starts being denied, the rules gained a
-    // constraint and this test should become an ATTACK that fails.
+    // Allowed today (T1, for the review). If this ever starts being denied, the
+    // rules gained a provenance constraint and this should become an ATTACK.
+    // `updatedBy` is the member's own uid: naming somebody else is T2's attack,
+    // below, and is denied.
     expect(
       await denied(
         fs.setDoc(pet, {
@@ -250,11 +252,51 @@ describe.skipIf(!ENABLED)('attacking the Life rules', () => {
             value: 3,
             provenance: 'vet_verified',
             updatedAt: new Date().toISOString(),
-            updatedBy: 'somebody-else',
+            updatedBy: me.uid,
           },
         }),
       ),
     ).toBe(false)
+  })
+
+  /** BACKLOG T2: `updatedBy` must be the writer, for every field a write changes. */
+  it('ATTACK: write a field as if somebody else had set it', async () => {
+    const me = await signInFreshViaLink(auth, 'atk-author')
+    const id = `hh-author-${Date.now()}`
+    await seedAsAdmin(`households/${id}`, {
+      createdBy: { stringValue: me.uid },
+      memberIds: strArr([me.uid]),
+      members: { mapValue: { fields: {} } },
+    })
+    const pet = fs.doc(db, 'households', id, 'pets', 'p1')
+    const field = (value: unknown, by: string) => ({ value, provenance: 'owner_declared', updatedAt: new Date().toISOString(), updatedBy: by })
+    expect(await denied(fs.setDoc(pet, { weightLb: field(3, 'somebody-else') })), 'create as someone else').toBe(true)
+    expect(await denied(fs.setDoc(pet, { weightLb: field(3, me.uid) })), 'control: create as me').toBe(false)
+    expect(await denied(fs.updateDoc(pet, { dental: field('daily', 'somebody-else') })), 'update as someone else').toBe(true)
+    expect(await denied(fs.updateDoc(pet, { dental: field('daily', me.uid) })), 'control: update as me').toBe(false)
+  })
+
+  /**
+   * The other side of T2: a field a write does not change keeps whoever set it.
+   * A partner updating the weight must not be refused because the owner typed
+   * the name.
+   */
+  it('BOUNDARY: a partner may leave the fields somebody else set alone', async () => {
+    const me = await signInFreshViaLink(auth, 'atk-partner')
+    const id = `hh-partner-${Date.now()}`
+    await seedAsAdmin(`households/${id}`, {
+      createdBy: { stringValue: 'the-owner' },
+      memberIds: strArr(['the-owner', me.uid]),
+      members: { mapValue: { fields: {} } },
+    })
+    const at = new Date().toISOString()
+    await seedAsAdmin(`households/${id}/pets/p1`, {
+      name: { mapValue: { fields: { value: { stringValue: 'Bruno' }, provenance: { stringValue: 'owner_declared' }, updatedAt: { stringValue: at }, updatedBy: { stringValue: 'the-owner' } } } },
+    })
+    const pet = fs.doc(db, 'households', id, 'pets', 'p1')
+    const mine = { value: 70, provenance: 'owner_declared', updatedAt: new Date().toISOString(), updatedBy: me.uid }
+    expect(await denied(fs.updateDoc(pet, { weightLb: mine })), 'update one field').toBe(false)
+    expect(await denied(fs.setDoc(pet, { weightLb: mine }, { merge: true })), 'merge one field').toBe(false)
   })
 
   it('ATTACK: reach every pet on the project with a collection-group query', async () => {
