@@ -145,6 +145,44 @@ await page.waitForTimeout(900)
 s = await shown()
 ok('forward returns to Luna', s.pet === 'Luna', JSON.stringify(s))
 
+// UAT run 1, D6: the tab bar kept highlighting whichever tab was last open —
+// Rewards on "something is wrong", Home on the Health File.
+console.log('\nThe tab bar names the section you are in, or none')
+const current = () =>
+  page.evaluate(() => [...new Set([...document.querySelectorAll('nav [aria-current="page"]')].map((e) => e.textContent.trim()))])
+await go('#/pet/demo-max/rewards')
+ok('control: Rewards is current on Rewards', (await current()).join() === 'Rewards', JSON.stringify(await current()))
+await follow('#/wrong')
+ok('"something is wrong" belongs to no tab', (await current()).length === 0, JSON.stringify(await current()))
+await follow('#/ate')
+ok('nor does "ate something"', (await current()).length === 0, JSON.stringify(await current()))
+await go('#/pet/demo-max/home')
+await follow('#/health/demo-max')
+ok('the Health File belongs to Life', (await current()).join() === 'Life', JSON.stringify(await current()))
+await go('#/pet/demo-max/coverage')
+await follow('#/protect')
+ok('Protect belongs to Coverage', (await current()).join() === 'Coverage', JSON.stringify(await current()))
+
+// UAT run 1, D4: "Add body condition" opened Life at the top, leaving the
+// question it named several screens down.
+console.log('\n"Add …" on Home lands on the question')
+await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.evaluate(() => {
+  localStorage.setItem(
+    'clovara-life.pets.v1',
+    JSON.stringify([{ id: 'route-pup', name: 'Pip', species: 'dog', breedId: 'labrador-retriever', birthDate: '2026-07-20', sex: 'male', weightLb: 0, conditionIds: [], knownSince: new Date(Date.now() - 30 * 864e5).toISOString() }]),
+  )
+  window.location.hash = '#/pet/route-pup/home'
+})
+await page.reload({ waitUntil: 'networkidle' })
+await page.waitForTimeout(900)
+await page.getByRole('button', { name: 'Add body condition' }).click()
+await page.waitForTimeout(1200)
+const top = await page.evaluate(() => document.getElementById('sharpen-weightLb')?.getBoundingClientRect().top ?? null)
+ok('the question is on screen, near the top', top !== null && top >= 0 && top < 300, `top=${top}`)
+ok('and we are on Life', /\/life$/.test(await page.evaluate(() => location.hash)))
+await page.evaluate(() => localStorage.removeItem('clovara-life.pets.v1'))
+
 ok('no page errors throughout', errors.length === 0, errors.slice(0, 2).join(' | '))
 
 await browser.close()
