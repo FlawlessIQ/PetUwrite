@@ -302,9 +302,48 @@ agent. Use Chrome profile 1 for **Owner** and profile 2 (or Incognito) for
 
 ## 8. Defect log
 
+### Run 1 — Track A, 2026-09-26, Claude in Chrome, production (after U1–U3 deployed)
+
+Desktop width only (1470px): the Chrome window would not resize to 393px, so **every
+chapter still needs its phone pass** (C1). Signed out. Seeded with `uatSeed` as written,
+except that `uatReset()` was not used — it clears all of localStorage — only the pets key.
+
+**Result: of 45 cases, 43 pass, 1 fails (A8.5), 1 not exercised (A5.4 — tapping a number
+would dial).** Three passes stop short of their last action, each an outward one left for a
+human: A1.4 and A3.4 save/share (a download), and A4.5 pressing "Protect Bruno" (a purchase
+control — the code shows it answers "Binding is not live yet"). The "Find the nearest vet"
+button was not pressed either (it asks for location). C6 passes: the investor demo is intact afterwards.
+
 | # | Case | What happened | Expected | Sev | Screenshot | Found by | Status |
 |---|---|---|---|---|---|---|---|
-| | | | | | | | |
+| **D19** | A8.5 | After "Bruno has died": **Life** still says "Bruno is on track for 12.9–15.2 healthy years"; **Rewards** "973 points · +130 this week, from care streaks and activity", streaks, Redeem; **Care** keeps the Ask box and the scripted "Should I be worried?… Worth a vet's eyes"; **Coverage** "Take this cover for Bruno" with a monthly price. `verify-remember` covers only Life's offers, Home, Shop and the Health File | Nothing asks, suggests, sells or reports activity | **1** | — | Claude | open → BACKLOG U4 |
+| **D17** | A5.2 | "Stop and ring a vet now" (collapse, pale gums) offers only three poison lines. "Find the nearest vet open now" exists on #/ate but not here | A way to find an emergency vet on the most urgent screen | **2** | — | Claude | open → U5 |
+| **D2** | A1.2, A4.2 | "What you can change" shows Body condition *Ideal* and Dental *Weekly* and says "Set to what you told us" — neither was asked (the vet summary correctly says "Not asked") | Defaults not presented as answers | 3 | — | Claude | open → U6 |
+| **D3** | A1.5 | Home's biggest lever for a 9-week-old: "Dental care is the easiest win for Bruno — Weekly." Untold, and his own plan says brush "once the adult teeth are through" | No lever built on an unasked default; nothing age-inappropriate | 3 | — | Claude | open → U6 |
+| **D18** | A5.6 | Add a medication preselects "Twice a day"; saved without choosing, it drives "About 15 days left" | Dosing frequency has no default | 3 | — | Claude | open → U6 |
+| **D11** | A4.3 | Scripted reply: the vet summary has "the last three weigh-ins… and what he is currently taking" — Bruno has one weight and no medication, under "every specific in it is pulled from Bruno's record" | Only what is on the record | 3 | — | Claude | open → U7 |
+| **D9** | A4.3 | Care intro: "built from Bruno's own record — the condition on file" when none is on file | Says what is actually there | 3 | — | Claude | open → U7 |
+| **D12** | A4.5 | That binding is not live appears only after ticking the declaration and pressing "Protect Bruno for $59.13"; the message's "Everything up to this point is real" sits under "This price is illustrative" | Said before the commitment; no contradiction | 3 | — | Claude | open → U7 |
+| **D13** | A4.5 | Coverage "How a claim works": "Auto-reviewed in hours", "Paid straight to your account" with no caveat that no claim can be made; "Bruno was added during this session" for a pet saved earlier | Honest about what exists | 3 | — | Claude | open → U7 |
+| **D14** | A4.6 | Shop: members "earn points back on the products that keep Bruno healthy" | No health claim attached to products — for counsel (A2) | 3 | — | Claude | open → U7 |
+| **D16** | A5.1–2 | "VET-REVIEW: this list is under veterinary review…" shown to customers | The disclosure without the internal tag | 3 | — | Claude | open → U7 |
+| **D1** | A0.2 | Luna: "85% sharp — add anything diagnosed to reach 85%" (capped at 85%) | No promise of a gain that cannot happen | 3 | — | Claude | open → U7 |
+| **D7** | A3.1 | Annual review offers "Still true" on four questions marked "we have never asked" | A first answer, not a confirmation | 3 | — | Claude | open → U7 |
+| **D8** | A3.3 | "Done" stays disabled until all five are answered, under "4 left, none of them required"; pressing it does nothing | Done works after any answer, or says why not | 3 | — | Claude | open → U7 |
+| **D4** | A1.6 | "Add body condition" on Home lands at the top of Life, not at the question | Lands on the question | 3 | — | Claude | open → U7 |
+| **D5** | A1.7, A5.6 | UK examples in a US product: second opinion "about £4,800", sitter "01234 567890", "07700 900000" | Dollars, US numbers | 3 | — | Claude | open → U7 |
+| **D6** | A1.7, A5 | Top nav highlights the previous tab on Health File, #/wrong and #/ate (Home, Rewards) | No tab, or the right one | 4 | — | Claude | open → U7 |
+| **D10** | A4.3 | "He is 4.1 and a Labrador Retriever" | "4 years old" | 4 | — | Claude | open → U7 |
+| **D15** | A4.7 | Rewards: "Monthly weigh-in logged" with frequency "Weekly" | They agree | 4 | — | Claude | open → U7 |
+
+**For the Judge lines** (observations, not defects — Conor's call):
+- A1 · K5 as expected: "6,027 steps · CloTag" and "6 · Dental streak" for a dog added minutes ago; Rewards shows "2/2 care visits done this year".
+- A1 · Breed step: the chosen breed is a sage fill with no border, while the unchosen "Mixed / not sure" has the stronger border.
+- A1 · A nine-week-old's Health File puts the Lump diary above the Passport. Stamped firsts are shown struck through, which can read as cancelled.
+- A2 · The briefing leads with "Around now is when Rabies is usually given" while two DHP doses show "Window passed".
+- A4–A7 · The Clovara Score is 76, "On track, with room in one or two places", at 9 weeks, 4 years, 7 years with hip dysplasia and 10.5 years.
+- A5.2 · At desktop the urgent answer is mid-screen; on a phone it will sit below the text box — check it scrolls into view. For a collapse the only numbers are poison lines (ASPCA charges a fee) — one for the A1 vet reviewer.
+- A6 · Each new question replaces the previous answer; there is no running conversation. The first question typed straight after the page loaded was lost once — not reproduced, worth trying on a phone.
 
 ---
 
