@@ -312,13 +312,15 @@ export function Home({
             {!remembered && (
               <>
                 <Sparkline points={h.stepsTrend} down={h.trendDown} />
-                <button
-                  type="button"
-                  onClick={() => onNavigate('care')}
-                  className="mt-2 text-body font-medium text-forest hover:text-deep text-action"
-                >
-                  Ask the companion about it
-                </button>
+                {h.nudge.askable && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('care')}
+                    className="mt-2 text-body font-medium text-forest hover:text-deep text-action"
+                  >
+                    Ask the companion about it
+                  </button>
+                )}
               </>
             )}
           </section>

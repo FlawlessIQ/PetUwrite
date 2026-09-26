@@ -242,3 +242,16 @@ describe('what there is to confirm', () => {
     expect(told.filter((i) => i.neverAsked)).toEqual([])
   })
 })
+
+// UAT run 2, N2: never-asked questions were still worded as re-checks.
+describe('how a never-asked question reads', () => {
+  it('as a first question, not "since last year"', () => {
+    const blank = reviewItems(pet({ weightLb: 0, conditionIds: [], conditionsReviewed: undefined, neutered: undefined, activity: undefined, dental: undefined }))
+    for (const i of blank) expect(i.prompt, i.field).not.toMatch(/since|changed|still|as much/i)
+  })
+
+  it('and as a re-check once there is an answer', () => {
+    const told = reviewItems(pet({ weightLb: 70, conditionIds: [], conditionsReviewed: true, neutered: false, activity: 'moderate', dental: 'weekly' }))
+    expect(told.find((i) => i.field === 'conditionIds')?.prompt).toMatch(/since last year/)
+  })
+})

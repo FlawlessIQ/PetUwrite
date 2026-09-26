@@ -557,7 +557,12 @@ export interface HomeView {
   steps: number
   stepsTrend: number[]
   trendDown: boolean
-  nudge: { eyebrow: string; title: string; body: string }
+  /**
+   * `askable` is whether the nudge has a subject the companion could be asked
+   * about. "Ask the companion about it" under "Nothing needs attention" had no
+   * "it" (UAT run 2, N1).
+   */
+  nudge: { eyebrow: string; title: string; body: string; askable: boolean }
   comingUp: { title: string; detail: string; covered: boolean } | null
 }
 
@@ -580,6 +585,7 @@ export function buildHome(profile: PetProfile, projection: Projection): HomeView
         eyebrow: 'Remembering',
         title: `${profile.name}'s record is still here`,
         body: 'Everything you told us is kept. Nothing else is needed from you.',
+        askable: false,
       }
     : trendDown
     ? {
@@ -588,18 +594,31 @@ export function buildHome(profile: PetProfile, projection: Projection): HomeView
         body: projection.riskCards.find((r) => r.mode === 'manage')
           ? `Unusual for ${profile.sex === 'female' ? 'her' : 'his'} routine. Given the ${projection.riskCards.find((r) => r.mode === 'manage')!.name.toLowerCase()} already on file, keep an eye on stiffness after walks.`
           : `Unusual for ${profile.sex === 'female' ? 'her' : 'his'} routine. Worth watching for a few more days before it means anything.`,
+        askable: true,
       }
     : gap
       ? {
           eyebrow: 'Biggest lever',
           title: gapTitle(gap.id, profile.name),
           body: gap.detail,
+          askable: true,
         }
-      : {
-          eyebrow: 'On track',
-          title: `Nothing needs attention this week`,
-          body: `${profile.name} is doing well on everything we can see from here.`,
-        }
+      : graded.bands.some((b) => /^Not asked yet/.test(b.detail))
+        ? // Nothing flagged because nothing has been said, not because all is
+          // well. "Doing well on everything we can see" was said of a puppy
+          // added a minute ago (UAT run 2, N1).
+          {
+            eyebrow: 'Not much to go on yet',
+            title: `We know very little about ${profile.name}'s days so far`,
+            body: `Nothing here is flagged, but that is because nobody has told us much. A question or two in the plan gives this something real to say.`,
+            askable: false,
+          }
+        : {
+            eyebrow: 'On track',
+            title: `Nothing needs attention this week`,
+            body: `${profile.name} is doing well on everything we can see from here.`,
+            askable: false,
+          }
 
   const rider = RIDER_ITEMS.find(
     (r) => r.species.includes(profile.species) && r.stages.includes(projection.currentStage.id),

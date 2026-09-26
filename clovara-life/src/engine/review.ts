@@ -216,7 +216,23 @@ export function reviewItems(pet: PetProfile): ReviewItem[] {
     activity: !!pet.activity,
     dental: !!pet.dental,
   }
-  return items.map((i) => ({ ...i, neverAsked: !(onFile[i.field] ?? true) }))
+  return items.map((i) => {
+    const neverAsked = !(onFile[i.field] ?? true)
+    // A re-check needs something to re-check. "Anything diagnosed since last
+    // year?" beside "Answer it", for a question never asked, read as if it had
+    // been (UAT run 2, N2).
+    return { ...i, neverAsked, prompt: neverAsked ? (FIRST_PROMPT[i.field] ?? i.prompt) : i.prompt }
+  })
+}
+
+/** How each question reads when it is being asked for the first time. */
+const FIRST_PROMPT: Record<string, string> = {
+  weightLb: 'What shape are they in?',
+  conditionIds: 'Anything diagnosed?',
+  neutered: 'Neutered or spayed?',
+  outdoorAccess: 'Do they get outside?',
+  activity: 'How much do they move on a normal day?',
+  dental: 'Are their teeth cleaned at home?',
 }
 
 export interface ProjectionShift {

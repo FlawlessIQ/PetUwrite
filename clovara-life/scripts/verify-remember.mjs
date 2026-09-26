@@ -95,7 +95,6 @@ const GRADING = [
   ['the Clovara Score', /Clovara\s+Score/i],
   ['the score verdict', /\bOn track\b/i],
   ['the present-tense heading', /Scout's day/],
-  ['the companion prompt', /Ask the companion about it/i],
 ]
 for (const [label, re] of GRADING) ok(`${label} is there`, re.test(t))
 // UAT K3: every visitor was greeted as "Conor". Signed out, nobody is named.
@@ -106,6 +105,9 @@ t = await seed({ diedOn: daysAgo(20) }, '#/pet/pet-rem/home')
 ok('the nudge stops talking in the present', /record is still here/i.test(t))
 for (const [label, re] of GRADING) ok(`${label} is gone`, !re.test(t), (t.match(re) || [''])[0])
 ok('the record is one tap away', (await page.getByRole('button', { name: /Scout.s record/ }).count()) >= 1)
+// Not in the alive control: with nothing answered there is no subject to ask
+// about, so the prompt is absent then too (UAT run 2, N1).
+ok('the companion prompt is gone', !/Ask the companion about it/i.test(t))
 ok('no activity story', !/activity is down|steps today|is down \d+%/i.test(t))
 ok('and no present-tense framing of their week', !/\bthis week\b/i.test(t), t.slice(0, 160))
 

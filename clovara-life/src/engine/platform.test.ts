@@ -424,3 +424,30 @@ describe('defaults are not answers', () => {
     expect(clovaraScore(pup, p(pup)).biggestGap?.id).not.toBe('dental')
   })
 })
+
+// UAT run 2, N1: "doing well on everything we can see" when we could see nothing.
+describe('the home nudge with nothing to go on', () => {
+  const blank = base({ dental: undefined, activity: undefined, neutered: undefined, diet: undefined, weightLb: 0 })
+
+  it('says how little it knows, and offers no companion prompt without a subject', () => {
+    const h = buildHome(blank, p(blank))
+    // Precondition, not a skip: a falling activity trend would take the nudge.
+    expect(h.trendDown, 'this pet id simulates a steady week').toBe(false)
+    expect(h.nudge.title).toMatch(/know very little/)
+    expect(h.nudge.body).not.toMatch(/doing well/)
+    expect(h.nudge.askable).toBe(false)
+  })
+
+  it('still says "on track" when everything has been answered and nothing needs work', () => {
+    const told = base({ dental: 'daily', activity: 'high', neutered: true, diet: 'measured' })
+    const h = buildHome(told, p(told))
+    expect(h.trendDown).toBe(false)
+    expect(h.score?.biggestGap ?? null).toBeNull()
+    expect(h.nudge.eyebrow).toBe('On track')
+  })
+
+  it('a gap or a trend has a subject, so it can be asked about', () => {
+    const rarely = base({ dental: 'rarely' })
+    expect(buildHome(rarely, p(rarely)).nudge.askable).toBe(true)
+  })
+})

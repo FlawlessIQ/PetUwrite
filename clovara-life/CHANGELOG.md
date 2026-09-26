@@ -3,6 +3,16 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## UAT fixes, round four (BACKLOG U8, branch `uat-fixes-4`, not yet deployed)
+
+- **The urgent answer comes to you.** After "Check it" on "something is
+  wrong", the answer's heading takes focus: it scrolls into view, the phone
+  keyboard closes, and a screen reader reads it out.
+- **Home admits when it knows little.** With nothing answered it says so,
+  instead of "doing well on everything we can see"; the companion prompt
+  appears only when there is something to ask about.
+- **First questions read as first questions** in the annual review.
+
 ## UAT fixes, round three (BACKLOG U6–U7, deployed 2026-09-26 from branch `uat-fixes-3`)
 
 - **A default is not an answer.** The levers no longer show a choice nobody

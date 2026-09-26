@@ -161,7 +161,7 @@ ok(
 console.log('\nA question never asked')
 await seed({ knownSince: ago(400), dental: undefined })
 let r = await review().innerText()
-ok('it says so', /Has the teeth routine changed\?[\s\S]*we have never asked/.test(r))
+ok('it says so, and asks it as a first question (UAT run 2, N2)', /Are their teeth cleaned at home\?[\s\S]*we have never asked/.test(r) && !/Has the teeth routine changed/.test(r))
 ok('and offers "Answer it", not "Still true"', (await review().getByRole('button', { name: 'Answer it' }).count()) === 1)
 ok('with every other item still confirmable', (await review().getByRole('button', { name: 'Still true' }).count()) >= 3)
 await review().getByRole('button', { name: 'Skip' }).click()
