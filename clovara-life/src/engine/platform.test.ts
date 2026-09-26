@@ -392,3 +392,35 @@ describe('defensive against malformed stored pets', () => {
     expect(() => p({ ...base(), breedId: 'not-a-breed' })).toThrow(/Unknown breed/)
   })
 })
+
+// UAT run 1, D2–D3: a default is not an answer.
+describe('defaults are not answers', () => {
+  const untold = base({ dental: undefined, activity: undefined, neutered: undefined, diet: undefined, weightLb: 0 })
+
+  it('each lever knows whether the owner told us', () => {
+    const told = Object.fromEntries(p(base()).levers.map((l) => [l.id, l.told]))
+    expect(told).toEqual({ weight: true, dental: true, activity: true })
+    expect(p(untold).levers.every((l) => !l.told)).toBe(true)
+  })
+
+  it('an unanswered band says so, rather than naming the default', () => {
+    const bands = clovaraScore(untold, p(untold)).bands
+    for (const id of ['dental', 'activity', 'neuter']) {
+      expect(bands.find((b) => b.id === id)?.detail, id).toMatch(/Not asked yet/)
+    }
+    // "Intact" was said of a dog nobody had asked about.
+    expect(bands.find((b) => b.id === 'neuter')?.detail).not.toMatch(/Intact/)
+  })
+
+  it('the biggest lever is only ever something the owner told us', () => {
+    expect(clovaraScore(untold, p(untold)).biggestGap).toBeNull()
+    const rarely = base({ dental: 'rarely' })
+    expect(clovaraScore(rarely, p(rarely)).biggestGap?.id, 'control').toBe('dental')
+  })
+
+  it('and never teeth for a puppy', () => {
+    const pup = base({ birthDate: '2026-06-12', dental: 'rarely' })
+    expect(p(pup).currentStage.id).toBe('puppy')
+    expect(clovaraScore(pup, p(pup)).biggestGap?.id).not.toBe('dental')
+  })
+})

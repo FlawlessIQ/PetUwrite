@@ -361,6 +361,11 @@ export interface Lever {
   /** One line on how strong the evidence actually is. Shown in the UI. */
   evidenceNote: string
   current: string
+  /**
+   * False when `current` is the zero-delta reference standing in for a
+   * question the owner has not answered — not something they told us.
+   */
+  told: boolean
   options: LeverOption[]
   citations: Citation[]
 }

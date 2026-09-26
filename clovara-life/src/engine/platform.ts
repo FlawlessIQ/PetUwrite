@@ -84,6 +84,10 @@ export interface Score {
  * directional respectively. If the score weighted them equally it would be
  * telling a different story from the rest of the product.
  */
+/** A band's detail when the question behind it has not been put. */
+const NOT_ASKED = 'Not asked yet, so counted at the middle.'
+const YOUNGEST_STAGES = new Set(['puppy', 'kitten'])
+
 export function clovaraScore(profile: PetProfile, projection: Projection): Score {
   const isCat = profile.species === 'cat'
   const bc = projection.bodyCondition
@@ -122,8 +126,9 @@ export function clovaraScore(profile: PetProfile, projection: Projection): Score
       label: 'Dental routine',
       earned: dentalPts,
       max: 25,
-      detail:
-        dental === 'daily'
+      detail: !profile.dental
+        ? NOT_ASKED
+        : dental === 'daily'
           ? 'Daily, which is the standard the guidelines describe.'
           : dental === 'weekly'
             ? 'Weekly. A reasonable place to build from.'
@@ -134,8 +139,9 @@ export function clovaraScore(profile: PetProfile, projection: Projection): Score
       label: 'Activity',
       earned: activityPts,
       max: 20,
-      detail:
-        activity === 'high'
+      detail: !profile.activity
+        ? NOT_ASKED
+        : activity === 'high'
           ? 'Well above average for the breed.'
           : activity === 'moderate'
             ? 'Steady and regular, which matters more than intensity.'
@@ -158,14 +164,29 @@ export function clovaraScore(profile: PetProfile, projection: Projection): Score
       label: 'Neuter status',
       earned: neuterPts,
       max: 10,
-      detail: profile.neutered
-        ? 'Recorded. Associated with longer life across large datasets.'
-        : 'Intact. Worth a conversation about timing rather than a default date.',
+      detail:
+        profile.neutered === undefined
+          ? NOT_ASKED
+          : profile.neutered
+            ? 'Recorded. Associated with longer life across large datasets.'
+            : 'Intact. Worth a conversation about timing rather than a default date.',
     },
   ]
 
   const value = bands.reduce((s, b) => s + b.earned, 0)
-  const gaps = bands.filter((b) => b.earned < b.max)
+  // The biggest lever is only ever something the owner told us. A gap built
+  // on an unanswered default told a nine-week-old's owner that "Dental care
+  // is the easiest win — Weekly" when nobody had said weekly (UAT run 1, D3).
+  // And not teeth during the puppy stage, whose own advice is to start
+  // brushing once the adult teeth are through.
+  const told: Record<string, boolean> = {
+    weight: projection.levers.find((l) => l.id === 'weight')?.told ?? false,
+    dental: !!profile.dental && !YOUNGEST_STAGES.has(projection.currentStage.id),
+    activity: !!profile.activity,
+    diet: !!profile.diet,
+    neuter: profile.neutered !== undefined,
+  }
+  const gaps = bands.filter((b) => b.earned < b.max && told[b.id])
   const biggestGap =
     gaps.sort((a, b) => b.max - b.earned - (a.max - a.earned))[0] ?? null
 

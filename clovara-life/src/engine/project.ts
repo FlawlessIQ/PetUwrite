@@ -286,7 +286,7 @@ function buildLevers(
   const taper = outdoorAgeTaper(age)
   const o = (v: OutdoorAccess) => round(OUTDOOR_DELTAS[v] * (OUTDOOR_DELTAS[v] < 0 ? taper : 1), 2)
 
-  return [
+  const built: Omit<Lever, 'told'>[] = [
     {
       id: 'weight',
       label: 'Body condition',
@@ -392,6 +392,19 @@ function buildLevers(
         ]
       : []),
   ]
+
+  // Which of these the owner actually answered. An unanswered lever sits at
+  // the zero-delta reference so it costs nothing, and the panel must not then
+  // call that reference "what you told us" (UAT run 1, D2).
+  const told: Record<Lever['id'], boolean> = {
+    weight:
+      profile.bodyConditionScore !== undefined ||
+      (Number.isFinite(profile.weightLb) && profile.weightLb > 0),
+    dental: !!profile.dental,
+    activity: !!profile.activity,
+    outdoor: !!profile.outdoorAccess,
+  }
+  return built.map((l) => ({ ...l, told: told[l.id] }))
 }
 
 // ───────────────────────────────────────────────────────────────────────────

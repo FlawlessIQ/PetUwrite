@@ -31,13 +31,15 @@ export function Meds({
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [amount, setAmount] = useState('')
-  const [frequency, setFrequency] = useState<FrequencyId>('twice')
+  // No default. A preselected "twice a day" saved unnoticed and drove the
+  // running-out estimate from a frequency nobody chose (UAT run 1, D18).
+  const [frequency, setFrequency] = useState<FrequencyId | null>(null)
   const [quantity, setQuantity] = useState('')
 
   const save = (next: Medication[]) => onUpdate?.({ medications: next })
 
   const add = () => {
-    if (!name.trim() || !amount.trim()) return
+    if (!name.trim() || !amount.trim() || !frequency) return
     save([
       ...meds,
       {
@@ -54,6 +56,7 @@ export function Meds({
     setName('')
     setAmount('')
     setQuantity('')
+    setFrequency(null)
     setAdding(false)
   }
 
@@ -163,6 +166,8 @@ export function Meds({
                   onChange={(e) => setAmount(e.target.value)}
                 />
               </div>
+              <div role="group" aria-labelledby="med-freq-label">
+              <p id="med-freq-label" className="label mb-1.5">How often?</p>
               <div className="flex flex-wrap gap-2">
                 {FREQUENCIES.map((f) => (
                   <button
@@ -179,6 +184,7 @@ export function Meds({
                     {f.label}
                   </button>
                 ))}
+              </div>
               </div>
               <div>
                 <label htmlFor="med-qty" className="label">
@@ -199,7 +205,7 @@ export function Meds({
                   type="button"
                   className="pill-primary px-5 py-2.5 text-body-lg"
                   onClick={add}
-                  disabled={!name.trim() || !amount.trim()}
+                  disabled={!name.trim() || !amount.trim() || !frequency}
                 >
                   Save
                 </button>

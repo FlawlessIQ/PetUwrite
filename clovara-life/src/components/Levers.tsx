@@ -76,7 +76,12 @@ export function Levers({
 
       <div className="divide-y divide-line">
         {projection.levers.map((lever) => {
-          const current = lever.current
+          // An unanswered lever sits at the zero-delta reference. Until the
+          // owner answers or moves it, nothing is shown as chosen — the middle
+          // option is our assumption, not what they told us (UAT run 1, D2).
+          const assumed = !lever.told && state[lever.id] === undefined
+          const current = assumed ? undefined : lever.current
+          const reference = lever.options.find((o) => o.value === lever.current)
           const active = lever.options.find((o) => o.value === current)
           return (
             <div key={lever.id} className="px-5 py-5 sm:px-6">
@@ -111,6 +116,12 @@ export function Levers({
               {active && (
                 <p className="mt-3 text-body leading-relaxed text-ink-2">{active.note}</p>
               )}
+              {assumed && reference && (
+                <p className="mt-3 text-body leading-relaxed text-ink-2">
+                  Not asked yet. Until you say, we count this as &ldquo;{reference.label.toLowerCase()}&rdquo;,
+                  which moves nothing.
+                </p>
+              )}
               <p className="mt-2 text-body-sm leading-relaxed text-ink-2/80">{lever.evidenceNote}</p>
             </div>
           )
@@ -132,8 +143,10 @@ export function Levers({
           </p>
         ) : (
           <p className="text-body-lg text-ink-2">
-            Set to what you told us. Change any of the {projection.levers.length === 4 ? 'four' : 'three'} to see the
-            projection move.
+            {projection.levers.every((l) => l.told)
+              ? 'Set to what you told us.'
+              : 'Set to what you told us, and to the middle where you have not said.'}{' '}
+            Change any of the {projection.levers.length === 4 ? 'four' : 'three'} to see the projection move.
           </p>
         )}
         {Object.keys(state).length > 0 && (
