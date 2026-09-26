@@ -49,3 +49,15 @@ export function firstNightState(pet: PetProfile, now: Date): FirstNightState {
 
   return { active: current !== null, hoursHome: hours, current, upcoming }
 }
+
+/**
+ * "{name} has been home about N hours."
+ *
+ * One rounded number decides both the figure and the plural — they used to be
+ * rounded separately, so the first half hour read "about 1 hours" (UAT K4).
+ * Floored at one: "about 0 hours" says nobody is home yet.
+ */
+export function hoursHomeLine(name: string, hoursHome: number): string {
+  const n = Math.max(1, Math.round(hoursHome))
+  return `${name} has been home about ${n} hour${n === 1 ? '' : 's'}.`
+}

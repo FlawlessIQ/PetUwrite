@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { firstNightState, FIRST_NIGHT_HOURS } from './firstNight'
+import { firstNightState, FIRST_NIGHT_HOURS, hoursHomeLine } from './firstNight'
 import { FIRST_NIGHT_BLOCKS, FIRST_NIGHT_ESCALATION } from '../data/firstNight'
 import type { PetProfile } from '../data/types'
 
@@ -135,5 +135,18 @@ describe('the content itself', () => {
   it('does not promise a longer life anywhere', () => {
     const blob = FIRST_NIGHT_BLOCKS.map((b) => `${b.title} ${b.body}`).join(' ')
     expect(blob).not.toMatch(/live longer|longer life|extra years|add years/i)
+  })
+})
+
+describe('how long they have been home', () => {
+  it('agrees with itself in the first half hour (UAT K4: "about 1 hours")', () => {
+    expect(hoursHomeLine('Bruno', 0)).toBe('Bruno has been home about 1 hour.')
+    expect(hoursHomeLine('Bruno', 0.3)).toBe('Bruno has been home about 1 hour.')
+    expect(hoursHomeLine('Bruno', 1.4)).toBe('Bruno has been home about 1 hour.')
+  })
+
+  it('is plural from two', () => {
+    expect(hoursHomeLine('Bruno', 1.6)).toBe('Bruno has been home about 2 hours.')
+    expect(hoursHomeLine('Bruno', 47)).toBe('Bruno has been home about 47 hours.')
   })
 })

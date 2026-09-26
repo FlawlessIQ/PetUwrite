@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { PetProfile } from '../data/types'
-import { firstNightState } from '../engine/firstNight'
+import { firstNightState, hoursHomeLine } from '../engine/firstNight'
 import { FIRST_NIGHT_ESCALATION, FIRST_NIGHT_FOOTER } from '../data/firstNight'
 
 /**
@@ -27,8 +27,7 @@ export function FirstNight({ pet, now = new Date() }: { pet: PetProfile; now?: D
           {current.title}
         </h2>
         <p className="mt-1 text-body text-ink-2">
-          {pet.name} has been home about {Math.max(1, Math.round(hoursHome))} hour
-          {Math.round(hoursHome) === 1 ? '' : 's'}.
+          {hoursHomeLine(pet.name, hoursHome)}
         </p>
       </div>
 
