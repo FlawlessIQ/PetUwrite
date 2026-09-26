@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { seniorState, SENIOR_STAGES } from './senior'
+import { CAT_STAGE_TEMPLATES, DOG_STAGE_TEMPLATES } from '../data/engine'
 import {
   ADAPTATIONS,
   MENTION_NOTE,
@@ -129,5 +130,12 @@ describe('what it assembles', () => {
     expect(WORTH_MENTIONING.cat.join(' ')).toMatch(/tray|grooming|jumping/i)
     expect(WORTH_MENTIONING.dog.join(' ')).toMatch(/stairs|walk/i)
     expect(WORTH_MENTIONING.cat).not.toEqual(WORTH_MENTIONING.dog)
+  })
+})
+
+describe('the stage list itself', () => {
+  it('names only stages that exist (UAT K6)', () => {
+    const real = new Set([...Object.values(DOG_STAGE_TEMPLATES), ...Object.values(CAT_STAGE_TEMPLATES)].map((t) => t.id))
+    for (const id of SENIOR_STAGES) expect(real, id).toContain(id)
   })
 })

@@ -14,8 +14,15 @@ import { ADAPTATIONS, WORTH_MENTIONING, type Adaptation } from '../data/senior'
 import type { PetProfile, Projection, RiskCard, Species } from '../data/types'
 import { isRemembered } from './remember'
 
-/** The stages this surface applies to. */
-export const SENIOR_STAGES = ['mature', 'senior', 'geriatric'] as const
+/**
+ * The stages this surface applies to.
+ *
+ * Only the senior stage. This used to also list 'mature' and 'geriatric', which
+ * are not stage ids — the real ones are 'mature-adult' and there is no
+ * geriatric stage — so they never matched and only made the list misleading
+ * (UAT K6). A test now requires every id here to be a real stage.
+ */
+export const SENIOR_STAGES = ['senior'] as const
 
 export interface SeniorState {
   visible: boolean
