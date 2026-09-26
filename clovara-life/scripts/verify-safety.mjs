@@ -76,6 +76,16 @@ ok('it explains why, without diagnosing', /cannot stand needs to be seen now/i.t
 ok('and offers phone numbers', (await page.locator('a[href^="tel:"]').count()) >= 3)
 ok('it mentions out of hours', /out of hours/i.test(t))
 ok('and says to ring even if unsure', /nobody minds the call/i.test(t))
+// UAT run 2, N3: the answer used to appear below the box unannounced — on a
+// phone with the keyboard up it could be hidden. Focus moves to it, which
+// brings it into view, closes the keyboard and has a screen reader read it.
+const answer = await page.evaluate(() => {
+  const a = document.activeElement
+  const r = a?.getBoundingClientRect()
+  return { tag: a?.tagName, text: a?.textContent?.trim(), top: r ? Math.round(r.top) : null, h: innerHeight }
+})
+ok('focus moves to the answer', answer.tag === 'H2' && /Stop and ring a vet now/.test(answer.text ?? ''), JSON.stringify(answer))
+ok('  …and it is on screen at phone width', answer.top !== null && answer.top >= 0 && answer.top < answer.h * 0.5, JSON.stringify(answer))
 // UAT run 1, D17: this screen offered only poison lines, while "ate something"
 // had the vet lookup. Live with a Places key, an honest seam without one.
 ok(
@@ -86,6 +96,10 @@ ok(
 console.log('\nThe dangerous answer — nothing matched')
 t = await ask('He seems a bit quiet today and is sleeping more than usual')
 ok('it does NOT say ring now', !/Stop and ring a vet now/i.test(t))
+ok(
+  'focus moves to this answer too',
+  await page.evaluate(() => /not spotted anything on our urgent list/.test(document.activeElement?.textContent ?? '')),
+)
 ok(
   'it NEVER reassures',
   !/\b(sounds fine|seems fine|probably fine|nothing to worry|not serious|no need)\b/i.test(t),

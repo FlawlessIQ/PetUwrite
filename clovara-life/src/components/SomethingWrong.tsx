@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { PetProfile } from '../data/types'
 import { classify, flagsFor } from '../engine/safety'
 import {
@@ -29,10 +29,28 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
   const [text, setText] = useState('')
   const [result, setResult] = useState<ReturnType<typeof classify> | null>(null)
   const [showList, setShowList] = useState(false)
+  /**
+   * The answer's heading, which takes focus after every check (UAT run 2, N3).
+   *
+   * The answer used to appear below the box with nothing to say so: on a phone
+   * with the keyboard still up, "Stop and ring a vet now" could be behind it,
+   * and a screen reader was not told anything had happened. Focusing the
+   * heading does all three — brings it into view, dismisses the keyboard, and
+   * reads it out. `checks` re-runs it when the same answer comes back twice.
+   */
+  const answerRef = useRef<HTMLHeadingElement>(null)
+  const [checks, setChecks] = useState(0)
+  useEffect(() => {
+    const h = answerRef.current
+    if (!h || checks === 0) return
+    h.focus({ preventScroll: true })
+    h.scrollIntoView({ block: 'start' })
+  }, [checks])
 
   const check = () => {
     const r = classify(text, pet.species)
     setResult(r)
+    setChecks((n) => n + 1)
     track('safety_check', {
       escalated: r.escalate,
       matched: r.matched.length,
@@ -83,7 +101,11 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
 
       {result?.escalate && (
         <section className="card mt-5 border-l-[3px] border-l-accent bg-nudge-fill p-5">
-          <h2 className="font-display text-heading-lg leading-tight text-amber">
+          <h2
+            ref={answerRef}
+            tabIndex={-1}
+            className="scroll-mt-20 font-display text-heading-lg leading-tight text-amber focus:outline-none"
+          >
             {RED_FLAG_HEADLINE}
           </h2>
           <p className="mt-2 text-body-lg leading-relaxed text-ink">{RED_FLAG_BODY}</p>
@@ -120,7 +142,13 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
 
       {result && !result.escalate && (
         <section className="card mt-5 p-5">
-          <h2 className="font-display text-heading leading-tight text-ink">{NO_FLAG_HEADLINE}</h2>
+          <h2
+            ref={answerRef}
+            tabIndex={-1}
+            className="scroll-mt-20 font-display text-heading leading-tight text-ink focus:outline-none"
+          >
+            {NO_FLAG_HEADLINE}
+          </h2>
           <p className="mt-2 text-body-lg leading-relaxed text-ink">{NO_FLAG_BODY}</p>
           <button
             type="button"
