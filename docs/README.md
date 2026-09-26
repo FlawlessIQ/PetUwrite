@@ -32,6 +32,7 @@ enforced by `clovara-life/scripts/verify-journey.mjs`.
 | | What it is |
 |---|---|
 | [BACKLOG.md](BACKLOG.md) | **Everything outstanding, with stable ids and a `Judged` column.** 97 items: product validation, design, the pre-launch reviews, the unlock decisions, 17 open questions, the 38 unbuilt journey moments, known technical debt, and what has been declined so it is not re-litigated. Start here for "what is left". |
+| [JUDGEMENT-COPY.md](JUDGEMENT-COPY.md) | **The copy that carries judgement** (BACKLOG P2): 126 items — every refusal, the escalation ladder, the poison flow, the goodbye flow, the disclosures, the Data Covenant — extracted from what the code renders, each with a Verdict column for Conor. |
 | [UAT-PLAN.md](UAT-PLAN.md) | **The user-acceptance test**: Bruno's life from nine weeks to goodbye, in Chrome, with copy-paste console snippets for the time jumps and a Judge line per chapter. Dry-run against production; lists the defects it found going in. |
 | [STRATEGIC-REVIEW-2026-09.md](STRATEGIC-REVIEW-2026-09.md) | Why the backlog is ordered the way it is: the roadmap tracked build state and never tracked who had judged the work, and that is the binding constraint. Contains the 30-minute walkthrough. |
 | [EXECUTION-PLAN.md](EXECUTION-PLAN.md) | The same blockers as four tracks, with the reasoning for each. The backlog is the list; this is the argument. |
