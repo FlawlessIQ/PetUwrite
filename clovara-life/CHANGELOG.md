@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## UAT fixes, round two (BACKLOG U4–U5, branch `uat-fixes-2`, not yet deployed)
+## UAT fixes, round two (BACKLOG U4–U5, deployed 2026-09-26 from branch `uat-fixes-2`)
 
 - **Every tab goes quiet when a pet has died, not just Home.** Life no longer
   forecasts healthy years: it says how long they lived, their dates, and the
