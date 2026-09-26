@@ -548,7 +548,7 @@ export function buildCompanion(profile: PetProfile, projection: Projection): Com
           }
         : {
             label: `From ${profile.name}'s record`,
-            text: `${theyCap} is ${projection.ageYears} and a ${projection.breed.name}, which puts ${them} inside the usual window for ${focus.name.toLowerCase()} — ${focus.window.toLowerCase()}.`,
+            text: `${theyCap} is ${ageWords(projection.ageYears)} and a ${projection.breed.name}, which puts ${them} inside the usual window for ${focus.name.toLowerCase()} — ${focus.window.toLowerCase()}.`,
           },
     },
     {
@@ -565,9 +565,42 @@ export function buildCompanion(profile: PetProfile, projection: Projection): Com
     { from: 'user', text: `Yes — send ${profile.name}'s history.` },
     {
       from: 'ai',
-      text: `I have put together a one-page summary for your vet: ${their} ${focus.name.toLowerCase()} notes, the last three weigh-ins, ${their} current ${projection.breed.species === 'cat' ? 'diet and litter-box' : 'activity'} trend, and what ${they} is currently taking.`,
+      text: summaryLine(profile, declaredCard?.name ?? null, their, they),
     },
   ]
+}
+
+/** "4 years old", "5 months old" — never "4.1", which reads as a version number. */
+function ageWords(years: number): string {
+  if (years < 1) {
+    const m = Math.max(1, Math.round(years * 12))
+    return `${m} month${m === 1 ? '' : 's'} old`
+  }
+  const y = Math.floor(years)
+  return `${y} year${y === 1 ? '' : 's'} old`
+}
+
+/**
+ * What the one-page summary actually holds for this pet.
+ *
+ * It used to promise "the last three weigh-ins… and what he is currently
+ * taking" for a dog with one weight and no medication, under a line saying
+ * every specific is pulled from the record (UAT run 1, D11). Now it names only
+ * what is on file, and says that the gaps are marked — which the summary does.
+ */
+function summaryLine(profile: PetProfile, condition: string | null, their: string, they: string): string {
+  const held: string[] = []
+  if (condition) held.push(`the ${condition.toLowerCase()} on file`)
+  if (Number.isFinite(profile.weightLb) && profile.weightLb > 0) held.push(`${their} weight`)
+  if ((profile.medications?.length ?? 0) > 0) held.push(`what ${they} is taking`)
+  if ((profile.vaccineRecords?.length ?? 0) > 0) held.push(`the vaccinations you recorded`)
+  const list =
+    held.length === 0
+      ? ''
+      : held.length === 1
+        ? ` — ${held[0]}`
+        : ` — ${held.slice(0, -1).join(', ')} and ${held[held.length - 1]}`
+  return `I have put together a one-page summary for your vet of everything you have told us about ${profile.name}${list}. Anything nobody has asked about is marked as not asked, so the vet can see what is missing.`
 }
 
 /** "Slower to rise after a nap, bunny-hopping at a run." → first clause. */

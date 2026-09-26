@@ -3,6 +3,7 @@ import type { PetProfile, Projection } from '../data/types'
 import { PLAN_TIERS } from '../data/coverage'
 import {
   ATTESTATION,
+  NOT_LIVE_NOTE,
   DISCLOSURES,
   FRAUD_NOTICE,
   ILLUSTRATIVE_LABEL,
@@ -269,6 +270,12 @@ export function Attach({
               </p>
             </div>
           </section>
+
+          {!adapter.canBind && (
+            <p className="mt-5 rounded-soft border border-line bg-cream/60 px-4 py-3 text-body leading-relaxed text-ink">
+              {NOT_LIVE_NOTE}
+            </p>
+          )}
 
           <label className="mt-5 flex items-start gap-3 text-body-lg leading-relaxed text-ink">
             <input

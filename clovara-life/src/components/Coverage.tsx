@@ -5,6 +5,7 @@ import { COVERAGE_DISCLAIMER, PLAN_TIERS } from '../data/coverage'
 import { CloverMark } from './CloverMark'
 import { Icon } from './Icon'
 import { Quiet } from './Quiet'
+import { ratingAdapter } from '../engine/attach'
 
 export function Coverage({ pet, projection }: { pet: PetProfile; projection: Projection }) {
   const [tierId, setTierId] = useState('complete')
@@ -32,7 +33,10 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
         <p className="mt-2 max-w-[62ch] text-lead leading-relaxed text-ink-2">
           {c.hasPolicy
             ? `Policy ${c.policyNumber}. The wellness rider below reimburses the routine care that ${pet.name}'s life stage actually calls for.`
-            : `${pet.name} was added during this session, so there is no policy — here is what one would look like, priced the same way.`}
+            : // "Added during this session" was said of pets saved weeks earlier (UAT run 1, D13).
+              `${pet.name} has no policy. Here is what one would look like, priced the same way${
+                ratingAdapter().canBind ? '.' : ' — cover cannot be bought yet.'
+              }`}
         </p>
       </header>
 
@@ -167,7 +171,11 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
           <section className="card overflow-hidden" aria-labelledby="claim-heading">
             <div className="flex items-center justify-between gap-3 border-b border-line bg-cream/50 px-5 py-4 sm:px-6">
               <h2 id="claim-heading" className="font-display text-heading-sm leading-tight text-ink">
-                {c.claim ? `Latest claim · ${c.claim.title.toLowerCase()}` : 'How a claim works'}
+                {c.claim
+                  ? `Latest claim · ${c.claim.title.toLowerCase()}`
+                  : ratingAdapter().canBind
+                    ? 'How a claim works'
+                    : 'How a claim would work'}
               </h2>
               {c.claim && (
                 <span className="chip-good shrink-0">
@@ -207,6 +215,12 @@ export function Coverage({ pet, projection }: { pet: PetProfile; projection: Pro
                 </li>
               ))}
             </ol>
+            {!c.claim && !ratingAdapter().canBind && (
+              <p className="border-t border-line px-5 py-4 text-body-sm leading-relaxed text-ink-2 sm:px-6">
+                Nothing can be claimed yet: no policy can be bought until the carrier programme is in
+                place. This is how it is designed to work.
+              </p>
+            )}
           </section>
         </div>
 

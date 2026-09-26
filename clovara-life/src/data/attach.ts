@@ -84,6 +84,14 @@ export const DISCLOSURES = [
 export const FRAUD_NOTICE =
   'Any person who knowingly and with intent to defraud an insurer files a claim or application containing materially false information, or conceals information concerning any material fact, commits a fraudulent insurance act, which is a crime and may subject that person to criminal and civil penalties. State-specific wording will replace this notice once filings are complete.'
 
+/**
+ * Said BEFORE the declaration, while binding is not live (UAT run 1, D12). It
+ * used to appear only after somebody had ticked the box and pressed a button
+ * with a price on it.
+ */
+export const NOT_LIVE_NOTE =
+  'Cover cannot be bought yet — binding waits on the carrier programme. The button below will not buy anything or take any money; it is here so you can see the whole flow.'
+
 export const ATTESTATION =
   'Everything I have told Clovara about my pet is accurate as far as I know, and I have read what is and is not covered.'
 

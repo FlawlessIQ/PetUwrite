@@ -117,7 +117,7 @@ export const MockRatingAdapter: RatingAdapter = {
       policyNumber: null,
       effectiveDate: '',
       unavailableReason:
-        'Binding is not live yet — the carrier programme has to be in place first. Everything up to this point is real.',
+        'Binding is not live yet — the carrier programme has to be in place first. Nothing has been bought and nothing has been charged.',
     }
   },
 }

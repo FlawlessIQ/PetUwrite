@@ -32,9 +32,15 @@ export function Companion({ pet, projection }: { pet: PetProfile; projection: Pr
         </h1>
         <p className="mt-2 max-w-[62ch] text-lead leading-relaxed text-ink-2">
           Knows {pet.name} since {knownSince}. This conversation is built from {pet.name}'s own
-          record — the condition on file, the risk window {pet.sex === 'female' ? 'she' : 'he'} is in
-          right now, and the signs that actually matter for a {projection.breed.name}. Switch pets
-          and it changes, because the memory changes.
+          record — {/* Only claims a condition when there is one (UAT run 1, D9). */}
+          {pet.conditionIds.length === 1
+            ? 'the condition on file, '
+            : pet.conditionIds.length > 1
+              ? 'the conditions on file, '
+              : ''}
+          the risk window {pet.sex === 'female' ? 'she' : 'he'} is in right now, and the signs that
+          actually matter for a {projection.breed.name}. Switch pets and it changes, because the
+          memory changes.
         </p>
       </header>
 

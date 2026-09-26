@@ -98,6 +98,8 @@ ok(
 console.log('\nThe button stays off until the small print is read')
 const buy = page.getByRole('button', { name: /Protect Scout for/ })
 ok('the buy button exists', (await buy.count()) === 1)
+// UAT run 1, D12: said before the declaration, not only after pressing.
+ok('it says up front that nothing can be bought yet', /Cover cannot be bought yet/i.test(await page.locator('body').innerText()))
 ok('and is disabled to start', await buy.isDisabled())
 const attest = page.locator('input[type="checkbox"]').last()
 ok('the attestation is disabled too', await attest.isDisabled())
