@@ -302,6 +302,27 @@ agent. Use Chrome profile 1 for **Owner** and profile 2 (or Incognito) for
 
 ## 8. Defect log
 
+### Run 2 — Track A, 2026-09-26, Claude in Chrome, production (after U1–U7 and the backlog batch)
+
+**500px wide** — Chrome would not go narrower — which is the phone layout (tab bar at the
+bottom, "Add a pet" in the switcher), so this run is also the first narrow-screen pass;
+393px on a real phone is still to do. Signed out; only the pets key touched.
+
+**Result: of 45 cases, 44 pass and 1 is not exercised (A5.4 — tapping a number would dial).**
+Save/share and pressing "Protect Bruno" were again left to a human. **Run 1's defects: 18 of 19
+confirmed fixed in production.** The nineteenth, **D4** ("Add …" lands on the question), could
+not be observed: Chrome reports the automated tab as hidden and does not run the site's
+smooth scrolling there — a direct `scrollIntoView()` did not move it either. `verify-routing`
+checks D4 in a visible page and passes against production.
+
+New in run 2:
+
+| # | Case | What happened | Expected | Sev | Screenshot | Found by | Status |
+|---|---|---|---|---|---|---|---|
+| **N3** | A5.2 | After "Check it", the urgent answer is neither scrolled to nor announced: no `scrollIntoView`, no `aria-live`. At 500×756 the headline lands at 522px with the matched signs and numbers below the fold; on a phone with the keyboard still up it may be hidden entirely | The answer comes into view, and a screen reader hears it | **2** | — | Claude | open → U8 |
+| **N1** | A1.5, A7.1 | With no answers to build a lever on (the D3 fix), Home's nudge falls back to "ON TRACK · Nothing needs attention this week · Bruno is doing well on everything we can see from here" — for a puppy added a minute ago, and for a senior with hip dysplasia — followed by "Ask the companion about it" with no "it" | Say how little we can see, or ask for the next answer; no companion prompt without a subject | 3 | — | Claude | open → U8 |
+| **N2** | A3.1 | Never-asked review questions keep their re-check wording — "Anything diagnosed *since last year*?", "Neutered or spayed *since*?" — beside "Answer it" | Worded as a first question | 4 | — | Claude | open → U8 |
+
 ### Run 1 — Track A, 2026-09-26, Claude in Chrome, production (after U1–U3 deployed)
 
 Desktop width only (1470px): the Chrome window would not resize to 393px, so **every
