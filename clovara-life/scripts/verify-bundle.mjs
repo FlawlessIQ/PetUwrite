@@ -66,6 +66,8 @@ const MUST_BE_LAZY = [
   ['the socialisation stamps', 'An umbrella opening', 'src/data/socialization.ts — the Health File'],
   ['the toxin table', 'Xylitol', 'src/data/toxins.ts — the "ate something" flow'],
   ['the senior adaptations', 'Rugs or runners', 'src/data/senior.ts — the Health File'],
+  // T4 (2026-09-26): moved out with the Shop tab — see the note below.
+  ['the shop products', 'Facial Fold Wipes', 'src/data/products.ts — the Shop tab'],
 ]
 for (const [what, marker, where] of MUST_BE_LAZY) {
   const leaked = main.includes(marker)
@@ -84,19 +86,20 @@ console.log('\nKnown and accepted, so a change here is deliberate')
  * are also what the plan renders from, so splitting them would put a loading
  * state on the first screen: measured at 1.3s to a fully rendered plan on 4G
  * with 4x CPU throttling, the split would make the number worse, not better.
- * The shop catalogue rides along because `platform.ts` holds both the home
- * screen's builders and `recommendProducts`; worth ~4kB gzipped to separate,
- * which measurement did not justify either.
+ *
+ * The shop catalogue used to be here too, "as decided". BACKLOG T4 reopened it
+ * and it moved out on 2026-09-26: `recommendProducts` went to engine/shop.ts,
+ * the Shop tab became lazy, and the companion kit stopped importing the
+ * catalogue for a block kind nothing produces (it takes a lookup instead).
  */
 ok('the breed tables are still in the entry chunk, as decided', main.includes('Zinc-responsive'))
 // The morning briefing reads the vaccination schedule on the home screen, so
 // this one is earning its place rather than riding along. It is asserted rather
 // than assumed, so that removing the briefing's use of it would show up here.
 ok('the vaccination schedule is in the entry chunk, which the briefing needs', main.includes('DHP / DAPP'))
-ok('the shop catalogue is still in the entry chunk, as decided', main.includes('Facial Fold Wipes'))
 
 console.log('\nThe lazy routes are still lazy')
-for (const name of ['HealthFile', 'SomethingWrong', 'AteSomething', 'Attach', 'DataCovenant', 'MetricsDashboard', 'SitterCard']) {
+for (const name of ['HealthFile', 'SomethingWrong', 'AteSomething', 'Attach', 'DataCovenant', 'MetricsDashboard', 'SitterCard', 'Shop']) {
   ok(`${name} has its own chunk`, assets.some((f) => f.startsWith(`${name}-`) && f.endsWith('.js')))
 }
 

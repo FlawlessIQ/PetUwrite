@@ -8,7 +8,6 @@ import { Onboarding } from './components/Onboarding'
 import { Home } from './components/Home'
 import { Companion } from './components/Companion'
 import { Rewards } from './components/Rewards'
-import { Shop } from './components/Shop'
 import { Coverage } from './components/Coverage'
 import { TabBar, TopNav, SURFACES, type Surface } from './components/Nav'
 import { CloverMark, Wordmark } from './components/CloverMark'
@@ -46,6 +45,8 @@ const AttachFlow = lazy(() =>
 const SitterCardPage = lazy(() =>
   import('./components/SitterCard').then((m) => ({ default: m.SitterCard })),
 )
+// The shop catalogue loads with the Shop tab, not with every visit (BACKLOG T4).
+const Shop = lazy(() => import('./components/Shop').then((m) => ({ default: m.Shop })))
 const AteSomething = lazy(() =>
   import('./components/AteSomething').then((m) => ({ default: m.AteSomething })),
 )
@@ -647,6 +648,7 @@ export default function App() {
               />
             )}
             {surface === 'shop' && (
+              <Suspense fallback={<div className="mx-auto max-w-shell px-5 py-10 text-ink-2">Loading…</div>}>
               <Shop
                 pet={active}
                 projection={projection}
@@ -657,6 +659,7 @@ export default function App() {
                   active.demo ? undefined : (patch) => void updatePet(active.id, patch)
                 }
               />
+              </Suspense>
             )}
             {surface === 'coverage' && <Coverage pet={active} projection={projection} />}
             {surface === 'life' && (

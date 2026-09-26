@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { PetProfile, Projection } from '../data/types'
-import { recommendProducts } from '../engine/platform'
+import { recommendProducts } from '../engine/shop'
 import { CLAIM_STRENGTH_LABELS, type ClaimStrength } from '../data/products'
 import { MemberGate } from './MemberGate'
 import { asksFor } from '../data/askRegistry'

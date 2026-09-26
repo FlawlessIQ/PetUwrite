@@ -8,7 +8,6 @@
  */
 import type { ReactElement } from 'react'
 import { inlineSegments, URGENCY_CLOSING, type BlockKind, type CompanionBlock } from '../../companion/blocks'
-import { PRODUCTS } from '../../data/products'
 import { POISON_LINES } from '../../data/poisonLines'
 
 export interface BlockContext {
@@ -17,6 +16,13 @@ export interface BlockContext {
   onAction?: (item: { label: string; action: string }) => void
   /** The action already chosen in this reply, if any. Locks the row. */
   chosen?: string | null
+  /**
+   * How a product_ref finds its product. Supplied by whoever renders product
+   * blocks, so the kit — which every Care visit downloads — does not carry the
+   * whole shop catalogue (BACKLOG T4). Absent → a product_ref renders nothing,
+   * the same as a reference to a product that does not exist.
+   */
+  product?: (id: string) => { name: string; emoji: string; memberPrice: number } | undefined
 }
 
 type Of<K extends BlockKind> = Extract<CompanionBlock, { kind: K }>
@@ -135,8 +141,8 @@ function BookingConfirm({ block }: { block: Of<'booking_confirm'> }) {
 }
 
 // ── product_ref: one mini product card ─────────────────────────────────────
-function ProductRef({ block }: { block: Of<'product_ref'> }) {
-  const p = PRODUCTS.find((x) => x.id === block.productId)
+function ProductRef({ block, ctx }: { block: Of<'product_ref'>; ctx: BlockContext }) {
+  const p = ctx.product?.(block.productId)
   // A reference to a product that does not exist renders nothing rather than an
   // empty card or a "why" line with nothing to be about.
   if (!p) return null
@@ -200,7 +206,7 @@ export const BLOCK_RENDERERS: { [K in BlockKind]: (p: { block: Of<K>; ctx: Block
   watch_signs: ({ block }) => <WatchSigns block={block} />,
   actions: ({ block, ctx }) => <Actions block={block} ctx={ctx} />,
   booking_confirm: ({ block }) => <BookingConfirm block={block} />,
-  product_ref: ({ block }) => <ProductRef block={block} />,
+  product_ref: ({ block, ctx }) => <ProductRef block={block} ctx={ctx} />,
   escalate: ({ block }) => <Escalate block={block} />,
   fact: ({ block }) => <Fact block={block} />,
 }

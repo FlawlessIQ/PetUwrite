@@ -42,6 +42,15 @@ describe('the renderer', () => {
 
   it('renders nothing for a product that does not exist, rather than an empty card', () => {
     expect(html({ kind: 'product_ref', productId: 'no-such-thing', why: 'x' })).toBe('')
+    // T4: the kit carries no catalogue; the renderer supplies the lookup.
+    const withShop = renderToStaticMarkup(
+      <RenderBlock
+        block={{ kind: 'product_ref', productId: 'chews', why: 'Hip dysplasia is in its window' }}
+        ctx={{ petName: 'Max', product: (id) => (id === 'chews' ? { name: 'Hip & Joint Chews', emoji: '🦴', memberPrice: 22 } : undefined) }}
+      />,
+    )
+    expect(withShop).toContain('Hip &amp; Joint Chews')
+    expect(withShop).toContain('$22 for members')
   })
 
   it('renders an action that is a route as a link, and any other action as a button', () => {

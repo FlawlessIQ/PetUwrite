@@ -6,8 +6,8 @@ import {
   buildHome,
   buildRewards as buildRewardsOrNull,
   clovaraScore,
-  recommendProducts,
 } from './platform'
+import { recommendProducts } from './shop'
 import { DEMO_PETS } from '../data/demoPets'
 import { ALL_BREEDS } from '../data/engine'
 import { PRODUCTS } from '../data/products'
