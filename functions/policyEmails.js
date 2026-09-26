@@ -32,17 +32,21 @@ function getStorageBucketName() {
   }
 }
 
+/**
+ * The SendGrid key, from the environment only.
+ *
+ * This used to fall back to functions.config().sendgrid.key. That API is
+ * deprecated and deploys that call it fail once Runtime Config shuts down
+ * (March 2027). The fallback was also dead: the project's runtime config is
+ * empty ({} on 2026-09-26), so it always returned null. Removing it changes
+ * nothing at runtime (BACKLOG T5).
+ *
+ * To turn policy emails on, create the secret and bind it to these functions
+ * with defineSecret("SENDGRID_API_KEY") — not done here, because binding a
+ * secret that does not exist (it does not, 2026-09-26) fails the deploy.
+ */
 function getSendGridApiKey() {
-  if (process.env.SENDGRID_API_KEY) {
-    return process.env.SENDGRID_API_KEY;
-  }
-
-  try {
-    const functions = require("firebase-functions");
-    return functions.config()?.sendgrid?.key || null;
-  } catch (_) {
-    return null;
-  }
+  return process.env.SENDGRID_API_KEY || null;
 }
 
 function createTransporter() {
