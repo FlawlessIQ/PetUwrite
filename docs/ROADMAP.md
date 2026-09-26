@@ -196,6 +196,14 @@ day): 43 of 45 pass, 1 fails, 19 defects — one Sev 1 (the Remember pass leaks 
 Coverage) and one Sev 2 (no find-a-vet on the collapse screen). BACKLOG U4–U7; defect log in the plan §8. U4 and U5 fixed and deployed from branch `uat-fixes-2`; U6 and U7 fixed and deployed from branch
 `uat-fixes-3` (2026-09-26). Every run-1 defect is fixed and live.
 
+## Backlog batch (2026-09-26, branch `backlog-batch`)
+
+Done and deployed with `hosting:life`: UAT K6, browser checks for the D4 and D6 fixes, **T4** (the shop
+catalogue leaves the entry chunk), **T7** (the URL is the single source of truth for which pet and tab),
+and **P2** (`docs/JUDGEMENT-COPY.md`, 126 items for Conor to read). Written and tested but **not
+deployed**: **T2** (Firestore rules — `updatedBy` must be the writer; waits on Conor's word after the
+diff) and **T5** (policyEmails off `functions.config()` — a functions deploy, not `hosting:life`).
+
 ## The plan
 
 **`docs/EXECUTION-PLAN.md`** (2026-09-24) sequences everything remaining into four tracks: what
