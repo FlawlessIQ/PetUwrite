@@ -10,6 +10,7 @@ import {
 } from '../data/redFlags'
 import { POISON_LINES } from '../data/toxins'
 import { track } from '../analytics/track'
+import { FindVet } from './FindVet'
 
 /**
  * C1 — "something is wrong" (SPEC-COMPANION §3.1, §9).
@@ -113,6 +114,7 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
           <p className="mt-3 text-body-sm leading-relaxed text-ink-2">
             Poison lines can also tell you where your nearest emergency practice is.
           </p>
+          <FindVet pet={pet} />
         </section>
       )}
 

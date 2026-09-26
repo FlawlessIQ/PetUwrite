@@ -13,7 +13,39 @@
  * name, address and phone — each extra field is a billing SKU and none of them
  * help somebody at 2am.
  */
-import type { EmergencyVet, PlacesProvider } from './toxins'
+/**
+ * Nearest open emergency vet.
+ *
+ * SPEC §6.5 wants a Places lookup. That needs a Google Places key and billing,
+ * which is Conor's to obtain, so the seam exists and the null implementation is
+ * honest about it rather than pretending to search. It must never look like it
+ * tried and found nothing — at 2am that reads as "there is nowhere open".
+ */
+export interface EmergencyVet {
+  name: string
+  address: string
+  tel?: string
+  openNow?: boolean
+  distanceKm?: number
+}
+
+export interface PlacesProvider {
+  id: string
+  available: boolean
+  findEmergencyVets(near: { lat: number; lng: number }): Promise<EmergencyVet[]>
+}
+
+export const NULL_PLACES_PROVIDER: PlacesProvider = {
+  id: 'none',
+  available: false,
+  async findEmergencyVets() {
+    return []
+  },
+}
+
+export const NO_PLACES_COPY =
+  'We cannot look up your nearest open emergency vet yet. Search for "emergency vet near me", or ring a poison line — they will tell you where to go.'
+
 
 const SEARCH_TEXT = 'https://places.googleapis.com/v1/places:searchText'
 

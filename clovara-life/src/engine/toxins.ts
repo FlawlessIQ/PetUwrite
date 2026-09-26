@@ -94,35 +94,8 @@ export const BAND_LABEL: Record<RiskBand, string> = {
   monitor: 'Watch closely',
 }
 
-/**
- * Nearest open emergency vet.
- *
- * SPEC §6.5 wants a Places lookup. That needs a Google Places key and billing,
- * which is Conor's to obtain, so the seam exists and the null implementation is
- * honest about it rather than pretending to search. It must never look like it
- * tried and found nothing — at 2am that reads as "there is nowhere open".
- */
-export interface EmergencyVet {
-  name: string
-  address: string
-  tel?: string
-  openNow?: boolean
-  distanceKm?: number
-}
-
-export interface PlacesProvider {
-  id: string
-  available: boolean
-  findEmergencyVets(near: { lat: number; lng: number }): Promise<EmergencyVet[]>
-}
-
-export const NULL_PLACES_PROVIDER: PlacesProvider = {
-  id: 'none',
-  available: false,
-  async findEmergencyVets() {
-    return []
-  },
-}
-
-export const NO_PLACES_COPY =
-  'We cannot look up your nearest open emergency vet yet. Search for "emergency vet near me", or ring a poison line below — they will tell you where to go.'
+// The emergency-vet seam moved to places.ts so the "something is wrong"
+// screen can offer it without downloading the toxin table. Re-exported here so
+// nothing that imported it from toxins has to change.
+export { NULL_PLACES_PROVIDER, NO_PLACES_COPY } from './places'
+export type { EmergencyVet, PlacesProvider } from './places'

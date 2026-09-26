@@ -76,6 +76,12 @@ ok('it explains why, without diagnosing', /cannot stand needs to be seen now/i.t
 ok('and offers phone numbers', (await page.locator('a[href^="tel:"]').count()) >= 3)
 ok('it mentions out of hours', /out of hours/i.test(t))
 ok('and says to ring even if unsure', /nobody minds the call/i.test(t))
+// UAT run 1, D17: this screen offered only poison lines, while "ate something"
+// had the vet lookup. Live with a Places key, an honest seam without one.
+ok(
+  'and a way to find the nearest emergency vet',
+  /Find the nearest vet open now/i.test(t) || /cannot look up your nearest open emergency vet/i.test(t),
+)
 
 console.log('\nThe dangerous answer — nothing matched')
 t = await ask('He seems a bit quiet today and is sleeping more than usual')
