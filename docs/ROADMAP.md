@@ -190,8 +190,8 @@ above is the starting point, not the finish.
 ## UAT (BACKLOG P5)
 
 `docs/UAT-PLAN.md` — Bruno, a Labrador, nine weeks to goodbye, in Chrome. The dry-run against
-production (2026-09-25) found four defects to fix first; K1–K4 (BACKLOG U1–U3) are **fixed on
-branch `uat-fixes`, not yet deployed** (2026-09-26). The UAT should run after that deploy.
+production (2026-09-25) found four defects to fix first; K1–K4 (BACKLOG U1–U3) are **fixed and
+deployed** from branch `uat-fixes` (2026-09-26). The UAT can run.
 
 ## The plan
 

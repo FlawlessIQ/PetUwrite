@@ -99,7 +99,7 @@ For every case, record **Pass / Fail / Blocked**, plus a note. Log every Fail in
 
 ## 3. Known defects going in
 
-> **2026-09-26:** K1–K4 are fixed on branch `uat-fixes` (BACKLOG U1–U3) and go live on its deploy. Until then the rows below describe production. K5 and K6 are unchanged.
+> **2026-09-26:** K1–K4 are fixed and deployed (BACKLOG U1–U3, branch `uat-fixes`); the rows below record what the dry-run found. Steps that cite K1–K4 should now pass. K5 and K6 are unchanged.
 
 Found in the dry-run. **Recommend fixing K1–K3 before running the UAT**, so testers
 spend their judgement on things nobody has seen yet.

@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## UAT fixes (BACKLOG U1–U3, branch `uat-fixes`, not yet deployed)
+## UAT fixes (BACKLOG U1–U3, deployed 2026-09-26 from branch `uat-fixes`)
 
 - **Home goes quiet when a pet has died.** No plan-accuracy meter and no "add
   neutered or spayed", no Clovara Score and no "On track…", nothing coming up,
