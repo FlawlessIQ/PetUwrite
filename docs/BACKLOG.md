@@ -189,7 +189,7 @@ Nothing here is urgent. All of it is written down so it is not rediscovered.
 | **T4** | ~~The shop catalogue rides in the entry chunk~~ — **done 2026-09-26 on branch `backlog-batch`.** `recommendProducts` moved to `engine/shop.ts`, the Shop tab is lazy, and the companion kit takes a product lookup instead of importing the catalogue. Entry chunk 547kB → 534kB raw; `verify-bundle` now requires the catalogue to stay out | done |
 | **T5** | `functions/policyEmails.js` still uses the deprecated `functions.config()`. Life uses Secret Manager | S |
 | **T6** | SPEC §1 says "75+ tests"; it is 789 plus 27 suites. Left alone at Conor's instruction, noted in ROADMAP's spec divergences | — |
-| **T7** | `activeId` is state duplicated from the URL. Three bugs came from it; `verify:routing` now pins the behaviour, but the duplication itself remains | M |
+| **T7** | ~~`activeId` is state duplicated from the URL~~ — **done 2026-09-26 on branch `backlog-batch`.** The URL is the one source of truth: every route flag, the pet and the tab are derived from the hash (`useHash`), and changing where you are means changing the URL. Only the last pet and tab the URL named are remembered, for the screens whose URL names neither. Side effects: a tab tapped on "something is wrong" now goes there (it used to change hidden state), and a URL naming a pet still loading is left alone rather than rewritten. `verify-routing` pins both | done |
 | **T8** | `screenlog.0` and `_to_delete/` are untracked at the repo root. Conor's to remove | — |
 
 ## X · Declined, so it is not re-litigated

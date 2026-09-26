@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PetProfile } from './data/types'
 import { DEMO_PETS } from './data/demoPets'
 import { project } from './engine/project'
@@ -66,8 +66,8 @@ function handleResetParam(): boolean {
 }
 
 /** `#/pet/:id/:surface` — deep links, and a reload that lands where you were. */
-function parseHash(): { petId: string; surface: Surface } | null {
-  const m = /^#\/pet\/([^/]+)\/([^/]+)$/.exec(window.location.hash)
+function parseHash(h = window.location.hash): { petId: string; surface: Surface } | null {
+  const m = /^#\/pet\/([^/]+)\/([^/]+)$/.exec(h)
   if (!m) return null
   const surface = m[2]
   if (!SURFACE_IDS.has(surface)) return null
@@ -75,24 +75,24 @@ function parseHash(): { petId: string; surface: Surface } | null {
 }
 
 /** `#/admin/metrics` — internal only, and gated again by the Firestore rules. */
-function isAdminRoute(): boolean {
-  return window.location.hash === '#/admin/metrics'
+function isAdminRoute(h = window.location.hash): boolean {
+  return h === '#/admin/metrics'
 }
 
 /** `#/covenant` — the Data Covenant (invariant 5). A real page, so it can be linked. */
-function isCovenantRoute(): boolean {
-  return window.location.hash.startsWith('#/covenant')
+function isCovenantRoute(h = window.location.hash): boolean {
+  return h.startsWith('#/covenant')
 }
 
 /** `#/ate` — "he ate something" (SPEC §6.5). Its own route so it can be a
  *  bookmark, a shortcut, and one tap from anywhere. */
-function isAteRoute(): boolean {
-  return window.location.hash.startsWith('#/ate')
+function isAteRoute(h = window.location.hash): boolean {
+  return h.startsWith('#/ate')
 }
 
 /** `#/sitter/<token>` — the one page rendered for somebody with no account. */
-function sitterToken(): string | null {
-  const m = /^#\/sitter\/([^/?]+)/.exec(window.location.hash)
+function sitterToken(h = window.location.hash): string | null {
+  const m = /^#\/sitter\/([^/?]+)/.exec(h)
   return m ? decodeURIComponent(m[1]) : null
 }
 
@@ -103,20 +103,50 @@ function sitterToken(): string | null {
  * active: a bookmarked or shared `#/health` would otherwise open on the demo
  * pet after a cold load, which is somebody else's animal.
  */
-function healthRoutePet(): string | null {
-  const m = /^#\/health(?:\/([^/?]+))?/.exec(window.location.hash)
+function healthRoutePet(h = window.location.hash): string | null {
+  const m = /^#\/health(?:\/([^/?]+))?/.exec(h)
   if (!m) return null
   return m[1] ? decodeURIComponent(m[1]) : ''
 }
 
 /** `#/wrong` — the safety check (SPEC-COMPANION C1). */
-function isWrongRoute(): boolean {
-  return window.location.hash.startsWith('#/wrong')
+function isWrongRoute(h = window.location.hash): boolean {
+  return h.startsWith('#/wrong')
 }
 
 /** `#/protect` — the attach flow (SPEC §5). */
-function isProtectRoute(): boolean {
-  return window.location.hash.startsWith('#/protect')
+function isProtectRoute(h = window.location.hash): boolean {
+  return h.startsWith('#/protect')
+}
+
+/**
+ * The URL, as state. THE ONE SOURCE OF TRUTH FOR WHERE YOU ARE (BACKLOG T7).
+ *
+ * The pet and the surface used to be React state duplicated from the hash, with
+ * a writer syncing state → hash and a listener syncing hash → state. Three bugs
+ * came from the two disagreeing — the worst of them a link to one animal
+ * opening another animal's record. Now every route flag, the pet and the tab
+ * are read from this one value, and changing where you are means changing the
+ * URL. `replace` swaps the entry without adding history (a tab switch); a plain
+ * assignment adds one (following a link).
+ */
+function useHash(): [string, (next: string, opts?: { replace?: boolean }) => void] {
+  const [hash, setHash] = useState(() => window.location.hash)
+  useEffect(() => {
+    const on = () => setHash(window.location.hash)
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
+  }, [])
+  const navigate = useCallback((next: string, opts: { replace?: boolean } = {}) => {
+    if (window.location.hash === next) return
+    if (opts.replace) {
+      window.history.replaceState(null, '', next)
+      setHash(next)
+    } else {
+      window.location.hash = next
+    }
+  }, [])
+  return [hash, navigate]
 }
 
 function PetSwitcher({
@@ -259,17 +289,37 @@ export default function App() {
     memberCount,
   } = usePets(user)
   const membership = useMembership(user, householdId)
-  const [activeId, setActiveId] = useState<string>(() => parseHash()?.petId ?? DEMO_PETS[0].id)
   const [adding, setAdding] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
-  const [adminRoute, setAdminRoute] = useState(isAdminRoute)
-  const [covenantRoute, setCovenantRoute] = useState(isCovenantRoute)
-  const [ateRoute, setAteRoute] = useState(isAteRoute)
-  const [sitter, setSitter] = useState<string | null>(sitterToken)
-  const [protectRoute, setProtectRoute] = useState(isProtectRoute)
-  const [healthRoute, setHealthRoute] = useState<string | null>(healthRoutePet)
-  const [wrongRoute, setWrongRoute] = useState(isWrongRoute)
-  const [surface, setSurface] = useState<Surface>(() => parseHash()?.surface ?? 'home')
+
+  // ── Where you are: read from the URL, never kept alongside it (T7) ────────
+  const [hash, navigate] = useHash()
+  const petRoute = parseHash(hash)
+  const adminRoute = isAdminRoute(hash)
+  const covenantRoute = isCovenantRoute(hash)
+  const ateRoute = isAteRoute(hash)
+  const sitter = sitterToken(hash)
+  const protectRoute = isProtectRoute(hash)
+  const healthRoute = healthRoutePet(hash)
+  const wrongRoute = isWrongRoute(hash)
+  /** The pet the URL names, if it names one. */
+  const namedPet = petRoute?.petId ?? (healthRoute || null)
+  /**
+   * The last pet and tab the URL named. Remembered only for the screens whose
+   * URL names neither — "something is wrong", "ate something", Protect, the
+   * Covenant — which act on the pet you came from. Written from the URL and
+   * nowhere else (and by the switcher on those screens, which have no URL
+   * for a pet to go in).
+   */
+  const [last, setLast] = useState<{ petId: string; surface: Surface }>(() => ({
+    petId: namedPet ?? DEMO_PETS[0].id,
+    surface: petRoute?.surface ?? 'home',
+  }))
+  if ((namedPet && namedPet !== last.petId) || (petRoute && petRoute.surface !== last.surface)) {
+    setLast({ petId: namedPet ?? last.petId, surface: petRoute?.surface ?? last.surface })
+  }
+  const surface: Surface = petRoute?.surface ?? last.surface
+  const activeId = namedPet ?? last.petId
 
   useEffect(() => {
     if (handleResetParam()) return
@@ -300,6 +350,9 @@ export default function App() {
   }, [])
 
   const pets = [...DEMO_PETS, ...userPets]
+  // A pet the URL names but the list does not have yet — one just added, or a
+  // signed-in household still loading — shows the first pet meanwhile, and the
+  // URL is left naming the one asked for, so it appears when it arrives.
   const active = pets.find((p) => p.id === activeId) ?? pets[0]
 
   // One projection, shared by every surface. No screen holds its own truth.
@@ -319,38 +372,15 @@ export default function App() {
    */
   const memberView = !!active?.demo || membership.member
 
-  // ── URL sync ─────────────────────────────────────────────────────────────
-  // Write state → hash. Guarded so it never fights the hashchange listener.
+  // ── A URL that says nowhere ─────────────────────────────────────────────
+  // The bare site, or a hash we do not know, is given the last pet and tab so
+  // a reload lands where you were. The only write to the URL that is not a
+  // navigation, and it only ever fills a blank.
+  const routed =
+    petRoute || adminRoute || covenantRoute || ateRoute || sitter || protectRoute || wrongRoute || healthRoute !== null
   useEffect(() => {
-    if (!active || adminRoute || covenantRoute || ateRoute || protectRoute || wrongRoute || healthRoute !== null) return
-    const next = `#/pet/${encodeURIComponent(active.id)}/${surface}`
-    if (window.location.hash !== next) window.history.replaceState(null, '', next)
-  }, [active, surface, adminRoute, covenantRoute, ateRoute, protectRoute, wrongRoute, healthRoute])
-
-  // Read hash → state, for back/forward and pasted links.
-  useEffect(() => {
-    const onHash = () => {
-      const parsed = parseHash()
-      if (!parsed) return
-      setSurface(parsed.surface)
-      setActiveId((cur) => (parsed.petId !== cur ? parsed.petId : cur))
-    }
-    const onAdmin = () => {
-      setAdminRoute(isAdminRoute())
-      setCovenantRoute(isCovenantRoute())
-      setAteRoute(isAteRoute())
-      setSitter(sitterToken())
-      setProtectRoute(isProtectRoute())
-      setHealthRoute(healthRoutePet())
-      setWrongRoute(isWrongRoute())
-    }
-    window.addEventListener('hashchange', onHash)
-    window.addEventListener('hashchange', onAdmin)
-    return () => {
-      window.removeEventListener('hashchange', onHash)
-      window.removeEventListener('hashchange', onAdmin)
-    }
-  }, [])
+    if (!routed) navigate(`#/pet/${encodeURIComponent(last.petId)}/${last.surface}`, { replace: true })
+  }, [routed, last, navigate])
 
   // The Life surface is the Plan reveal (SPEC §4.1). Fired once per pet per
   // session so a user flicking between tabs does not inflate the top of the
@@ -404,8 +434,10 @@ export default function App() {
           ? null
           : surface
 
+  /** A tab. Between tabs of one pet it replaces the entry, as it always has;
+   *  from a screen outside the tabs it is a real step back can undo. */
   const go = (s: Surface) => {
-    setSurface(s)
+    navigate(`#/pet/${encodeURIComponent(active.id)}/${s}`, { replace: !!petRoute })
     window.scrollTo({ top: 0 })
   }
 
@@ -413,9 +445,13 @@ export default function App() {
     // On a Health File the route owns the pet, so switching means following a
     // link to the other pet's file — not changing state the page ignores.
     if (healthRoute !== null) {
-      window.location.hash = `#/health/${encodeURIComponent(id)}`
+      navigate(`#/health/${encodeURIComponent(id)}`)
+    } else if (petRoute) {
+      navigate(`#/pet/${encodeURIComponent(id)}/${surface}`, { replace: true })
     } else {
-      setActiveId(id)
+      // "Something is wrong", "ate something", Protect: their URL has no pet in
+      // it, so the choice is remembered rather than written.
+      setLast((l) => ({ ...l, petId: id }))
     }
     window.scrollTo({ top: 0 })
   }
@@ -427,32 +463,17 @@ export default function App() {
   const [arrivalFor, setArrivalFor] = useState<string | null>(null)
 
   /**
-   * The Health File resolves its pet FROM THE ROUTE, not from `activeId`.
-   *
-   * Syncing activeId off the route worked on a cold load and on the in-app
-   * link, and silently failed when the hash changed without a reload — paste
-   * the URL into an already-open tab and you got whoever was previously
-   * active, which for a fresh visitor is a demo pet. Somebody else's animal.
-   *
-   * Reading the route directly removes the ordering question rather than
-   * answering it.
-   *
-   * It deliberately does NOT push its pet back into `activeId`. It used to, "so
-   * the rest of the app agrees once you leave the page", and that nudge was the
-   * third bug of this shape: following a link from Max's Health File to Luna
-   * left `activeId` on Max, `healthRoute` went null in the same tick, and the
-   * URL writer below then replaced the incoming link with `#/pet/demo-max/home`.
-   * A link to one animal opened another animal's record. Nothing needs the
-   * nudge — the close button writes the hash for the pet it was showing, and
-   * every other exit is a link the hash listener already handles.
+   * The Health File's pet is the URL's pet, like every other screen's now
+   * (T7). It used to resolve separately from `activeId`, and the three bugs in
+   * verify-routing all came from the two disagreeing — the last of them a link
+   * from Max's Health File to Luna opening Max under Luna's link.
    */
-  const healthPet = healthRoute ? (pets.find((p) => p.id === healthRoute) ?? active) : active
+  const healthPet = active
 
   const addPet = (pet: PetProfile) => {
     void persistPet(pet)
-    setActiveId(pet.id)
     setAdding(false)
-    setSurface('life')
+    navigate(`#/pet/${encodeURIComponent(pet.id)}/life`)
     setArrivalFor(pet.id)
     track('pet_created', { species: pet.species, has_weight: pet.weightLb > 0 })
     window.scrollTo({ top: 0 })
@@ -460,8 +481,7 @@ export default function App() {
 
   const resetDemo = () => {
     resetLocal()
-    setActiveId(DEMO_PETS[0].id)
-    setSurface('home')
+    navigate(`#/pet/${encodeURIComponent(DEMO_PETS[0].id)}/home`)
     window.scrollTo({ top: 0 })
   }
 
@@ -508,7 +528,7 @@ export default function App() {
                   pets={pets}
                   // On the Health File the pet on screen comes from the route, not
                   // from activeId, so the switcher has to say the same thing.
-                  activeId={(healthRoute !== null ? healthPet?.id : active?.id) ?? null}
+                  activeId={active?.id ?? null}
                   onSelect={selectPet}
                   onAdd={() => setAdding(true)}
                   onReset={resetDemo}
@@ -560,8 +580,7 @@ export default function App() {
             <SomethingWrongPage
               pet={active}
               onClose={() => {
-                window.location.hash = `#/pet/${encodeURIComponent(active.id)}/home`
-                setWrongRoute(false)
+                navigate(`#/pet/${encodeURIComponent(active.id)}/home`)
               }}
             />
           </Suspense>
@@ -578,8 +597,7 @@ export default function App() {
                 healthPet.demo ? undefined : (patch) => void updatePet(healthPet.id, patch)
               }
               onClose={() => {
-                window.location.hash = `#/pet/${encodeURIComponent(healthPet.id)}/life`
-                setHealthRoute(null)
+                navigate(`#/pet/${encodeURIComponent(healthPet.id)}/life`)
               }}
             />
           </Suspense>
@@ -595,8 +613,7 @@ export default function App() {
               pet={active}
               projection={project(active)}
               onClose={() => {
-                window.location.hash = `#/pet/${encodeURIComponent(active.id)}/coverage`
-                setProtectRoute(false)
+                navigate(`#/pet/${encodeURIComponent(active.id)}/coverage`)
               }}
             />
           </Suspense>
@@ -607,8 +624,7 @@ export default function App() {
             <AteSomething
               pet={active}
               onClose={() => {
-                window.location.hash = `#/pet/${encodeURIComponent(active.id)}/home`
-                setAteRoute(false)
+                navigate(`#/pet/${encodeURIComponent(active.id)}/home`)
               }}
             />
           </Suspense>
@@ -618,8 +634,7 @@ export default function App() {
           >
             <DataCovenant
               onClose={() => {
-                window.location.hash = `#/pet/${encodeURIComponent(active?.id ?? DEMO_PETS[0].id)}/home`
-                setCovenantRoute(false)
+                navigate(`#/pet/${encodeURIComponent(active?.id ?? DEMO_PETS[0].id)}/home`)
               }}
             />
           </Suspense>
@@ -627,8 +642,7 @@ export default function App() {
           <Suspense fallback={<div className="mx-auto max-w-shell px-5 py-10 text-ink-2">Loading…</div>}>
             <MetricsDashboard
               onClose={() => {
-                window.location.hash = `#/pet/${encodeURIComponent(active?.id ?? DEMO_PETS[0].id)}/home`
-                setAdminRoute(false)
+                navigate(`#/pet/${encodeURIComponent(active?.id ?? DEMO_PETS[0].id)}/home`)
               }}
             />
           </Suspense>

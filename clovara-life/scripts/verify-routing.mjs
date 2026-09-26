@@ -163,6 +163,31 @@ await go('#/pet/demo-max/coverage')
 await follow('#/protect')
 ok('Protect belongs to Coverage', (await current()).join() === 'Coverage', JSON.stringify(await current()))
 
+// T7: the URL is the one source of truth. The screens outside the tabs act on
+// the pet you came from, a tab from there goes there, and a blank URL is filled.
+console.log('\nThe URL is where you are')
+await go('#/pet/demo-luna/rewards')
+await follow('#/wrong')
+ok('"something is wrong" is about the pet you came from', /Something is wrong with Luna/.test(await page.evaluate(() => document.body.innerText)))
+await page.locator('button[aria-haspopup="menu"]').first().click()
+await page.waitForTimeout(300)
+await page.locator('[role="menuitem"]', { hasText: 'Winston' }).first().click()
+await page.waitForTimeout(700)
+ok('choosing Winston there makes it about Winston', /Something is wrong with Winston/.test(await page.evaluate(() => document.body.innerText)))
+ok('  …without leaving the screen', (await page.evaluate(() => location.hash)) === '#/wrong')
+await page.setViewportSize({ width: 1280, height: 844 })
+await page.locator('nav[aria-label="Sections"] button', { hasText: 'Care' }).first().click()
+await page.waitForTimeout(800)
+ok("a tab from there goes to that tab, for that pet", (await page.evaluate(() => location.hash)) === '#/pet/demo-winston/care', await page.evaluate(() => location.hash))
+await page.goBack()
+await page.waitForTimeout(800)
+ok('and back returns to the screen you left', (await page.evaluate(() => location.hash)) === '#/wrong', await page.evaluate(() => location.hash))
+await page.setViewportSize({ width: 390, height: 844 })
+await go('#/nowhere-at-all')
+s = await shown()
+// The last pet and tab — here Winston's Care, which is where we just were.
+ok('a URL that says nowhere lands where you last were', s.hash === '#/pet/demo-winston/care', JSON.stringify(s))
+
 // UAT run 1, D4: "Add body condition" opened Life at the top, leaving the
 // question it named several screens down.
 console.log('\n"Add …" on Home lands on the question')
