@@ -36,6 +36,7 @@ export function AnnualReview({
 }) {
   const items = useMemo(() => reviewItems(pet), [pet])
   const [handled, setHandled] = useState<Set<string>>(() => new Set())
+  const [skipped, setSkipped] = useState<Set<string>>(() => new Set())
   const allHandled = items.every((i) => handled.has(i.field))
 
   const lastYear = pet.lastReviewedRange
@@ -93,7 +94,32 @@ export function AnnualReview({
               </div>
               <p className="mt-1 text-body-sm leading-relaxed text-ink-2">{item.because}</p>
               {done ? (
-                <p className="mt-2 text-body-sm text-forest">Thank you — noted.</p>
+                <p className="mt-2 text-body-sm text-forest">
+                  {skipped.has(item.field) ? 'Skipped.' : 'Thank you — noted.'}
+                </p>
+              ) : item.neverAsked ? (
+                // Nothing on file to confirm, so no "Still true" (UAT run 1, D7).
+                // Answering opens the question in the plan below; skipping
+                // records nothing.
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="pill-ghost px-4 py-2 text-body-lg"
+                    onClick={() => mark(item.field, true)}
+                  >
+                    Answer it
+                  </button>
+                  <button
+                    type="button"
+                    className="pill-ghost px-4 py-2 text-body-lg"
+                    onClick={() => {
+                      setSkipped((prev) => new Set(prev).add(item.field))
+                      setHandled((prev) => new Set(prev).add(item.field))
+                    }}
+                  >
+                    Skip
+                  </button>
+                </div>
               ) : (
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -131,7 +157,6 @@ export function AnnualReview({
             type="button"
             className="pill-primary px-4 py-2 text-body-lg"
             onClick={finish}
-            disabled={!allHandled}
           >
             Done
           </button>

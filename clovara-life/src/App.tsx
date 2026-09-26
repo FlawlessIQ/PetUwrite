@@ -390,6 +390,19 @@ export default function App() {
 
   const trialDays = trialDaysLeft(membership.entitlement, new Date())
 
+  // Which tab the current screen belongs to. The Health File opens from Life
+  // and Protect from Coverage; the urgent screens and the Covenant belong to
+  // none. The nav used to keep highlighting whichever tab was last open —
+  // Rewards on "something is wrong" (UAT run 1, D6).
+  const navActive: Surface | null =
+    healthRoute !== null
+      ? 'life'
+      : protectRoute
+        ? 'coverage'
+        : adminRoute || covenantRoute || ateRoute || wrongRoute
+          ? null
+          : surface
+
   const go = (s: Surface) => {
     setSurface(s)
     window.scrollTo({ top: 0 })
@@ -488,7 +501,7 @@ export default function App() {
 
           {!adding && (
             <>
-              <TopNav active={surface} onChange={go} />
+              <TopNav active={navActive} onChange={go} />
               <div className="flex shrink-0 items-center gap-2">
                 <PetSwitcher
                   pets={pets}
@@ -685,7 +698,7 @@ export default function App() {
         </div>
       </footer>
 
-      {!adding && <TabBar active={surface} onChange={go} />}
+      {!adding && <TabBar active={navActive} onChange={go} />}
     </div>
   )
 }

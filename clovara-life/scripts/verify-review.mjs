@@ -114,9 +114,11 @@ ok(
 )
 
 console.log('\nFinishing')
+// UAT run 1, D8: "none of them required" sat under a Done that stayed
+// disabled until every item was answered. Done now works at any point.
 ok(
-  'Done is disabled until every item is handled',
-  await review().getByRole('button', { name: /^Done$/ }).isDisabled(),
+  'Done works before every item is handled — none of them are required',
+  !(await review().getByRole('button', { name: /^Done$/ }).isDisabled()),
 )
 for (let i = 0; i < 10; i++) {
   const b = review().getByRole('button', { name: 'Still true' })
@@ -125,7 +127,6 @@ for (let i = 0; i < 10; i++) {
   await page.waitForTimeout(250)
 }
 const doneBtn = review().getByRole('button', { name: /^Done$/ })
-ok('Done becomes available once they are', !(await doneBtn.isDisabled()))
 await doneBtn.click()
 await page.waitForTimeout(700)
 
@@ -154,6 +155,19 @@ ok(
   'and it is offered again next visit, rather than never again',
   (await review().count()) === 1,
 )
+
+// UAT run 1, D7: "Still true" was offered for questions nobody had put.
+// JSON drops undefined, so this Rosie has never been asked about her teeth.
+console.log('\nA question never asked')
+await seed({ knownSince: ago(400), dental: undefined })
+let r = await review().innerText()
+ok('it says so', /Has the teeth routine changed\?[\s\S]*we have never asked/.test(r))
+ok('and offers "Answer it", not "Still true"', (await review().getByRole('button', { name: 'Answer it' }).count()) === 1)
+ok('with every other item still confirmable', (await review().getByRole('button', { name: 'Still true' }).count()) >= 3)
+await review().getByRole('button', { name: 'Skip' }).click()
+await page.waitForTimeout(300)
+ok('skipping says "Skipped", not "noted"', /Skipped\./.test(await review().innerText()))
+ok('and records nothing', (await stored()).dental === undefined)
 
 ok('no page errors throughout', errors.length === 0, errors.slice(0, 2).join(' | '))
 

@@ -198,7 +198,7 @@ export function Shop({
       {!member && (
         <div className="mt-6">
           <MemberGate
-            reason={`You're seeing list prices. Members pay less on every order and earn points back on the products that keep ${pet.name} healthy.`}
+            reason={`You're seeing list prices. Members pay less on every order and earn points back on the products picked for ${pet.name}.`}
             busy={busy}
             onStart={onStartTrial}
           />
@@ -208,8 +208,10 @@ export function Shop({
       <section className="card mt-6 flex flex-wrap items-center gap-4 bg-sage/60 px-5 py-4">
         <CloverMark size={26} />
         <p className="min-w-[12rem] flex-1 text-body-lg leading-relaxed text-deep">
-          Total Care members save on every order and earn points back on the products that keep
-          {' '}{pet.name} healthy. Membership is priced separately from insurance.
+          {/* Not "the products that keep {name} healthy" — a health claim attached
+              to products, which invariant 3 forbids (UAT run 1, D14). */}
+          Total Care members save on every order and earn points back on the products picked for{' '}
+          {pet.name}. Membership is priced separately from insurance.
         </p>
       </section>
 

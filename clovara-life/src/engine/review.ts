@@ -31,6 +31,12 @@ export interface ReviewItem {
    */
   because: string
   species?: Species
+  /**
+   * True when there is nothing on file to re-confirm. "Still true" cannot
+   * apply to a question nobody put (UAT run 1, D7), so the review offers to
+   * answer it instead.
+   */
+  neverAsked: boolean
 }
 
 /** The most recent birthday on or before `now`, as a timestamp. */
@@ -143,7 +149,7 @@ const OUTDOOR_WORDS: Record<string, string> = {
  * the one direction it moves.
  */
 export function reviewItems(pet: PetProfile): ReviewItem[] {
-  const items: ReviewItem[] = []
+  const items: Omit<ReviewItem, 'neverAsked'>[] = []
 
   items.push({
     field: 'weightLb',
@@ -202,7 +208,15 @@ export function reviewItems(pet: PetProfile): ReviewItem[] {
     because: 'It is small, it is real, and it is the one people quietly stop doing.',
   })
 
-  return items
+  const onFile: Record<string, boolean> = {
+    weightLb: pet.bodyConditionScore !== undefined || pet.weightLb > 0,
+    conditionIds: pet.conditionIds.length > 0 || pet.conditionsReviewed === true,
+    neutered: pet.neutered !== undefined,
+    outdoorAccess: !!pet.outdoorAccess,
+    activity: !!pet.activity,
+    dental: !!pet.dental,
+  }
+  return items.map((i) => ({ ...i, neverAsked: !(onFile[i.field] ?? true) }))
 }
 
 export interface ProjectionShift {

@@ -22,9 +22,9 @@ const FIELDS: { key: keyof NonNullable<PetProfile['careNotes']>; label: string; 
   { key: 'meds', label: 'Medication', placeholder: 'Half a tablet with breakfast.' },
   { key: 'quirks', label: 'Quirks', placeholder: 'Hates the hoover. Will not go out in rain.' },
   { key: 'vetName', label: 'Vet', placeholder: 'Riverside Vets' },
-  { key: 'vetPhone', label: 'Vet phone', placeholder: '01234 567890' },
+  { key: 'vetPhone', label: 'Vet phone', placeholder: '(555) 010-0142' },
   { key: 'emergencyName', label: 'Emergency contact', placeholder: 'Jo next door' },
-  { key: 'emergencyPhone', label: 'Their phone', placeholder: '07700 900000' },
+  { key: 'emergencyPhone', label: 'Their phone', placeholder: '(555) 010-0178' },
 ]
 
 export function SitterMode({

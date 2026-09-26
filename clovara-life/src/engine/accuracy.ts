@@ -271,5 +271,11 @@ export function accuracyLine(name: string, a: PlanAccuracy): string {
       ? `${name}'s plan is ${a.score}% sharp — as sharp as it goes for this breed.`
       : `${name}'s plan is ${a.score}% sharp. You've told us everything that moves it.`
   }
+  // At the breed's ceiling the next answer still changes the plan but cannot
+  // move the number. "85% sharp — add X to reach 85%" promised a gain that
+  // could not happen (UAT run 1, D1).
+  if (a.scoreWithNextBest <= a.score) {
+    return `${name}'s plan: ${a.score}% sharp, as far as it goes for this breed — ${a.nextBest.label} would still change what it says.`
+  }
   return `${name}'s plan: ${a.score}% sharp — add ${a.nextBest.label} to reach ${a.scoreWithNextBest}%.`
 }

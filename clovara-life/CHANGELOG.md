@@ -3,6 +3,23 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## UAT fixes, round three (BACKLOG U6–U7, branch `uat-fixes-3`, not yet deployed)
+
+- **A default is not an answer.** The levers no longer show a choice nobody
+  made, the score no longer names defaults ("Intact", "Weekly") as facts, Home's
+  biggest lever is only ever something you told us, and the medication form
+  asks how often rather than assuming twice a day.
+- **Honest about what exists.** The companion's summary names only what is on
+  file; Care mentions a condition only when there is one; Protect says nothing
+  can be bought before you tick anything; Coverage says no claim can be made yet.
+- **The annual review** offers "Answer it" or "Skip" for questions never asked,
+  and Done works at any point.
+- **Smaller things:** a capped plan no longer promises a gain it cannot give;
+  "Add …" on Home lands on the question; dollars and US numbers in examples; the
+  nav highlights the right tab or none; "4 years old", not "4.1"; the monthly
+  weigh-in says monthly; the vet-review status is in words; no health claim on
+  the Shop's membership line.
+
 ## UAT fixes, round two (BACKLOG U4–U5, deployed 2026-09-26 from branch `uat-fixes-2`)
 
 - **Every tab goes quiet when a pet has died, not just Home.** Life no longer

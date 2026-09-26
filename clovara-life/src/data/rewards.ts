@@ -23,7 +23,7 @@ export interface PointRule {
   id: string
   label: string
   points: number
-  cadence: 'daily' | 'weekly' | 'per visit' | 'per order'
+  cadence: 'daily' | 'weekly' | 'monthly' | 'per visit' | 'per order'
   /** Whether this behaviour also moves the healthy-years projection. */
   movesProjection: boolean
 }
@@ -38,7 +38,8 @@ export const POINT_RULES: PointRule[] = [
     id: 'weigh-in',
     label: 'Monthly weigh-in logged',
     points: 150,
-    cadence: 'weekly',
+    // Was 'weekly' under a label saying monthly (UAT run 1, D15).
+    cadence: 'monthly',
     movesProjection: true,
   },
   {

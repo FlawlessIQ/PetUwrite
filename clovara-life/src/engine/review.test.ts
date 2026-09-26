@@ -229,3 +229,16 @@ describe('the backfill for pets that predate the review', () => {
     expect(withReviewAnchor(petsIn, NOW)).toBe(petsIn)
   })
 })
+
+// UAT run 1, D7: "Still true" was offered for questions nobody had put.
+describe('what there is to confirm', () => {
+  it('marks a question never asked, so the review offers to answer it', () => {
+    const blank = reviewItems(pet({ weightLb: 0, conditionIds: [], conditionsReviewed: undefined, neutered: undefined, activity: undefined, dental: undefined }))
+    expect(blank.every((i) => i.neverAsked)).toBe(true)
+  })
+
+  it('and does not mark what is on file', () => {
+    const told = reviewItems(pet({ weightLb: 70, conditionIds: [], conditionsReviewed: true, neutered: false, activity: 'moderate', dental: 'weekly' }))
+    expect(told.filter((i) => i.neverAsked)).toEqual([])
+  })
+})

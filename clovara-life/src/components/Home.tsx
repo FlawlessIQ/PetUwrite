@@ -7,6 +7,7 @@ import { buildCoverage, buildHome, buildRewards } from '../engine/platform'
 import { useState } from 'react'
 import type { Surface } from './Nav'
 import { Icon } from './Icon'
+import { focusAfterNavigate } from './pendingFocus'
 
 function greeting() {
   const h = new Date().getHours()
@@ -178,7 +179,10 @@ export function Home({
             {accuracy.nextBest && (
               <button
                 type="button"
-                onClick={() => onNavigate('life')}
+                onClick={() => {
+                  focusAfterNavigate(`sharpen-${accuracy.nextBest!.field}`)
+                  onNavigate('life')
+                }}
                 className="pill-primary mt-4"
               >
                 Add {accuracy.nextBest.label}

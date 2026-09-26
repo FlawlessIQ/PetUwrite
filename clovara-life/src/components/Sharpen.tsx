@@ -91,7 +91,7 @@ export function Sharpen({
     if (meta.answered && !showAnswered && !justAnswered.has(field) && field !== revisitField)
       return null
     return (
-      <div className="border-t border-line px-5 py-5 first:border-t-0 sm:px-6">
+      <div id={`sharpen-${field}`} className="scroll-mt-20 border-t border-line px-5 py-5 first:border-t-0 sm:px-6">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <h3 className="text-lead font-medium text-ink">{title}</h3>
           {meta.answered ? (

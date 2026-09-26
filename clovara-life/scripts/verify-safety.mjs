@@ -119,7 +119,8 @@ ok('and flags it as the most time-critical', /hours rather than days/i.test(t))
 
 console.log('\nHonesty about the list itself')
 t = await page.locator('body').innerText()
-ok('the page carries its VET-REVIEW status', /VET-REVIEW/.test(t))
+// In words, not the raw tag (UAT run 1, D16).
+ok('the page carries its vet-review status', /Still being reviewed by a vet/.test(t) && !/VET-REVIEW/.test(t))
 ok(
   'and says it errs towards sending you to a vet',
   /more often than strictly necessary/i.test(t),

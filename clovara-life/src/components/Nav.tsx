@@ -75,7 +75,8 @@ export function TopNav({
   active,
   onChange,
 }: {
-  active: Surface
+  /** Null on a screen that belongs to no tab. */
+  active: Surface | null
   onChange: (s: Surface) => void
 }) {
   return (
@@ -108,7 +109,8 @@ export function TabBar({
   active,
   onChange,
 }: {
-  active: Surface
+  /** Null on a screen that belongs to no tab. */
+  active: Surface | null
   onChange: (s: Surface) => void
 }) {
   return (

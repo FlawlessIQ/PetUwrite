@@ -144,8 +144,10 @@ export function SomethingWrong({ pet, onClose }: { pet: PetProfile; onClose: () 
       )}
 
       <p className="mt-5 text-body-sm leading-relaxed text-ink-2">
-        {RED_FLAGS_REVIEW_STATUS}: this list is under veterinary review and is written to send you
-        to a vet more often than strictly necessary rather than less.
+        {/* The status stays on the page, deliberately (verify-safety), but in
+            words: "VET-REVIEW:" read as an internal tag (UAT run 1, D16). */}
+        {RED_FLAGS_REVIEW_STATUS === 'VET-REVIEW' ? 'Still being reviewed by a vet' : 'Reviewed by a vet'}: this
+        list is written to send you to a vet more often than strictly necessary rather than less.
       </p>
     </div>
   )

@@ -255,3 +255,13 @@ describe('accuracyLine', () => {
     expect(line).not.toMatch(/100%/)
   })
 })
+
+describe('at the ceiling', () => {
+  it('does not promise a gain that cannot happen (UAT run 1, D1)', () => {
+    const a = { score: 85, scoreWithNextBest: 85, nextBest: { label: 'anything diagnosed' }, ceiling: { max: 85, reason: '' } }
+    const line = accuracyLine('Luna', a as unknown as ReturnType<typeof planAccuracy>)
+    expect(line).not.toMatch(/to reach 85%/)
+    expect(line).toMatch(/85% sharp, as far as it goes/)
+    expect(line).toMatch(/anything diagnosed would still change what it says/)
+  })
+})

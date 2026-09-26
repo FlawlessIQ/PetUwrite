@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { PetProfile } from '../data/types'
 import { project } from '../engine/project'
 import { LifeArc } from './LifeArc'
@@ -18,6 +18,7 @@ import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
 import { Icon } from './Icon'
 import { longDate } from '../share/cardLayout'
+import { takePendingFocus } from './pendingFocus'
 
 /**
  * What the one Health File line says.
@@ -81,6 +82,14 @@ export function Journey({
   const remembered = isRemembered(pet)
   const [revisit, setRevisit] = useState<string | null>(null)
   const showReview = !!onUpdate && !reviewDismissed && reviewDue(pet, new Date())
+
+  // Arriving from Home's "Add …" button: bring that question into view. Taken
+  // here, where Life always mounts, so a demo pet (no Sharpen section) still
+  // clears it rather than leaving it to fire on some later visit.
+  useEffect(() => {
+    const id = takePendingFocus()
+    if (id) document.getElementById(id)?.scrollIntoView({ block: 'start' })
+  }, [])
 
   const baseline = useMemo(() => project(pet), [pet])
   const projection = useMemo(
@@ -240,7 +249,13 @@ export function Journey({
             <AnnualReview
               pet={pet}
               currentRange={{ low: baseline.healthyYearsRange.low, high: baseline.healthyYearsRange.high }}
-              onRevisit={setRevisit}
+              onRevisit={(field) => {
+                setRevisit(field)
+                // Take them to the question, as Home's "Add …" button does.
+                requestAnimationFrame(() =>
+                  document.getElementById(`sharpen-${field}`)?.scrollIntoView({ block: 'start' }),
+                )
+              }}
               onComplete={(patch) => {
                 onUpdate(patch)
                 setReviewDismissed(true)

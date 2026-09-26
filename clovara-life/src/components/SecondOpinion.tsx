@@ -45,7 +45,7 @@ export function SecondOpinion({
           id="opinion"
           rows={3}
           className="field resize-none"
-          placeholder="They have recommended surgery on her cruciate, about £4,800…"
+          placeholder="They have recommended surgery on her cruciate, about $4,800…"
           value={text}
           onChange={(e) => {
             setText(e.target.value)
