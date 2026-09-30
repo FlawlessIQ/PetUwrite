@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## Acquisition Phase A (BACKLOG AO1–AO4, branch `phase-a`, not deployed)
+## Acquisition Phase A (BACKLOG AO1–AO4, deployed 2026-09-30 from branch `phase-a`)
 
 - **A front door.** A first visit to the bare site says what this is and
   offers one thing — add your own dog or cat — instead of opening on
