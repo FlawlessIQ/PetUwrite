@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## Acquisition Phase B (branch `phase-b`)
+## Acquisition Phase B (branch `phase-b`; the calendar deployed 2026-09-30, email built and not deployed)
 
 - **Your pet's dates in your own calendar** (ships with `hosting:life`). The
   Health File's "Put Bruno's dates in your calendar" downloads a standard
