@@ -111,3 +111,61 @@ test('headers reach the sender (List-Unsubscribe for one-click)', async () => {
   const r = await sendTemplate('moment', 'a@example.test', { petName: 'Max', lines: ['x'] }, { 'List-Unsubscribe': '<https://example.test/u>' })
   assert.equal(r.provider, 'console')
 })
+
+// ── The SendGrid sender ────────────────────────────────────────────────────
+const { makeSendgridSender, parseFrom } = require('./email')
+
+const fakeFetch = (status = 202, body = '') => {
+  const calls = []
+  const fn = async (url, init) => {
+    calls.push({ url, init, body: JSON.parse(init.body) })
+    return { status, ok: status >= 200 && status < 300, text: async () => body, headers: { get: (h) => (h === 'x-message-id' ? 'msg-1' : null) } }
+  }
+  fn.calls = calls
+  return fn
+}
+
+test('sends plain text through the v3 API, with the headers it was given', async () => {
+  const f = fakeFetch()
+  const s = makeSendgridSender({ apiKey: 'SG.test', from: 'Clovara <hello@example.test>', fetchImpl: f })
+  const r = await s.send({ to: 'owner@example.test', subject: 'Hi', text: 'Body', headers: { 'List-Unsubscribe': '<https://x/u>' } })
+  assert.deepEqual(r, { delivered: true, provider: 'sendgrid', id: 'msg-1' })
+  const { url, init, body } = f.calls[0]
+  assert.equal(url, 'https://api.sendgrid.com/v3/mail/send')
+  assert.equal(init.headers.Authorization, 'Bearer SG.test')
+  assert.deepEqual(body.from, { email: 'hello@example.test', name: 'Clovara' })
+  assert.deepEqual(body.personalizations, [{ to: [{ email: 'owner@example.test' }] }])
+  assert.deepEqual(body.content, [{ type: 'text/plain', value: 'Body' }])
+  assert.equal(body.headers['List-Unsubscribe'], '<https://x/u>')
+})
+
+test('switches off open and click tracking — the unsubscribe link must reach us, and nobody else learns who opened what', async () => {
+  const f = fakeFetch()
+  await makeSendgridSender({ apiKey: 'k', from: 'a@example.test', fetchImpl: f }).send({ to: 'b@example.test', subject: 's', text: 't' })
+  const t = f.calls[0].body.tracking_settings
+  assert.equal(t.click_tracking.enable, false)
+  assert.equal(t.open_tracking.enable, false)
+})
+
+test('refuses to run half-configured rather than dropping mail', async () => {
+  await assert.rejects(makeSendgridSender({ from: 'a@example.test', fetchImpl: fakeFetch() }).send({ to: 'b', subject: 's', text: 't' }), /SENDGRID_API_KEY/)
+  await assert.rejects(makeSendgridSender({ apiKey: 'k', fetchImpl: fakeFetch() }).send({ to: 'b', subject: 's', text: 't' }), /EMAIL_FROM/)
+})
+
+test('a rejection from SendGrid is an error that says why', async () => {
+  const s = makeSendgridSender({ apiKey: 'k', from: 'a@example.test', fetchImpl: fakeFetch(403, '{"errors":[{"message":"sender not verified"}]}') })
+  await assert.rejects(s.send({ to: 'b@example.test', subject: 's', text: 't' }), /SendGrid 403: .*sender not verified/)
+})
+
+test('reads a from line with or without a display name', () => {
+  assert.deepEqual(parseFrom('Clovara <hello@clovara.test>'), { email: 'hello@clovara.test', name: 'Clovara' })
+  assert.deepEqual(parseFrom('hello@clovara.test'), { email: 'hello@clovara.test' })
+})
+
+test('without EMAIL_PROVIDER=sendgrid nothing leaves: the console sender answers', async () => {
+  const before = process.env.EMAIL_PROVIDER
+  delete process.env.EMAIL_PROVIDER
+  const r = await sendTemplate('planSaved', 'a@example.test', { petName: 'Max' })
+  assert.equal(r.provider, 'console')
+  if (before !== undefined) process.env.EMAIL_PROVIDER = before
+})

@@ -26,21 +26,71 @@ const consoleSender = {
 }
 
 /**
- * Placeholder for the real provider. Deliberately throws rather than silently
- * doing nothing — a half-wired sender that swallows mail is worse than one that
- * says it is not configured.
+ * The real provider: SendGrid's v3 HTTP API, over Node's built-in fetch — no
+ * SDK, so no new dependency.
+ *
+ * Turned on only by configuration (see docs/DEPLOYMENT.md → "Switching email
+ * on"): EMAIL_PROVIDER=sendgrid, a SENDGRID_API_KEY secret, and EMAIL_FROM on
+ * the verified sending domain. Missing any of them it THROWS rather than
+ * falling back to the console — a half-configured sender that quietly drops
+ * mail is worse than one that says it is not configured.
+ *
+ * Open and click tracking are switched off per message. Click tracking rewrites
+ * every link through SendGrid's servers, which would break the unsubscribe
+ * link's one-click POST and tell a third party which reminder somebody opened —
+ * not something the Data Covenant lets us hand over.
  */
-const sendgridSender = {
-  name: 'sendgrid',
-  async send() {
-    throw new Error(
-      'SendGrid sender is not implemented yet. Set EMAIL_PROVIDER=console until it is.',
-    )
-  },
+const SENDGRID_URL = 'https://api.sendgrid.com/v3/mail/send'
+
+function makeSendgridSender({ apiKey, from, fetchImpl = globalThis.fetch, timeoutMs = 10_000 } = {}) {
+  return {
+    name: 'sendgrid',
+    async send({ to, subject, text, headers }) {
+      if (!apiKey) throw new Error('SENDGRID_API_KEY is not set')
+      if (!from) throw new Error('EMAIL_FROM is not set')
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), timeoutMs)
+      try {
+        const res = await fetchImpl(SENDGRID_URL, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            personalizations: [{ to: [{ email: to }] }],
+            from: parseFrom(from),
+            subject,
+            content: [{ type: 'text/plain', value: text }],
+            ...(headers && Object.keys(headers).length ? { headers } : {}),
+            tracking_settings: {
+              click_tracking: { enable: false, enable_text: false },
+              open_tracking: { enable: false },
+              subscription_tracking: { enable: false },
+            },
+          }),
+        })
+        if (!res.ok) {
+          // SendGrid's error body names the problem (bad key, unverified sender)
+          // and does not echo the recipient, so it is safe to log.
+          const detail = await res.text().catch(() => '')
+          throw new Error(`SendGrid ${res.status}: ${detail.slice(0, 300)}`)
+        }
+        return { delivered: true, provider: 'sendgrid', id: res.headers.get('x-message-id') || null }
+      } finally {
+        clearTimeout(timer)
+      }
+    },
+  }
+}
+
+/** "Clovara <hello@example.com>" or a bare address → SendGrid's {email, name}. */
+function parseFrom(from) {
+  const m = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from)
+  return m ? { email: m[2], ...(m[1] ? { name: m[1].replace(/^"|"$/g, '') } : {}) } : { email: from.trim() }
 }
 
 function sender() {
-  return process.env.EMAIL_PROVIDER === 'sendgrid' ? sendgridSender : consoleSender
+  if (process.env.EMAIL_PROVIDER !== 'sendgrid') return consoleSender
+  return makeSendgridSender({ apiKey: process.env.SENDGRID_API_KEY, from: process.env.EMAIL_FROM })
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -159,4 +209,4 @@ async function sendTemplate(name, to, data, headers) {
   }
 }
 
-module.exports = { sendTemplate, TEMPLATES, consoleSender, sendgridSender }
+module.exports = { sendTemplate, TEMPLATES, consoleSender, makeSendgridSender, parseFrom }

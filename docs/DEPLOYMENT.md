@@ -64,6 +64,35 @@ firebase deploy --only functions:default   # functions/
 firebase deploy --only functions:life      # clovara-life/functions/
 ```
 
+## Switching email on
+
+Everything is built and tested; nothing sends. The Life functions use a console
+sender that only logs, and the account-panel opt-in is compiled out of the
+production bundle. In order — each step is Conor's or needs his word:
+
+1. **A sending domain**, authenticated in SendGrid (the SPF/DKIM CNAME records it
+   gives you) with a DMARC record. Sending from a Gmail or FlawlessIQ address is
+   not an option: the first is rejected under DMARC, the second makes the wrong
+   company the sender (the same problem as A3).
+2. **The key**: `firebase functions:secrets:set SENDGRID_API_KEY --project pet-underwriter-ai`
+   (a restricted key with *Mail Send* only).
+3. **Counsel's postal address** replaces the `LEGAL-REVIEW` line in
+   `clovara-life/functions/email.js` (`moment`); the unsubscribe wording beside
+   it is counsel's to approve too (A2).
+4. **Bind and configure** in `clovara-life/functions/index.js`: add
+   `SENDGRID_API_KEY` (a `defineSecret`) to the `secrets` of `stripeWebhook`,
+   `sendMoments` and `lifePlanSaved`, and set `EMAIL_PROVIDER=sendgrid` and
+   `EMAIL_FROM="Clovara <hello@DOMAIN>"` as parameters. Not before step 2 — binding
+   a secret that does not exist fails the deploy.
+5. **Deploy the functions**: `firebase deploy --only functions:life`. Then send
+   yourself one of each template before anyone else gets one.
+6. **Show the opt-in**: build with `VITE_EMAIL_MOMENTS=1` and deploy `hosting:life`.
+
+The sender refuses to run half-configured (no key or no from address → an
+error, never a silent drop), and open and click tracking are off per message —
+click tracking would rewrite the unsubscribe link and tell SendGrid who opened
+what, which the Data Covenant does not allow.
+
 ## Rules
 
 ```bash
