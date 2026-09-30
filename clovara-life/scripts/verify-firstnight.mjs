@@ -6,6 +6,7 @@
  * find out whether to ring a vet.
  */
 import { chromium } from 'playwright'
+import { waitForText } from './lib/wait.mjs'
 
 const BASE = process.env.BASE || 'http://127.0.0.1:4173'
 let failures = 0
@@ -45,7 +46,7 @@ const seed = async (over) => {
     },
   )
   await page.reload({ waitUntil: 'networkidle' })
-  await page.waitForTimeout(900)
+  await waitForText(page, new RegExp(over.name ?? 'Scout'))
 }
 
 const panel = () => page.locator('section[aria-labelledby="first-night-heading"]')
@@ -80,7 +81,13 @@ ok('later blocks are listed', /what comes next/i.test(t))
 const firstNext = panel().locator('button[aria-expanded]').first()
 ok('and collapsed to start', (await firstNext.getAttribute('aria-expanded')) === 'false')
 await firstNext.click()
-await page.waitForTimeout(300)
+await page
+  .waitForFunction(
+    () => document.querySelector('section[aria-labelledby="first-night-heading"] button[aria-expanded]')?.getAttribute('aria-expanded') === 'true',
+    null,
+    { timeout: 8000 },
+  )
+  .catch(() => {})
 ok('one opens', (await firstNext.getAttribute('aria-expanded')) === 'true')
 
 console.log('\nThe night block')

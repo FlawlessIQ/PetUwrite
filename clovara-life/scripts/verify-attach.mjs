@@ -7,6 +7,7 @@
  * until the small print has actually been scrolled.
  */
 import { chromium } from 'playwright'
+import { waitForEnabled, waitForLocator, waitForText } from './lib/wait.mjs'
 
 const BASE = process.env.BASE || 'http://127.0.0.1:4173'
 let failures = 0
@@ -47,20 +48,21 @@ const seed = async (over = {}) => {
     },
   )
   await page.reload({ waitUntil: 'networkidle' })
-  await page.waitForTimeout(900)
+  await waitForText(page, new RegExp(over.name ?? 'Scout'))
 }
 
 console.log('\nEntry points (SPEC §5)')
 await seed()
 ok('the offer is on the Life surface, at the reveal', (await page.locator('a[href="#/protect"]').count()) >= 1)
 await page.goto(`${BASE}#/pet/pet-at/coverage`, { waitUntil: 'networkidle' })
-await page.waitForTimeout(800)
+await waitForText(page, /coverage/i)
+await waitForLocator(page.locator('a[href="#/protect"]').first())
 ok('and a quiet line on Coverage', (await page.locator('a[href="#/protect"]').count()) >= 1)
 
 console.log('\nScreen 1 — a price nobody had to ask for')
 const started = Date.now()
 await page.locator('a[href="#/protect"]').first().click()
-await page.waitForTimeout(900)
+await waitForText(page, /step 1 of 2/i)
 let t = await page.locator('body').innerText()
 ok('it opens on step 1 of 2', /step 1 of 2/i.test(t))
 ok('there is a price', /\$\d+\.\d\d/.test(t))
@@ -74,17 +76,19 @@ ok('and says rates are not filed', /not yet filed/i.test(t))
 
 console.log('\nAdjusting, without a form')
 await page.getByRole('button', { name: 'Adjust' }).click()
-await page.waitForTimeout(400)
+await waitForLocator(page.getByRole('button', { name: /Clovara Essential/ }))
 ok('tiers are offered', (await page.getByRole('button', { name: /Clovara Essential/ }).count()) === 1)
 const before = (await page.locator('body').innerText()).match(/\$(\d+\.\d\d)/)[1]
 await page.getByRole('button', { name: /Clovara Essential/ }).click()
-await page.waitForTimeout(500)
+await page
+  .waitForFunction((b) => document.body.innerText.match(/\$(\d+\.\d\d)/)?.[1] !== b, before, { timeout: 8000 })
+  .catch(() => {})
 const after = (await page.locator('body').innerText()).match(/\$(\d+\.\d\d)/)[1]
 ok(`changing tier changes the price ($${before} → $${after})`, before !== after)
 
 console.log('\nScreen 2 — the screen of truth')
 await page.getByRole('button', { name: /See exactly what this covers/ }).click()
-await page.waitForTimeout(800)
+await waitForText(page, /uncomfortable page/i)
 t = await page.locator('body').innerText()
 ok('it says it is the uncomfortable page', /uncomfortable page/i.test(t))
 ok('waiting periods are given as DATES, not durations', /from \d+ \w+ \d{4}/.test(t), t.slice(0, 400))
@@ -109,15 +113,15 @@ await page.evaluate(() => {
   el.scrollTop = el.scrollHeight
   el.dispatchEvent(new Event('scroll', { bubbles: true }))
 })
-await page.waitForTimeout(500)
+await waitForEnabled(attest)
 ok('scrolling the disclosures to the end enables the attestation', !(await attest.isDisabled()))
 await attest.check()
-await page.waitForTimeout(300)
+await waitForEnabled(buy)
 ok('and then the button', !(await buy.isDisabled()))
 
 console.log('\nBinding is honest about not being live')
 await buy.click()
-await page.waitForTimeout(900)
+await waitForText(page, /carrier programme/i)
 t = await page.locator('body').innerText()
 ok(
   'it says binding needs the carrier programme, rather than failing silently',
@@ -130,9 +134,9 @@ ok(`the whole flow took under 90 seconds (${seconds.toFixed(1)}s)`, seconds < 90
 console.log('\nA pet with something already diagnosed')
 await seed({ conditionIds: ['hip-dysplasia'], conditionsReviewed: true })
 await page.goto(`${BASE}#/protect`, { waitUntil: 'networkidle' })
-await page.waitForTimeout(800)
+await waitForLocator(page.getByRole('button', { name: /See exactly what this covers/ }))
 await page.getByRole('button', { name: /See exactly what this covers/ }).click()
-await page.waitForTimeout(700)
+await waitForText(page, /will not be covered/i)
 t = await page.locator('body').innerText()
 ok('the condition is named in plain words', /will not be covered/i.test(t))
 ok('and it says what still is', /Everything unrelated still is/i.test(t))

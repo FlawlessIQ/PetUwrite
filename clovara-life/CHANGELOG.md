@@ -24,6 +24,9 @@ has the commits.
   to other sites, not to let anyone frame it, and to allow only location and
   the camera. The local preview sends the same headers, so the checks run
   under them.
+- **The verify suite reports every failure**, says how to rerun just those,
+  and says so plainly when Playwright's browser is missing. The three checks
+  that flaked now wait for what they check instead of a fixed time.
 
 ## Share links and the SendGrid sender (share links deployed 2026-09-30; the sender built, not switched on)
 

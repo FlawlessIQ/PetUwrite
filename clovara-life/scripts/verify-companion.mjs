@@ -7,6 +7,7 @@
  * something that sounds like an answer.
  */
 import { chromium } from 'playwright'
+import { waitForChange, waitForText } from './lib/wait.mjs'
 
 const BASE = process.env.BASE || 'http://127.0.0.1:4173'
 let failures = 0
@@ -51,14 +52,15 @@ const seed = async (over = {}) => {
     },
   )
   await page.reload({ waitUntil: 'networkidle' })
-  await page.waitForTimeout(1200)
+  await waitForText(page, /only tell you what it already knows/i)
 }
 
 const panel = () => page.locator('section[aria-labelledby="ask-heading"]')
 const ask = async (q) => {
   await panel().getByLabel(/What would you like to know/i).fill(q)
+  const typed = await panel().innerText()
   await panel().getByRole('button', { name: 'Ask' }).click()
-  await page.waitForTimeout(500)
+  await waitForChange(page, typed, { scope: 'section[aria-labelledby="ask-heading"]' })
   return panel().innerText()
 }
 
