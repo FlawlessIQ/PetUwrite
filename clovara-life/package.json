@@ -46,7 +46,8 @@
     "build:moments": "node scripts/build-moments.mjs",
     "test:moments": "cd .. && npx firebase emulators:exec --only firestore --project demo-moments 'cd clovara-life/functions && node --test'",
     "review:packs": "node scripts/review-packs.mjs",
-    "email:preview": "node scripts/review-packs.mjs"
+    "email:preview": "node scripts/review-packs.mjs",
+    "uat:phone-book": "node scripts/uat-phone-book.mjs"
   },
   "dependencies": {
     "@fontsource/playfair-display": "^5.3.0",
