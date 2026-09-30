@@ -65,10 +65,15 @@ const measure = async (label, pet, budget = CEILING, surface = 'life') => {
   )
   await page.reload({ waitUntil: 'networkidle' })
   await page.waitForTimeout(1600)
+  // Measured in the fonts a person sees. Under the full suite's load the web
+  // fonts could still be loading at 1.6s, and the fallback runs taller — the
+  // same page measured 10,153px in the suite and ~10,090px on its own.
+  await page.evaluate(() => document.fonts.ready)
+  await page.waitForTimeout(150)
   const h = await page.evaluate(() => document.documentElement.scrollHeight)
   const screens = h / PHONE
   ok(
-    `${label.padEnd(30)} ${screens.toFixed(1)} screens (budget ${budget})`,
+    `${label.padEnd(30)} ${screens.toFixed(1)} screens (budget ${budget}, ${Math.round(h)}px of ${Math.round(budget * PHONE)})`,
     screens <= budget,
     `${Math.round(h)}px is over budget — the question is what comes off, not what the limit should be`,
   )

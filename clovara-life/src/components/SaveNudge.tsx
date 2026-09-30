@@ -60,18 +60,23 @@ export function SaveNudge({
   }
 
   return (
-    <section className="card border-forest/25 bg-sage/30 px-5 py-4 sm:px-6" aria-labelledby={`save-${surface}`}>
-      <h2 id={`save-${surface}`} className="font-display text-heading-sm leading-tight text-ink">
-        Keep {pet.name}&rsquo;s plan
-      </h2>
-      <p className="mt-1.5 text-body-lg leading-relaxed text-ink-2">
-        Right now it lives only in this browser. Save it to an account and it will be on your phone
-        as well, and there for anyone you share {pet.name} with. No card needed.
+    // No heading: the button says "Keep Bruno's plan", and a heading saying it
+    // too cost the line that kept a puppy's first-hours page inside its budget.
+    <section
+      id={`save-${surface}`}
+      className="card border-forest/25 bg-sage/30 px-5 py-4 sm:px-6"
+      aria-label={`Keep ${pet.name}'s plan`}
+    >
+      <p className="text-body leading-relaxed text-ink sm:text-body-lg">
+        {pet.name}&rsquo;s plan lives only in this browser until you save it. Saved, it&rsquo;s on
+        your phone too. No card needed.
       </p>
-      <div className="mt-3 flex flex-wrap items-center gap-3">
+      <div className="mt-2.5 flex flex-wrap items-center gap-3">
+        {/* Compact: it sits in the longest page there is, a puppy's first
+            hours, which verify-length holds to twelve screens. */}
         <button
           type="button"
-          className="pill-primary"
+          className="pill-primary pill-sm"
           onClick={() => {
             track('save_prompt', { action: 'accepted', surface, nth: (memory?.dismissals ?? 0) + 1 })
             onKeep?.()

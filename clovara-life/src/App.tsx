@@ -563,7 +563,7 @@ export default function App() {
               setAdding(false)
               go('home')
             }}
-            className="flex min-h-[40px] shrink-0 items-center"
+            className="flex min-h-[40px] min-w-[40px] shrink-0 items-center"
             aria-label="Clovara Life home"
           >
             {/* AO3 put "Sign in" in the header. With the pet switcher beside it

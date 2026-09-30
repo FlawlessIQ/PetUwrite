@@ -90,7 +90,7 @@ ok(`under 60 seconds of interaction (${seconds.toFixed(1)}s of automation)`, sec
 
 // AO2: the plan exists only in this browser, and now it says so.
 console.log('\nThe save moment')
-const save = page.locator('section', { has: page.locator('#save-life') })
+const save = page.locator('#save-life')
 ok('after the reveal, it asks to keep the plan', (await save.count()) === 1)
 ok('and says why — it lives only in this browser', /only in this browser/.test(await save.innerText()))
 ok('and that no card is needed', /No card needed/.test(await save.innerText()))
