@@ -64,6 +64,9 @@ export const MUST_GO_QUIET = [
   'rewards and streaks',
   'the companion',
   'cover pricing',
+  // Phase B: a moment email about a pet who has died is the fourth failure
+  // in this file's header, arriving by post.
+  'email',
 ] as const
 
 /** What stays reachable, because taking it away would be its own cruelty. */

@@ -219,7 +219,10 @@ never asked to save it, cannot pay, and never hears from us again. Seven decisio
 (AO-D), then Phase A — a front door, the save moment, sign-in on the header, and funnel measurement —
 which needs no external dependency. BACKLOG section O. **Phase A built and deployed 2026-09-30 from branch `phase-a`**
 (AO1–AO4), on provisional answers to AO-D3 (the demo moves to `#/demo`) and AO-D7 (the headline). New:
-AO13 — visitors who never sign up are never counted.
+AO13 — visitors who never sign up are never counted. **Phase B (2026-09-30, branch `phase-b`):** the calendar export (AO14) ships
+with `hosting:life`; moment and plan-saved emails (AO5–AO6) are built and tested end to end in the emulator
+but **not deployed and send nothing** — they wait on a sending domain, a provider key, counsel's postal
+address and Conor's word on a `functions:life` deploy.
 
 ## The plan
 

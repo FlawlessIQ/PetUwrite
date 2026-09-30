@@ -3,6 +3,19 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Acquisition Phase B (branch `phase-b`)
+
+- **Your pet's dates in your own calendar** (ships with `hosting:life`). The
+  Health File's "Put Bruno's dates in your calendar" downloads a standard
+  calendar file — vaccination windows ahead, the socialisation window, the
+  yearly check, Gotcha Day every year — made on the device and sent nowhere.
+- **Moment emails, built but not switched on.** One engine decides what is due
+  and the Life functions run it daily for people who opted in: once per moment,
+  at most three a day, one-click unsubscribe. The sender still only logs; a
+  sending domain, a key and counsel's footer line turn it on. The opt-in switch
+  is built and hidden until then.
+- **"Bruno's plan is saved"**, once per person — built, not sending.
+
 ## Acquisition Phase A (BACKLOG AO1–AO4, deployed 2026-09-30 from branch `phase-a`)
 
 - **A front door.** A first visit to the bare site says what this is and

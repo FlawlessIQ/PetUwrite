@@ -7,6 +7,8 @@ import { passportState } from './passport'
 import { buildCompanion, buildCoverage, buildHome, buildRewards } from './platform'
 import { recommendProducts } from './shop'
 import { planAccuracy } from './accuracy'
+import { momentsDue } from './moments'
+import { calendarEvents } from './calendar'
 import { asksFor } from '../data/askRegistry'
 import { project } from './project'
 import type { PetProfile } from '../data/types'
@@ -131,6 +133,15 @@ describe('EVERY surface that would otherwise carry on', () => {
     expect(project(alive(), { now: later }).ageYears, 'control').toBeGreaterThan(11)
     expect(project(died(), { now: later }).ageYears).toBeLessThanOrEqual(8)
     expect(project(died(), { now: later }).ageYears).toBe(project(died(), { now: NOW }).ageYears)
+  })
+
+  it('no email and nothing for the calendar', () => {
+    // A puppy home since yesterday has plenty due; the same puppy remembered has none.
+    const pup = { birthDate: '2026-07-21', knownSince: new Date(NOW.getTime() - 20 * 3_600_000).toISOString() }
+    expect(momentsDue(alive(pup), NOW).length, 'control').toBeGreaterThan(0)
+    expect(momentsDue(died(pup), NOW)).toEqual([])
+    expect(calendarEvents(alive(pup), NOW).length, 'control').toBeGreaterThan(0)
+    expect(calendarEvents(died(pup), NOW)).toEqual([])
   })
 
   it('the home nudge stops talking about them in the present', () => {

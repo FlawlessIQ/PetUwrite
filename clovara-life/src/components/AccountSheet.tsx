@@ -4,6 +4,7 @@ import { displayNameFor, looksLikeEmail } from '../auth/session'
 import { CloverMark } from './CloverMark'
 import { isMember, trialDaysLeft, type Entitlement } from '../store/membership'
 import { FamilyCircle } from './FamilyCircle'
+import { EmailReminders } from './EmailReminders'
 
 /**
  * The account panel. Deliberately a modal rather than a route: signing in is
@@ -112,6 +113,8 @@ export function AccountSheet({
             </div>
 
             <FamilyCircle memberCount={memberCount} />
+
+            <EmailReminders />
 
             {/* Invariant 5: linked from settings. */}
             <a
