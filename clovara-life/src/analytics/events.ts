@@ -28,6 +28,18 @@ export const EVENT_NAMES = [
   // ── Supporting, so the gates above can be derived rather than trusted ───
   /** Every app open. week4_active is computed from these, not just asserted. */
   'session_start',
+  // ── Acquisition (ACQUISITION-ONBOARDING-PLAN §3) ─────────────────────────
+  /** The first visit from this browser, with where it came from (first-party only). */
+  'first_visit',
+  /** A later visit on a new day, with days since the first — the habit signal. */
+  'return_visit',
+  /** "Add a pet" was started, and from where. */
+  'onboarding_started',
+  /** The "keep their plan" prompt was shown, accepted or dismissed. */
+  'save_prompt',
+  /** An email sign-in link was requested. Not an account — `signed_up` is. */
+  'sign_in_link_requested',
+  /** An account was CREATED (a new user), by any method. */
   'signed_up',
   'signed_in',
   'pet_created',

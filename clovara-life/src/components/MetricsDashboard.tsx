@@ -67,7 +67,12 @@ function weekFourRetention(t: Totals): { eligible: number; retained: number } {
 }
 
 const FUNNEL: { name: EventName; label: string }[] = [
+  // ACQUISITION-ONBOARDING-PLAN §3. The first two only land for visitors who
+  // later sign in, like everything else here — see the note at the foot.
+  { name: 'first_visit', label: 'First visit' },
+  { name: 'onboarding_started', label: 'Started adding a pet' },
   { name: 'reveal_viewed', label: 'Saw the Plan reveal' },
+  { name: 'save_prompt', label: 'Was asked to keep the plan' },
   { name: 'signed_up', label: 'Created an account' },
   { name: 'trial_started', label: 'Started the trial' },
   { name: 'attach_offer_viewed', label: 'Saw the Protect offer' },

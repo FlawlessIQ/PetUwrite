@@ -26,6 +26,8 @@ interface AuthKit {
   /** The SDK's own authoritative check, after `looksLikeSignInLink` got us here. */
   isSignInLink: (href: string) => boolean
   signInWithGoogle: () => Promise<UserCredential>
+  /** Whether a sign-in just CREATED the account — what `signed_up` counts. */
+  isNewUser: (cred: UserCredential) => boolean
   signOut: () => Promise<void>
   watch: (cb: (user: User | null) => void) => () => void
 }
@@ -61,6 +63,7 @@ export function loadAuth(): Promise<AuthKit> {
       isSignInWithEmailLink,
       signInWithPopup,
       GoogleAuthProvider,
+      getAdditionalUserInfo,
       signOut: fbSignOut,
       onAuthStateChanged,
     } = authMod
@@ -100,6 +103,7 @@ export function loadAuth(): Promise<AuthKit> {
         provider.setCustomParameters({ prompt: 'select_account' })
         return signInWithPopup(auth, provider)
       },
+      isNewUser: (cred) => getAdditionalUserInfo(cred)?.isNewUser ?? false,
       signOut: () => fbSignOut(auth),
       watch: (cb) => onAuthStateChanged(auth, cb),
     }

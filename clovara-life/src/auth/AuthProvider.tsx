@@ -11,6 +11,7 @@ import {
   writeSessionHint,
 } from './session'
 import { flush, track } from '../analytics/track'
+import { readFirstTouch, sourceProps } from '../analytics/source'
 
 /**
  * `idle`      — the SDK has never been loaded. This is where a signed-out
@@ -99,7 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /** Records an auth event and flushes it, since the watcher's flush already ran. */
   const trackAuth = useCallback(async (name: 'signed_in' | 'signed_up', method: string) => {
-    track(name, { method })
+    // A new account carries where the visitor first came from (AO4).
+    track(name, name === 'signed_up' ? { method, ...sourceProps(readFirstTouch()) } : { method })
     try {
       const uid = (await loadAuth()).auth.currentUser?.uid
       if (uid) await flush(uid)
@@ -130,10 +132,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
         setStatus('working')
-        await kit.completeSignInLink(pending, window.location.href)
+        const cred = await kit.completeSignInLink(pending, window.location.href)
         writePendingEmail(null)
         cleanLinkFromUrl()
-        await trackAuth('signed_in', 'email_link')
+        await trackAuth(kit.isNewUser(cred) ? 'signed_up' : 'signed_in', 'email_link')
       } catch (err) {
         if (!mounted.current) return
         setError(authErrorMessage(errorCode(err)))
@@ -181,23 +183,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           writePendingEmail(email.trim())
           // Sending a link is not signing in. Status goes back to where it was.
           setStatus(user ? 'signedIn' : 'signedOut')
-          track('signed_up', { method: 'email_link_requested' })
+          // Requesting a link is not an account; `signed_up` fires when the link
+          // creates one. It used to fire here, so the dashboard's "Created an
+          // account" was counting requests (AO4).
+          track('sign_in_link_requested', {})
         }
         return ok
       },
       completeLinkWithEmail: async (email) => {
-        const ok = await run((k) => k.completeSignInLink(email, window.location.href))
+        let fresh = false
+        const ok = await run(async (k) => {
+          fresh = k.isNewUser(await k.completeSignInLink(email, window.location.href))
+        })
         if (ok) {
           writePendingEmail(null)
           cleanLinkFromUrl()
           setNeedsEmailForLink(false)
-          await trackAuth('signed_in', 'email_link_other_device')
+          await trackAuth(fresh ? 'signed_up' : 'signed_in', 'email_link_other_device')
         }
         return ok
       },
       signInWithGoogle: async () => {
-        const ok = await run((k) => k.signInWithGoogle())
-        if (ok) await trackAuth('signed_in', 'google')
+        let fresh = false
+        const ok = await run(async (k) => {
+          fresh = k.isNewUser(await k.signInWithGoogle())
+        })
+        // A Google sign-in that created the account was never counted as one (AO4).
+        if (ok) await trackAuth(fresh ? 'signed_up' : 'signed_in', 'google')
         return ok
       },
       signOut: async () => {
