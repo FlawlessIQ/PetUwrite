@@ -37,6 +37,8 @@ export const EVENT_NAMES = [
   'onboarding_started',
   /** The "keep their plan" prompt was shown, accepted or dismissed. */
   'save_prompt',
+  /** The owner took their pet's dates into their own calendar (Phase B). */
+  'calendar_exported',
   /** An email sign-in link was requested. Not an account — `signed_up` is. */
   'sign_in_link_requested',
   /** An account was CREATED (a new user), by any method. */

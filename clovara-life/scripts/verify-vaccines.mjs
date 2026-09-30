@@ -131,6 +131,20 @@ const overflow = await page.evaluate(
   () => document.documentElement.scrollWidth > window.innerWidth + 1,
 )
 ok('no sideways scroll at 390px', !overflow)
+// Phase B's return channel with no domain: the owner's own calendar.
+console.log('\nThe dates, in your own calendar')
+await seed({ knownSince: new Date(Date.now() - 86400000).toISOString() })
+const cal = page.locator('section[aria-labelledby="calendar-heading"]')
+ok('the Health File offers it', (await cal.count()) === 1)
+ok('and says the file is made here and sent nowhere', /sent nowhere/.test(await cal.innerText()))
+const [dl] = await Promise.all([page.waitForEvent('download'), cal.getByRole('button', { name: 'Add to my calendar' }).click()])
+const ics = await (await import('node:fs/promises')).readFile(await dl.path(), 'utf8')
+ok('it downloads a calendar file', dl.suggestedFilename() === 'scout-clovara.ics' && ics.startsWith('BEGIN:VCALENDAR'), dl.suggestedFilename())
+ok('with the vaccinations still ahead and the socialisation window', /SUMMARY:Scout: DHP/.test(ics) && /two weeks of the easy part left/.test(ics))
+ok('and Gotcha Day, every year', /RRULE:FREQ=YEARLY/.test(ics))
+await seed({ diedOn: new Date(Date.now() - 86400000).toISOString().slice(0, 10) })
+ok('nothing is offered for a pet who has died', (await page.locator('section[aria-labelledby="calendar-heading"]').count()) === 0)
+
 ok('no page errors throughout', errors.length === 0, errors.slice(0, 2).join(' | '))
 
 await browser.close()
