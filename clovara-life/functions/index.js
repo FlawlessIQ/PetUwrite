@@ -398,6 +398,7 @@ const { onDocumentCreated } = require('firebase-functions/v2/firestore')
 const { getAuth } = require('firebase-admin/auth')
 const { randomBytes } = require('node:crypto')
 const { runMoments } = require('./moments-job')
+const { PAGES } = require('./pages')
 
 const PREFS = 'life_prefs'
 const PREFERENCES_URL = `https://us-central1-${process.env.GCLOUD_PROJECT || 'pet-underwriter-ai'}.cloudfunctions.net/emailPreferences`
@@ -428,11 +429,6 @@ exports.setEmailPrefs = onCall({ cors: true }, async (req) => {
   return { moments: req.data.moments }
 })
 
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
-const page = (title, body) =>
-  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>` +
-  `<style>body{font-family:system-ui,sans-serif;background:#F6F3EA;color:#1B1E1B;margin:0;padding:48px 20px}main{max-width:520px;margin:auto}h1{font-family:Georgia,serif;font-weight:600}button{background:#1A5C38;color:#fff;border:0;border-radius:999px;padding:12px 22px;font-size:16px}p{line-height:1.6;color:#5C635C}</style></head><body><main>${body}</main></body></html>`
-
 /**
  * The link at the foot of every moment email. GET shows a page with a button;
  * the change happens on POST, because mail scanners follow links on their own
@@ -444,22 +440,16 @@ exports.emailPreferences = onRequest(async (req, res) => {
   const token = String(req.query.t || req.body?.t || '')
   const found = token ? await db.collection(PREFS).where('unsubscribeToken', '==', token).limit(1).get() : null
   if (!found || found.empty) {
-    res.status(404).send(page('Link not recognised', '<h1>We do not recognise that link</h1><p>It may be from an old email. You can change reminders from your account in Clovara Life.</p>'))
+    res.status(404).send(PAGES.notRecognised())
     return
   }
   if (req.method === 'POST') {
     await found.docs[0].ref.set({ moments: false, updatedAt: new Date().toISOString() }, { merge: true })
     await trackServer(found.docs[0].id, 'email_prefs_changed', { moments: false, via: 'unsubscribe_link' })
-    res.send(page('Reminders off', '<h1>Reminders are off</h1><p>You will not get these emails any more. Everything in your pets’ plans is still there, and you can turn reminders back on from your account.</p>'))
+    res.send(PAGES.remindersOff())
     return
   }
-  res.send(
-    page(
-      'Turn off reminders',
-      `<h1>Turn off reminders?</h1><p>You will stop getting emails about vaccinations, the socialisation window, the yearly check and Gotcha Day. Nothing else changes.</p>` +
-        `<form method="post"><input type="hidden" name="t" value="${esc(token)}"><button type="submit">Turn off reminders</button></form>`,
-    ),
-  )
+  res.send(PAGES.confirm(token))
 })
 
 exports.sendMoments = onSchedule({ schedule: 'every day 08:00', timeZone: 'America/New_York' }, async () => {
