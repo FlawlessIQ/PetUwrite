@@ -58,6 +58,7 @@ its §4 are Conor's and come first. Phase A needs no external dependency.
 | id | Item | Owner | Size | Judged |
 |---|---|---|---|---|
 | **AO-D** | Seven decisions: first cohort (= P3), the trial rule vs SPEC §1, where the demo lives, sign-ups before payment, email, the `main` site, the front-door line | Conor | — | — |
+| **AO-D8** | **US or British English?** Priced in dollars and pounds for a US launch, written in British English (*socialisation*, *colour*, "ring your vet"). A choice nobody has made; it touches every screen | Conor | — | — |
 | **AO1** | ~~A front door for a first visit~~ — **built and deployed 2026-09-30 from branch `phase-a`.** A first visit to the bare site, signed out with nothing saved, sees what this is and "Add your dog or cat"; "See an example first" and the new investor link `#/demo` open Max; every existing link bypasses it; shown once. Headline in `src/data/frontDoor.ts` — **provisional, AO-D7 is Conor's** | Claude Code | done | — |
 | **AO2** | ~~The save moment~~ — **built and deployed 2026-09-30 from branch `phase-a`.** "Keep Bruno's plan — right now it lives only in this browser… No card needed" after the reveal (below First Nights) and on Home; "Not now" puts it away, and it returns once only when something new worth keeping has been added; never more than twice; never for a demo, a signed-in owner or a pet who has died. "Keep" opens sign-in | Claude Code | done | — |
 | **AO3** | ~~Sign-in reachable from the header~~ — **built and deployed 2026-09-30 from branch `phase-a`.** "Sign in" in the header at every width when signed out, and on the front door. On a phone the full lockup no longer fits beside it, so a signed-out phone shows the clover mark alone | Claude Code | done | — |
@@ -72,6 +73,27 @@ its §4 are Conor's and come first. Phase A needs no external dependency.
 | **AO12** | ~~Record the trial-rule divergence~~ — **done 2026-09-30**, ROADMAP → Spec divergences | Claude Code | done | — |
 | **AO13** | **Count the visitors who never sign up.** Events queue on the device and reach Firestore only after sign-in (by design: signed-out visitors load no Firebase, and the rules require a uid), so everyone who visits and leaves is invisible and every rate is flattering. The fix is a small public ingest endpoint on the Life functions (or anonymous auth) — a functions deploy and a rules/abuse decision. Already acknowledged on the dashboard and in `queue.ts`; never scheduled | Conor → Claude Code | S | — |
 | **AO14** | ~~A return channel that needs no domain~~ — **built and deployed with Phase B's first part, 2026-09-30.** "Put Bruno's dates in your calendar" in the Health File: vaccination windows ahead, the socialisation window, the yearly check, Gotcha Day yearly — a standard .ics made on the device and sent nowhere | Claude Code | done | — |
+
+## UB · Unblocked build
+
+From `UNBLOCKED-BUILD-PLAN.md` (2026-09-30): work that needs no decision, reviewer,
+partner or supplier. Anything needing a functions or rules deploy is built and tested,
+then waits for Conor's word.
+
+| id | Item | Owner | Size | Judged |
+|---|---|---|---|---|
+| **UB1** | The vet pack — red flags, escalation, poison entries, First Nights, senior lines, vaccine wording; regenerated from code | Claude Code | S | — |
+| **UB2** | The counsel pack — disclosures, Covenant, D14, every email, unsubscribe, share-link privacy, and what is missing (marked, never drafted) | Claude Code | S | — |
+| **UB3** | `npm run email:preview` — every template rendered with sample data | Claude Code | S | — |
+| **UB4** | The UAT phone book — every Track A step at 393×852 with its Expected line | Claude Code | M | — |
+| **UB5** | AO13's anonymous ingest endpoint — built and emulator-tested; deploy is Conor's word | Claude Code | M | — |
+| **UB6** | Dashboard: funnel by source, day-1/7/28 returns, campaign link builder | Claude Code | S | — |
+| **UB7** | First-party client error capture | Claude Code | S | — |
+| **UB8** | Security headers for `hosting:life`, checked on the live site | Claude Code | S | — |
+| **UB9** | Steadier verify suite — condition waits, Playwright preflight, report every failure | Claude Code | S | — |
+| **UB10** | CI for Life — checks on every push, no secrets, no deploy | Claude Code | S | — |
+| **UB11** | One `callable` helper instead of four | Claude Code | S | — |
+| **UB12** | "Download everything about Bruno" — the Covenant's access promise, self-serve; Covenant wording unchanged | Claude Code | S | — |
 
 ## D · Design and UI
 

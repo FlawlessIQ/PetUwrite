@@ -224,6 +224,13 @@ with `hosting:life` the same day; moment and plan-saved emails (AO5–AO6) are b
 but **not deployed and send nothing** — they wait on a sending domain, a provider key, counsel's postal
 address and Conor's word on a `functions:life` deploy.
 
+## Unblocked build
+
+`docs/UNBLOCKED-BUILD-PLAN.md` (2026-09-30): twelve items that need no decision, reviewer, partner
+or supplier (BACKLOG UB1–UB12) — first the vet and counsel packs and a UAT phone book, so the real
+gates can move; then measurement for the cohort; then hardening. Found while planning: AO-D8, US
+or British English.
+
 ## The plan
 
 **`docs/EXECUTION-PLAN.md`** (2026-09-24) sequences everything remaining into four tracks: what

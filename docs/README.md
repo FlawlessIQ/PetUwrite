@@ -32,6 +32,7 @@ enforced by `clovara-life/scripts/verify-journey.mjs`.
 | | What it is |
 |---|---|
 | [BACKLOG.md](BACKLOG.md) | **Everything outstanding, with stable ids and a `Judged` column.** 97 items: product validation, design, the pre-launch reviews, the unlock decisions, 17 open questions, the 38 unbuilt journey moments, known technical debt, and what has been declined so it is not re-litigated. Start here for "what is left". |
+| [UNBLOCKED-BUILD-PLAN.md](UNBLOCKED-BUILD-PLAN.md) | **What can be built with no decisions needed**: review packs for the vet and counsel, a UAT phone book, cohort measurement, and hardening — in order, with what each unblocks. |
 | [ACQUISITION-ONBOARDING-PLAN.md](ACQUISITION-ONBOARDING-PLAN.md) | **How a stranger becomes a member**: what they can do today, the funnel we want, seven decisions for Conor, and a phased build (front door, save moment, email, trial, growth loops). A proposal. |
 | [JUDGEMENT-COPY.md](JUDGEMENT-COPY.md) | **The copy that carries judgement** (BACKLOG P2): 126 items — every refusal, the escalation ladder, the poison flow, the goodbye flow, the disclosures, the Data Covenant — extracted from what the code renders, each with a Verdict column for Conor. |
 | [UAT-PLAN.md](UAT-PLAN.md) | **The user-acceptance test**: Bruno's life from nine weeks to goodbye, in Chrome, with copy-paste console snippets for the time jumps and a Judge line per chapter. Dry-run against production; lists the defects it found going in. |
