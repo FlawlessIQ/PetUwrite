@@ -9,6 +9,7 @@
  */
 import { makeEvent, type EventName, type EventProps, type AnalyticsEvent } from './events'
 import { afterFlush, anonymousBatch, dedupe, enqueue, parseQueue, prepareFlush } from './queue'
+import { errorProps, makeReportGate, type ErrorKind } from './errors'
 
 const QUEUE_KEY = 'clovara-life.events.v1'
 const VISITOR_KEY = 'clovara-life.visitor.v1'
@@ -177,6 +178,39 @@ export function startAnonymousFlush(): () => void {
   return () => {
     clearTimeout(timer)
     document.removeEventListener('visibilitychange', onHide)
+  }
+}
+
+// ── Client errors (UB7) ─────────────────────────────────────────────────────
+const errorGate = makeReportGate()
+
+/** Records a crash as a `client_error` event — scrubbed, capped per session. */
+export function reportClientError(kind: ErrorKind, error: unknown, componentStack?: string | null): void {
+  try {
+    const props = errorProps(kind, error, { componentStack, hash: window.location.hash })
+    if (errorGate(props)) track('client_error', props)
+  } catch {
+    /* Reporting a crash must never cause one. */
+  }
+}
+
+/**
+ * Catches what the error boundary cannot: errors thrown outside render and
+ * promises nobody awaited. Only errors from our own scripts — a browser
+ * extension's crash is not ours to count. Returns a cleanup.
+ */
+export function installErrorCapture(): () => void {
+  const onError = (e: ErrorEvent) => {
+    if (e.filename && !e.filename.startsWith(window.location.origin)) return
+    if (!e.error && /^Script error\.?$/.test(e.message)) return
+    reportClientError('window', e.error ?? e.message)
+  }
+  const onRejection = (e: PromiseRejectionEvent) => reportClientError('promise', e.reason)
+  window.addEventListener('error', onError)
+  window.addEventListener('unhandledrejection', onRejection)
+  return () => {
+    window.removeEventListener('error', onError)
+    window.removeEventListener('unhandledrejection', onRejection)
   }
 }
 

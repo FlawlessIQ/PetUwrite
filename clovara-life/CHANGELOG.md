@@ -17,6 +17,9 @@ has the commits.
 - **The dashboard, by source.** Admins see each source's visits, plans,
   sign-ups and trials, how many came back after a day, a week and four weeks,
   and can make a tagged link for any partner or post.
+- **Crashes are counted.** A crash in a visitor's browser becomes one scrubbed
+  `client_error` event in the same queue as everything else — no error
+  service, no stack — and the dashboard lists them.
 
 ## Share links and the SendGrid sender (share links deployed 2026-09-30; the sender built, not switched on)
 

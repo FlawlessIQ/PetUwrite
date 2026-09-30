@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AuthProvider } from './auth/AuthProvider'
+import { installErrorCapture } from './analytics/track'
 // Latin-only subsets. The full imports ship 56 font files (devanagari,
 // cyrillic, vietnamese) that unicode-range means no browser here will ever
 // fetch — they were 1.5MB of deploy weight for nothing.
@@ -17,6 +18,9 @@ import '@fontsource/poppins/latin-400.css'
 import '@fontsource/poppins/latin-500.css'
 import '@fontsource/poppins/latin-600.css'
 import './index.css'
+
+// Errors outside render and unawaited promises (UB7); the boundary has render.
+installErrorCapture()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

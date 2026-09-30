@@ -72,6 +72,9 @@ export const EVENT_NAMES = [
   /** Sitter Mode (SPEC §6.6). */
   'sitter_link_created',
   'sitter_link_revoked',
+  // ── Health of the app itself ──────────────────────────────────────────────
+  /** Something broke in the browser: kind, scrubbed message, component, route shape (UB7). */
+  'client_error',
 ] as const
 
 export type EventName = (typeof EVENT_NAMES)[number]

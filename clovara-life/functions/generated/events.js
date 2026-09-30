@@ -52,7 +52,8 @@ const EVENT_NAMES = [
 	"emergency_vets_found",
 	"emergency_vet_called",
 	"sitter_link_created",
-	"sitter_link_revoked"
+	"sitter_link_revoked",
+	"client_error"
 ];
 /**
 * Strips anything that should never reach the events collection.

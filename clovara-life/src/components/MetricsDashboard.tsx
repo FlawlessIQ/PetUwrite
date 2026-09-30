@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { queuedCount } from '../analytics/track'
+import { errorSummary } from '../analytics/errors'
 import type { AnalyticsEvent, EventName } from '../analytics/events'
 import {
   CAMPAIGN_MEDIUMS,
@@ -248,6 +249,7 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
   const top = t ? (t.uniqueVisitors.reveal_viewed?.size ?? 0) : 0
   const bySource = events ? funnelBySource(events, BY_SOURCE.map((s) => s.name)) : []
   const returns = events ? returnRates(events, new Date()) : []
+  const crashes = events ? errorSummary(events) : []
 
   return (
     <div className="mx-auto w-full max-w-shell px-5 pb-20 pt-8">
@@ -491,6 +493,41 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
                 <span className="text-deep">{queuedCount()}</span>
               </li>
             </ul>
+          </section>
+
+          <section className="card overflow-hidden">
+            <div className="border-b border-line bg-cream/50 px-5 py-4">
+              <h2 className="font-display text-heading text-ink">Things that broke</h2>
+              <p className="mt-1 text-body text-ink-2">
+                Crashes in visitors' browsers: the message with anything personal-looking
+                removed, the component, and where in the app. Never a stack.
+              </p>
+            </div>
+            {crashes.length === 0 ? (
+              <p className="px-5 py-4 text-lead text-ink-2">Nothing recorded.</p>
+            ) : (
+              <ul className="divide-y divide-line" data-testid="client-errors">
+                {crashes.map((c) => (
+                  <li key={`${c.message}|${c.component}`} className="px-5 py-3">
+                    <div className="flex items-baseline justify-between gap-4">
+                      <span className="min-w-0 break-words text-lead text-ink">{c.message}</span>
+                      <span className="shrink-0 text-deep">{c.count}×</span>
+                    </div>
+                    <p className="mt-1 text-body-sm text-ink-2">
+                      {[
+                        c.component,
+                        c.route,
+                        `${c.visitors} visitor${c.visitors === 1 ? '' : 's'}`,
+                        `last ${c.lastAt.slice(0, 16).replace('T', ' ')}`,
+                        c.lastBuild,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <p className="card p-5 text-body leading-relaxed text-ink-2">

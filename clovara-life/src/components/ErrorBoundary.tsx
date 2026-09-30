@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { CloverMark } from './CloverMark'
+import { reportClientError } from '../analytics/track'
 
 const STORAGE_KEY = 'clovara-life.pets.v1'
 
@@ -33,6 +34,8 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Left in deliberately: if this ever fires in a rehearsal we want the trace.
     console.error('Clovara Life crashed:', error, info.componentStack)
+    // And counted, so a crash in the cohort's hands reaches the dashboard.
+    reportClientError('render', error, info.componentStack)
   }
 
   private startOver = () => {
