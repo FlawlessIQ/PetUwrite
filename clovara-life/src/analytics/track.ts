@@ -147,8 +147,16 @@ const INGEST_URL =
     ? 'http://127.0.0.1:5001/pet-underwriter-ai/us-central1/lifeIngest'
     : 'https://us-central1-pet-underwriter-ai.cloudfunctions.net/lifeIngest'
 
+/**
+ * Automated browsers (the verify suite, the UAT phone book — Playwright sets
+ * `navigator.webdriver`) never send: once this is on, every production check
+ * would otherwise land in the metrics as a visitor. Their events stay queued
+ * on the device, as every signed-out event did before.
+ */
+const automated = () => typeof navigator !== 'undefined' && navigator.webdriver === true
+
 export async function flushAnonymous(opts: { beacon?: boolean } = {}): Promise<number> {
-  if (!ANON_INGEST_ENABLED) return 0
+  if (!ANON_INGEST_ENABLED || automated()) return 0
   const batch = anonymousBatch(readQueue())
   if (!batch.length) return 0
   const body = JSON.stringify({ events: batch })

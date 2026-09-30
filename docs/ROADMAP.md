@@ -240,7 +240,8 @@ headers on `hosting:life`. UB9–UB11: a suite that reports every failure, CI fo
 UB12: "Download everything about Bruno" in the Health File — the Covenant's wording is unchanged
 and waits on counsel (COUNSEL-PACK C18–C20). **Deployed with `hosting:life` 2026-09-30**
 (headers, dashboard, crash capture, the download); all 26 browser checks pass against production, and
-CI's first run is green. `lifeIngest` is still not deployed.
+CI's first run is green. **`lifeIngest` deployed and anonymous ingest switched on the same day**,
+on Conor's word — signed-out visits are counted from 2026-09-30.
 
 ## The plan
 

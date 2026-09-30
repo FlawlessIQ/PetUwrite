@@ -76,17 +76,23 @@ firebase deploy --only functions:life      # clovara-life/functions/
 
 ## Counting visitors who never sign up (UB5 / AO13)
 
-Built and emulator-tested (`npm run test:ingest`); not deployed. Two steps, both
-Conor's word:
+**Live since 2026-09-30.** How it was switched on, and how to redo or undo it:
 
 1. **Deploy the one function**, not the whole codebase — a full `functions:life`
    deploy would also put the (still silent) email functions live:
    `firebase deploy --only functions:life:lifeIngest`. It is public by design,
    accepts only known event names from three origins, and is rate-limited.
-2. **Switch the client on**: build with `VITE_ANON_INGEST=1` and deploy
-   `hosting:life`. Until then signed-out events stay on the device, as today.
+2. **Switch the client on**: `clovara-life/.env.production` sets
+   `VITE_ANON_INGEST=1`, so every production build has it; deploy `hosting:life`.
 
-To switch it off again, rebuild without the flag; the endpoint can stay.
+To switch it off, remove that line, rebuild and deploy `hosting:life`; the
+endpoint can stay. Automated browsers never send, so production checks are not
+counted. To prove it end to end (writes one visit under a `verify-` id, which the
+dashboard leaves out):
+
+```bash
+cd clovara-life && INGEST_LIVE=1 BASE=https://clovara-life.web.app node scripts/verify-ingest.mjs
+```
 
 ## Switching email on
 

@@ -350,10 +350,10 @@ Start with section 1: the things that do not exist yet.
 
 ### C37 · Analytics
 
-> Event names and simple values (never a pet name, email or free text), a random id per browser, and — on a first visit — the referring site's host (never the full address) and any utm tags. Stored on the device, sent to our database only once someone signs in. No third-party pixels or trackers.
+> Event names and simple values (never a pet name, email or free text), a random id per browser, and — on a first visit — the referring site's host (never the full address) and any utm tags. Stored on the device, sent to our database — through our own endpoint while signed out, directly once signed in. No third-party pixels or trackers.
 
 - **Where:** Everywhere
-- AO13 is built, not deployed: once it is, anonymous visits also reach our database, with the same fields and no account
+- Since 2026-09-30 (AO13), signed-out visits also reach our database, through our own endpoint, with the same fields and no account. Automated browsers are not counted
 - Crashes are recorded the same way (UB7): the error message with emails, links and long numbers removed, the component and the route's shape — never a stack
 - **Verdict:** keep · change (write the change) · discuss
 

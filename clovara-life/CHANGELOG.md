@@ -3,6 +3,13 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Anonymous visits counted (deployed 2026-09-30, branch `anon-ingest`)
+
+- **The funnel counts people who never sign up.** Signed-out visitors' events
+  now reach the dashboard through our own endpoint — known event names and
+  simple values only, no account, no Firebase loaded. Our own automated checks
+  are never counted.
+
 ## Unblocked build (deployed with `hosting:life` 2026-09-30 from branch `unblocked-build`; the anonymous-visit endpoint built, not deployed)
 
 - **Review packs.** `npm run review:packs` writes the vet pack, the counsel pack

@@ -220,7 +220,13 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
         const snap = await getDocs(
           query(collection(db, 'life_events'), orderBy('at', 'desc'), limit(2000)),
         )
-        if (!cancelled) setEvents(snap.docs.map((d) => d.data() as AnalyticsEvent))
+        if (!cancelled)
+          setEvents(
+            snap.docs
+              .map((d) => d.data() as AnalyticsEvent)
+              // verify-ingest's live check writes one visit under a `verify-` id.
+              .filter((e) => !String(e.visitorId).startsWith('verify-')),
+          )
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -531,14 +537,12 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
           </section>
 
           <p className="card p-5 text-body leading-relaxed text-ink-2">
-            <span className="font-medium text-ink">Read this number honestly.</span> Events buffer
-            locally and flush when someone signs in, so a visitor who sees the reveal and never
-            signs up is never counted — the top of this funnel ({top} visitors) is an undercount,
-            and every rate below it is therefore flattering. The same goes for the source table
-            and the return rates. The fix is built but not switched on: the{' '}
-            <code>lifeIngest</code> endpoint, once deployed and the app built with{' '}
-            <code>VITE_ANON_INGEST=1</code>, counts signed-out visitors too. Until then, treat the
-            first step as a floor rather than a total.
+            <span className="font-medium text-ink">Read this number honestly.</span> Since 30
+            September 2026, signed-out visitors&rsquo; events reach this page through the{' '}
+            <code>lifeIngest</code> endpoint, so the top of the funnel ({top} visitors saw a plan)
+            counts people who never signed up. Before that date it did not, so anything from
+            earlier undercounts them and flatters every rate below it. Automated browsers — our own
+            checks — are never sent, and test visits under a <code>verify-</code> id are left out.
           </p>
         </div>
       )}
