@@ -8,7 +8,7 @@
  * loaded for auth anyway. `verify-demo` check 29 enforces this.
  */
 import { makeEvent, type EventName, type EventProps, type AnalyticsEvent } from './events'
-import { afterFlush, dedupe, enqueue, parseQueue, prepareFlush } from './queue'
+import { afterFlush, anonymousBatch, dedupe, enqueue, parseQueue, prepareFlush } from './queue'
 
 const QUEUE_KEY = 'clovara-life.events.v1'
 const VISITOR_KEY = 'clovara-life.visitor.v1'
@@ -130,6 +130,54 @@ export function flush(uid: string): Promise<number> {
     if (flushing === inFlight) flushing = null
   })
   return inFlight
+}
+
+// ── Anonymous visits (AO13 / UB5) ──────────────────────────────────────────
+/**
+ * Off until the Life functions' `lifeIngest` is deployed (Conor's word): only a
+ * build with VITE_ANON_INGEST=1 sends anything. When on, a signed-out visitor's
+ * queue goes to our own endpoint by plain fetch/sendBeacon — no Firebase SDK is
+ * loaded, so the demo contract above still holds — and what landed leaves the
+ * queue. Signed in, the normal flush takes over.
+ */
+export const ANON_INGEST_ENABLED = import.meta.env.VITE_ANON_INGEST === '1'
+const INGEST_URL =
+  import.meta.env.VITE_USE_EMULATORS === '1'
+    ? 'http://127.0.0.1:5001/pet-underwriter-ai/us-central1/lifeIngest'
+    : 'https://us-central1-pet-underwriter-ai.cloudfunctions.net/lifeIngest'
+
+export async function flushAnonymous(opts: { beacon?: boolean } = {}): Promise<number> {
+  if (!ANON_INGEST_ENABLED) return 0
+  const batch = anonymousBatch(readQueue())
+  if (!batch.length) return 0
+  const body = JSON.stringify({ events: batch })
+  try {
+    if (opts.beacon && typeof navigator.sendBeacon === 'function') {
+      // text/plain, so the browser sends it without a preflight as the page goes.
+      if (!navigator.sendBeacon(INGEST_URL, new Blob([body], { type: 'text/plain' }))) return 0
+    } else {
+      const res = await fetch(INGEST_URL, { method: 'POST', body, headers: { 'Content-Type': 'text/plain' }, keepalive: true })
+      if (!res.ok) return 0
+    }
+    writeQueue(afterFlush(readQueue(), batch))
+    return batch.length
+  } catch {
+    return 0
+  }
+}
+
+/** Sends shortly after load and whenever the page is hidden. Returns a cleanup. */
+export function startAnonymousFlush(): () => void {
+  if (!ANON_INGEST_ENABLED) return () => {}
+  const timer = setTimeout(() => void flushAnonymous(), 4000)
+  const onHide = () => {
+    if (document.visibilityState === 'hidden') void flushAnonymous({ beacon: true })
+  }
+  document.addEventListener('visibilitychange', onHide)
+  return () => {
+    clearTimeout(timer)
+    document.removeEventListener('visibilitychange', onHide)
+  }
 }
 
 /** Exposed for the dashboard's "unflushed on this device" line. */

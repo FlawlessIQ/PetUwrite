@@ -20,7 +20,7 @@ import { Quiet } from './components/Quiet'
 import { FrontDoor } from './components/FrontDoor'
 import { SharedCard } from './components/SharedCard'
 import { parseCardLink } from './share/cardLink'
-import { track } from './analytics/track'
+import { startAnonymousFlush, track } from './analytics/track'
 import { recordVisit, sourceProps } from './analytics/source'
 import { takeTimeToReveal } from './analytics/timing'
 import { clearLocalPets } from './store/localPets'
@@ -285,6 +285,9 @@ function PetSwitcher({
 
 export default function App() {
   const { user } = useAuth()
+  // AO13: signed out, a build with the ingest on sends visits to our own
+  // endpoint; signed in, the normal flush takes over. A no-op otherwise.
+  useEffect(() => (user ? undefined : startAnonymousFlush()), [user])
   const {
     pets: userPets,
     importable,

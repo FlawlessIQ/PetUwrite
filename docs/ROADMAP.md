@@ -231,6 +231,11 @@ or supplier (BACKLOG UB1–UB12) — first the vet and counsel packs and a UAT p
 gates can move; then measurement for the cohort; then hardening. Found while planning: AO-D8, US
 or British English.
 
+**Progress (branch `unblocked-build`):** UB1–UB4 built — `docs/review/` holds the vet pack, the counsel
+pack and the email preview, regenerated from code; the phone book is published to Conor. UB5 (AO13's
+anonymous ingest) is built and emulator-tested, **not deployed** — it waits on a `functions:life` deploy,
+and the client flag stays off until then.
+
 ## The plan
 
 **`docs/EXECUTION-PLAN.md`** (2026-09-24) sequences everything remaining into four tracks: what

@@ -118,3 +118,12 @@ function isEvent(v: unknown): v is AnalyticsEvent {
     typeof e.props === 'object'
   )
 }
+
+/**
+ * The next anonymous batch (AO13 / UB5): at most `max` events, duplicates
+ * dropped, identity stripped — the ingest endpoint stores no uid, and a batch
+ * sent before sign-in must not carry one it happens to have been given.
+ */
+export function anonymousBatch(queue: AnalyticsEvent[], max = 50): AnalyticsEvent[] {
+  return dedupe(queue).slice(0, max).map((e) => ({ ...e, uid: null }))
+}

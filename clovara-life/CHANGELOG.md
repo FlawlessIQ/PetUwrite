@@ -3,6 +3,18 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Unblocked build (branch `unblocked-build`, 2026-09-30)
+
+- **Review packs.** `npm run review:packs` writes the vet pack, the counsel pack
+  and every email with sample data into `docs/review/`, from the code itself, so
+  what reviewers read is what the app says.
+- **The UAT phone book.** `npm run uat:phone-book` shoots every Track A step at
+  iPhone size beside what should be true.
+- **Visitors who never sign up can be counted — built, not switched on.** A
+  small public endpoint on the Life functions takes signed-out events (known
+  names, sanitised props, no uid). Off until the function is deployed and the
+  app is built with `VITE_ANON_INGEST=1`.
+
 ## Share links and the SendGrid sender (share links deployed 2026-09-30; the sender built, not switched on)
 
 - **A shared card now leads somewhere.** It goes with a link to a page that

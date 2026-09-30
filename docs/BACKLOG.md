@@ -82,11 +82,11 @@ then waits for Conor's word.
 
 | id | Item | Owner | Size | Judged |
 |---|---|---|---|---|
-| **UB1** | The vet pack — red flags, escalation, poison entries, First Nights, senior lines, vaccine wording; regenerated from code | Claude Code | S | — |
-| **UB2** | The counsel pack — disclosures, Covenant, D14, every email, unsubscribe, share-link privacy, and what is missing (marked, never drafted) | Claude Code | S | — |
-| **UB3** | `npm run email:preview` — every template rendered with sample data | Claude Code | S | — |
-| **UB4** | The UAT phone book — every Track A step at 393×852 with its Expected line | Claude Code | M | — |
-| **UB5** | AO13's anonymous ingest endpoint — built and emulator-tested; deploy is Conor's word | Claude Code | M | — |
+| **UB1** | ~~The vet pack~~ — **built 2026-09-30 (branch `unblocked-build`).** `npm run review:packs` writes `docs/review/VET-PACK.md`: 80 items — red flags, escalation, poison entries with their thresholds, First Nights, senior lines, vaccine wording — each with where it appears and a Verdict column; `verify-review-packs` fails if it is stale | Claude Code | S | — |
+| **UB2** | ~~The counsel pack~~ — **built 2026-09-30.** `docs/review/COUNSEL-PACK.md`: 38 items — disclosures, the Covenant as rendered, D14, every email, the unsubscribe pages, share-link privacy — and what is missing (terms, privacy policy, CA/NY text, postal address), marked, never drafted | Claude Code | S | — |
+| **UB3** | ~~Email previews~~ — **built 2026-09-30.** `npm run email:preview` writes `docs/review/EMAIL-PREVIEW.md`: all 8 emails with sample data | Claude Code | S | — |
+| **UB4** | ~~The UAT phone book~~ — **built 2026-09-30.** `npm run uat:phone-book` shoots 34 Track A steps on the live site at 393×852 into one page, each beside its Expected line; published privately for Conor | Claude Code | M | — |
+| **UB5** | AO13's anonymous ingest endpoint — **built and emulator-tested 2026-09-30, NOT deployed.** `lifeIngest` (Life functions) takes only the event names the app knows, the app's own prop sanitiser, `uid: null`, max 50 per call, 64KB, three origins, rate-limited per visitor and per IP. The client sends signed-out events there only when built with `VITE_ANON_INGEST=1` — off until Conor deploys the function. `npm run test:ingest` | Claude Code | M | — |
 | **UB6** | Dashboard: funnel by source, day-1/7/28 returns, campaign link builder | Claude Code | S | — |
 | **UB7** | First-party client error capture | Claude Code | S | — |
 | **UB8** | Security headers for `hosting:life`, checked on the live site | Claude Code | S | — |

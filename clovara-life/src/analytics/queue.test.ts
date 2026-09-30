@@ -166,3 +166,13 @@ describe('parseQueue', () => {
     expect(parseQueue(raw)).toHaveLength(MAX_QUEUED)
   })
 })
+
+describe('the anonymous batch (AO13)', () => {
+  it('strips any uid, drops duplicates, and caps the size', async () => {
+    const { anonymousBatch } = await import('./queue')
+    const e = { ...makeEvent('first_visit', {}, CTX), uid: 'someone' }
+    const b = anonymousBatch([e, e, ...Array.from({ length: 80 }, (_, i) => ({ ...makeEvent('reveal_viewed', {}, { ...CTX, now: new Date(Date.UTC(2026, 8, 30, 0, 0, i)) }), uid: null }))], 50)
+    expect(b).toHaveLength(50)
+    expect(b.every((x) => x.uid === null)).toBe(true)
+  })
+})

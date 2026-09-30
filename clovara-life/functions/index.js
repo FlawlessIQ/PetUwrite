@@ -484,3 +484,55 @@ exports.lifePlanSaved = onDocumentCreated(`${HOUSEHOLDS}/{householdId}/pets/{pet
   const email = await getAuth().getUser(uid).then((u) => u.email || null).catch(() => null)
   await sendTemplate('planSaved', email, { petName: pet?.name?.value || null })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Anonymous analytics ingest (AO13 / UB5). Built and tested; the client only
+// sends here when built with VITE_ANON_INGEST=1, which stays off until this
+// function is deployed on Conor's word.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const { validateBatch, makeLimiter, MAX_EVENTS } = require('./ingest')
+
+const INGEST_ORIGINS = new Set(['https://clovara-life.web.app', 'http://127.0.0.1:4173', 'http://localhost:5173'])
+const limiter = makeLimiter({ perMinute: 120 })
+
+exports.lifeIngest = onRequest({ maxInstances: 3 }, async (req, res) => {
+  const origin = req.get('origin') || ''
+  if (INGEST_ORIGINS.has(origin)) res.set('Access-Control-Allow-Origin', origin)
+  res.set('Vary', 'Origin')
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Methods', 'POST').set('Access-Control-Max-Age', '3600').status(204).send('')
+    return
+  }
+  if (req.method !== 'POST' || !INGEST_ORIGINS.has(origin)) {
+    res.status(403).send('')
+    return
+  }
+  // sendBeacon posts text/plain so the browser needs no preflight; parse it here.
+  const raw = req.rawBody ? req.rawBody.toString('utf8') : ''
+  if (raw.length > 64 * 1024) {
+    res.status(413).send('')
+    return
+  }
+  let body = null
+  try {
+    body = JSON.parse(raw)
+  } catch {
+    res.status(400).send('')
+    return
+  }
+  const { events, refused } = validateBatch(body, new Date())
+  const visitor = events[0]?.visitorId || 'none'
+  if (!events.length) {
+    res.status(204).send('')
+    return
+  }
+  if (!limiter.allow(`v:${visitor}`, events.length) || !limiter.allow(`ip:${req.ip}`, events.length)) {
+    res.status(429).send('')
+    return
+  }
+  const wb = db.batch()
+  for (const e of events.slice(0, MAX_EVENTS)) wb.set(db.collection('life_events').doc(), { ...e, receivedAt: new Date().toISOString() })
+  await wb.commit()
+  res.status(202).json({ stored: events.length, refused })
+})
