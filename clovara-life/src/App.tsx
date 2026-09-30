@@ -18,6 +18,8 @@ import { displayNameFor, greetingNameFor } from './auth/session'
 import { isRemembered } from './engine/remember'
 import { Quiet } from './components/Quiet'
 import { FrontDoor } from './components/FrontDoor'
+import { SharedCard } from './components/SharedCard'
+import { parseCardLink } from './share/cardLink'
 import { track } from './analytics/track'
 import { recordVisit, sourceProps } from './analytics/source'
 import { takeTimeToReveal } from './analytics/timing'
@@ -403,6 +405,9 @@ export default function App() {
     }
   }, [])
   const bare = hash === '' || hash === '#' || hash === '#/'
+  // A link that came with a shared card (AO9). Parsed once per hash.
+  const cardRoute = hash.startsWith('#/card')
+  const sharedCard = useMemo(() => (cardRoute ? parseCardLink(hash) : null), [cardRoute, hash])
   const demoLink = hash === DEMO_LINK
   const frontDoor = bare && !frontDoorSeen && !user && userPets.length === 0 && !adding
 
@@ -411,7 +416,7 @@ export default function App() {
   // a reload lands where you were. The only write to the URL that is not a
   // navigation, and it only ever fills a blank.
   const routed =
-    petRoute || adminRoute || covenantRoute || ateRoute || sitter || protectRoute || wrongRoute || healthRoute !== null
+    petRoute || adminRoute || covenantRoute || ateRoute || sitter || protectRoute || wrongRoute || cardRoute || healthRoute !== null
   useEffect(() => {
     if (demoLink) {
       // The investor link. Opens Max, and counts as having been through the door.
@@ -480,7 +485,7 @@ export default function App() {
   const keepPlan = !user && active && !active.demo ? () => setAccountOpen(true) : undefined
 
   /** "Add a pet", from wherever it was tapped — the funnel wants to know (AO4). */
-  const startAdding = (from: 'front_door' | 'switcher' | 'header') => {
+  const startAdding = (from: 'front_door' | 'switcher' | 'header' | 'shared_card') => {
     track('onboarding_started', { from })
     setAdding(true)
   }
@@ -569,7 +574,7 @@ export default function App() {
             {/* AO3 put "Sign in" in the header. With the pet switcher beside it
                 the full lockup does not fit a phone (≈411px needed), so a
                 signed-out phone gets the mark alone; everywhere else, the lockup. */}
-            {!user && !frontDoor && !adding ? (
+            {!user && !frontDoor && !adding && !cardRoute ? (
               <>
                 <span className="sm:hidden">
                   <CloverMark size={30} />
@@ -583,12 +588,12 @@ export default function App() {
             )}
           </button>
 
-          {frontDoor && (
+          {(frontDoor || (cardRoute && !user)) && (
             <button type="button" onClick={() => setAccountOpen(true)} className="pill-ghost pill-sm">
               Sign in
             </button>
           )}
-          {!adding && !frontDoor && (
+          {!adding && !frontDoor && !cardRoute && (
             <>
               <TopNav active={navActive} onChange={go} />
               <div className="flex shrink-0 items-center gap-2">
@@ -647,7 +652,19 @@ export default function App() {
             onDismiss={dismissImport}
           />
         )}
-        {frontDoor ? (
+        {cardRoute && !adding ? (
+          <SharedCard
+            fields={sharedCard}
+            onStart={() => {
+              markFrontDoorSeen()
+              startAdding('shared_card')
+            }}
+            onExample={() => {
+              markFrontDoorSeen()
+              navigate(`#/pet/${encodeURIComponent(DEMO_PETS[0].id)}/home`)
+            }}
+          />
+        ) : frontDoor ? (
           <FrontDoor
             onStart={() => {
               markFrontDoorSeen()
@@ -801,7 +818,7 @@ export default function App() {
         </div>
       </footer>
 
-      {!adding && !frontDoor && <TabBar active={navActive} onChange={go} />}
+      {!adding && !frontDoor && !cardRoute && <TabBar active={navActive} onChange={go} />}
     </div>
   )
 }

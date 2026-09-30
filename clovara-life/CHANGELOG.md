@@ -3,6 +3,14 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Share links and the SendGrid sender (branch `sendgrid-and-share-links`, not yet deployed)
+
+- **A shared card now leads somewhere.** It goes with a link to a page that
+  shows the card — redrawn from its own words, never the photo — and invites
+  "make one for your dog or cat". A downloaded card offers the link to copy.
+- **The SendGrid sender is built**, with tracking off so the unsubscribe link
+  stays ours. Still nothing sends until the switch-on steps in DEPLOYMENT.md.
+
 ## Acquisition Phase B (branch `phase-b`; the calendar deployed 2026-09-30, email built and not deployed)
 
 - **Your pet's dates in your own calendar** (ships with `hosting:life`). The

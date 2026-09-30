@@ -82,6 +82,39 @@ ok(
   'a card of the right size and no ink is the failure a pure test cannot see',
 )
 
+// AO9: a shared card used to be a picture with no way back to Clovara.
+console.log('\nThe link that goes with it')
+await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(BASE).origin })
+const [shared] = await Promise.all([
+  page.waitForEvent('download').catch(() => null),
+  card.getByRole('button', { name: /Save or share/ }).click(),
+])
+await page.waitForTimeout(400)
+ok('on a desktop the card downloads', !!shared)
+const copy = card.getByRole('button', { name: /Copy the link to send with it/ })
+ok('and offers the link to send with it', (await copy.count()) === 1)
+await copy.click()
+await page.waitForTimeout(300)
+const link = await page.evaluate(() => navigator.clipboard.readText())
+ok('the link is to the card page', /\/#\/card\?k=arrival&/.test(link), link)
+ok('carrying only what is on the card — no photo, no id', !/photo|pet-|household/i.test(link) && /n=O%27Malley|n=O'Malley/.test(link), link)
+const friend = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage()
+await friend.goto(link, { waitUntil: 'networkidle' })
+await friend.waitForTimeout(1200)
+let ft = await friend.locator('body').innerText()
+ok('a friend opening it sees the card', (await friend.locator('main img[alt*="O\'Malley"]').count()) === 1)
+ok('and what Clovara is, in a sentence', /Made with Clovara Life/.test(ft))
+ok('not the demo, not the front door', !/Max's day/.test(ft) && !/Your pet’s plan for life/.test(ft))
+await friend.getByRole('button', { name: /Make one for your dog or cat/ }).click()
+await friend.waitForTimeout(500)
+ok('"make one" starts their own', /STEP 1 OF 5/i.test(await friend.locator('body').innerText()))
+await friend.context().close()
+const cut = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage()
+await cut.goto(`${BASE}/#/card?k=arrival&n=Half`, { waitUntil: 'networkidle' })
+await cut.waitForTimeout(600)
+ok('a link cut short says so, and still offers a plan', /This link is not complete/.test(await cut.locator('body').innerText()) && (await cut.getByRole('button', { name: /Make one for your dog or cat/ }).count()) === 1)
+await cut.context().close()
+
 console.log('\nWhat it says')
 ok('it offers to save or share', (await card.getByRole('button', { name: /Save or share/ }).count()) === 1)
 ok(

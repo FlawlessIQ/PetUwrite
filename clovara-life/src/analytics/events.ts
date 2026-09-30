@@ -37,6 +37,8 @@ export const EVENT_NAMES = [
   'onboarding_started',
   /** The "keep their plan" prompt was shown, accepted or dismissed. */
   'save_prompt',
+  /** Somebody opened a link that came with a shared card (AO9). */
+  'shared_link_opened',
   /** The owner took their pet's dates into their own calendar (Phase B). */
   'calendar_exported',
   /** An email sign-in link was requested. Not an account — `signed_up` is. */

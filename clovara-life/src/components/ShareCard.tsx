@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { PetProfile } from '../data/types'
 import { renderShareCard, arrivalCard, gotchaCard, type CardContent } from '../share/renderCard'
 import { shareCardImage } from '../share/shareImage'
+import { cardLink } from '../share/cardLink'
 import { track } from '../analytics/track'
 
 /**
@@ -61,6 +62,18 @@ export function ShareCard({
     }
   }, [pet.name, pet.photo?.avatarUrl, breedName, ageLabel, kind, years])
 
+  /** Carries only what is printed on the card — see share/cardLink.ts (AO9). */
+  const link = cardLink(window.location.origin, {
+    kind,
+    name: pet.name,
+    breedName,
+    ageLabel,
+    date: new Date().toISOString().slice(0, 10),
+    years: kind === 'gotcha' ? (years ?? 1) : undefined,
+  })
+  const [downloaded, setDownloaded] = useState(false)
+  const [copied, setCopied] = useState(false)
+
   const share = async () => {
     if (!blobRef.current) return
     setBusy(true)
@@ -72,11 +85,24 @@ export function ShareCard({
         kind === 'gotcha'
           ? `${pet.name}\u2019s Gotcha Day`
           : `${pet.name}\u2019s plan begins today`,
+      url: link,
     })
     setBusy(false)
     track('share_card', { kind, outcome, pet_is_demo: !!pet.demo, has_photo: !!pet.photo })
-    if (outcome === 'downloaded') setNote('Saved to your downloads.')
+    if (outcome === 'downloaded') {
+      setNote('Saved to your downloads.')
+      setDownloaded(true)
+    }
     if (outcome === 'failed') setNote('That did not work on this device.')
+  }
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+    } catch {
+      setNote(link)
+    }
   }
 
   return (
@@ -109,7 +135,16 @@ export function ShareCard({
           )}
         </div>
 
-        {note && <p className="mt-3 text-center text-body text-ink-2">{note}</p>}
+        {note && <p className="mt-3 break-words text-center text-body text-ink-2">{note}</p>}
+        {/* A downloaded card has no link on it. Offer the one that goes with it,
+            so whoever it is sent to can find where it came from (AO9). */}
+        {downloaded && (
+          <p className="mt-2 text-center">
+            <button type="button" className="text-body text-forest text-action" onClick={copyLink}>
+              {copied ? 'Link copied — paste it with the picture' : 'Copy the link to send with it'}
+            </button>
+          </p>
+        )}
 
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           <button

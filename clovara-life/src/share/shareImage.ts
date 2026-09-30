@@ -23,14 +23,19 @@ export function canShareFiles(file: File): boolean {
 
 export async function shareCardImage(
   blob: Blob,
-  opts: { name: string; kind: string; title: string; now?: Date },
+  /** `url`: the card's link (cardLink.ts), so whoever receives it can find Clovara (AO9). */
+  opts: { name: string; kind: string; title: string; url?: string; now?: Date },
 ): Promise<ShareOutcome> {
   const filename = shareFilename(opts.name, opts.kind, opts.now ?? new Date())
   const file = new File([blob], filename, { type: 'image/png' })
 
   if (canShareFiles(file)) {
     try {
-      await navigator.share({ files: [file], title: opts.title })
+      // Image and link together where the platform takes both; some refuse the
+      // pair, and then the image alone is still worth sending.
+      const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
+      const withLink = opts.url && nav.canShare?.({ files: [file], url: opts.url })
+      await navigator.share(withLink ? { files: [file], title: opts.title, url: opts.url } : { files: [file], title: opts.title })
       return 'shared'
     } catch (err) {
       // AbortError is somebody closing the sheet. That is a decision, not a
