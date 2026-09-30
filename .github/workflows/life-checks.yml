@@ -1,0 +1,91 @@
+name: Life checks
+
+# Clovara Life (BACKLOG UB10): the typecheck, unit tests, functions tests, a
+# build and the checks that need no browser, on every push that touches the
+# app. No secrets and no deploy — deploys stay a person's decision. The other
+# two workflows here belong to the underwriting app and are separate.
+
+on:
+  push:
+    paths:
+      - 'clovara-life/**'
+      - 'firebase.json'
+      - 'docs/review/**'
+      - '.github/workflows/life-checks.yml'
+  pull_request:
+    paths:
+      - 'clovara-life/**'
+      - 'firebase.json'
+      - 'docs/review/**'
+      - '.github/workflows/life-checks.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: life-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App — types, tests, build, static checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clovara-life
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: clovara-life/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Unit tests
+        run: npx vitest run
+
+      - name: Build
+        run: npx vite build
+
+      # The browser checks need a Chromium and a served build; they run locally
+      # with `npm run verify:all`. These read files only.
+      - name: Static checks
+        run: |
+          set -e
+          for s in verify-copy verify-brand verify-journey verify-bundle verify-moments-bundle verify-review-packs; do
+            echo "— $s"
+            node scripts/$s.mjs
+          done
+
+  functions:
+    name: Life functions — unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clovara-life/functions
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: clovara-life/functions/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      # Emulator tests skip themselves without FIRESTORE_EMULATOR_HOST.
+      - name: Tests
+        run: node --test

@@ -27,6 +27,9 @@ has the commits.
 - **The verify suite reports every failure**, says how to rerun just those,
   and says so plainly when Playwright's browser is missing. The three checks
   that flaked now wait for what they check instead of a fixed time.
+- **CI.** Every push that touches the app runs the typecheck, the unit and
+  functions tests, a build and the file-only checks on GitHub — no secrets,
+  no deploy.
 
 ## Share links and the SendGrid sender (share links deployed 2026-09-30; the sender built, not switched on)
 
