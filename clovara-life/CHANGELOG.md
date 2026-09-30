@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## Share links and the SendGrid sender (branch `sendgrid-and-share-links`, not yet deployed)
+## Share links and the SendGrid sender (share links deployed 2026-09-30; the sender built, not switched on)
 
 - **A shared card now leads somewhere.** It goes with a link to a page that
   shows the card — redrawn from its own words, never the photo — and invites
