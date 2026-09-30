@@ -41,6 +41,8 @@ export const EVENT_NAMES = [
   'shared_link_opened',
   /** The owner took their pet's dates into their own calendar (Phase B). */
   'calendar_exported',
+  /** The owner downloaded their pet's whole record (UB12). */
+  'record_downloaded',
   /** An email sign-in link was requested. Not an account — `signed_up` is. */
   'sign_in_link_requested',
   /** An account was CREATED (a new user), by any method. */

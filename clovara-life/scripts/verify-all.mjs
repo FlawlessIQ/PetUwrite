@@ -17,7 +17,7 @@ const SCRIPTS = [
   'verify-length', 'verify-a11y', 'verify-visitsummary', 'verify-safety', 'verify-companion',
   'verify-lumps', 'verify-remember', 'verify-c1c2', 'verify-briefing', 'verify-senior',
   'verify-journey', 'verify-copy', 'verify-bundle', 'verify-routing', 'verify-brand',
-  'verify-moments-bundle', 'verify-review-packs', 'verify-errors', 'verify-headers',
+  'verify-moments-bundle', 'verify-review-packs', 'verify-errors', 'verify-headers', 'verify-record',
 ]
 const PORT = 4178
 const BASE = `http://127.0.0.1:${PORT}`

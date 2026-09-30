@@ -190,12 +190,33 @@ Start with section 1: the things that do not exist yet.
 > A promise you can quietly edit is not a promise. If we change anything on this page we will say so directly — not in a version note — and the old wording will stay readable beside the new one.
 
 - **Where:** #/covenant — linked from the footer, onboarding and settings
-- **If UB12 ships** ("Download everything about your pet"), the Covenant's "ask us for everything" could say it is self-serve — not changed until you have seen it
+- UB12 is built ("Download everything about your pet", below): the Covenant's "ask us for everything" could say the pet record is self-serve — not changed until you have seen it
+- **Verdict:** keep · change (write the change) · discuss
+
+### C19 · Download everything about your pet — the card
+
+> Your copy
+> Download everything about Bruno
+> Every answer, record and note in Bruno’s file, as a page you can read and keep. Made on this device and sent nowhere.
+> Download Bruno’s record
+> As data (.json)
+
+- **Where:** Health File, near the foot; shown for pets who have died too
+- **Verdict:** keep · change (write the change) · discuss
+
+### C20 · Download everything about your pet — what the file says about itself
+
+> Made on 30 September 2026, on your own device. Nothing was sent anywhere to make it.
+> 
+> Bruno’s plan — the healthy-years range, the life stages, what to watch for — is worked out from this record each time it is shown, so it is not stored separately. The same record, as data another program can read, is the other download in the Health File: “As data (.json)”.
+
+- **Where:** The downloaded page
+- It covers the pet record only. Not in it: live sitter links (each holds a copy of the sitter notes, which are in the file, and an expiry date), the account's email, email preferences and analytics events. The Covenant says "everything we hold on your pet" — whether this file answers that, or needs a line saying what it leaves out, is yours
 - **Verdict:** keep · change (write the change) · discuss
 
 ## 4. Money and membership lines
 
-### C19 · Shop — membership
+### C21 · Shop — membership
 
 > $28$22 for members
 
@@ -203,25 +224,9 @@ Start with section 1: the things that do not exist yet.
 - Reworded in UAT run 1 (D14) from "the products that keep Bruno healthy"
 - **Verdict:** keep · change (write the change) · discuss
 
-### C20 · Shop — membership
-
-> $22$17 for members
-
-- **Where:** Shop
-- Reworded in UAT run 1 (D14) from "the products that keep Bruno healthy"
-- **Verdict:** keep · change (write the change) · discuss
-
-### C21 · Shop — membership
-
-> $45$36 for members
-
-- **Where:** Shop
-- Reworded in UAT run 1 (D14) from "the products that keep Bruno healthy"
-- **Verdict:** keep · change (write the change) · discuss
-
 ### C22 · Shop — membership
 
-> $89$72 for members
+> $22$17 for members
 
 - **Where:** Shop
 - Reworded in UAT run 1 (D14) from "the products that keep Bruno healthy"
@@ -237,7 +242,7 @@ Start with section 1: the things that do not exist yet.
 
 ### C24 · Shop — membership
 
-> You're seeing list prices. Members pay less on every order and earn points back on the products picked for Bruno.
+> $89$72 for members
 
 - **Where:** Shop
 - Reworded in UAT run 1 (D14) from "the products that keep Bruno healthy"
@@ -245,20 +250,36 @@ Start with section 1: the things that do not exist yet.
 
 ### C25 · Shop — membership
 
+> $45$36 for members
+
+- **Where:** Shop
+- Reworded in UAT run 1 (D14) from "the products that keep Bruno healthy"
+- **Verdict:** keep · change (write the change) · discuss
+
+### C26 · Shop — membership
+
+> You're seeing list prices. Members pay less on every order and earn points back on the products picked for Bruno.
+
+- **Where:** Shop
+- Reworded in UAT run 1 (D14) from "the products that keep Bruno healthy"
+- **Verdict:** keep · change (write the change) · discuss
+
+### C27 · Shop — membership
+
 > Total Care members save on every order and earn points back on the products picked for Bruno. Membership is priced separately from insurance.
 
 - **Where:** Shop
 - Reworded in UAT run 1 (D14) from "the products that keep Bruno healthy"
 - **Verdict:** keep · change (write the change) · discuss
 
-### C26 · Coverage — standing disclaimer
+### C28 · Coverage — standing disclaimer
 
 > Illustrative pricing shown to demonstrate how rate varies with species, size, age and breed. Not a quote and not a filed rate.
 
 - **Where:** Coverage
 - **Verdict:** keep · change (write the change) · discuss
 
-### C27 · Rewards — standing disclaimer
+### C29 · Rewards — standing disclaimer
 
 > Points redeem toward products and care services only, never toward your premium. Streak data in this preview is simulated.
 
@@ -267,7 +288,7 @@ Start with section 1: the things that do not exist yet.
 
 ## 5. Claims the product makes to a new visitor
 
-### C28 · The front door
+### C30 · The front door
 
 > More good years, together
 > Your pet’s plan for life
@@ -277,7 +298,7 @@ Start with section 1: the things that do not exist yet.
 - **Where:** First visit to the site
 - **Verdict:** keep · change (write the change) · discuss
 
-### C29 · Keep the plan
+### C31 · Keep the plan
 
 > Bruno’s plan lives only in this browser until you save it. Saved, it’s on your phone too. No card needed.
 
@@ -286,21 +307,21 @@ Start with section 1: the things that do not exist yet.
 
 ## 6. Email
 
-### C30 · Every email, rendered
+### C32 · Every email, rendered
 
 > See EMAIL-PREVIEW.md in this folder — welcome, trial ending, plan saved, and one of each reminder.
 
 - **Where:** docs/review/EMAIL-PREVIEW.md
 - **Verdict:** keep · change (write the change) · discuss
 
-### C31 · Reminder opt-in (not yet shown to anyone)
+### C33 · Reminder opt-in (not yet shown to anyone)
 
 > Email me when something is due — Vaccination windows, the socialisation window, the yearly check and Gotcha Day. Never more than three a day, one tap to stop, and off unless you turn it on.
 
 - **Where:** Account panel, once email is switched on
 - **Verdict:** keep · change (write the change) · discuss
 
-### C32 · Unsubscribe page — Turn off reminders
+### C34 · Unsubscribe page — Turn off reminders
 
 > Turn off reminders?
 > You will stop getting emails about vaccinations, the socialisation window, the yearly check and Gotcha Day. Nothing else changes.
@@ -309,7 +330,7 @@ Start with section 1: the things that do not exist yet.
 - **Where:** The link at the foot of every reminder
 - **Verdict:** keep · change (write the change) · discuss
 
-### C33 · Unsubscribe page — Reminders off
+### C35 · Unsubscribe page — Reminders off
 
 > Reminders are off
 > You will not get these emails any more. Everything in your pets’ plans is still there, and you can turn reminders back on from your account.
@@ -317,7 +338,7 @@ Start with section 1: the things that do not exist yet.
 - **Where:** The link at the foot of every reminder
 - **Verdict:** keep · change (write the change) · discuss
 
-### C34 · Unsubscribe page — Link not recognised
+### C36 · Unsubscribe page — Link not recognised
 
 > We do not recognise that link
 > It may be from an old email. You can change reminders from your account in Clovara Life.
@@ -327,29 +348,30 @@ Start with section 1: the things that do not exist yet.
 
 ## 7. What data goes where — our description, for you to check against the Covenant
 
-### C35 · Analytics
+### C37 · Analytics
 
 > Event names and simple values (never a pet name, email or free text), a random id per browser, and — on a first visit — the referring site's host (never the full address) and any utm tags. Stored on the device, sent to our database only once someone signs in. No third-party pixels or trackers.
 
 - **Where:** Everywhere
-- If AO13 ships, anonymous visits would also reach our database, with the same fields and no account
+- AO13 is built, not deployed: once it is, anonymous visits also reach our database, with the same fields and no account
+- Crashes are recorded the same way (UB7): the error message with emails, links and long numbers removed, the component and the route's shape — never a stack
 - **Verdict:** keep · change (write the change) · discuss
 
-### C36 · A shared card's link
+### C38 · A shared card's link
 
 > Carries only what is printed on the card — the pet's name, breed, age, the date and which card. Never the photo (which stays on the sharer's phone), an id or anything else from the record. Nothing is uploaded.
 
 - **Where:** Arrival and Gotcha Day cards
 - **Verdict:** keep · change (write the change) · discuss
 
-### C37 · The calendar file
+### C39 · The calendar file
 
 > Made on the device and handed to the browser as a download. Nothing is sent to us or anyone else.
 
 - **Where:** Health File → Reminders
 - **Verdict:** keep · change (write the change) · discuss
 
-### C38 · Owner-written text and Google
+### C40 · Owner-written text and Google
 
 > Switched off. Vet-record reading and conversational onboarding would send owner-written text to Google; that is decision B2, with a memo (docs/MODEL-DATA-DECISION.md).
 

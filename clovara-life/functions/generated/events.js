@@ -30,6 +30,7 @@ const EVENT_NAMES = [
 	"save_prompt",
 	"shared_link_opened",
 	"calendar_exported",
+	"record_downloaded",
 	"sign_in_link_requested",
 	"signed_up",
 	"signed_in",

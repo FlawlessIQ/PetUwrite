@@ -24,6 +24,8 @@ import { project } from '../engine/project'
 import { DataCovenant } from '../components/DataCovenant'
 import { Shop } from '../components/Shop'
 import { SaveNudge } from '../components/SaveNudge'
+import { RecordDownload } from '../components/RecordDownload'
+import { recordExport } from '../engine/recordExport'
 import type { PetProfile } from '../data/types'
 
 /** Fixed, so the packs are identical every time they are generated. */
@@ -71,6 +73,12 @@ export function reviewData() {
     saveNudge: text(<SaveNudge pet={bruno} onKeep={() => {}} surface="life" />),
     moments: MOMENT_SAMPLES.map((s) => ({ label: s.label, moments: momentsDue(s.pet, NOW) })),
     calendar: calendarEvents(bruno, NOW),
+    recordCard: text(<RecordDownload pet={bruno} now={NOW} />),
+    recordFile: (() => {
+      const html = recordExport(bruno, NOW).html
+      const pick = (re: RegExp) => (html.match(re)?.[1] ?? '').replace(/<[^>]+>/g, '').replace(/&rsquo;/g, '’').replace(/&ldquo;/g, '“').replace(/&rdquo;/g, '”').replace(/\s+/g, ' ').trim()
+      return { lede: pick(/<p class="lede">([\s\S]*?)<\/p>/), footer: pick(/<footer>([\s\S]*?)<\/footer>/) }
+    })(),
     demoName: max.name,
   }
 }

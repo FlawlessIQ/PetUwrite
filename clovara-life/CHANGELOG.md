@@ -32,6 +32,9 @@ has the commits.
   no deploy.
 - **One way to call the functions.** Four copies of the same helper are now
   one; nothing a person sees changes.
+- **Download everything about your pet.** The Health File gives the owner
+  their pet's whole record — a page they can read and keep, and the same as
+  data — made on their device. It stays available after a pet has died.
 
 ## Share links and the SendGrid sender (share links deployed 2026-09-30; the sender built, not switched on)
 

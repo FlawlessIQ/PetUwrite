@@ -11,6 +11,7 @@ import { Passport } from './Passport'
 import { SitterMode } from './SitterMode'
 import { ConfirmChips } from './ConfirmChips'
 import { CalendarCard } from './CalendarCard'
+import { RecordDownload } from './RecordDownload'
 import { passportState } from '../engine/passport'
 import { vaccineState } from '../engine/vaccines'
 
@@ -91,6 +92,10 @@ export function HealthFile({
           there is nothing to show from either.
         </p>
       )}
+
+      <div className="mt-5">
+        <RecordDownload pet={pet} now={now} />
+      </div>
 
       <div className="mt-6 border-t border-line pt-2">
         <Remembering pet={pet} onUpdate={onUpdate} />
