@@ -14,6 +14,9 @@ has the commits.
   small public endpoint on the Life functions takes signed-out events (known
   names, sanitised props, no uid). Off until the function is deployed and the
   app is built with `VITE_ANON_INGEST=1`.
+- **The dashboard, by source.** Admins see each source's visits, plans,
+  sign-ups and trials, how many came back after a day, a week and four weeks,
+  and can make a tagged link for any partner or post.
 
 ## Share links and the SendGrid sender (share links deployed 2026-09-30; the sender built, not switched on)
 

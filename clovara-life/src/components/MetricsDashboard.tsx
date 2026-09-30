@@ -3,6 +3,12 @@ import { useAuth } from '../auth/AuthProvider'
 import { queuedCount } from '../analytics/track'
 import type { AnalyticsEvent, EventName } from '../analytics/events'
 import {
+  CAMPAIGN_MEDIUMS,
+  campaignLink,
+  funnelBySource,
+  returnRates,
+} from '../analytics/acquisition'
+import {
   accuracyDistribution,
   recordsByDay30,
   tier1Completion,
@@ -79,6 +85,112 @@ const FUNNEL: { name: EventName; label: string }[] = [
   { name: 'attach_bound', label: 'Bound a policy' },
 ]
 
+/** The steps shown per source — the few that answer "did that link work". */
+const BY_SOURCE: { name: EventName; label: string }[] = [
+  { name: 'first_visit', label: 'Visits' },
+  { name: 'reveal_viewed', label: 'Saw a plan' },
+  { name: 'signed_up', label: 'Signed up' },
+  { name: 'trial_started', label: 'Trial' },
+]
+
+const RETURN_LABEL: Record<number, string> = {
+  1: 'A day or more later',
+  7: 'A week or more later',
+  28: 'Four weeks or more later',
+}
+
+/** Makes a tagged link to the front door for a partner, a post or a flyer (UB6). */
+function CampaignLinkBuilder() {
+  const [source, setSource] = useState('')
+  const [medium, setMedium] = useState<string>('partner')
+  const [campaign, setCampaign] = useState('')
+  const [copied, setCopied] = useState(false)
+  const link = campaignLink(window.location.origin, { source, medium, campaign })
+
+  const copy = async () => {
+    if (!link) return
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch {
+      /* clipboard refused — the link is on screen to select by hand */
+    }
+  }
+
+  return (
+    <section className="card overflow-hidden">
+      <div className="border-b border-line bg-cream/50 px-5 py-4">
+        <h2 className="font-display text-heading text-ink">Campaign links</h2>
+        <p className="mt-1 text-body text-ink-2">
+          A link to the front door that says where a visitor came from. Give each partner, post
+          or flyer its own, and it shows up by name in the table above.
+        </p>
+      </div>
+      <div className="space-y-4 px-5 py-4">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="utm-source" className="label">
+              Who is sharing it
+            </label>
+            <input
+              id="utm-source"
+              className="field mt-1.5"
+              placeholder="happy-tails-rescue"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+            />
+          </div>
+          <div>
+            <label htmlFor="utm-medium" className="label">
+              How
+            </label>
+            <select
+              id="utm-medium"
+              className="field mt-1.5"
+              value={medium}
+              onChange={(e) => setMedium(e.target.value)}
+            >
+              {CAMPAIGN_MEDIUMS.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="utm-campaign" className="label">
+              Campaign (optional)
+            </label>
+            <input
+              id="utm-campaign"
+              className="field mt-1.5"
+              placeholder="adoption-pack-oct"
+              value={campaign}
+              onChange={(e) => setCampaign(e.target.value)}
+            />
+          </div>
+        </div>
+        {link ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <code
+              data-testid="campaign-link"
+              className="min-w-0 flex-1 break-all rounded-lg bg-cream px-3 py-2 text-body-sm text-ink"
+            >
+              {link}
+            </code>
+            <button type="button" onClick={copy} className="pill-primary">
+              {copied ? 'Copied' : 'Copy link'}
+            </button>
+          </div>
+        ) : (
+          <p className="text-body-sm text-ink-2">Say who is sharing it to make the link.</p>
+        )}
+      </div>
+    </section>
+  )
+}
+
 export function MetricsDashboard({ onClose }: { onClose: () => void }) {
   const { user, status } = useAuth()
   const [events, setEvents] = useState<AnalyticsEvent[] | null>(null)
@@ -134,6 +246,8 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
       }
     : null
   const top = t ? (t.uniqueVisitors.reveal_viewed?.size ?? 0) : 0
+  const bySource = events ? funnelBySource(events, BY_SOURCE.map((s) => s.name)) : []
+  const returns = events ? returnRates(events, new Date()) : []
 
   return (
     <div className="mx-auto w-full max-w-shell px-5 pb-20 pt-8">
@@ -187,6 +301,70 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
               })}
             </ul>
           </section>
+
+          <section className="card overflow-hidden">
+            <div className="border-b border-line bg-cream/50 px-5 py-4">
+              <h2 className="font-display text-heading text-ink">By where they came from</h2>
+              <p className="mt-1 text-body text-ink-2">
+                Each visitor filed under their first visit: the campaign tag if the link had
+                one, else the site that sent them, else direct.
+              </p>
+            </div>
+            {bySource.length === 0 ? (
+              <p className="px-5 py-4 text-lead text-ink-2">No first visits recorded yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-lead" data-testid="by-source">
+                  <thead>
+                    <tr className="border-b border-line text-body-sm text-ink-2">
+                      <th className="px-5 py-2 font-medium">Source</th>
+                      {BY_SOURCE.map((s) => (
+                        <th key={s.name} className="px-3 py-2 text-right font-medium">
+                          {s.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {bySource.map((row) => (
+                      <tr key={row.source}>
+                        <td className="px-5 py-3 text-ink">{row.source}</td>
+                        {row.counts.map((n, i) => (
+                          <td key={i} className="px-3 py-3 text-right tabular-nums text-deep">
+                            {n}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="card overflow-hidden">
+            <div className="border-b border-line bg-cream/50 px-5 py-4">
+              <h2 className="font-display text-heading text-ink">Coming back</h2>
+              <p className="mt-1 text-body text-ink-2">
+                Of the visitors whose first visit is old enough to tell, how many came back on
+                another day at least that long after it.
+              </p>
+            </div>
+            <ul className="divide-y divide-line text-lead">
+              {returns.map((r) => (
+                <li key={r.day} className="flex items-baseline justify-between gap-4 px-5 py-3">
+                  <span className="text-ink">{RETURN_LABEL[r.day]}</span>
+                  <span className="text-deep">
+                    {r.eligible === 0
+                      ? 'nobody is old enough yet'
+                      : `${r.returned} of ${r.eligible} · ${Math.round((r.returned / r.eligible) * 100)}%`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <CampaignLinkBuilder />
 
           {phase && (
             <section className="card overflow-hidden">
@@ -319,9 +497,11 @@ export function MetricsDashboard({ onClose }: { onClose: () => void }) {
             <span className="font-medium text-ink">Read this number honestly.</span> Events buffer
             locally and flush when someone signs in, so a visitor who sees the reveal and never
             signs up is never counted — the top of this funnel ({top} visitors) is an undercount,
-            and every rate below it is therefore flattering. A public ingest endpoint on the
-            functions codebase closes the gap; until it lands, treat the first step as a floor
-            rather than a total.
+            and every rate below it is therefore flattering. The same goes for the source table
+            and the return rates. The fix is built but not switched on: the{' '}
+            <code>lifeIngest</code> endpoint, once deployed and the app built with{' '}
+            <code>VITE_ANON_INGEST=1</code>, counts signed-out visitors too. Until then, treat the
+            first step as a floor rather than a total.
           </p>
         </div>
       )}
