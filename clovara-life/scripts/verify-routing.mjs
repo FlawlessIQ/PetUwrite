@@ -191,7 +191,7 @@ ok('a URL that says nowhere lands where you last were', s.hash === '#/pet/demo-w
 // UAT run 1, D4: "Add body condition" opened Life at the top, leaving the
 // question it named several screens down.
 console.log('\n"Add …" on Home lands on the question')
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
 await page.evaluate(() => {
   localStorage.setItem(
     'clovara-life.pets.v1',

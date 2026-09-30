@@ -217,7 +217,9 @@ diff) and **T5** (policyEmails off `functions.config()` — a functions deploy, 
 `docs/ACQUISITION-ONBOARDING-PLAN.md` (2026-09-30, a proposal): a stranger can build a plan but is
 never asked to save it, cannot pay, and never hears from us again. Seven decisions for Conor first
 (AO-D), then Phase A — a front door, the save moment, sign-in on the header, and funnel measurement —
-which needs no external dependency. BACKLOG section O.
+which needs no external dependency. BACKLOG section O. **Phase A built 2026-09-30 on branch `phase-a`, not deployed**
+(AO1–AO4), on provisional answers to AO-D3 (the demo moves to `#/demo`) and AO-D7 (the headline). New:
+AO13 — visitors who never sign up are never counted.
 
 ## The plan
 

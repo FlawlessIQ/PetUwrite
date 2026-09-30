@@ -27,7 +27,7 @@ const errors = []
 page.on('pageerror', (e) => errors.push(String(e)))
 
 // A pet made signed-out, then an account, so there is a household to upload to.
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
 await page.evaluate(() =>
   localStorage.setItem(
     'clovara-life.pets.v1',

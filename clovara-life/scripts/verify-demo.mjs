@@ -42,7 +42,7 @@ async function page(opts = {}) {
 console.log('\nCorrupt localStorage recovery')
 {
   const p = await page()
-  await p.goto(BASE, { waitUntil: 'networkidle' })
+  await p.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
 
   // A pet referencing a breed that no longer exists — the realistic failure.
   await p.evaluate(
@@ -91,7 +91,7 @@ console.log('\nCorrupt localStorage recovery')
 console.log('\nError boundary')
 {
   const p = await page()
-  await p.goto(BASE, { waitUntil: 'networkidle' })
+  await p.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   // Force a render throw the validator cannot pre-empt.
   await p.evaluate(() => {
     const orig = Array.prototype.map
@@ -113,7 +113,7 @@ console.log('\nError boundary')
 console.log('\nReset paths')
 {
   const p = await page()
-  await p.goto(BASE, { waitUntil: 'networkidle' })
+  await p.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   await p.evaluate(
     ([k]) =>
       localStorage.setItem(
@@ -138,7 +138,7 @@ console.log('\nReset paths')
 console.log('\nHash routing')
 {
   const p = await page()
-  await p.goto(BASE, { waitUntil: 'networkidle' })
+  await p.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   const nav = p.getByRole('navigation', { name: 'Sections' })
   await nav.getByRole('button', { name: 'Coverage', exact: true }).first().click()
   await p.waitForTimeout(300)
@@ -161,7 +161,7 @@ console.log('\nHash routing')
 console.log('\niOS input zoom')
 {
   const p = await page({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
-  await p.goto(BASE, { waitUntil: 'networkidle' })
+  await p.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   await p.getByRole('button', { name: /Choose a pet|^Max/ }).first().click()
   await p.getByRole('menuitem', { name: /Add a pet/ }).click()
   await p.waitForTimeout(400)
@@ -176,7 +176,7 @@ console.log('\niOS input zoom')
 console.log('\nNarrow-viewport overflow (320px)')
 {
   const p = await page({ viewport: { width: 320, height: 700 }, isMobile: true, hasTouch: true })
-  await p.goto(BASE, { waitUntil: 'networkidle' })
+  await p.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   for (const s of ['Home', 'Care', 'Rewards', 'Shop', 'Coverage', 'Life']) {
     await p.getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: s, exact: true }).first().click()
     await p.waitForTimeout(350)
@@ -199,7 +199,7 @@ console.log('\nFirst paint')
   // 'commit', not 'load' or 'domcontentloaded' — module scripts are deferred,
   // so DOMContentLoaded fires only after React has already mounted and replaced
   // the fallback.
-  await p.goto(BASE, { waitUntil: 'commit' })
+  await p.goto(`${BASE}/#/demo`, { waitUntil: 'commit' })
   ok(
     'shows a branded fallback, not a blank page',
     await p.locator('#boot').waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false),
@@ -218,7 +218,7 @@ console.log('\nFirst paint')
 console.log('\nShare card')
 {
   const p = await page()
-  await p.goto(BASE, { waitUntil: 'networkidle' })
+  await p.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   const meta = await p.evaluate(() => ({
     ogImage: document.querySelector('meta[property="og:image"]')?.content,
     ogTitle: document.querySelector('meta[property="og:title"]')?.content,
@@ -249,7 +249,7 @@ console.log('\nAuth is lazy')
   p.on('request', (r) => {
     if (r.resourceType() === 'script') scripts.push(r.url().split('/').pop())
   })
-  await p.goto(BASE, { waitUntil: 'networkidle' })
+  await p.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   // Sweep every surface, not just the landing one, so a stray import anywhere
   // in the app is caught too.
   for (const s of ['home', 'care', 'rewards', 'shop', 'coverage', 'life']) {

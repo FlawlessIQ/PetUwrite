@@ -3,6 +3,20 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
+## Acquisition Phase A (BACKLOG AO1–AO4, branch `phase-a`, not deployed)
+
+- **A front door.** A first visit to the bare site says what this is and
+  offers one thing — add your own dog or cat — instead of opening on
+  somebody else's. The example is one tap away, and investors get their own
+  link: `#/demo`. Every existing link skips the door; it is shown once.
+- **"Keep Bruno's plan."** After the reveal, and on Home: the plan lives only
+  in this browser until it is saved to an account. Asked at most twice, the
+  second time only once there is something new worth keeping.
+- **Sign in from the header**, on every screen size.
+- **The funnel can be read.** First and return visits with where they came
+  from, where "add a pet" was started, the save prompt, and `signed_up`
+  counting accounts actually created — Google included.
+
 ## UAT fixes, round four (BACKLOG U8, deployed 2026-09-26 from branch `uat-fixes-4`)
 
 - **The urgent answer comes to you.** After "Check it" on "something is

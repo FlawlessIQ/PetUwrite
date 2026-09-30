@@ -33,7 +33,7 @@ const queue = () =>
 const named = async (name) => (await queue()).filter((e) => e.name === name)
 
 console.log('\nA real onboarding, instrumented')
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
 await page.evaluate(() => localStorage.clear())
 await page.reload({ waitUntil: 'networkidle' })
 await page.waitForTimeout(500)
@@ -61,7 +61,7 @@ ok(
   demoScores.length > 0 && demoScores.every((e) => e.props.pet_is_demo === true),
 )
 
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
 await page.waitForTimeout(400)
 
 const startedAt = Date.now()

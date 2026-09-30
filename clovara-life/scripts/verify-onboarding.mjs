@@ -31,14 +31,37 @@ const range = async () => {
   return m ? [Number(m[1]), Number(m[2])] : null
 }
 
-console.log('\nTier 0 — five questions to the reveal')
+// ACQUISITION-ONBOARDING-PLAN, AO1: a first visit to the bare site meets a
+// front door — what this is, and one thing to do — not somebody else's dog.
+console.log('\nThe front door')
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.evaluate(() => localStorage.clear())
 await page.reload({ waitUntil: 'networkidle' })
 await page.waitForTimeout(500)
+let door = await page.locator('body').innerText()
+ok('a first visit says what this is', /Your pet’s plan for life/.test(door) && /do not need an account/.test(door))
+ok('and is not somebody else\'s dog', !/Max's day/.test(door))
+ok('with one primary action', (await page.getByRole('button', { name: 'Add your dog or cat' }).count()) === 1)
+ok('sign-in is in the header', (await page.locator('header').getByRole('button', { name: 'Sign in' }).count()) === 1)
+await page.getByRole('button', { name: 'See an example first' }).click()
+await page.waitForTimeout(700)
+ok('"see an example" opens the demo', /Max's day/.test(await page.locator('body').innerText()))
+await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.waitForTimeout(600)
+ok('and it is shown once — a return visit goes where you were', /Max's day/.test(await page.locator('body').innerText()))
+await page.evaluate(() => localStorage.clear())
+await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
+await page.waitForTimeout(600)
+ok('the investor link, #/demo, skips it and opens Max', /Max's day/.test(await page.locator('body').innerText()))
+
+console.log('\nTier 0 — five questions to the reveal')
+await page.evaluate(() => localStorage.clear())
+await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.reload({ waitUntil: 'networkidle' })
+await page.waitForTimeout(500)
 
 const started = Date.now()
-await page.getByRole('button', { name: /Add a pet/ }).first().click()
+await page.getByRole('button', { name: 'Add your dog or cat' }).click()
 await page.waitForTimeout(300)
 ok('no account wall before the reveal', !(await page.locator('[role="dialog"]').count()))
 
@@ -64,6 +87,22 @@ const seconds = (Date.now() - started) / 1000
 const first = await range()
 ok('the reveal arrives', !!first, 'no range found')
 ok(`under 60 seconds of interaction (${seconds.toFixed(1)}s of automation)`, seconds < 60)
+
+// AO2: the plan exists only in this browser, and now it says so.
+console.log('\nThe save moment')
+const save = page.locator('section', { has: page.locator('#save-life') })
+ok('after the reveal, it asks to keep the plan', (await save.count()) === 1)
+ok('and says why — it lives only in this browser', /only in this browser/.test(await save.innerText()))
+ok('and that no card is needed', /No card needed/.test(await save.innerText()))
+await save.getByRole('button', { name: /Keep Pepper/ }).click()
+await page.waitForTimeout(400)
+ok('"keep" opens sign-in', /Sign in to Clovara/.test(await page.locator('[role="dialog"]').innerText().catch(() => '')))
+await page.keyboard.press('Escape')
+await page.locator('[role="dialog"]').getByRole('button', { name: 'Not now' }).click().catch(() => {})
+await page.waitForTimeout(300)
+await save.getByRole('button', { name: 'Not now' }).click()
+await page.waitForTimeout(300)
+ok('"not now" puts it away', (await page.locator('#save-life').count()) === 0)
 
 console.log('\nTier 1 — every answer moves the number')
 ok('the sharpen panel is there', (await page.locator('section[aria-labelledby="sharpen-heading"]').count()) === 1)

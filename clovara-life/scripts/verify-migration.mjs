@@ -34,7 +34,7 @@ page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
 
 // ── 1. Signed out, a pet made on this device ────────────────────────────────
 console.log('\nSigned out')
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
 await page.evaluate(() => {
   localStorage.setItem(
     'clovara-life.pets.v1',

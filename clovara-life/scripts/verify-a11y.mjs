@@ -47,7 +47,7 @@ const PET = {
 }
 
 const audit = async (label, hash) => {
-  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   await page.evaluate(
     ([pet, h]) => {
       localStorage.clear()

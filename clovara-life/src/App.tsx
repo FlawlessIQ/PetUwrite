@@ -17,7 +17,9 @@ import { useAuth } from './auth/AuthProvider'
 import { displayNameFor, greetingNameFor } from './auth/session'
 import { isRemembered } from './engine/remember'
 import { Quiet } from './components/Quiet'
+import { FrontDoor } from './components/FrontDoor'
 import { track } from './analytics/track'
+import { recordVisit, sourceProps } from './analytics/source'
 import { takeTimeToReveal } from './analytics/timing'
 import { clearLocalPets } from './store/localPets'
 import { usePets } from './store/usePets'
@@ -73,6 +75,11 @@ function parseHash(h = window.location.hash): { petId: string; surface: Surface 
   if (!SURFACE_IDS.has(surface)) return null
   return { petId: decodeURIComponent(m[1]), surface: surface as Surface }
 }
+
+/** First-visit front door seen (AO1). A timestamp, not a pet or a person. */
+const FRONT_DOOR_KEY = 'clovara-life.front-door.v1'
+/** The investor demo's own link (AO-D3): opens Max, skips the front door. */
+const DEMO_LINK = '#/demo'
 
 /** `#/admin/metrics` — internal only, and gated again by the Firestore rules. */
 function isAdminRoute(h = window.location.hash): boolean {
@@ -324,6 +331,10 @@ export default function App() {
   useEffect(() => {
     if (handleResetParam()) return
     track('session_start', {})
+    // Where this visitor came from, and whether they came back (AO4).
+    const visit = recordVisit()
+    if (visit.kind === 'first') track('first_visit', sourceProps(visit.touch))
+    else if (visit.kind === 'return') track('return_visit', { days_since_first: visit.daysSinceFirst })
 
     // Coming back from hosted Checkout. The entitlement listener refreshes the
     // screen by itself when the webhook lands, so there is nothing to fetch —
@@ -372,6 +383,29 @@ export default function App() {
    */
   const memberView = !!active?.demo || membership.member
 
+  // ── The front door (ACQUISITION-ONBOARDING-PLAN, AO1) ───────────────────
+  // A first visit to the bare site, signed out and with nothing saved here,
+  // meets the front door instead of somebody else's dog. Every link that names
+  // somewhere — including the investor demo at #/demo — goes straight there.
+  const [frontDoorSeen, setFrontDoorSeen] = useState(() => {
+    try {
+      return localStorage.getItem(FRONT_DOOR_KEY) !== null
+    } catch {
+      return true
+    }
+  })
+  const markFrontDoorSeen = useCallback(() => {
+    setFrontDoorSeen(true)
+    try {
+      localStorage.setItem(FRONT_DOOR_KEY, new Date().toISOString())
+    } catch {
+      /* A private window sees the front door again next time. That is fine. */
+    }
+  }, [])
+  const bare = hash === '' || hash === '#' || hash === '#/'
+  const demoLink = hash === DEMO_LINK
+  const frontDoor = bare && !frontDoorSeen && !user && userPets.length === 0 && !adding
+
   // ── A URL that says nowhere ─────────────────────────────────────────────
   // The bare site, or a hash we do not know, is given the last pet and tab so
   // a reload lands where you were. The only write to the URL that is not a
@@ -379,8 +413,14 @@ export default function App() {
   const routed =
     petRoute || adminRoute || covenantRoute || ateRoute || sitter || protectRoute || wrongRoute || healthRoute !== null
   useEffect(() => {
-    if (!routed) navigate(`#/pet/${encodeURIComponent(last.petId)}/${last.surface}`, { replace: true })
-  }, [routed, last, navigate])
+    if (demoLink) {
+      // The investor link. Opens Max, and counts as having been through the door.
+      markFrontDoorSeen()
+      navigate(`#/pet/${encodeURIComponent(DEMO_PETS[0].id)}/home`, { replace: true })
+      return
+    }
+    if (!routed && !frontDoor) navigate(`#/pet/${encodeURIComponent(last.petId)}/${last.surface}`, { replace: true })
+  }, [routed, frontDoor, demoLink, last, navigate, markFrontDoorSeen])
 
   // The Life surface is the Plan reveal (SPEC §4.1). Fired once per pet per
   // session so a user flicking between tabs does not inflate the top of the
@@ -436,6 +476,15 @@ export default function App() {
 
   /** A tab. Between tabs of one pet it replaces the entry, as it always has;
    *  from a screen outside the tabs it is a real step back can undo. */
+  /** AO2: signed out, a pet of their own — "keep their plan" opens sign-in. */
+  const keepPlan = !user && active && !active.demo ? () => setAccountOpen(true) : undefined
+
+  /** "Add a pet", from wherever it was tapped — the funnel wants to know (AO4). */
+  const startAdding = (from: 'front_door' | 'switcher' | 'header') => {
+    track('onboarding_started', { from })
+    setAdding(true)
+  }
+
   const go = (s: Surface) => {
     navigate(`#/pet/${encodeURIComponent(active.id)}/${s}`, { replace: !!petRoute })
     window.scrollTo({ top: 0 })
@@ -517,10 +566,29 @@ export default function App() {
             className="flex min-h-[40px] shrink-0 items-center"
             aria-label="Clovara Life home"
           >
-            <Wordmark />
+            {/* AO3 put "Sign in" in the header. With the pet switcher beside it
+                the full lockup does not fit a phone (≈411px needed), so a
+                signed-out phone gets the mark alone; everywhere else, the lockup. */}
+            {!user && !frontDoor && !adding ? (
+              <>
+                <span className="sm:hidden">
+                  <CloverMark size={30} />
+                </span>
+                <span className="hidden sm:inline-flex">
+                  <Wordmark />
+                </span>
+              </>
+            ) : (
+              <Wordmark />
+            )}
           </button>
 
-          {!adding && (
+          {frontDoor && (
+            <button type="button" onClick={() => setAccountOpen(true)} className="pill-ghost pill-sm">
+              Sign in
+            </button>
+          )}
+          {!adding && !frontDoor && (
             <>
               <TopNav active={navActive} onChange={go} />
               <div className="flex shrink-0 items-center gap-2">
@@ -530,7 +598,7 @@ export default function App() {
                   // from activeId, so the switcher has to say the same thing.
                   activeId={active?.id ?? null}
                   onSelect={selectPet}
-                  onAdd={() => setAdding(true)}
+                  onAdd={() => startAdding('switcher')}
                   onReset={resetDemo}
                   onAccount={() => setAccountOpen(true)}
                   hasUserPets={userPets.length > 0}
@@ -538,11 +606,17 @@ export default function App() {
                 />
                 <button
                   type="button"
-                  onClick={() => setAdding(true)}
+                  onClick={() => startAdding('header')}
                   className="pill-ghost pill-sm hidden lg:inline-flex"
                 >
                   Add a pet
                 </button>
+                {/* AO3: on a phone, sign-in was the last item in the switcher menu. */}
+                {!user && (
+                  <button type="button" onClick={() => setAccountOpen(true)} className="pill-ghost pill-sm">
+                    Sign in
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -573,7 +647,18 @@ export default function App() {
             onDismiss={dismissImport}
           />
         )}
-        {wrongRoute && active ? (
+        {frontDoor ? (
+          <FrontDoor
+            onStart={() => {
+              markFrontDoorSeen()
+              startAdding('front_door')
+            }}
+            onExample={() => {
+              markFrontDoorSeen()
+              navigate(`#/pet/${encodeURIComponent(DEMO_PETS[0].id)}/home`)
+            }}
+          />
+        ) : wrongRoute && active ? (
           <Suspense
             fallback={<div className="mx-auto max-w-shell px-5 py-10 text-ink-2">Loading…</div>}
           >
@@ -650,7 +735,7 @@ export default function App() {
           <Onboarding onComplete={addPet} onCancel={() => setAdding(false)} />
         ) : active ? (
           <div key={`${active.id}-${surface}`} className="reveal">
-            {surface === 'home' && <Home pet={active} projection={projection} onNavigate={go} greetName={greetingNameFor(user)} />}
+            {surface === 'home' && <Home pet={active} projection={projection} onNavigate={go} greetName={greetingNameFor(user)} onKeep={keepPlan} />}
             {surface === 'care' && <Companion pet={active} projection={projection} />}
             {surface === 'rewards' && (
               <Rewards
@@ -685,6 +770,7 @@ export default function App() {
                 }
                 showArrival={arrivalFor === active.id}
                 onDismissArrival={() => setArrivalFor(null)}
+                onKeep={keepPlan}
               />
             )}
           </div>
@@ -715,7 +801,7 @@ export default function App() {
         </div>
       </footer>
 
-      {!adding && <TabBar active={navActive} onChange={go} />}
+      {!adding && !frontDoor && <TabBar active={navActive} onChange={go} />}
     </div>
   )
 }

@@ -30,7 +30,7 @@ const ago = (days) => new Date(Date.now() - days * 86_400_000).toISOString()
 const PET_ID = 'pet-review-test'
 
 const seed = async (extra) => {
-  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   await page.evaluate(
     ([id, pet]) => {
       localStorage.clear()

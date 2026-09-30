@@ -54,7 +54,7 @@ const wk = (n) => new Date(Date.now() - n * 7 * 86400000).toISOString().slice(0,
 const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString()
 
 const measure = async (label, pet, budget = CEILING, surface = 'life') => {
-  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   await page.evaluate(
     ([p, s]) => {
       localStorage.clear()
@@ -130,7 +130,7 @@ for (const id of ['demo-max', 'demo-luna']) {
 }
 
 console.log('\nWhat moved off it is reachable in one tap')
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
 await page.evaluate((p) => {
   localStorage.clear()
   localStorage.setItem('clovara-life.pets.v1', JSON.stringify([p]))
@@ -155,7 +155,7 @@ ok('sitter mode moved there', /Sitter mode/i.test(file))
 ok('and it says the projection does not use any of it', /does not use anything from this page/i.test(file))
 
 console.log('\nWhat stayed on Life, because it is only true for a few days')
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
 await page.evaluate((p) => {
   localStorage.clear()
   localStorage.setItem('clovara-life.pets.v1', JSON.stringify([p]))

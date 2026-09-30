@@ -14,6 +14,7 @@ import { reviewDue } from '../engine/review'
 import { gotchaState } from '../engine/gotchaDay'
 import { isRemembered } from '../engine/remember'
 import { Remembering } from './Remembering'
+import { SaveNudge } from './SaveNudge'
 import { PetAvatar } from './PetAvatar'
 import { useTween } from './useTween'
 import { Icon } from './Icon'
@@ -58,6 +59,7 @@ export function Journey({
   onUpdate,
   showArrival = false,
   onDismissArrival,
+  onKeep,
 }: {
   pet: PetProfile
   householdId?: string | null
@@ -66,6 +68,8 @@ export function Journey({
   /** The Arrival Certificate, offered once at creation (SPEC §6.1). */
   showArrival?: boolean
   onDismissArrival?: () => void
+  /** Opens sign-in to keep this pet's plan (AO2). Absent when signed in or for a demo pet. */
+  onKeep?: () => void
 }) {
   const [levers, setLevers] = useState<LeverState>({})
   /**
@@ -210,6 +214,9 @@ export function Journey({
               onClose={() => onDismissArrival?.()}
             />
           )}
+          {/* After the reveal and anything that has to come first (First Nights,
+              the certificate) — never over them (AO2). */}
+          <SaveNudge pet={pet} onKeep={onKeep} surface="life" />
           {remembered && <Remembering pet={pet} onUpdate={onUpdate} />}
           {!remembered && (
           <>

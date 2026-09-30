@@ -27,7 +27,7 @@ const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString()
 const img = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=='
 
 const seed = async (lumps) => {
-  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   await page.evaluate(
     ([pet]) => {
       localStorage.clear()

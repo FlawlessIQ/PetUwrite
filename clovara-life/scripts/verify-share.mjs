@@ -26,7 +26,7 @@ page.on('pageerror', (e) => errors.push(String(e)))
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
 
 console.log('\nA new pet reaches the certificate')
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
 await page.evaluate(() => localStorage.clear())
 await page.reload({ waitUntil: 'networkidle' })
 await page.waitForTimeout(400)
@@ -108,7 +108,7 @@ ok('and it does not return on every load', (await card.count()) === 0)
 console.log('\nGotcha Day — the same pipeline (SPEC §6.7)')
 const threeYearsAgo = new Date()
 threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3)
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
 await page.evaluate(
   (pet) => {
     localStorage.clear()

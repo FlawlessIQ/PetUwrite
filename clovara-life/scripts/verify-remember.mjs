@@ -39,7 +39,7 @@ const base = {
 }
 
 const seed = async (over, hash = '#/pet/pet-rem/life') => {
-  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' })
   await page.evaluate(
     ([pet, h]) => {
       localStorage.clear()

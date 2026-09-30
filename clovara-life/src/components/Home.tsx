@@ -8,6 +8,7 @@ import { useState } from 'react'
 import type { Surface } from './Nav'
 import { Icon } from './Icon'
 import { focusAfterNavigate } from './pendingFocus'
+import { SaveNudge } from './SaveNudge'
 
 function greeting() {
   const h = new Date().getHours()
@@ -106,12 +107,15 @@ export function Home({
   projection,
   onNavigate,
   greetName = null,
+  onKeep,
 }: {
   pet: PetProfile
   projection: Projection
   onNavigate: (s: Surface) => void
   /** The signed-in person's first name; null greets nobody by name. */
   greetName?: string | null
+  /** Opens sign-in to keep this pet's plan (AO2). Absent when signed in or for a demo pet. */
+  onKeep?: () => void
 }) {
   const [scoreOpen, setScoreOpen] = useState(false)
   const accuracy = planAccuracy(pet)
@@ -191,6 +195,10 @@ export function Home({
           </div>
         </section>
       )}
+
+      <div className="mb-5 empty:hidden">
+        <SaveNudge pet={pet} onKeep={onKeep} surface="home" />
+      </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-start">
         <div className="space-y-5">
