@@ -231,10 +231,15 @@ or supplier (BACKLOG UB1–UB12) — first the vet and counsel packs and a UAT p
 gates can move; then measurement for the cohort; then hardening. Found while planning: AO-D8, US
 or British English.
 
-**Progress (branch `unblocked-build`):** UB1–UB4 built — `docs/review/` holds the vet pack, the counsel
-pack and the email preview, regenerated from code; the phone book is published to Conor. UB5 (AO13's
-anonymous ingest) is built and emulator-tested, **not deployed** — it waits on a `functions:life` deploy,
-and the client flag stays off until then.
+**Built (branch `unblocked-build`, 2026-09-30), all twelve:** UB1–UB4 — `docs/review/` holds the vet
+pack, the counsel pack and the email preview, regenerated from code; the phone book is published to
+Conor. UB5 (AO13's anonymous ingest) is built and emulator-tested, **not deployed** — it waits on
+`firebase deploy --only functions:life:lifeIngest` and a build with `VITE_ANON_INGEST=1`. UB6–UB7:
+the dashboard by source, return rates, campaign links and first-party crash capture. UB8: security
+headers on `hosting:life`. UB9–UB11: a suite that reports every failure, CI for Life, one `callable`.
+UB12: "Download everything about Bruno" in the Health File — the Covenant's wording is unchanged
+and waits on counsel (COUNSEL-PACK C18–C20). Headers and the download go live with the next
+`hosting:life` deploy.
 
 ## The plan
 

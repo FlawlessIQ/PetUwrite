@@ -38,7 +38,17 @@ cd clovara-life && npm run build && cd .. && firebase deploy --only hosting:life
   and do not read a stale response as a failed deploy.
 
 Before deploying, `npm run verify:all` builds and runs every browser and static
-suite. `npm run test:emulator` needs the Firebase emulators and is separate.
+suite (30 as of UB12), reporting every failure rather than stopping at the first.
+`npm run test:emulator` needs the Firebase emulators and is separate.
+
+**Security headers** (UB8) are set on the life target in `firebase.json` under
+`"source": "**"` — Referrer-Policy, nosniff, X-Frame-Options/`frame-ancestors`,
+Permissions-Policy — and the local preview reads the same block. After a deploy,
+check them on the live site:
+
+```bash
+cd clovara-life && BASE=https://clovara-life.web.app node scripts/verify-headers.mjs
+```
 
 ## The marketing site
 
@@ -63,6 +73,20 @@ Two codebases, and they deploy independently:
 firebase deploy --only functions:default   # functions/
 firebase deploy --only functions:life      # clovara-life/functions/
 ```
+
+## Counting visitors who never sign up (UB5 / AO13)
+
+Built and emulator-tested (`npm run test:ingest`); not deployed. Two steps, both
+Conor's word:
+
+1. **Deploy the one function**, not the whole codebase — a full `functions:life`
+   deploy would also put the (still silent) email functions live:
+   `firebase deploy --only functions:life:lifeIngest`. It is public by design,
+   accepts only known event names from three origins, and is rate-limited.
+2. **Switch the client on**: build with `VITE_ANON_INGEST=1` and deploy
+   `hosting:life`. Until then signed-out events stay on the device, as today.
+
+To switch it off again, rebuild without the flag; the endpoint can stay.
 
 ## Switching email on
 
