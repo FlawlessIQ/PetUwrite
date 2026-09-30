@@ -5,6 +5,13 @@ const { TEMPLATES, sendTemplate } = require('./email')
 const renderAll = () => [
   TEMPLATES.welcome({ petName: 'Max' }),
   TEMPLATES.trialEnding({ petName: 'Max', daysLeft: 3, amountDisplay: '$22.99' }),
+  TEMPLATES.planSaved({ petName: 'Max' }),
+  TEMPLATES.moment({
+    petName: 'Max',
+    subject: 'Two weeks of the easy part left for Max',
+    lines: ['Until about 14 weeks old, a puppy accepts new things far more readily.', 'Nothing is required.'],
+    preferencesUrl: 'https://example.test/prefs?t=abc',
+  }),
 ]
 
 test('every template has a subject and a body', () => {
@@ -80,4 +87,27 @@ test('the console sender reports that it did not deliver', async () => {
   const r = await sendTemplate('welcome', 'a@b.com', { petName: 'Max' })
   assert.equal(r.provider, 'console')
   assert.equal(r.delivered, false, 'P0 must not claim to have sent anything')
+})
+
+test('a moment email always carries the way out and the address placeholder', () => {
+  const t = TEMPLATES.moment({ petName: 'Max', subject: 's', lines: ['a'], preferencesUrl: 'https://example.test/p?t=1' })
+  assert.match(t.text, /Turn them off: https:\/\/example\.test\/p\?t=1/)
+  assert.match(t.text, /because you asked for reminders about Max/)
+  assert.match(t.text, /LEGAL-REVIEW: postal address/)
+})
+
+test('a moment email says what the engine says, in order, as paragraphs', () => {
+  const t = TEMPLATES.moment({ petName: 'Max', subject: 'Subject line', lines: ['First.', 'Second.'] })
+  assert.equal(t.subject, 'Subject line')
+  assert.match(t.text, /^First\.\n\nSecond\./)
+})
+
+test('plan-saved is transactional: no unsubscribe, no offer', () => {
+  const t = TEMPLATES.planSaved({ petName: 'Max' })
+  assert.doesNotMatch(t.text, /Turn them off|trial|\$\d/)
+})
+
+test('headers reach the sender (List-Unsubscribe for one-click)', async () => {
+  const r = await sendTemplate('moment', 'a@example.test', { petName: 'Max', lines: ['x'] }, { 'List-Unsubscribe': '<https://example.test/u>' })
+  assert.equal(r.provider, 'console')
 })

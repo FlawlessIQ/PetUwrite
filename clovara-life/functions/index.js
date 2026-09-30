@@ -383,3 +383,114 @@ exports.lifeHealth = onRequest({ cors: true }, async (_req, res) => {
     households: (await db.collection(HOUSEHOLDS).limit(1).get()).size >= 0,
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Moment emails (ACQUISITION-ONBOARDING-PLAN Phase B, AO5–AO6)
+//
+// Built and tested behind the console sender: nothing is delivered until a
+// sending domain and a provider key exist (EMAIL_PROVIDER stays 'console').
+// Opt-in is off by default and lives in `life_prefs/{uid}`, which no client
+// rule matches — only these functions read or write it.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const { onSchedule } = require('firebase-functions/v2/scheduler')
+const { onDocumentCreated } = require('firebase-functions/v2/firestore')
+const { getAuth } = require('firebase-admin/auth')
+const { randomBytes } = require('node:crypto')
+const { runMoments } = require('./moments-job')
+
+const PREFS = 'life_prefs'
+const PREFERENCES_URL = `https://us-central1-${process.env.GCLOUD_PROJECT || 'pet-underwriter-ai'}.cloudfunctions.net/emailPreferences`
+const newToken = () => randomBytes(24).toString('base64url')
+
+exports.getEmailPrefs = onCall({ cors: true }, async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.')
+  const snap = await db.collection(PREFS).doc(req.auth.uid).get()
+  return { moments: snap.exists && snap.get('moments') === true }
+})
+
+exports.setEmailPrefs = onCall({ cors: true }, async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.')
+  if (typeof req.data?.moments !== 'boolean') throw new HttpsError('invalid-argument', 'moments must be true or false.')
+  const ref = db.collection(PREFS).doc(req.auth.uid)
+  const snap = await ref.get()
+  await ref.set(
+    {
+      moments: req.data.moments,
+      updatedAt: new Date().toISOString(),
+      // One per person, kept for good: the unsubscribe link in an old email
+      // must still work.
+      unsubscribeToken: (snap.exists && snap.get('unsubscribeToken')) || newToken(),
+    },
+    { merge: true },
+  )
+  await trackServer(req.auth.uid, 'email_prefs_changed', { moments: req.data.moments })
+  return { moments: req.data.moments }
+})
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+const page = (title, body) =>
+  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>` +
+  `<style>body{font-family:system-ui,sans-serif;background:#F6F3EA;color:#1B1E1B;margin:0;padding:48px 20px}main{max-width:520px;margin:auto}h1{font-family:Georgia,serif;font-weight:600}button{background:#1A5C38;color:#fff;border:0;border-radius:999px;padding:12px 22px;font-size:16px}p{line-height:1.6;color:#5C635C}</style></head><body><main>${body}</main></body></html>`
+
+/**
+ * The link at the foot of every moment email. GET shows a page with a button;
+ * the change happens on POST, because mail scanners follow links on their own
+ * and would otherwise unsubscribe people who never asked. Mail apps that
+ * support RFC 8058 POST here directly ("List-Unsubscribe=One-Click").
+ */
+exports.emailPreferences = onRequest(async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  const token = String(req.query.t || req.body?.t || '')
+  const found = token ? await db.collection(PREFS).where('unsubscribeToken', '==', token).limit(1).get() : null
+  if (!found || found.empty) {
+    res.status(404).send(page('Link not recognised', '<h1>We do not recognise that link</h1><p>It may be from an old email. You can change reminders from your account in Clovara Life.</p>'))
+    return
+  }
+  if (req.method === 'POST') {
+    await found.docs[0].ref.set({ moments: false, updatedAt: new Date().toISOString() }, { merge: true })
+    await trackServer(found.docs[0].id, 'email_prefs_changed', { moments: false, via: 'unsubscribe_link' })
+    res.send(page('Reminders off', '<h1>Reminders are off</h1><p>You will not get these emails any more. Everything in your pets’ plans is still there, and you can turn reminders back on from your account.</p>'))
+    return
+  }
+  res.send(
+    page(
+      'Turn off reminders',
+      `<h1>Turn off reminders?</h1><p>You will stop getting emails about vaccinations, the socialisation window, the yearly check and Gotcha Day. Nothing else changes.</p>` +
+        `<form method="post"><input type="hidden" name="t" value="${esc(token)}"><button type="submit">Turn off reminders</button></form>`,
+    ),
+  )
+})
+
+exports.sendMoments = onSchedule({ schedule: 'every day 08:00', timeZone: 'America/New_York' }, async () => {
+  const r = await runMoments({
+    db,
+    now: new Date(),
+    preferencesUrl: PREFERENCES_URL,
+    emailOf: (uid) => getAuth().getUser(uid).then((u) => u.email || null).catch(() => null),
+    send: sendTemplate,
+    track: trackServer,
+  })
+  console.log(`[moments] ${r.sent} to ${r.recipients} opted-in owners`)
+})
+
+/**
+ * "Bruno's plan is saved" — transactional, once per person ever, naming the
+ * first pet they saved (AO5). Not gated on the moments opt-in: it is the
+ * receipt for something they just did.
+ */
+exports.lifePlanSaved = onDocumentCreated(`${HOUSEHOLDS}/{householdId}/pets/{petId}`, async (event) => {
+  const pet = event.data?.data()
+  const uid = pet?.createdBy
+  if (!uid) return
+  const ref = db.collection(PREFS).doc(uid)
+  const already = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref)
+    if (snap.exists && snap.get('planSavedAt')) return true
+    tx.set(ref, { planSavedAt: new Date().toISOString() }, { merge: true })
+    return false
+  })
+  if (already) return
+  const email = await getAuth().getUser(uid).then((u) => u.email || null).catch(() => null)
+  await sendTemplate('planSaved', email, { petName: pet?.name?.value || null })
+})

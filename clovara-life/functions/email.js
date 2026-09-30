@@ -18,8 +18,9 @@
 /** Renders but does not send. The P0 default. */
 const consoleSender = {
   name: 'console',
-  async send({ to, subject, text }) {
-    console.log(`[email:console] to=${to} subject=${JSON.stringify(subject)}\n${text}`)
+  async send({ to, subject, text, headers }) {
+    const h = headers ? `\n${Object.entries(headers).map(([k, v]) => `${k}: ${v}`).join('\n')}` : ''
+    console.log(`[email:console] to=${to} subject=${JSON.stringify(subject)}${h}\n${text}`)
     return { delivered: false, provider: 'console' }
   },
 }
@@ -97,19 +98,61 @@ function trialEnding({ petName, daysLeft, amountDisplay }) {
   }
 }
 
-const TEMPLATES = { welcome, trialEnding }
+/**
+ * Transactional: a pet's plan has just been saved to an account for the first
+ * time (Phase B, AO5). Once per person, not per pet — see the trigger.
+ */
+function planSaved({ petName }) {
+  const who = petName || 'your pet'
+  return {
+    subject: `${who}'s plan is saved`,
+    text: [
+      `${who}'s plan is in your account now, not just in one browser.`,
+      '',
+      'Sign in with this email address on your phone or anywhere else and it will',
+      'be there — and anyone you invite to your household sees the same plan.',
+      SIGN_OFF,
+    ].join('\n'),
+  }
+}
+
+/**
+ * A moment that is due (Phase B, AO6) — only ever to somebody who opted in.
+ * The subject and paragraphs come from the app's own moment engine
+ * (functions/generated/moments.js), so the email says what the app says.
+ *
+ * Every one carries the way out, and the postal address US law requires in
+ * commercial email. The address is counsel's to supply (A2), so it is a marked
+ * placeholder rather than a line anyone here drafts.
+ */
+function moment({ petName, subject, lines, preferencesUrl }) {
+  const who = petName || 'your pet'
+  return {
+    subject: subject || `Something is due for ${who}`,
+    text: [
+      ...(lines || []).flatMap((l, i) => (i === 0 ? [l] : ['', l])),
+      SIGN_OFF,
+      '',
+      `You get these because you asked for reminders about ${who}.`,
+      `Turn them off: ${preferencesUrl || '[preferences link]'}`,
+      '[LEGAL-REVIEW: postal address, required in every commercial email — counsel to supply]',
+    ].join('\n'),
+  }
+}
+
+const TEMPLATES = { welcome, trialEnding, planSaved, moment }
 
 /**
  * Renders and hands to the sender. Never throws into the caller: a webhook must
  * not 500 — and be retried by Stripe forever — because an email did not render.
  */
-async function sendTemplate(name, to, data) {
+async function sendTemplate(name, to, data, headers) {
   try {
     const template = TEMPLATES[name]
     if (!template) throw new Error(`No email template named ${name}`)
     if (!to) return { delivered: false, provider: 'none', reason: 'no recipient' }
     const { subject, text } = template(data || {})
-    return await sender().send({ to, subject, text })
+    return await sender().send({ to, subject, text, headers })
   } catch (err) {
     console.error('sendTemplate failed', name, err?.message)
     return { delivered: false, provider: 'error', reason: err?.message }
