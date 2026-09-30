@@ -20,6 +20,10 @@ has the commits.
 - **Crashes are counted.** A crash in a visitor's browser becomes one scrubbed
   `client_error` event in the same queue as everything else — no error
   service, no stack — and the dashboard lists them.
+- **Security headers.** The Life site tells browsers not to leak a pet's URL
+  to other sites, not to let anyone frame it, and to allow only location and
+  the camera. The local preview sends the same headers, so the checks run
+  under them.
 
 ## Share links and the SendGrid sender (share links deployed 2026-09-30; the sender built, not switched on)
 
