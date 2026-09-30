@@ -50,6 +50,27 @@ unreviewed pile.
 | **U8** | ~~UAT run 2's three~~ — **fixed 2026-09-26 and deployed from branch `uat-fixes-4`.** **N3:** after "Check it" the answer's heading takes focus — it scrolls into view, the phone keyboard closes, and a screen reader reads it; `verify-safety` requires it and fails against the old code. **N1:** with nothing answered Home says "We know very little about Bruno's days so far" instead of "doing well on everything we can see", and "Ask the companion about it" appears only when the nudge has a subject. **N2:** never-asked review questions are worded as first questions | Claude Code | done | — |
 | **P4** | **Ratify or overturn the six refusals.** The lump diary not saying whether a lump grew · the companion not naming a condition · the vet summary omitting the projection · the safety check not reassuring · C3 discarding uncited output · the senior suite carrying no quality-of-life score. Each is a strategic choice currently made by default | Conor (+V for the clinical half) | — | — |
 
+## O · Acquisition and onboarding
+
+From `ACQUISITION-ONBOARDING-PLAN.md` (2026-09-30) — a proposal; the AO-D decisions in
+its §4 are Conor's and come first. Phase A needs no external dependency.
+
+| id | Item | Owner | Size | Judged |
+|---|---|---|---|---|
+| **AO-D** | Seven decisions: first cohort (= P3), the trial rule vs SPEC §1, where the demo lives, sign-ups before payment, email, the `main` site, the front-door line | Conor | — | — |
+| **AO1** | A front door for a first visit — what this is, "Add your dog", "See an example"; every existing link bypasses it | Claude Code | S | — |
+| **AO2** | The save moment — "Keep Bruno's plan — it's only on this device until you do", after the reveal and after the first thing worth keeping | Claude Code | S | — |
+| **AO3** | Sign-in reachable from the header at every width (on a phone it is the last item in the switcher menu) | Claude Code | S | — |
+| **AO4** | Funnel measurement: `first_visit` + first-touch source, `onboarding_started`, `save_prompt_viewed`, `signed_up` for Google too, `return_visit`, `trial_converted`; first-party only | Claude Code | S | — |
+| **AO5** | Transactional email live — welcome and trial-ending exist as tested templates; needs a sending domain and a key | Conor → Claude Code | S | — |
+| **AO6** | Opt-in moment emails from engines that already know what is due (First Nights, vaccine windows, passport weeks, review due, Gotcha Day); silent for a remembered pet | Claude Code | M | — |
+| **AO7** | The trial offered at the save moment and after the first useful answer — needs **A3**, **A2** | Claude Code | S | — |
+| **AO8** | SPEC §1's trial rule behind a config flag, on when money can be taken | Claude Code | S | — |
+| **AO9** | A link on every shared card, to a page showing only that card and "make one for your dog" | Claude Code | M | — |
+| **AO10** | Partner intake — a partner link that pre-fills onboarding, owner-confirmed, attributed | Claude Code + a partner | M | — |
+| **AO11** | Referral — only after counsel (insurance inducement rules; never against the premium) | Conor + counsel | — | — |
+| **AO12** | ~~Record the trial-rule divergence~~ — **done 2026-09-30**, ROADMAP → Spec divergences | Claude Code | done | — |
+
 ## D · Design and UI
 
 | id | Item | Owner | Size | Judged |

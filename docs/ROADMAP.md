@@ -1,6 +1,6 @@
 # Clovara Roadmap — living document
 
-Last updated: 2026-09-26 (maintained by Claude Code per CLAUDE.md)
+Last updated: 2026-09-30 (maintained by Claude Code per CLAUDE.md)
 
 Statuses: `planned` · `in progress` · `shipped` · `blocked(<on what>)` · `cut(<why>)`
 
@@ -73,6 +73,12 @@ gathered in its §5. Nothing is built.
 
 ## Spec divergences
 
+- **SPEC §1 says the product is trial-only, with only the first Plan reveal visible before a
+  trial; "saving/continuing starts the trial".** Today a signed-out visitor gets the whole product,
+  free, with no end — and is never asked to save or to start a trial. Nobody decided this; it
+  happened because payments are not live (A3). Recorded 2026-09-30 and put to Conor as AO-D2 in
+  `ACQUISITION-ONBOARDING-PLAN.md`, which recommends keeping it free until money can be taken and
+  then enforcing SPEC behind a config flag.
 - **SPEC-HORIZON §1.5 says the senior suite includes "quality-of-life tracking".**
   It ships without it, deliberately. Every validated scale is clinical content,
   and an unreviewed score of how good an animal's life is would be the most
@@ -205,6 +211,13 @@ catalogue leaves the entry chunk), **T7** (the URL is the single source of truth
 and **P2** (`docs/JUDGEMENT-COPY.md`, 126 items for Conor to read). Written and tested but **not
 deployed**: **T2** (Firestore rules — `updatedBy` must be the writer; waits on Conor's word after the
 diff) and **T5** (policyEmails off `functions.config()` — a functions deploy, not `hosting:life`).
+
+## Acquisition and onboarding
+
+`docs/ACQUISITION-ONBOARDING-PLAN.md` (2026-09-30, a proposal): a stranger can build a plan but is
+never asked to save it, cannot pay, and never hears from us again. Seven decisions for Conor first
+(AO-D), then Phase A — a front door, the save moment, sign-in on the header, and funnel measurement —
+which needs no external dependency. BACKLOG section O.
 
 ## The plan
 
