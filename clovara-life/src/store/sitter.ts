@@ -1,4 +1,5 @@
 import { FIREBASE_CONFIG } from '../auth/config'
+import { callable } from './callable'
 
 /**
  * Sitter Mode (SPEC §6.6), client side.
@@ -13,24 +14,6 @@ import { FIREBASE_CONFIG } from '../auth/config'
  * unauthenticated read path in the product and it goes through an endpoint that
  * returns the same 404 for expired, revoked and never-existed.
  */
-async function callable<T>(name: string, data: unknown): Promise<T> {
-  const [{ getApps, getApp, initializeApp }, fns] = await Promise.all([
-    import('firebase/app'),
-    import('firebase/functions'),
-  ])
-  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG)
-  const functions = fns.getFunctions(app, 'us-central1')
-  if (import.meta.env.VITE_USE_EMULATORS === '1') {
-    try {
-      fns.connectFunctionsEmulator(functions, '127.0.0.1', 5001)
-    } catch {
-      /* already connected */
-    }
-  }
-  const fn = fns.httpsCallable<unknown, T>(functions, name)
-  return (await fn(data)).data
-}
-
 export interface SitterLink {
   token: string
   petId: string

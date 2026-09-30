@@ -1,4 +1,4 @@
-import { FIREBASE_CONFIG } from '../auth/config'
+import { callable } from './callable'
 
 /**
  * The family circle (SPEC §4.3), client side.
@@ -7,24 +7,6 @@ import { FIREBASE_CONFIG } from '../auth/config'
  * a uid to a household document could add itself to any household it could name.
  * The rules deny clients all access to `life_invites` for the same reason.
  */
-async function callable<T>(name: string, data: unknown): Promise<T> {
-  const [{ getApps, getApp, initializeApp }, fns] = await Promise.all([
-    import('firebase/app'),
-    import('firebase/functions'),
-  ])
-  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG)
-  const functions = fns.getFunctions(app, 'us-central1')
-  if (import.meta.env.VITE_USE_EMULATORS === '1') {
-    try {
-      fns.connectFunctionsEmulator(functions, '127.0.0.1', 5001)
-    } catch {
-      /* already connected */
-    }
-  }
-  const fn = fns.httpsCallable<unknown, T>(functions, name)
-  return (await fn(data)).data
-}
-
 export interface InviteResult {
   code: string
   expiresInDays: number

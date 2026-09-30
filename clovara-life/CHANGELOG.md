@@ -30,6 +30,8 @@ has the commits.
 - **CI.** Every push that touches the app runs the typecheck, the unit and
   functions tests, a build and the file-only checks on GitHub — no secrets,
   no deploy.
+- **One way to call the functions.** Four copies of the same helper are now
+  one; nothing a person sees changes.
 
 ## Share links and the SendGrid sender (share links deployed 2026-09-30; the sender built, not switched on)
 

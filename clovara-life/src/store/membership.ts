@@ -10,7 +10,7 @@
  * payment-method updates, dunning and retries are then Stripe's flows rather
  * than screens we build and have to keep correct.
  */
-import { FIREBASE_CONFIG } from '../auth/config'
+import { callable } from './callable'
 
 /**
  * What Stripe says about this household, as written by the webhook.
@@ -73,33 +73,19 @@ export function entitlementFrom(raw: unknown): Entitlement {
   }
 }
 
-async function callable(name: string): Promise<string> {
-  const [{ getApps, getApp, initializeApp }, fns] = await Promise.all([
-    import('firebase/app'),
-    import('firebase/functions'),
-  ])
-  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG)
-  const functions = fns.getFunctions(app, 'us-central1')
-  if (import.meta.env.VITE_USE_EMULATORS === '1') {
-    try {
-      fns.connectFunctionsEmulator(functions, '127.0.0.1', 5001)
-    } catch {
-      /* already connected */
-    }
-  }
-  const fn = fns.httpsCallable<unknown, { url?: string }>(functions, name)
-  const res = await fn({})
-  const url = res.data?.url
+/** The two Stripe callables return a hosted page to send the member to. */
+async function hostedUrl(name: string): Promise<string> {
+  const url = (await callable<{ url?: string }>(name))?.url
   if (!url) throw new Error(`${name} returned no url`)
   return url
 }
 
 /** Hosted Checkout. Starts the 7-day trial. */
 export function startTrial(): Promise<string> {
-  return callable('createCheckoutSession')
+  return hostedUrl('createCheckoutSession')
 }
 
 /** Hosted Customer Portal — cancel, pause, change card. */
 export function manageMembership(): Promise<string> {
-  return callable('createPortalSession')
+  return hostedUrl('createPortalSession')
 }
