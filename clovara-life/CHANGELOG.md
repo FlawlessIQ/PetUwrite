@@ -3,7 +3,7 @@
 One section per SPEC phase. Newest first. Behaviour, not commits — the git log
 has the commits.
 
-## Unblocked build (branch `unblocked-build`, 2026-09-30)
+## Unblocked build (deployed with `hosting:life` 2026-09-30 from branch `unblocked-build`; the anonymous-visit endpoint built, not deployed)
 
 - **Review packs.** `npm run review:packs` writes the vet pack, the counsel pack
   and every email with sample data into `docs/review/`, from the code itself, so

@@ -238,8 +238,9 @@ Conor. UB5 (AO13's anonymous ingest) is built and emulator-tested, **not deploye
 the dashboard by source, return rates, campaign links and first-party crash capture. UB8: security
 headers on `hosting:life`. UB9–UB11: a suite that reports every failure, CI for Life, one `callable`.
 UB12: "Download everything about Bruno" in the Health File — the Covenant's wording is unchanged
-and waits on counsel (COUNSEL-PACK C18–C20). Headers and the download go live with the next
-`hosting:life` deploy.
+and waits on counsel (COUNSEL-PACK C18–C20). **Deployed with `hosting:life` 2026-09-30**
+(headers, dashboard, crash capture, the download); all 26 browser checks pass against production, and
+CI's first run is green. `lifeIngest` is still not deployed.
 
 ## The plan
 
